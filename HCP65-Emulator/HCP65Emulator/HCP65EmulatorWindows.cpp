@@ -42,7 +42,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 		//The devices are described by the XML so they are added after it is read.
 		cInput.Init(NULL);
-		cInput.Read("../../../CommonLibraries/WinInputLib/xml");
+		cInput.Read("../../../CommonLibraries/Libraries/WinInputLib/xml");
 		cWinInput.Init(NULL, false);
 		cInput.AddNativeInput(&cWinInput);
 		cNativeFactory.SetRawInput(WinRawInputCallback, cWinInput.GetRaw());

@@ -11,7 +11,7 @@
 
 
 #define TEST_LIBC65_DIRECTORY		".." _FS_ ".." _FS_ ".." _FS_ "Libraries" _FS_ "Libc65"
-#define TEST_LIBC65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ ".." _FS_ "commonlibraries"
+#define TEST_LIBC65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ ".." _FS_ "commonlibraries" _FS_ "Libraries"
 
 
 //The W65C816 runs more instructions for the same C++ (a 16 bit int, soft float in C++ rather than softfloat.asm):

@@ -69,10 +69,10 @@
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\..\CommonLibraries\;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\..\CommonLibraries\;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\..\..\CommonLibraries\;$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\..\CommonLibraries\;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\..\CommonLibraries\Libraries\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LibraryPath>$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86)</LibraryPath>
@@ -255,22 +255,22 @@
     <ClInclude Include="WindowsCOM.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\CommonLibraries\BaseLib\BaseLib.vcxproj">
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
       <Project>{e25d2dac-0e80-42b2-8fa7-99b837cf7588}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\CommonLibraries\InputLib\InputLib.vcxproj">
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\InputLib\InputLib.vcxproj">
       <Project>{2f64aa34-f1cc-43fe-90ee-90e66824ee55}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\CommonLibraries\StandardLib\StandardLib.vcxproj">
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\StandardLib\StandardLib.vcxproj">
       <Project>{2cfa23fa-6565-4744-8b75-9790b21cc0e5}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\CommonLibraries\SupportLib\SupportLib.vcxproj">
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj">
       <Project>{221022f1-b103-456a-8f55-721f33f2e26d}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\CommonLibraries\WindowLib\WindowLib.vcxproj">
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WindowLib\WindowLib.vcxproj">
       <Project>{b5d4c7aa-49ef-45d2-b970-0ab1f1184ae6}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\CommonLibraries\WinGdiLib\WinGdiLib.vcxproj">
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WinGdiLib\WinGdiLib.vcxproj">
       <Project>{d42e3a40-2620-4520-bea0-ce1f3e064e08}</Project>
     </ProjectReference>
   </ItemGroup>

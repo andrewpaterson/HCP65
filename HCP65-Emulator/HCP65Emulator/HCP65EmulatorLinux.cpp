@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 		{
 			//The devices are described by the XML so they are added after it is read.
 			cInput.Init(NULL);
-			cInput.Read("../../../commonlibraries/WinInputLib/xml");
+			cInput.Read("../../../commonlibraries/Libraries/WinInputLib/xml");
 			cX11Input.Init();
 			cInput.AddNativeInput(&cX11Input);
 			cNativeFactory.SetInput(&cX11Input);

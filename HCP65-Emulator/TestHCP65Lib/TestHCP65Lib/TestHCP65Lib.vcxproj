@@ -67,10 +67,10 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\..\..\CommonLibraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\..\..\CommonLibraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\..\..\..\CommonLibraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\..\..\CommonLibraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)..\..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)..\..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)..\..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
+    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)..\..\..\..\CommonLibraries\Libraries\;$(ProjectDir)..\..\..\Libraries\;$(SolutionDir);$(IncludePath)</IncludePath>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
@@ -240,15 +240,15 @@
     <ClInclude Include="HCP65ExeBuilder.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\BaseLib\BaseLib.vcxproj">
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
       <Project>{e25d2dac-0e80-42b2-8fa7-99b837cf7588}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\CppParserLib\CppParserLib.vcxproj">
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\CppParserLib\CppParserLib.vcxproj">
       <Project>{4d010c1e-4dce-4271-9b1c-87bbf0bc761c}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\MicroprocessorLib\MicroprocessorLib.vcxproj">
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\MicroprocessorLib\MicroprocessorLib.vcxproj">
       <Project>{0bf6f66e-80b2-44cf-897c-0f305aaf6af0}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
@@ -256,15 +256,15 @@
       <Project>{785fc14c-ccfc-45f8-bf51-2fd3049cea4a}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\StandardLib\StandardLib.vcxproj">
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\StandardLib\StandardLib.vcxproj">
       <Project>{2cfa23fa-6565-4744-8b75-9790b21cc0e5}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\SupportLib\SupportLib.vcxproj">
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj">
       <Project>{221022f1-b103-456a-8f55-721f33f2e26d}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\TestLib\TestLib.vcxproj">
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\TestLib\TestLib.vcxproj">
       <Project>{d06d265e-a503-42f8-a93a-a0a1c0b058ff}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>

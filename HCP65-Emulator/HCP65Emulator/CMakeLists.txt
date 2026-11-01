@@ -32,7 +32,7 @@ get_filename_component(EMULATOR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 # The emulator is in the HCP65 repository (with Assembler65Lib and Libc65), which is beside CommonLibraries.
 get_filename_component(HCP65_ROOT "${EMULATOR_ROOT}/.." ABSOLUTE)
 get_filename_component(CODAPHELA_ROOT "${HCP65_ROOT}/.." ABSOLUTE)
-set(COMMON_DIR "${CODAPHELA_ROOT}/commonlibraries")
+set(COMMON_DIR "${CODAPHELA_ROOT}/commonlibraries/Libraries")
 set(BASELIB_DIR "${COMMON_DIR}/BaseLib")
 set(STANDARDLIB_DIR "${COMMON_DIR}/StandardLib")
 set(SUPPORTLIB_DIR "${COMMON_DIR}/SupportLib")
