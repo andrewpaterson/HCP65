@@ -10,6 +10,8 @@
 *.cmake         text eol=lf
 CMakeLists.txt  text eol=lf
 .gitattributes  text eol=lf
+# Test input files are compared byte for byte; leave their line endings alone.
+**/Input/**     -text -eol
 *.wrl filter=lfs diff=lfs merge=lfs -text
 *.stp filter=lfs diff=lfs merge=lfs -text
 *.step filter=lfs diff=lfs merge=lfs -text
