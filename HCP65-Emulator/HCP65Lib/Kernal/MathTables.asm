@@ -11,15 +11,15 @@
 		.section rodata.MathMultLow, at 0x400000, keep
 		.global MathMult
 MathMult:
-		.inchex "../../../commonlibraries/Libc65/MathTbls/MULT.HEX", 0xE0000, 0x10000
+		.inchex "../../../Libraries/Libc65/MathTbls/MULT.HEX", 0xE0000, 0x10000
 
 		.section rodata.MathMultHigh, at 0x410000, keep
-		.inchex "../../../commonlibraries/Libc65/MathTbls/MULT.HEX", 0xF0000, 0x10000
+		.inchex "../../../Libraries/Libc65/MathTbls/MULT.HEX", 0xF0000, 0x10000
 
 		.section rodata.MathInvertLow, at 0x420000, keep
 		.global MathInvert
 MathInvert:
-		.inchex "../../../commonlibraries/Libc65/MathTbls/INVERT.HEX", 0x60000, 0x10000
+		.inchex "../../../Libraries/Libc65/MathTbls/INVERT.HEX", 0x60000, 0x10000
 
 		.section rodata.MathInvertHigh, at 0x430000, keep
-		.inchex "../../../commonlibraries/Libc65/MathTbls/INVERT.HEX", 0x70000, 0x10000
+		.inchex "../../../Libraries/Libc65/MathTbls/INVERT.HEX", 0x70000, 0x10000
