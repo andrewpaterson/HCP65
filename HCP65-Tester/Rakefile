@@ -1,0 +1,33 @@
+# Linux build and launch of the HCP65 Tester's window (see CMakeLists.txt).
+#
+#   rake build    configure (first time only) and build
+#   rake run      build, then launch the window
+#   rake clean    delete the build directory
+
+require 'rake/clean'
+
+SOURCE_DIR = __dir__
+BUILD_DIR  = File.expand_path('../../build/HCP65Tester', __dir__)
+EXECUTABLE = File.join(BUILD_DIR, 'HCP65Tester')
+
+# The tester finds Resources/ and WinInputLib's XML relative to this directory.
+RUN_DIR    = File.join(__dir__, 'HCP65Tester')
+
+CLEAN.include(BUILD_DIR)
+
+task default: :build
+
+desc 'Configure (first time only) and build the HCP65 Tester'
+task :build do
+  unless File.exist?(File.join(BUILD_DIR, 'build.ninja'))
+    sh 'cmake', '-S', SOURCE_DIR, '-B', BUILD_DIR, '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Debug'
+  end
+  sh 'cmake', '--build', BUILD_DIR
+end
+
+desc 'Build and launch the HCP65 Tester window'
+task run: :build do
+  Dir.chdir(RUN_DIR) do
+    sh EXECUTABLE
+  end
+end

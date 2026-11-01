@@ -1,0 +1,35 @@
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.suo
+*.sdf
+*.opensdf
+*ipch
+*.swp
+
+# MSBuild output for every project and platform (Win32: Debug/Release, x64: x64/Debug, x64/Release)
+[Dd]ebug/
+[Rr]elease/
+x64/
+
+# Logs written by the emulator, the tester and the tests
+Log.txt
+
+# Files the emulator and the tests write
+/HCP65-Emulator/HCP65Emulator/Output/
+/HCP65-Emulator/TestHCP65Lib/TestHCP65Lib/Output/
+/HCP65-Emulator/TestHCP65Lib/TestHCP65Lib/Post/
+/Tests/TestAssembler65Lib/TestAssembler65Lib/Output/
+/Tests/TestLibc65/TestLibc65/Output/
+/Tests/TestLibc65/TestLibc65/Post/
+
+# KiCad's own files: backups, caches, autosaves, locks and local view settings
+*-backups/
+fp-info-cache
+_autosave-*
+*.lck
+*.bak
+*-bak
+*.kicad_prl
+temp-freerouting.dsn

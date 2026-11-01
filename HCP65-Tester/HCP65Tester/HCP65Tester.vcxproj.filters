@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="HCP65Tester.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="TesterWindowTick.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowsCOM.cpp">
+      <Filter>Source\UART</Filter>
+    </ClCompile>
+    <ClCompile Include="BoardPins.cpp">
+      <Filter>Source\Board</Filter>
+    </ClCompile>
+    <ClCompile Include="UART.cpp">
+      <Filter>Source\UART</Filter>
+    </ClCompile>
+    <ClCompile Include="AddressDecodeBoard.cpp">
+      <Filter>Source\Specific</Filter>
+    </ClCompile>
+    <ClCompile Include="TestBoard.cpp">
+      <Filter>Source\Specific</Filter>
+    </ClCompile>
+    <ClCompile Include="CommonBoard.cpp">
+      <Filter>Source\Specific</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{16236feb-476f-4ffe-96ab-43d880e5625e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\UART">
+      <UniqueIdentifier>{6ba9faf5-fa84-4ac0-93a5-19ebd98ee234}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Board">
+      <UniqueIdentifier>{b17936bc-4e81-476e-8286-42922834f0dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Specific">
+      <UniqueIdentifier>{c04d4f2e-98b3-4b8b-9a59-258c040b8d88}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TesterWindowTick.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsCOM.h">
+      <Filter>Source\UART</Filter>
+    </ClInclude>
+    <ClInclude Include="BoardPins.h">
+      <Filter>Source\Board</Filter>
+    </ClInclude>
+    <ClInclude Include="UART.h">
+      <Filter>Source\UART</Filter>
+    </ClInclude>
+    <ClInclude Include="AddressDecodeBoard.h">
+      <Filter>Source\Specific</Filter>
+    </ClInclude>
+    <ClInclude Include="TestBoard.h">
+      <Filter>Source\Specific</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonBoard.h">
+      <Filter>Source\Specific</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
