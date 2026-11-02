@@ -7,13 +7,14 @@
 #include "StandardLib/Objects.h"
 #include "InputLib/Input.h"
 #include "WinGdiLib/WinGDIWindowFactory.h"
+#include "WinWaveoutLib/WinWaveoutSoundFactory.h"
 #include "WinInputLib/WinInput.h"
 #include "HCP65Emulator.h"
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The emulator on Windows: GDI windows and raw input.
+// The emulator on Windows: GDI windows, raw input and waveOut sound.
 //
 //////////////////////////////////////////////////////////////////////////
 int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
@@ -31,6 +32,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 	{
 		CWinGDIWindowFactory	cNativeFactory;
+		CWinWaveoutSoundFactory	cSoundFactory;
 		CInput					cInput;
 		CWinInput				cWinInput;
 
@@ -39,6 +41,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 			hPrevInstance,
 			nCmdShow,
 			"HCP65Emulator");
+		cSoundFactory.Init(&gcMemoryAllocator);
 
 		//The devices are described by the XML so they are added after it is read.
 		cInput.Init(NULL);
@@ -47,11 +50,12 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 		cInput.AddNativeInput(&cWinInput);
 		cNativeFactory.SetRawInput(WinRawInputCallback, cWinInput.GetRaw());
 
-		bResult = HCP65EmulatorRun(&cNativeFactory, &cInput);
+		bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cInput);
 
 		cNativeFactory.SetRawInput(NULL, NULL);
 		cInput.Kill();
 		cWinInput.Kill();
+		cSoundFactory.Kill();
 		cNativeFactory.Kill();
 	}
 

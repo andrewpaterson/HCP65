@@ -113,6 +113,7 @@ static const char*	gaszAsm65816Mnemonics[ASM65816_MAX_MNEMONICS];
 static int16		gaaiAsm65816Opcodes[ASM65816_MAX_MNEMONICS][A65816M_NumModes];
 static int8			gaiAsm65816MnemonicByKey[ASM65816_MNEMONIC_KEYS];
 static int			giAsm65816Mnemonics = 0;
+static bool			gbAsm65816Indexed = false;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -146,13 +147,19 @@ static int Asm65816MnemonicKey(const char* sz)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Makes the mnemonics' index, if it isn't made already.  Before units are assembled at the same time (it is
+// made when first needed otherwise).
 //
 //////////////////////////////////////////////////////////////////////////
-static void Asm65816BuildIndex(void)
+void CAsm65816Assembler::IndexMnemonics(void)
 {
 	int		i;
 	int		j;
 
+	if (gbAsm65816Indexed)
+	{
+		return;
+	}
 	memset(gaiAsm65816MnemonicByKey, 0xFF, sizeof(gaiAsm65816MnemonicByKey));
 	for (i = 0; i < 256; i++)
 	{
@@ -172,6 +179,7 @@ static void Asm65816BuildIndex(void)
 		}
 		gaaiAsm65816Opcodes[j][gasAsm65816Opcodes[i].uiMode] = (int16)i;
 	}
+	gbAsm65816Indexed = true;
 }
 
 
@@ -184,10 +192,7 @@ static int Asm65816FindMnemonic(SAsm65Token* psToken)
 {
 	int		iKey;
 
-	if (giAsm65816Mnemonics == 0)
-	{
-		Asm65816BuildIndex();
-	}
+	CAsm65816Assembler::IndexMnemonics();
 	if ((psToken->eType != AT65_Identifier) || (psToken->uiLength != 3))
 	{
 		return -1;

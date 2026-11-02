@@ -4,7 +4,7 @@
 #include "WindowLib/Window.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
-#include "HostAudio.h"
+#include "HCP65SoundVoice.h"
 #include "HCP65EmulatorTick.h"
 
 
@@ -12,19 +12,18 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::Init(CHCP65* pcHCP65, CHCP65Audio* pcAudio, CHostAudio* pcHostAudio)
+void CHCP65EmulatorTick::Init(CHCP65* pcHCP65, CHCP65Audio* pcAudio, Ptr<CHCP65SoundVoice> pSoundVoice)
 {
 	PreInit();
 
 	CWindowTick::Init();
 	mpcHCP65 = pcHCP65;
 	mpcAudio = pcAudio;
-	mpcHostAudio = pcHostAudio;
+	mpSoundVoice = pSoundVoice;
 	miStartTime = -1;
 	muiStartCycles = 0;
 	miStopTime = getenv("HCP65_EMULATOR_SECONDS") ? (int64)atoi(getenv("HCP65_EMULATOR_SECONDS")) * 1000 : -1;
 	miReportTime = getenv("HCP65_EMULATOR_TRACE") ? 0 : -1;
-	muiFramesPlayed = 0;
 
 	PostInit();
 }
@@ -39,13 +38,11 @@ void CHCP65EmulatorTick::Class(void)
 	CWindowTick::Class();
 	U_Pointer(mpcHCP65);
 	U_Pointer(mpcAudio);
-	U_Pointer(mpcHostAudio);
+	M_Pointer(mpSoundVoice);
 	U_Int64(miStartTime);
 	U_UInt64(muiStartCycles);
 	U_Int64(miStopTime);
 	U_Int64(miReportTime);
-	U_UInt64(muiFramesPlayed);
-	U_UInt8Array(mauiFrames, HCP65_EMULATOR_AUDIO_FRAMES * 2);
 }
 
 
@@ -68,11 +65,10 @@ void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMilliecon
 	if (mpcHCP65 && !mpcHCP65->IsStopped())
 	{
 		Run(iTotalTimeInMillieconds);
-		PlayAudio();
 	}
 	if (miReportTime >= 0)
 	{
-		Report(iTotalTimeInMillieconds);
+		Report(pWindow, iTotalTimeInMillieconds);
 	}
 	if ((miStopTime >= 0) && (iTotalTimeInMillieconds >= miStopTime))
 	{
@@ -122,55 +118,23 @@ void CHCP65EmulatorTick::Run(int64 iTotalTimeInMillieconds)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// What the sound board played since the last tick, to the host (opened
-// at the board's sample rate, again if it changes).
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::PlayAudio(void)
-{
-	uint32	uiSampleRate;
-	uint32	uiFrames;
-
-	if ((mpcAudio == NULL) || (mpcHostAudio == NULL))
-	{
-		return;
-	}
-
-	uiSampleRate = mpcAudio->GetSampleRate();
-	if ((uiSampleRate != 0) && (uiSampleRate != mpcHostAudio->GetSampleRate()))
-	{
-		mpcHostAudio->Open(uiSampleRate);
-	}
-
-	do
-	{
-		uiFrames = mpcAudio->ReadFrames(mauiFrames, HCP65_EMULATOR_AUDIO_FRAMES);
-		if (uiFrames > 0)
-		{
-			mpcHostAudio->Write(mauiFrames, uiFrames);
-			muiFramesPlayed += uiFrames;
-		}
-	}
-	while (uiFrames == HCP65_EMULATOR_AUDIO_FRAMES);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // HCP65_EMULATOR_TRACE: once a second, how far the HCP65 has got and what
 // it has played.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::Report(int64 iTotalTimeInMillieconds)
+void CHCP65EmulatorTick::Report(Ptr<CWindow> pWindow, int64 iTotalTimeInMillieconds)
 {
+	Ptr<CSoundMixer>	pMixer;
+
 	if (iTotalTimeInMillieconds < miReportTime)
 	{
 		return;
 	}
 	miReportTime = iTotalTimeInMillieconds + 1000;
+	pMixer = pWindow->GetSoundMixer();
 	if (mpcHCP65)
 	{
-		printf("%6.1f s: %llu cycles (%.1f s of HCP65 time), PC $%06X, process $%02X, sound %s at %u Hz, %llu frames played, %llu dropped by the board, %llu by the host\n",
+		printf("%6.1f s: %llu cycles (%.1f s of HCP65 time), PC $%06X, process $%02X, sound %s at %u Hz, %llu frames played, %llu dropped by the board, %llu by the voice (%llu underruns), %llu by the host\n",
 			(double)iTotalTimeInMillieconds / 1000.0,
 			(unsigned long long)mpcHCP65->NumCycles(),
 			(double)mpcHCP65->NumCycles() / (double)mpcHCP65->GetClockRate(),
@@ -178,9 +142,11 @@ void CHCP65EmulatorTick::Report(int64 iTotalTimeInMillieconds)
 			mpcHCP65->GetProcessID(),
 			(mpcAudio && mpcAudio->IsEnabled()) ? "on" : "off",
 			mpcAudio ? mpcAudio->GetSampleRate() : 0,
-			(unsigned long long)muiFramesPlayed,
+			mpSoundVoice.IsNotNull() ? (unsigned long long)mpSoundVoice->NumFramesPlayed() : 0ULL,
 			mpcAudio ? (unsigned long long)mpcAudio->NumDroppedFrames() : 0ULL,
-			mpcHostAudio ? (unsigned long long)mpcHostAudio->NumDroppedFrames() : 0ULL);
+			mpSoundVoice.IsNotNull() ? (unsigned long long)mpSoundVoice->NumDroppedFrames() : 0ULL,
+			mpSoundVoice.IsNotNull() ? (unsigned long long)mpSoundVoice->NumUnderruns() : 0ULL,
+			pMixer.IsNotNull() ? (unsigned long long)pMixer->NumDroppedFrames() : 0ULL);
 		fflush(stdout);
 	}
 }

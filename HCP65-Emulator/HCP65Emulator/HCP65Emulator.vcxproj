@@ -238,14 +238,14 @@
   <ItemGroup>
     <ClCompile Include="HCP65Emulator.cpp" />
     <ClCompile Include="HCP65EmulatorWindows.cpp" />
-    <ClCompile Include="HostAudio_Windows.cpp" />
+    <ClCompile Include="HCP65SoundVoice.cpp" />
     <ClCompile Include="HCP65EmulatorTick.cpp" />
     <ClCompile Include="FileMenuListener.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HCP65Emulator.h" />
     <ClInclude Include="HCP65EmulatorTick.h" />
-    <ClInclude Include="HostAudio.h" />
+    <ClInclude Include="HCP65SoundVoice.h" />
     <ClInclude Include="FileMenuListener.h" />
   </ItemGroup>
   <ItemGroup>
@@ -266,6 +266,9 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WindowLib\WindowLib.vcxproj">
       <Project>{b5d4c7aa-49ef-45d2-b970-0ab1f1184ae6}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WinWaveoutLib\WinWaveoutLib.vcxproj">
+      <Project>{87232af3-6cd2-49fb-b028-7aa7547f99f2}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WinGdiLib\WinGdiLib.vcxproj">
       <Project>{d42e3a40-2620-4520-bea0-ce1f3e064e08}</Project>

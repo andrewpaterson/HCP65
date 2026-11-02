@@ -124,6 +124,8 @@ protected:
 public:
 	void			Init(void);
 
+	static void		IndexMnemonics(void);
+
 protected:
 	bool			Instruction(SAsm65Token* psMnemonic) override;
 	bool			IsRegisterName(SAsm65Token* psToken) override;

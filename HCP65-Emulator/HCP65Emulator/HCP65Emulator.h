@@ -11,10 +11,11 @@
 
 
 class CNativeWindowFactory;
+class CNativeSoundFactory;
 class CInput;
 
 
-bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CInput* pcInput);
+bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CInput* pcInput);
 
 
 #endif // __HCP65_EMULATOR_H__

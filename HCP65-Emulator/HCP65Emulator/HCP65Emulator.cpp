@@ -20,10 +20,11 @@
 #include "WindowLib/MenuBar.h"
 #include "BaseLib/DiskFile.h"
 #include "WindowLib/NativeWindowFactory.h"
+#include "WindowLib/NativeSoundFactory.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
-#include "HostAudio.h"
+#include "HCP65SoundVoice.h"
 #include "HCP65Emulator.h"
 #include "HCP65EmulatorTick.h"
 #include "FileMenuListener.h"
@@ -126,16 +127,17 @@ bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
 //
 // The HCP65 (its kernal ROM, the sound board and an SD card board with
 // Input/SDCard.img) in a window with a menu bar, run by the window's ticks
-// until the window closes.  pcInput has the platform's keyboard and mouse.
+// until the window closes.  The sound board plays through the window's
+// sound mixer.  pcInput has the platform's keyboard and mouse.
 //
 //////////////////////////////////////////////////////////////////////////
-bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CInput* pcInput)
+bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CInput* pcInput)
 {
 	CHCP65						cHCP65;
 	CHCP65Audio					cAudio;
 	CHCP65SDCard				cSDCard;
-	CHostAudio					cHostAudio;
 	Ptr<CWindow>				pWindow;
+	Ptr<CHCP65SoundVoice>		pSoundVoice;
 	Ptr<CHCP65EmulatorTick>		pTick;
 	Ptr<CGridContainer>			pMain;
 	Ptr<CMenuBar>				pMenuBar;
@@ -152,7 +154,6 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CInput* pcInput)
 	cHCP65.Init();
 	cAudio.Init();
 	cSDCard.Init();
-	cHostAudio.Init();
 	bResult = LoadKernal(&cHCP65, HCP65_EMULATOR_KERNAL_ROM);
 	if (!cSDCard.InsertCard(HCP65_EMULATOR_SD_CARD_IMAGE, false))
 	{
@@ -170,9 +171,11 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CInput* pcInput)
 
 		//The window is in the root so that changing pointers into its components doesn't make the objects work out again which
 		//of them are still on the stack.  Its tick is allocated, not on the stack, because stack objects can't be under the root.
-		pTick = OMalloc<CHCP65EmulatorTick>(&cHCP65, &cAudio, &cHostAudio);
-		pWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pTick, OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+		pSoundVoice = OMalloc<CHCP65SoundVoice>(&cAudio);
+		pTick = OMalloc<CHCP65EmulatorTick>(&cHCP65, &cAudio, pSoundVoice);
+		pWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, pTick, OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		ORoot()->Add(pWindow);
+		pWindow->GetSoundMixer()->AddVoice(pSoundVoice);
 
 		//The font is white and coloured as it is drawn.
 		pWhite = GenerateFont("Resources/InterVariable.ttf", "Inter 13px", 13.0f, pWindow->GetColourOrder());
@@ -227,13 +230,13 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CInput* pcInput)
 		ORoot()->Remove(pWindow);
 		pWindow = NULL;
 		pTick = NULL;
+		pSoundVoice = NULL;
 		ORoot()->RemoveAll();
 
 		gcObjects.EnableValidation();
 		gcObjects.ValidateObjectsConsistency();
 	}
 
-	cHostAudio.Kill();
 	cHCP65.Kill();
 	cSDCard.Kill();
 	cAudio.Kill();

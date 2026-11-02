@@ -13,7 +13,7 @@
     <ClCompile Include="HCP65EmulatorWindows.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="HostAudio_Windows.cpp">
+    <ClCompile Include="HCP65SoundVoice.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -27,7 +27,7 @@
     <ClInclude Include="HCP65Emulator.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="HostAudio.h">
+    <ClInclude Include="HCP65SoundVoice.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
