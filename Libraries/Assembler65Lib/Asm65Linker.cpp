@@ -87,6 +87,7 @@ void CAsm65Linker::Init(void)
 	mcGroups.Init(true, true);
 	maszMissing.Init();
 	maiPlacement.Init();
+	muiNumAtPlacements = 0;
 	mcStubs.Init("linker stubs");
 	mapcResidents.Init();
 	masUnits.Init();
@@ -877,6 +878,7 @@ void CAsm65Linker::Layout(void)
 	bool				bFirst;
 
 	LayoutAt();
+	muiNumAtPlacements = maiPlacement.NumElements();
 	uiAddress = mauiAddress[ASK65_Text];
 	for (iKind = 0; iKind < ASK65_NumKinds; iKind++)
 	{
@@ -1035,7 +1037,8 @@ uint64 CAsm65Linker::FlowAddress(uint64 uiAddress, SAsm65Section* psSection)
 			uiAddress = (uiAddress / muiBankSize + 1) * muiBankSize;
 			bMoved = true;
 		}
-		for (k = 0; k < maiPlacement.NumElements(); k++)
+		//Only the sections with an address can be in the way, and LayoutAt placed them first.
+		for (k = 0; k < muiNumAtPlacements; k++)
 		{
 			uiAt = maiPlacement.GetValue(k);
 			psObject = masObjects.Get(ObjectOfSection(uiAt));
@@ -1603,17 +1606,33 @@ void CAsm65Linker::AppendMapSection(size uiObject, size uiSection, bool bPlaced)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The object whose sections include uiSection (an index into masSections).
+// The object whose sections include uiSection (an index into masSections): the last one whose first section is at
+// or before it.  Objects are added in order, so their first sections only go up (objects without sections share
+// the next one's).
 //
 //////////////////////////////////////////////////////////////////////////
 size CAsm65Linker::ObjectOfSection(size uiSection)
 {
-	size	uiObject;
+	size	uiLow;
+	size	uiHigh;
+	size	uiMiddle;
 
-	for (uiObject = masObjects.NumElements() - 1; masObjects.Get(uiObject)->uiFirstSection > uiSection; uiObject--)
+	//The answer is in [uiLow, uiHigh).  Object 0's first section is 0.
+	uiLow = 0;
+	uiHigh = masObjects.NumElements();
+	while (uiHigh - uiLow > 1)
 	{
+		uiMiddle = uiLow + (uiHigh - uiLow) / 2;
+		if (masObjects.Get(uiMiddle)->uiFirstSection <= uiSection)
+		{
+			uiLow = uiMiddle;
+		}
+		else
+		{
+			uiHigh = uiMiddle;
+		}
 	}
-	return uiObject;
+	return uiLow;
 }
 
 

@@ -76,8 +76,10 @@ static int DigitValue(char c, int iBase)
 //////////////////////////////////////////////////////////////////////////
 void CAsm65Tokeniser::Init(CAsm65Errors* pcErrors)
 {
-	mcTokens.Init();
-	mszStrings.Init();
+	mcTokensMalloc.Init(ASM65_TOKENISER_KEEP_SIZE);
+	mcStringsMalloc.Init(ASM65_TOKENISER_KEEP_SIZE);
+	mcTokens.Init(&mcTokensMalloc);
+	mszStrings.Init(&mcStringsMalloc);
 	mpcErrors = pcErrors;
 	mszPos = NULL;
 	muiLine = 1;
@@ -93,6 +95,8 @@ void CAsm65Tokeniser::Kill(void)
 {
 	mszStrings.Kill();
 	mcTokens.Kill();
+	mcStringsMalloc.Kill();
+	mcTokensMalloc.Kill();
 }
 
 
@@ -127,10 +131,10 @@ bool CAsm65Tokeniser::Tokenise(const char* szSource)
 //////////////////////////////////////////////////////////////////////////
 const char* CAsm65Tokeniser::TokeniseLine(const char* szLine, uint32 uiLine, bool* pbResult)
 {
+	//The tokens' and strings' memory is kept (mcTokensMalloc, mcStringsMalloc), so this does not allocate.
 	mcTokens.Kill();
-	mcTokens.Init();
-	mszStrings.Kill();
-	mszStrings.Init();
+	mcTokens.Init(&mcTokensMalloc);
+	mszStrings.Clear();
 	mszPos = szLine;
 	mszLineStart = szLine;
 	muiLine = uiLine;

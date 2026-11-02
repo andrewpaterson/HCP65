@@ -140,6 +140,7 @@ protected:
 	CMapStringTemplate<uint32>				mcGroups;
 	CArrayChars								maszMissing;
 	CArraySize								maiPlacement;
+	size									muiNumAtPlacements;	//The sections with an address (at) are maiPlacement's first ones.
 	CAsm65Object							mcStubs;
 
 	bool									mbLazy;

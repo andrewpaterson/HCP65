@@ -102,11 +102,46 @@ static const SAsm65816Opcode	gasAsm65816Opcodes[256] = {
 };
 
 
+//Every mnemonic is three letters: as a key, five bits a letter (see Asm65816MnemonicKey).
+#define ASM65816_MNEMONIC_KEYS	(32 * 32 * 32)
+
+
 //The mnemonics, and the opcode of each mnemonic in each mode (or -1), made from
-//gasAsm65816Opcodes when first needed.
+//gasAsm65816Opcodes when first needed.  gaiAsm65816MnemonicByKey is each mnemonic's
+//index by its key (or -1).
 static const char*	gaszAsm65816Mnemonics[ASM65816_MAX_MNEMONICS];
 static int16		gaaiAsm65816Opcodes[ASM65816_MAX_MNEMONICS][A65816M_NumModes];
+static int8			gaiAsm65816MnemonicByKey[ASM65816_MNEMONIC_KEYS];
 static int			giAsm65816Mnemonics = 0;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The key of three letters (either case), or -1 if they aren't all letters.
+//
+//////////////////////////////////////////////////////////////////////////
+static int Asm65816MnemonicKey(const char* sz)
+{
+	int		i;
+	int		iKey;
+	char	c;
+
+	iKey = 0;
+	for (i = 0; i < 3; i++)
+	{
+		c = sz[i];
+		if ((c >= 'A') && (c <= 'Z'))
+		{
+			c = (char)(c - 'A' + 'a');
+		}
+		if ((c < 'a') || (c > 'z'))
+		{
+			return -1;
+		}
+		iKey = (iKey << 5) | (c - 'a');
+	}
+	return iKey;
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -118,6 +153,7 @@ static void Asm65816BuildIndex(void)
 	int		i;
 	int		j;
 
+	memset(gaiAsm65816MnemonicByKey, 0xFF, sizeof(gaiAsm65816MnemonicByKey));
 	for (i = 0; i < 256; i++)
 	{
 		for (j = 0; j < giAsm65816Mnemonics; j++)
@@ -131,6 +167,7 @@ static void Asm65816BuildIndex(void)
 		{
 			gaszAsm65816Mnemonics[j] = gasAsm65816Opcodes[i].szMnemonic;
 			memset(gaaiAsm65816Opcodes[j], 0xFF, sizeof(gaaiAsm65816Opcodes[j]));
+			gaiAsm65816MnemonicByKey[Asm65816MnemonicKey(gasAsm65816Opcodes[i].szMnemonic)] = (int8)j;
 			giAsm65816Mnemonics++;
 		}
 		gaaiAsm65816Opcodes[j][gasAsm65816Opcodes[i].uiMode] = (int16)i;
@@ -145,20 +182,22 @@ static void Asm65816BuildIndex(void)
 //////////////////////////////////////////////////////////////////////////
 static int Asm65816FindMnemonic(SAsm65Token* psToken)
 {
-	int		i;
+	int		iKey;
 
 	if (giAsm65816Mnemonics == 0)
 	{
 		Asm65816BuildIndex();
 	}
-	for (i = 0; i < giAsm65816Mnemonics; i++)
+	if ((psToken->eType != AT65_Identifier) || (psToken->uiLength != 3))
 	{
-		if (psToken->IsIdentifierIgnoreCase(gaszAsm65816Mnemonics[i]))
-		{
-			return i;
-		}
+		return -1;
 	}
-	return -1;
+	iKey = Asm65816MnemonicKey(psToken->szText);
+	if (iKey < 0)
+	{
+		return -1;
+	}
+	return gaiAsm65816MnemonicByKey[iKey];
 }
 
 

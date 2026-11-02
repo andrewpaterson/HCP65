@@ -22,11 +22,15 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define __ASM65_TOKENISER_H__
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/Chars.h"
+#include "BaseLib/ReuseAllocator.h"
 #include "Asm65Token.h"
 #include "Asm65Errors.h"
 
 
 typedef CArrayTemplate<SAsm65Token>	CArrayAsm65Tokens;
+
+
+#define ASM65_TOKENISER_KEEP_SIZE	0x10000		//Tokens' or strings' memory bigger than this is not kept for the next line.
 
 
 //Splits source text into identifiers, numbers, strings, punctuators and new lines.
@@ -41,6 +45,8 @@ class CAsm65Tokeniser
 protected:
 	CArrayAsm65Tokens	mcTokens;
 	CChars				mszStrings;
+	CReuseAllocator		mcTokensMalloc;		//mcTokens' and mszStrings' memory, kept from one line to the next.
+	CReuseAllocator		mcStringsMalloc;
 	CAsm65Errors*		mpcErrors;
 
 	const char*			mszPos;
