@@ -33,7 +33,6 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 	{
 		CWinGDIWindowFactory	cNativeFactory;
 		CWinWaveoutSoundFactory	cSoundFactory;
-		CInput					cInput;
 		CWinInput				cWinInput;
 
 		cNativeFactory.Init(&gcMemoryAllocator,
@@ -43,17 +42,13 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 			"HCP65Emulator");
 		cSoundFactory.Init(&gcMemoryAllocator);
 
-		//The devices are described by the XML so they are added after it is read.
-		cInput.Init(NULL);
-		cInput.Read("../../../CommonLibraries/Libraries/WinInputLib/xml");
+		//The emulator's input reads the devices from the XML, then adds these.
 		cWinInput.Init(NULL, false);
-		cInput.AddNativeInput(&cWinInput);
 		cNativeFactory.SetRawInput(WinRawInputCallback, cWinInput.GetRaw());
 
-		bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cInput);
+		bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml");
 
 		cNativeFactory.SetRawInput(NULL, NULL);
-		cInput.Kill();
 		cWinInput.Kill();
 		cSoundFactory.Kill();
 		cNativeFactory.Kill();

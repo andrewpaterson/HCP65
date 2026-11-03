@@ -32,24 +32,19 @@ int main(int argc, char* argv[])
 	{
 		CX11WindowFactory		cNativeFactory;
 		CPulseAudioSoundFactory	cSoundFactory;
-		CInput					cInput;
 		CX11Input				cX11Input;
 
 		bResult = cNativeFactory.Init(&gcMemoryAllocator, NULL);
 		cSoundFactory.Init(&gcMemoryAllocator);
 		if (bResult)
 		{
-			//The devices are described by the XML so they are added after it is read.
-			cInput.Init(NULL);
-			cInput.Read("../../../commonlibraries/Libraries/WinInputLib/xml");
+			//The emulator's input reads the devices from the XML, then adds these.
 			cX11Input.Init();
-			cInput.AddNativeInput(&cX11Input);
 			cNativeFactory.SetInput(&cX11Input);
 
-			bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cInput);
+			bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cX11Input, "../../../commonlibraries/Libraries/WinInputLib/xml");
 
 			cNativeFactory.SetInput(NULL);
-			cInput.Kill();
 			cX11Input.Kill();
 		}
 		cSoundFactory.Kill();

@@ -125,122 +125,188 @@ bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The HCP65 (its kernal ROM, the sound board and an SD card board with
-// HCP65_EMULATOR_SD_CARD_IMAGE) in a window with a menu bar, run by the window's ticks
-// until the window closes.  The sound board plays through the window's
-// sound mixer.  pcInput has the platform's keyboard and mouse.
+// The machine and its window.  The devices are described by the XML in
+// szInputDirectory; pcNativeInput (the platform's keyboard and mouse) is
+// added to them.  Run fails if anything here did.
 //
 //////////////////////////////////////////////////////////////////////////
-bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CInput* pcInput)
+void CHCP65EmulatorApp::Init(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
 {
-	CHCP65						cHCP65;
-	CHCP65Audio					cAudio;
-	CHCP65SDCard				cSDCard;
-	Ptr<CWindow>				pWindow;
-	Ptr<CHCP65SoundVoice>		pSoundVoice;
-	Ptr<CHCP65EmulatorTick>		pTick;
-	Ptr<CGridContainer>			pMain;
-	Ptr<CMenuBar>				pMenuBar;
-	Ptr<CMenuContainer>			pFileMenu;
-	Ptr<CCanvas>				pScreen;
-	CFileMenuListener			cFileMenuListener;
-	Ptr<CWindowTheme>			pTheme;
-	Ptr<CFont>					pWhite;
-	Ptr<CFontColours>			pFontColours;
-	Ptr<CWindowInputSource>		pInputSource;
-	CComponentInput				cComponentInput;
-	bool						bResult;
+	Ptr<CHCP65SoundVoice>	pSoundVoice;
+	Ptr<CMenuContainer>		pFileMenu;
+	Ptr<CCanvas>			pScreen;
+	Ptr<CGridContainer>		pMain;
+	Ptr<CWindowTheme>		pTheme;
+	Ptr<CFont>				pWhite;
+	Ptr<CFontColours>		pFontColours;
 
-	cHCP65.Init();
-	cAudio.Init();
-	cSDCard.Init();
-	bResult = LoadKernal(&cHCP65, HCP65_EMULATOR_KERNAL_ROM);
-	if (!cSDCard.InsertCard(HCP65_EMULATOR_SD_CARD_IMAGE, false))
+	PreInit();
+
+	mcHCP65.Init();
+	mcAudio.Init();
+	mcSDCard.Init();
+	mbInputs = false;
+	mbValid = LoadKernal(&mcHCP65, HCP65_EMULATOR_KERNAL_ROM);
+	if (!mcSDCard.InsertCard(HCP65_EMULATOR_SD_CARD_IMAGE, false))
 	{
 		gcLogger.Error2(__METHOD__, " Could not insert the SD card [", HCP65_EMULATOR_SD_CARD_IMAGE, "].", NULL);
-		bResult = false;
+		mbValid = false;
 	}
-	cHCP65.SetDevice(HCP65_EMULATOR_SD_SOCKET, &cSDCard);
-	cHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &cAudio);
-	cHCP65.Reset();
+	mcHCP65.SetDevice(HCP65_EMULATOR_SD_SOCKET, &mcSDCard);
+	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
+	mcHCP65.Reset();
 
-	if (bResult)
+	if (mbValid)
 	{
-		//Validating every object each time one changes is too slow for the text's glyphs.  They are validated once at the end.
-		gcObjects.DisableValidation();
-
-		//The window is in the root so that changing pointers into its components doesn't make the objects work out again which
-		//of them are still on the stack.  Its tick is allocated, not on the stack, because stack objects can't be under the root.
-		pSoundVoice = OMalloc<CHCP65SoundVoice>(&cAudio);
-		pTick = OMalloc<CHCP65EmulatorTick>(&cHCP65, &cAudio, pSoundVoice);
-		pWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, pTick, OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
-		ORoot()->Add(pWindow);
-		pWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
-		pWindow->GetSoundMixer()->AddVoice(pSoundVoice);
+		pSoundVoice = OMalloc<CHCP65SoundVoice>(&mcAudio);
+		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+		mpWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
+		mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
 
 		//The font is white and coloured as it is drawn.
-		pWhite = GenerateFont("Resources/InterVariable.ttf", "Inter 13px", 13.0f, pWindow->GetColourOrder());
-		if (pWhite.IsNotNull())
-		{
-			pFontColours = OMalloc<CFontColours>(pWhite);
-			pTheme = CJewelTheme::CreateDarkTheme(pWindow, pFontColours->GetFont(JEWEL_TEXT));
-
-			//The menu bar along the top over the HCP65's screen, which is only a blank canvas so far.
-			pMenuBar = OMalloc<CMenuBar>(pWindow, pTheme);
-			pMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
-			pFileMenu = OMalloc<CMenuContainer>(pWindow, pTheme);
-			pMenuBar->AddMenu("File", pFileMenu);
-			pScreen = OMalloc<CCanvas>(pWindow, OMalloc<CClearCanvasDraw>(JEWEL_EDITOR));
-			pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
-			pMain = OMalloc<CGridContainer>(pWindow);
-			pMain->AddComponent(pMenuBar, 0, 0, 1, 1, 1, 0);
-			pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
-			pWindow->SetContainer(pMain);
-
-			cFileMenuListener.Init(pWindow, pFileMenu);
-			pMenuBar->AddListener(&cFileMenuListener);
-
-			pInputSource = OMalloc<CWindowInputSource>(pcInput);
-			cComponentInput.Init(&pInputSource, &pWindow);
-			cComponentInput.AddKeyboards();
-			cComponentInput.AddMice();
-			pWindow->SetComponentInput(&cComponentInput);
-
-			pWindow->SetWindowSize(1280, 800);
-			pWindow->Show();
-
-			pMenuBar->RemoveListener(&cFileMenuListener);
-			cFileMenuListener.Kill();
-
-			pWindow->SetComponentInput(NULL);
-			cComponentInput.Kill();
-			pInputSource = NULL;
-		}
-		else
-		{
-			bResult = false;
-		}
-
-		pScreen = NULL;
-		pFileMenu = NULL;
-		pMenuBar = NULL;
-		pMain = NULL;
-		pTheme = NULL;
-		pFontColours = NULL;
-		pWhite = NULL;
-		ORoot()->Remove(pWindow);
-		pWindow = NULL;
-		pTick = NULL;
-		pSoundVoice = NULL;
-		ORoot()->RemoveAll();
-
-		gcObjects.EnableValidation();
-		gcObjects.ValidateObjectsConsistency();
+		pWhite = GenerateFont("Resources/InterVariable.ttf", "Inter 13px", 13.0f, mpWindow->GetColourOrder());
+		mbValid = pWhite.IsNotNull();
 	}
 
-	cHCP65.Kill();
-	cSDCard.Kill();
-	cAudio.Kill();
+	if (mbValid)
+	{
+		pFontColours = OMalloc<CFontColours>(pWhite);
+		pTheme = CJewelTheme::CreateDarkTheme(mpWindow, pFontColours->GetFont(JEWEL_TEXT));
+
+		//The menu bar along the top over the HCP65's screen, which is only a blank canvas so far.
+		mpMenuBar = OMalloc<CMenuBar>(mpWindow, pTheme);
+		mpMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
+		pFileMenu = OMalloc<CMenuContainer>(mpWindow, pTheme);
+		mpMenuBar->AddMenu("File", pFileMenu);
+		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(JEWEL_EDITOR));
+		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
+		pMain = OMalloc<CGridContainer>(mpWindow);
+		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
+		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
+		mpWindow->SetContainer(pMain);
+
+		mcFileMenuListener.Init(mpWindow, pFileMenu);
+		mpMenuBar->AddListener(&mcFileMenuListener);
+
+		mpInput = OMalloc<CInput>((CNativeInput*)NULL);
+		mbValid = mpInput->Read((char*)szInputDirectory);
+		mpInput->AddNativeInput(pcNativeInput);
+		mpInputSource = OMalloc<CWindowInputSource>(mpInput);
+		mcComponentInput.Init(&mpInputSource, &mpWindow);
+		mbInputs = true;
+		mcComponentInput.AddKeyboards();
+		mcComponentInput.AddMice();
+		mpWindow->SetComponentInput(&mcComponentInput);
+		mpWindow->SetWindowSize(1280, 800);
+	}
+
+	PostInit();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::Class(void)
+{
+	U_Data(CHCP65, mcHCP65);
+	U_Data(CHCP65Audio, mcAudio);
+	U_Data(CHCP65SDCard, mcSDCard);
+	M_Pointer(mpWindow);
+	M_Pointer(mpMenuBar);
+	U_Data(CFileMenuListener, mcFileMenuListener);
+	M_Pointer(mpInput);
+	M_Pointer(mpInputSource);
+	U_Data(CComponentInput, mcComponentInput);
+	U_Bool(mbValid);
+	U_Bool(mbInputs);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Only this object's own members: the window, the menu bar and the input
+// may already be freed (Run let go of them).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::Free(void)
+{
+	if (mbInputs)
+	{
+		mcFileMenuListener.RemoveFromListenerCalls();
+		mcFileMenuListener.Kill();
+		mcComponentInput.Kill();
+	}
+	mcHCP65.Kill();
+	mcSDCard.Kill();
+	mcAudio.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorApp::Save(CObjectWriter* pcFile)
+{
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorApp::Load(CObjectReader* pcFile)
+{
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Runs the window's ticks until the window closes (if Init worked), then
+// takes the menu bar's listener and the component input out of the window.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorApp::Run(void)
+{
+	if (mbValid)
+	{
+		mpWindow->Show();
+	}
+
+	if (mbInputs)
+	{
+		mpMenuBar->RemoveListener(&mcFileMenuListener);
+		mpWindow->SetComponentInput(NULL);
+	}
+	return mbValid;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The emulator, held by the root while it runs.
+//
+//////////////////////////////////////////////////////////////////////////
+bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
+{
+	Ptr<CHCP65EmulatorApp>	pApp;
+	bool					bResult;
+
+	//Validating every object each time one changes is too slow for the text's glyphs.  They are validated once at the end.
+	gcObjects.DisableValidation();
+
+	pApp = OMalloc<CHCP65EmulatorApp>(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory);
+	ORoot()->Add(pApp);
+	bResult = pApp->Run();
+	ORoot()->Remove(pApp);
+	pApp = NULL;
+
+	gcObjects.EnableValidation();
+	gcObjects.ValidateObjectsConsistency();
 	return bResult;
 }
 
