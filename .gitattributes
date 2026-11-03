@@ -18,3 +18,4 @@ CMakeLists.txt  text eol=lf
 *.WRL filter=lfs diff=lfs merge=lfs -text
 *.STP filter=lfs diff=lfs merge=lfs -text
 *.STEP filter=lfs diff=lfs merge=lfs -text
+HCP65-Emulator/HCP65Emulator/Input/SDCard.img filter=lfs diff=lfs merge=lfs -text
