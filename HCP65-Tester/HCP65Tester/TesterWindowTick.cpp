@@ -20,5 +20,4 @@ void CTesterWindowTick::Init(void)
 //////////////////////////////////////////////////////////////////////////
 void CTesterWindowTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMillieconds, int64 iTotalTimeInMillieconds)
 {
-	pWindow->Paint();
 }

@@ -8,33 +8,103 @@
 ; string816_16.asm has memcpy16 and the like, with 16 bit counts, for BaseLib's natural arrays.
 ; The bit array finders (with lsize counts) and the tables they share with string816_16.asm's are at the end.
 ; The code changes itself, so it isn't reentrant: an interrupt handler mustn't call these.
-; The calling convention is the compiler's (IR816Backend.h): arguments are pushed last first
-; (pointers and size_t 4 bytes, int 2), A and X are 16 bits wide on the way in and out, the
-; result is in A (low) and X (high), D and the data bank are kept and A, X and Y change.
-; Each function (but memset within one bank, which reads its arguments from S) pushes the data
-; bank, 14 bytes of locals and D, and points D at the stack:
+; The calling convention is the compiler's register arguments (IR816Backend.h, W65C816.txt):
+; the C functions here take the first argument (a pointer) in A (low) and X (high) and an int
+; after it in Y, the rest pushed last first (pointers and size_t 4 bytes, int 2); A and X are 16
+; bits wide on the way in and out, the result is in A (low) and X (high), D and the data bank
+; are kept and A, X and Y change.  The register entries are name.ax and name.axy (the
+; suffix says which registers); the plain names are stack entries (function pointers,
+; assembly) that load the registers and call them.  Each function (but memset within one bank,
+; which works from S) pushes Y, X and A, the data bank, 14 bytes of locals and D, and points D
+; at the stack:
 ;	D + 1		the caller's D
 ;	D + 3		Count: the bytes of this move less 1
 ;	D + 5		Dst: the destination (memmove down: its last byte)
 ;	D + 9		Src: the source (memmove down: its last byte)
 ;	D + 13		Bytes: the bytes left
 ;	D + 17		the caller's data bank
-;	D + 18		the return address
-;	D + 21		the arguments: the destination first
+;	D + 18		Argument: the destination (A and X), then memset's value (Y)
+;	D + 24		the return address
+;	D + 27		the pushed arguments: memcpy's and memmove's source, then the size; memset's size
 
 Count		= 3
 Dst			= 5
 Src			= 9
 Bytes		= 13
-Argument	= 21
+Argument	= 18
+SetValue	= 22
+Pushed		= 27
 
 
 		.section text.MemMove816
-		.global _memcpy, _memmove, _memset
+		.global _memcpy, _memmove, _memset, _memcpy.ax, _memmove.ax, _memset.axy
 
-; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
 _memcpy:
 		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _memcpy.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_memmove:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _memmove.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_memset:
+		.width (A, X), 16
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		tay
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _memset.axy
+		ply
+		ply
+		rtl
+
+; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
+_memcpy.ax:
+		.width (A, X), 16
+		phy
+		phx
+		pha
 		phb
 		pea 0
 		pea 0
@@ -51,8 +121,11 @@ _memcpy:
 
 ; void* memmove(void* pvDest, const void* pvSource, size_t uiBytes): up unless the destination
 ; is above the source and in it.
-_memmove:
+_memmove.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		phb
 		pea 0
 		pea 0
@@ -98,26 +171,29 @@ ToUp:
 ; byte twice in a word stored 16 bytes at a time (sta [n + Y], about 4 cycles a byte), then
 ; the words and the byte left; otherwise (or for 0 bytes) the first byte, then each from the
 ; one before.
-_memset:
+_memset.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		lda [S + 12]
 		bne MemsetMove
 		lda [S + 10]
 		beq MemsetMove
 		clc
-		adc [S + 4]
+		adc [S + 1]
 		bcs MemsetMove
 		phb
 		sep m
-		lda [S + 7]
+		lda [S + 4]
 		pha
 		plb
-		lda [S + 9]
+		lda [S + 6]
 		xba
-		lda [S + 9]
+		lda [S + 6]
 		rep m
 		pha
-		lda [S + 7]
+		lda [S + 4]
 		tay
 		lda [S + 13]
 		lsr A
@@ -172,9 +248,9 @@ MemsetDone:
 		.width (A, X), 16
 		ply
 		plb
-		lda [S + 6]
-		tax
-		lda [S + 4]
+		pla
+		plx
+		ply
 		rtl
 MemsetMove:
 		.width (A, X), 16
@@ -189,14 +265,14 @@ MemsetMove:
 		phd
 		tsc
 		tcd
-		lda [D + Argument + 6]
-		ora [D + Argument + 8]
+		lda [D + Pushed]
+		ora [D + Pushed + 2]
 		bne Set
 		brl Exit
 Set:
 		.width (A, X), 16
 		sep m
-		lda [D + Argument + 4]
+		lda [D + SetValue]
 		sta [[D + Argument]:24]
 		rep m
 		lda [D + Argument]
@@ -209,10 +285,10 @@ Set:
 		adc 0
 		sta [D + Dst + 2]
 		sec
-		lda [D + Argument + 6]
+		lda [D + Pushed]
 		sbc 1
 		sta [D + Bytes]
-		lda [D + Argument + 8]
+		lda [D + Pushed + 2]
 		sbc 0
 		sta [D + Bytes + 2]
 
@@ -280,6 +356,9 @@ Exit:
 		ply
 		ply
 		plb
+		ply
+		ply
+		ply
 		rtl
 
 ; Moves down from the ends while there are bytes left, as many as the source's and the
@@ -365,13 +444,13 @@ Arguments:
 		sta [D + Dst]
 		lda [D + Argument + 2]
 		sta [D + Dst + 2]
-		lda [D + Argument + 4]
+		lda [D + Pushed]
 		sta [D + Src]
-		lda [D + Argument + 6]
+		lda [D + Pushed + 2]
 		sta [D + Src + 2]
-		lda [D + Argument + 8]
+		lda [D + Pushed + 4]
 		sta [D + Bytes]
-		lda [D + Argument + 10]
+		lda [D + Pushed + 6]
 		sta [D + Bytes + 2]
 		rts
 
@@ -405,27 +484,209 @@ Moved:
 
 ; The other string functions (string.cpp keeps strstr, which uses these), a byte at a time
 ; through the 24 bit pointers ([[D + n]:24 + Y]; memcmp a word at a time).  When Y wraps
-; past 65535 the pointers' banks are moved on.  Each function pushes 6 bytes of locals and
-; D, and points D at the stack:
+; past 65535 the pointers' banks are moved on.  Each function (name.ax or name.axy: the first
+; argument in A and X, an int after it in Y) pushes Y, X and A, 6 bytes of locals and D, and
+; points D at the stack:
 ;	D + 1		the caller's D
 ;	D + 3		Hi: a size_t count's high word (X is its low word)
 ;	D + 5		Save: the destination to return, or what is being worked out
-;	D + 9		the return address
-;	D + 12		the arguments: the first, then the second at D + 16
+;	D + 9		First: the first argument (A and X)
+;	D + 13		IntArg: memchr's, strchr's and strrchr's int (Y)
+;	D + 15		the return address
+;	D + 18		the pushed arguments: Second (the second pointer, then a size_t), or memchr's size
 
 Hi			= 3
 Save		= 5
-First		= 12
-Second		= 16
+First		= 9
+IntArg		= 13
+Second		= 18
+SizeArg		= 18
 
 
 		.section text.String816
 		.global _memcmp, _memchr, _strlen, _strcpy, _strncpy, _strcat, _strncat
 		.global _strcmp, _strncmp, _strchr, _strrchr
+		.global _memcmp.ax, _memchr.axy, _strlen.ax, _strcpy.ax, _strncpy.ax, _strcat.ax, _strncat.ax
+		.global _strcmp.ax, _strncmp.ax, _strchr.axy, _strrchr.axy
 
-; size_t strlen(const char* sz): A the low word, X the high.
+; The stack entries.
 _strlen:
 		.width (A, X), 16
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _strlen.ax
+
+_strcpy:
+		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _strcpy.ax
+		ply
+		ply
+		rtl
+
+_strcat:
+		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _strcat.ax
+		ply
+		ply
+		rtl
+
+_strncpy:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _strncpy.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_strncat:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _strncat.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_strcmp:
+		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _strcmp.ax
+		ply
+		ply
+		rtl
+
+_strncmp:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _strncmp.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_memcmp:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _memcmp.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_memchr:
+		.width (A, X), 16
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		tay
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _memchr.axy
+		ply
+		ply
+		rtl
+
+_strchr:
+		.width (A, X), 16
+		lda [S + 8]
+		tay
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _strchr.axy
+
+_strrchr:
+		.width (A, X), 16
+		lda [S + 8]
+		tay
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _strrchr.axy
+
+; size_t strlen(const char* sz): A the low word, X the high.
+_strlen.ax:
+		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -451,14 +712,20 @@ StrlenEnd:
 		rep m
 		tya
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 
 ; char* strcpy(char* szDest, const char* szSource)
-_strcpy:
+_strcpy.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -471,8 +738,11 @@ _strcpy:
 		brl CopyString
 
 ; char* strcat(char* szDest, const char* szSource): strcpy to the destination's end.
-_strcat:
+_strcat.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -485,8 +755,11 @@ _strcat:
 
 ; char* strncpy(char* szDest, const char* szSource, size_t uiChars): the source's characters,
 ; then zeros, uiChars in all.
-_strncpy:
+_strncpy.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -545,8 +818,11 @@ StrncpyEnd:
 
 ; char* strncat(char* szDest, const char* szSource, size_t uiChars): at most uiChars of the
 ; source at the destination's end, then a zero.
-_strncat:
+_strncat.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -606,14 +882,20 @@ ReturnSaved:
 		lda [D + Save]
 		ldx [D + Save + 2]
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 
 ; int strcmp(const char* sz1, const char* sz2)
-_strcmp:
+_strcmp.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -637,8 +919,11 @@ StrcmpChar:
 		bra StrcmpChar
 
 ; int strncmp(const char* sz1, const char* sz2, size_t uiChars)
-_strncmp:
+_strncmp.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -679,9 +964,12 @@ Same:
 		rep m
 		lda 0
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 
 ; The result of a compare that found two bytes that differ at Y: the first's (in A, 8 bits
@@ -699,16 +987,22 @@ Difference:
 		sec
 		sbc [D + Save + 2]
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 
 ; int memcmp(const void* pv1, const void* pv2, size_t uiBytes): words while there are two
 ; bytes left, then the byte left; the bytes of a word that differs are compared first to
 ; last.  One byte (CNumber compares a digit at a time) is compared straight away.
-_memcmp:
+_memcmp.ax:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -777,9 +1071,12 @@ MemcmpSame:
 		rep m
 		lda 0
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 MemcmpDifference:
 		.width A, 8
@@ -787,16 +1084,19 @@ MemcmpDifference:
 		brl Difference
 
 ; void* memchr(const void* pv, int iValue, size_t uiBytes): iValue as an unsigned char.
-_memchr:
+_memchr.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
 		phd
 		tsc
 		tcd
-		ldx [D + Second + 2]
-		lda [D + Second + 4]
+		ldx [D + SizeArg]
+		lda [D + SizeArg + 2]
 		sta [D + Hi]
 		sep m
 		ldy 0
@@ -812,7 +1112,7 @@ MemchrHave:
 		.width X, 16
 		dex
 		lda [[D + First]:24 + Y]
-		cmp [D + Second]
+		cmp [D + IntArg]
 		beq Found
 		iny
 		bne MemchrByte
@@ -820,8 +1120,11 @@ MemchrHave:
 		bra MemchrByte
 
 ; char* strchr(const char* sz, int c): c as a char, the zero at the end included.
-_strchr:
+_strchr.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -834,7 +1137,7 @@ StrchrChar:
 		.width A, 8
 		.width X, 16
 		lda [[D + First]:24 + Y]
-		cmp [D + Second]
+		cmp [D + IntArg]
 		beq Found
 		cmp 0
 		beq NotFound
@@ -857,9 +1160,12 @@ Found:
 		tax
 		lda [D + First]
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 
 ; NULL (A 8 bits wide).
@@ -870,14 +1176,20 @@ NotFound:
 		lda 0
 		ldx 0
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
 		rtl
 
 ; char* strrchr(const char* sz, int c): the last c, Save is where it is (NULL until found).
-_strrchr:
+_strrchr.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -890,7 +1202,7 @@ StrrchrChar:
 		.width A, 8
 		.width X, 16
 		lda [[D + First]:24 + Y]
-		cmp [D + Second]
+		cmp [D + IntArg]
 		bne StrrchrOther
 		rep m
 		tya

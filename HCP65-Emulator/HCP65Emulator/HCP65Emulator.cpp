@@ -175,6 +175,7 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 		pTick = OMalloc<CHCP65EmulatorTick>(&cHCP65, &cAudio, pSoundVoice);
 		pWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, pTick, OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		ORoot()->Add(pWindow);
+		pWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
 		pWindow->GetSoundMixer()->AddVoice(pSoundVoice);
 
 		//The font is white and coloured as it is drawn.

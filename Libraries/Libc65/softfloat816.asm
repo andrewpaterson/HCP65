@@ -22,6 +22,8 @@
 ;	SavedS + 1			the caller's D
 ;	SavedS + 3			the return address
 ;	D + ArgOff ...		the arguments (the hidden pointer first)
+; The compiler calls the frame operand entries (name.dp, below) instead: the operands stay in its
+; frame and a 64 bit result is written there.
 
 ; The two operands, unpacked: Sign ($8000 or 0), Class, Exponent (the power of two of the
 ; significand's lowest bit, signed) and the 64 bit significand.  Side B is 14 bytes after side A,
@@ -58,7 +60,10 @@ ArgOff		= 133		; the arguments' offset from D (they are 6 bytes above SavedS)
 ResultPtr	= 135		; the hidden result pointer, copied to the direct page to write through
 Ptr1		= 138		; divide: MathMult + r1 * 512, the row of products of the reciprocal's middle byte
 BPtr		= 142		; multiply and divide: MathMult + b * 512 for each byte b of SigB (7 24 bit pointers)
-Locals		= 170
+AAddr		= 170		; a frame operand entry's a and b (bank 0 addresses: FramedDP)
+BAddr		= 172
+ArgArea		= 174		; 12 bytes: a frame operand entry's argument as a stack entry's (CopyArgDP)
+Locals		= 186
 
 SoftZero	= 0
 SoftFinite	= 1
@@ -76,6 +81,9 @@ SoftNaN		= 3
 		.global _SoftDoubleFromInt, _SoftDoubleFromUnsigned, _SoftDoubleFromLongLong, _SoftDoubleFromUnsignedLongLong
 		.global _SoftDoubleToInt, _SoftDoubleToUnsigned, _SoftDoubleToLongLong, _SoftDoubleToUnsignedLongLong
 		.global _SoftDoubleSqrt
+		.global _SoftFloatAdd.dp, _SoftFloatSubtract.dp, _SoftFloatMultiply.dp, _SoftFloatDivide.dp, _SoftFloatCompare.dp, _SoftFloatSqrt.dp, _SoftFloatFromInt.dp, _SoftFloatFromUnsigned.dp, _SoftFloatFromLongLong.dp, _SoftFloatFromUnsignedLongLong.dp
+		.global _SoftFloatToInt.dp, _SoftFloatToUnsigned.dp, _SoftFloatToLongLong.dp, _SoftFloatToUnsignedLongLong.dp, _SoftFloatToDouble.dp, _SoftDoubleToFloat.dp, _SoftDoubleAdd.dp, _SoftDoubleSubtract.dp, _SoftDoubleMultiply.dp, _SoftDoubleDivide.dp
+		.global _SoftDoubleCompare.dp, _SoftDoubleSqrt.dp, _SoftDoubleFromInt.dp, _SoftDoubleFromUnsigned.dp, _SoftDoubleFromLongLong.dp, _SoftDoubleFromUnsignedLongLong.dp, _SoftDoubleToInt.dp, _SoftDoubleToUnsigned.dp, _SoftDoubleToLongLong.dp, _SoftDoubleToUnsignedLongLong.dp
 
 
 ;-----------------------------------------------------------------------------------------------
@@ -615,6 +623,592 @@ _SoftDoubleToUnsignedLongLong:
 
 
 ;-----------------------------------------------------------------------------------------------
+; The frame operand entries (name.dp) the compiler's float instructions call (CIR816Backend::
+; FrameOperandCall): the operands stay in the caller's frame, X and Y their places (from the
+; caller's D: a, then b), and a 64 bit result's place is in A; the result is written there (or
+; returned in A, and X, as above).  Nothing is pushed by the caller or removed after.  Each pushes
+; D and the three places, makes its frame as the others do, and FramedDP turns the places into
+; bank 0 addresses.
+
+_SoftFloatAdd.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		stz [D + Subtract]
+		jsr SetFloat32
+		jsr LoadFloatsDP
+		jmp AddOp
+
+_SoftFloatSubtract.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		lda 1
+		sta [D + Subtract]
+		jsr SetFloat32
+		jsr LoadFloatsDP
+		jmp AddOp
+
+_SoftFloatMultiply.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr LoadFloatsDP
+		jmp MultiplyOp
+
+_SoftFloatDivide.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr LoadFloatsDP
+		jmp DivideOp
+
+_SoftFloatCompare.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		lda 2
+		sta [D + Return]
+		jsr LoadFloatsDP
+		jmp CompareOp
+
+_SoftFloatSqrt.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr LoadFloatADP
+		jmp SqrtOp
+
+_SoftFloatFromInt.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr CopyArgDP
+		ldx 4
+		jmp FromInt32Op
+
+_SoftFloatFromUnsigned.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr CopyArgDP
+		ldx 4
+		jmp FromUnsigned32Op
+
+_SoftFloatFromLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr CopyArgDP
+		ldx 4
+		jmp FromInt64Op
+
+_SoftFloatFromUnsignedLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr CopyArgDP
+		ldx 4
+		jmp FromUnsigned64Op
+
+_SoftFloatToInt.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr LoadFloatADP
+		lda 32
+		ldx 1
+		jmp ToIntegerOp
+
+_SoftFloatToUnsigned.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat32
+		jsr LoadFloatADP
+		lda 32
+		ldx 0
+		jmp ToIntegerOp
+
+_SoftFloatToLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat64
+		jsr LoadFloatADP
+		jsr SetFormatFloat
+		lda 64
+		ldx 1
+		jmp ToIntegerOp
+
+_SoftFloatToUnsignedLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat64
+		jsr LoadFloatADP
+		jsr SetFormatFloat
+		lda 64
+		ldx 0
+		jmp ToIntegerOp
+
+_SoftFloatToDouble.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetFloat64
+		jsr LoadFloatADP
+		jsr SetFormatFloat
+		jmp FloatToDoubleOp
+
+_SoftDoubleToFloat.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble32
+		jsr LoadDoubleADP
+		jmp DoubleToFloatOp
+
+_SoftDoubleAdd.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		stz [D + Subtract]
+		jsr SetDouble64
+		jsr LoadDoublesDP
+		jmp AddOp
+
+_SoftDoubleSubtract.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		lda 1
+		sta [D + Subtract]
+		jsr SetDouble64
+		jsr LoadDoublesDP
+		jmp AddOp
+
+_SoftDoubleMultiply.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr LoadDoublesDP
+		jmp MultiplyOp
+
+_SoftDoubleDivide.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr LoadDoublesDP
+		jmp DivideOp
+
+_SoftDoubleCompare.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		lda 2
+		sta [D + Return]
+		jsr LoadDoublesDP
+		jmp CompareOp
+
+_SoftDoubleSqrt.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr LoadDoubleADP
+		jmp SqrtOp
+
+_SoftDoubleFromInt.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr CopyArgDP
+		ldx 4
+		jmp FromInt32Op
+
+_SoftDoubleFromUnsigned.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr CopyArgDP
+		ldx 4
+		jmp FromUnsigned32Op
+
+_SoftDoubleFromLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr CopyArgDP
+		ldx 4
+		jmp FromInt64Op
+
+_SoftDoubleFromUnsignedLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr CopyArgDP
+		ldx 4
+		jmp FromUnsigned64Op
+
+_SoftDoubleToInt.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble32
+		jsr LoadDoubleADP
+		lda 32
+		ldx 1
+		jmp ToIntegerOp
+
+_SoftDoubleToUnsigned.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble32
+		jsr LoadDoubleADP
+		lda 32
+		ldx 0
+		jmp ToIntegerOp
+
+_SoftDoubleToLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr LoadDoubleADP
+		lda 64
+		ldx 1
+		jmp ToIntegerOp
+
+_SoftDoubleToUnsignedLongLong.dp:
+		.width (A, X), 16
+		phd
+		pha
+		phy
+		phx
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedDP
+		jsr SetDouble64
+		jsr LoadDoubleADP
+		lda 64
+		ldx 0
+		jmp ToIntegerOp
+
+
+;-----------------------------------------------------------------------------------------------
 ; The format and how the result is returned.
 
 ; Float, returned in A and X.
@@ -690,6 +1284,59 @@ LoadDoubleAt:
 		sta [D + RawA + 6]
 		rts
 
+; The frame operand entries' operands into RawA and RawB (bank 0 addresses AAddr and BAddr).
+LoadFloatsDP:
+		ldx [D + BAddr]
+		lda [0 + X]:24
+		sta [D + RawB]
+		lda [2 + X]:24
+		sta [D + RawB + 2]
+LoadFloatADP:
+		ldx [D + AAddr]
+		lda [0 + X]:24
+		sta [D + RawA]
+		lda [2 + X]:24
+		sta [D + RawA + 2]
+		rts
+
+LoadDoublesDP:
+		ldx [D + BAddr]
+		lda [0 + X]:24
+		sta [D + RawB]
+		lda [2 + X]:24
+		sta [D + RawB + 2]
+		lda [4 + X]:24
+		sta [D + RawB + 4]
+		lda [6 + X]:24
+		sta [D + RawB + 6]
+LoadDoubleADP:
+		ldx [D + AAddr]
+		lda [0 + X]:24
+		sta [D + RawA]
+		lda [2 + X]:24
+		sta [D + RawA + 2]
+		lda [4 + X]:24
+		sta [D + RawA + 4]
+		lda [6 + X]:24
+		sta [D + RawA + 6]
+		rts
+
+; A frame operand entry's operand (up to 64 bits) to ArgArea + 4, where the integer conversions
+; read it (ArgIndex, with X = 4) as they read a stack entry's argument.
+CopyArgDP:
+		ldx [D + AAddr]
+		lda [0 + X]:24
+		sta [D + ArgArea + 4]
+		lda [2 + X]:24
+		sta [D + ArgArea + 6]
+		lda [4 + X]:24
+		sta [D + ArgArea + 8]
+		lda [6 + X]:24
+		sta [D + ArgArea + 10]
+		lda ArgArea
+		sta [D + ArgOff]
+		rts
+
 ; X = X + ArgOff: the argument X bytes after the hidden pointer's place, as an offset from D.
 ArgIndex:
 		txa
@@ -709,6 +1356,65 @@ Framed:
 		clc
 		adc 6
 		sta [D + ArgOff]
+		tax
+		lda [D + X]
+		sta [D + ResultPtr]
+		lda [D + 2 + X]
+		sta [D + ResultPtr + 2]
+		rts
+
+; A register entry's frame (X is S after it pushed the caller's D, then X and A): S to go back
+; to (after D), and the arguments' offset (from D) as Framed has it: FramedAX with the result
+; pointer in A and X (into ResultPtr; the pushed arguments are 4 bytes on, as after a pushed
+; result pointer), FramedAXValue with a float argument in A and X (the arguments are where they
+; were pushed).
+FramedAX:
+		lda [1 + X]:24
+		sta [D + ResultPtr]
+		lda [3 + X]:24
+		sta [D + ResultPtr + 2]
+		txa
+		clc
+		adc 6
+		bra FramedAXArguments
+FramedAXValue:
+		txa
+		inc A
+FramedAXArguments:
+		sta [D + Temp]
+		tdc
+		eor $FFFF
+		sec
+		adc [D + Temp]
+		sta [D + ArgOff]
+		txa
+		clc
+		adc 4
+		sta [D + SavedS]
+		rts
+
+; A frame operand entry's frame (X is S after it pushed the caller's D, then the result's, b's
+; and a's places, from the caller's D): S to go back to (after D), and the places as bank 0
+; addresses, the result's in ResultPtr.
+FramedDP:
+		txa
+		clc
+		adc 6
+		sta [D + SavedS]
+		lda [7 + X]:24
+		sta [D + Temp]
+		clc
+		adc [5 + X]:24
+		sta [D + ResultPtr]
+		stz [D + ResultPtr + 2]
+		lda [D + Temp]
+		clc
+		adc [3 + X]:24
+		sta [D + BAddr]
+		lda [D + Temp]
+		clc
+		adc [1 + X]:24
+		sta [D + AAddr]
 		rts
 
 
@@ -738,11 +1444,6 @@ Return32:
 		rtl
 
 Return64:
-		ldx [D + ArgOff]
-		lda [D + X]
-		sta [D + ResultPtr]
-		lda [D + 2 + X]
-		sta [D + ResultPtr + 2]
 		ldy 0
 		lda [D + Result]
 		sta [[D + ResultPtr]:24 + Y]
@@ -5905,62 +6606,312 @@ SqrtStep4ShiftT:
 ; left when it has to.  They run on a frame of their own (D on S, ten bytes below the caller's D):
 ;	D + 1 mode (0 trunc, 1 floor, 2 ceil, 3 round), + 3 k, + 5 the cleared bits' OR, + 7 the bit
 ;	below the lowest kept (or the exponent bits for x under 1), + 9 a word
-;	D + 11 the caller's D, + 13 the return address
-;	a double's: D + 16 the result pointer, D + 20 x; a float's: D + 16 x
+;	D + 11 the caller's D, + 13 the result pointer (a double's) or x (a float's): the register
+;	entries (name.ax) push A and X before D, + 17 the return address, + 20 a double's x
+; The plain names are stack entries: they load A and X (and push x again for a double's) and call
+; or go on to the register entries.
 
 		.global _fabs, _fabsl, _fabsf, _sqrt, _sqrtl, _sqrtf
 		.global _trunc, _truncl, _truncf, _floor, _floorl, _floorf, _ceil, _ceill, _ceilf, _round, _roundl, _roundf
 		.global _frexp, _ldexp, _modf, _fmod, _fmodl, _fmodf
+		.global _trunc.ax, _truncl.ax, _floor.ax, _floorl.ax, _ceil.ax, _ceill.ax, _round.ax, _roundl.ax, _truncf.ax
+		.global _floorf.ax, _ceilf.ax, _roundf.ax, _frexp.ax, _sqrt.ax, _sqrtl.ax, _sqrtf.ax, _ldexp.axssssy, _modf.ax, _fmod.ax, _fmodl.ax, _fmodf.ax
 
-; double trunc(double x), long double truncl(long double x)
 _trunc:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _trunc.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
 _truncl:
 		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _truncl.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_floor:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _floor.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_floorl:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _floorl.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_ceil:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _ceil.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_ceill:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _ceill.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_round:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _round.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_roundl:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _roundl.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_truncf:
+		.width (A, X), 16
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _truncf.ax
+
+_floorf:
+		.width (A, X), 16
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _floorf.ax
+
+_ceilf:
+		.width (A, X), 16
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _ceilf.ax
+
+_roundf:
+		.width (A, X), 16
+		lda [S + 6]
+		tax
+		lda [S + 4]
+		brl _roundf.ax
+
+_frexp:
+		.width (A, X), 16
+		lda [S + 18]
+		pha
+		lda [S + 18]
+		pha
+		lda [S + 18]
+		pha
+		lda [S + 18]
+		pha
+		lda [S + 18]
+		pha
+		lda [S + 18]
+		pha
+		lda [S + 18]
+		tax
+		lda [S + 16]
+		jsl _frexp.ax
+		tay
+		tsc
+		clc
+		adc 12
+		tcs
+		tya
+		rtl
+
+; double trunc(double x), long double truncl(long double x)
+_trunc.ax:
+_truncl.ax:
+		.width (A, X), 16
+		phx
+		pha
 		ldy 0
 		jmp RoundingDouble
 
 ; double floor(double x), long double floorl(long double x)
-_floor:
-_floorl:
+_floor.ax:
+_floorl.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 1
 		jmp RoundingDouble
 
 ; double ceil(double x), long double ceill(long double x)
-_ceil:
-_ceill:
+_ceil.ax:
+_ceill.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 2
 		jmp RoundingDouble
 
 ; double round(double x), long double roundl(long double x): halves away from 0
-_round:
-_roundl:
+_round.ax:
+_roundl.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 3
 		jmp RoundingDouble
 
 ; float truncf(float x)
-_truncf:
+_truncf.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 0
 		jmp RoundingFloat
 
 ; float floorf(float x)
-_floorf:
+_floorf.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 1
 		jmp RoundingFloat
 
 ; float ceilf(float x)
-_ceilf:
+_ceilf.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 2
 		jmp RoundingFloat
 
 ; float roundf(float x)
-_roundf:
+_roundf.ax:
 		.width (A, X), 16
+		phx
+		pha
 		ldy 3
 		jmp RoundingFloat
 
@@ -6126,21 +7077,23 @@ RoundingDoubleZero:
 RoundingDoubleDone:
 		ldy 0
 		lda [D + 20]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		ldy 2
 		lda [D + 22]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		ldy 4
 		lda [D + 24]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		ldy 6
 		lda [D + 26]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		tsc
 		clc
 		adc 10
 		tcs
 		pld
+		ply
+		ply
 		rtl
 
 ; A = the word of x holding bit A, with only that bit.
@@ -6172,20 +7125,20 @@ RoundingFloat:
 		sty [D + 1]
 		stz [D + 5]
 		stz [D + 7]
-		lda [D + 18]
+		lda [D + 15]
 		and $7F80
 		cmp $4B00
 		bcc RoundingFloatFraction
 		; An integer, infinity or NaN; a NaN is quietened (as the float to double conversion did).
 		cmp $7F80
 		bne RoundingFloatJump
-		lda [D + 18]
+		lda [D + 15]
 		and $007F
-		ora [D + 16]
+		ora [D + 13]
 		beq RoundingFloatJump
-		lda [D + 18]
+		lda [D + 15]
 		ora $0040
-		sta [D + 18]
+		sta [D + 15]
 RoundingFloatJump:
 		jmp RoundingFloatDone
 RoundingFloatFraction:
@@ -6210,10 +7163,10 @@ RoundingFloatInteger:
 RoundingFloatWords:
 		cpy 16
 		bcc RoundingFloatPart
-		lda [D + 16 + X]
+		lda [D + 13 + X]
 		ora [D + 5]
 		sta [D + 5]
-		stz [D + 16 + X]
+		stz [D + 13 + X]
 		inx
 		inx
 		tya
@@ -6230,13 +7183,13 @@ RoundingFloatPart:
 		lda [LowBitMasks + X]:24
 		plx
 		sta [D + 9]
-		and [D + 16 + X]
+		and [D + 13 + X]
 		ora [D + 5]
 		sta [D + 5]
 		lda [D + 9]
 		eor $FFFF
-		and [D + 16 + X]
-		sta [D + 16 + X]
+		and [D + 13 + X]
+		sta [D + 13 + X]
 RoundingFloatCleared:
 		; floor: below 0 with a fraction, ceil: above 0 with one, round: Half; one up a unit in
 		; the last place left (a carry goes into the exponent).
@@ -6246,13 +7199,13 @@ RoundingFloatCleared:
 		beq RoundingFloatRound
 		cmp 1
 		beq RoundingFloatFloor
-		lda [D + 18]
+		lda [D + 15]
 		bmi RoundingFloatDone
 		lda [D + 5]
 		beq RoundingFloatDone
 		bra RoundingFloatUp
 RoundingFloatFloor:
-		lda [D + 18]
+		lda [D + 15]
 		bpl RoundingFloatDone
 		lda [D + 5]
 		beq RoundingFloatDone
@@ -6275,29 +7228,29 @@ RoundingFloatUp:
 		asl A
 		tax
 		clc
-		lda [D + 16 + X]
+		lda [D + 13 + X]
 		adc [D + 9]
-		sta [D + 16 + X]
+		sta [D + 13 + X]
 		bcc RoundingFloatDone
 		; The carry on up (the top word, with the exponent, never wraps).
 RoundingFloatCarry:
 		inx
 		inx
-		inc [D + 16 + X]
+		inc [D + 13 + X]
 		beq RoundingFloatCarry
 		jmp RoundingFloatDone
 RoundingFloatSmall:
 		; Under 1: 0 with its sign, or 1 with it for floor (below 0), ceil (above 0) and round
 		; (a half or more).
 		sta [D + 7]
-		lda [D + 18]
+		lda [D + 15]
 		and $8000
 		sta [D + 9]
-		lda [D + 18]
+		lda [D + 15]
 		and $7FFF
-		ora [D + 16]
+		ora [D + 13]
 		sta [D + 5]
-		stz [D + 16]
+		stz [D + 13]
 		lda [D + 1]
 		beq RoundingFloatZero
 		cmp 3
@@ -6322,20 +7275,22 @@ RoundingFloatSmallRound:
 RoundingFloatOne:
 		lda $3F80
 		ora [D + 9]
-		sta [D + 18]
+		sta [D + 15]
 		bra RoundingFloatDone
 RoundingFloatZero:
 		lda [D + 9]
-		sta [D + 18]
+		sta [D + 15]
 RoundingFloatDone:
-		ldy [D + 16]
-		ldx [D + 18]
+		ldy [D + 13]
+		ldx [D + 15]
 		tsc
 		clc
 		adc 10
 		tcs
 		tya
 		pld
+		ply
+		ply
 		rtl
 
 ; A = the word of x holding bit A, with only that bit.
@@ -6353,7 +7308,7 @@ RoundingFloatBit:
 		lsr A
 		asl A
 		tax
-		lda [D + 16 + X]
+		lda [D + 13 + X]
 		and [D + 9]
 		rts
 
@@ -6398,9 +7353,12 @@ _fabsf:
 
 ; double frexp(double x, int* piExponent): the significand from 1/2 to 1 and the power of two (0
 ; and x itself for 0, infinity and NaN).  A subnormal x is made normal first.  Frame as the
-; rounding functions': D + 16 the result pointer, D + 20 x, D + 28 piExponent; D + 1 the shift.
-_frexp:
+; rounding functions': D + 13 the result pointer (A and X), D + 20 x, D + 28 piExponent; D + 1 the
+; shift.
+_frexp.ax:
 		.width (A, X), 16
+		phx
+		pha
 		phd
 		tsc
 		sec
@@ -6462,21 +7420,23 @@ FrexpSame:
 FrexpDone:
 		ldy 0
 		lda [D + 20]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		ldy 2
 		lda [D + 22]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		ldy 4
 		lda [D + 24]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		ldy 6
 		lda [D + 26]
-		sta [[D + 16]:24 + Y]
+		sta [[D + 13]:24 + Y]
 		tsc
 		clc
 		adc 10
 		tcs
 		pld
+		ply
+		ply
 		rtl
 
 
@@ -6558,6 +7518,140 @@ _fmodf:
 		jsr Framed
 		jsr SetFloat32
 		jsr LoadFloats
+		jmp FmodOp
+
+
+; The register entries on the soft float frame (name.ax): A and X pushed after D (X is S below
+; them), the result pointer in them (FramedAX) or a float argument (FramedAXValue).
+
+; double sqrt(double x), long double sqrtl(long double x)
+_sqrt.ax:
+_sqrtl.ax:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedAX
+		jsr SetDouble64
+		ldx 4
+		jsr LoadDoubleA
+		jmp SqrtOp
+
+; float sqrtf(float x)
+_sqrtf.ax:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedAXValue
+		jsr SetFloat32
+		ldx 0
+		jsr LoadFloatA
+		jmp SqrtOp
+
+; double ldexp(double x, int iExponent): iExponent in Y.
+_ldexp.axssssy:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedAX
+		sty [D + IndexI]
+		jsr SetDouble64
+		ldx 4
+		jsr LoadDoubleA
+		jmp LdexpOp
+
+; double modf(double x, double* pdInteger)
+_modf.ax:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedAX
+		jsr SetDouble64
+		ldx 4
+		jsr LoadDoubleA
+		ldx 12
+		jsr ArgIndex
+		lda [D + X]
+		sta [D + Product]
+		lda [D + 2 + X]
+		sta [D + Product + 2]
+		jmp ModfOp
+
+; double fmod(double x, double y), long double fmodl(long double x, long double y)
+_fmod.ax:
+_fmodl.ax:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedAX
+		jsr SetDouble64
+		ldx 4
+		jsr LoadDoubles
+		jmp FmodOp
+
+; float fmodf(float x, float y): x in A and X, y pushed (9 bytes after x, past D and the return
+; address).
+_fmodf.ax:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		tax
+		sec
+		sbc Locals
+		and $FF00
+		tcs
+		tcd
+		jsr FramedAXValue
+		jsr SetFloat32
+		ldx 9
+		jsr ArgIndex
+		lda [D + X]
+		sta [D + RawB]
+		lda [D + 2 + X]
+		sta [D + RawB + 2]
+		ldx 0
+		jsr LoadFloatA
 		jmp FmodOp
 
 ; x * 2^n as math.cpp has it: a NaN quietened, 0 and infinity as they are, and otherwise one
@@ -6821,3 +7915,527 @@ FmodReturnA:
 		ldx 0
 		jsr ResultRaw
 		jmp ReturnResult
+
+
+;-----------------------------------------------------------------------------------------------
+; The math functions' register entries (the compiler's register arguments, W65C816.txt): fabs's
+; are real; the others push their arguments again as the stack entries want them and call them (they cost
+; hundreds of cycles or more, so the extra 30 or so don't count).  Made from the compiled math.cpp's labels.
+
+		.section text.MathRegisters816
+		.global _SoftFloatAdd.ax, _SoftFloatSubtract.ax, _SoftFloatMultiply.ax, _SoftFloatDivide.ax, _SoftFloatCompare.ax, _SoftFloatSqrt.ax, _SoftFloatFromInt.ax, _SoftFloatFromUnsigned.ax
+		.global _SoftFloatToInt.ax, _SoftFloatToUnsigned.ax, _SoftFloatToLongLong.ax, _SoftFloatToUnsignedLongLong.ax, _SoftFloatToDouble.ax, _SoftDoubleAdd.ax, _SoftDoubleSubtract.ax, _SoftDoubleMultiply.ax
+		.global _SoftDoubleDivide.ax, _SoftDoubleSqrt.ax, _SoftDoubleFromInt.ax, _SoftDoubleFromUnsigned.ax, _SoftDoubleFromLongLong.ax, _SoftDoubleFromUnsignedLongLong.ax, _SoftDoubleToLongLong.ax, _SoftDoubleToUnsignedLongLong.ax
+		.global _fabs.ax, _fabsl.ax, _fabsf.ax
+
+_SoftFloatAdd.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatAdd
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatSubtract.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatSubtract
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatMultiply.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatMultiply
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatDivide.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatDivide
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatCompare.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatCompare
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatSqrt.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _SoftFloatSqrt
+		ply
+		ply
+		rtl
+
+_SoftFloatFromInt.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _SoftFloatFromInt
+		ply
+		ply
+		rtl
+
+_SoftFloatFromUnsigned.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _SoftFloatFromUnsigned
+		ply
+		ply
+		rtl
+
+_SoftFloatToInt.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _SoftFloatToInt
+		ply
+		ply
+		rtl
+
+_SoftFloatToUnsigned.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _SoftFloatToUnsigned
+		ply
+		ply
+		rtl
+
+_SoftFloatToLongLong.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatToLongLong
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatToUnsignedLongLong.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatToUnsignedLongLong
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftFloatToDouble.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftFloatToDouble
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftDoubleAdd.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		phx
+		lda [S + 19]
+		pha
+		jsl _SoftDoubleAdd
+		tay
+		tsc
+		clc
+		adc 22
+		tcs
+		tya
+		rtl
+
+_SoftDoubleSubtract.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		phx
+		lda [S + 19]
+		pha
+		jsl _SoftDoubleSubtract
+		tay
+		tsc
+		clc
+		adc 22
+		tcs
+		tya
+		rtl
+
+_SoftDoubleMultiply.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		phx
+		lda [S + 19]
+		pha
+		jsl _SoftDoubleMultiply
+		tay
+		tsc
+		clc
+		adc 22
+		tcs
+		tya
+		rtl
+
+_SoftDoubleDivide.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		lda [S + 20]
+		pha
+		phx
+		lda [S + 19]
+		pha
+		jsl _SoftDoubleDivide
+		tay
+		tsc
+		clc
+		adc 22
+		tcs
+		tya
+		rtl
+
+_SoftDoubleSqrt.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		phx
+		lda [S + 11]
+		pha
+		jsl _SoftDoubleSqrt
+		tay
+		tsc
+		clc
+		adc 14
+		tcs
+		tya
+		rtl
+
+_SoftDoubleFromInt.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftDoubleFromInt
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftDoubleFromUnsigned.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 8]
+		pha
+		lda [S + 8]
+		pha
+		phx
+		lda [S + 7]
+		pha
+		jsl _SoftDoubleFromUnsigned
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
+		rtl
+
+_SoftDoubleFromLongLong.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		phx
+		lda [S + 11]
+		pha
+		jsl _SoftDoubleFromLongLong
+		tay
+		tsc
+		clc
+		adc 14
+		tcs
+		tya
+		rtl
+
+_SoftDoubleFromUnsignedLongLong.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		phx
+		lda [S + 11]
+		pha
+		jsl _SoftDoubleFromUnsignedLongLong
+		tay
+		tsc
+		clc
+		adc 14
+		tcs
+		tya
+		rtl
+
+_SoftDoubleToLongLong.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		phx
+		lda [S + 11]
+		pha
+		jsl _SoftDoubleToLongLong
+		tay
+		tsc
+		clc
+		adc 14
+		tcs
+		tya
+		rtl
+
+_SoftDoubleToUnsignedLongLong.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		lda [S + 12]
+		pha
+		phx
+		lda [S + 11]
+		pha
+		jsl _SoftDoubleToUnsignedLongLong
+		tay
+		tsc
+		clc
+		adc 14
+		tcs
+		tya
+		rtl
+
+; double fabs(double x), long double fabsl(long double x): the result pointer in A and X, pushed
+; under D (D + 3), x pushed by the caller (D + 10).
+_fabs.ax:
+_fabsl.ax:
+		.width (A, X), 16
+		phx
+		pha
+		phd
+		tsc
+		tcd
+		ldy 0
+		lda [D + 10]
+		sta [[D + 3]:24 + Y]
+		ldy 2
+		lda [D + 12]
+		sta [[D + 3]:24 + Y]
+		ldy 4
+		lda [D + 14]
+		sta [[D + 3]:24 + Y]
+		ldy 6
+		lda [D + 16]
+		and $7FFF
+		sta [[D + 3]:24 + Y]
+		pld
+		ply
+		ply
+		rtl
+
+; float fabsf(float x): x in A and X.
+_fabsf.ax:
+		.width (A, X), 16
+		pha
+		txa
+		and $7FFF
+		tax
+		pla
+		rtl

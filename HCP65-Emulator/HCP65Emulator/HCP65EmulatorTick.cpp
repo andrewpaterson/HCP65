@@ -74,7 +74,6 @@ void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMilliecon
 	{
 		pWindow->Stop();
 	}
-	pWindow->Paint();
 }
 
 
