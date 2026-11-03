@@ -7,11 +7,8 @@
 #include "BaseLib/GlobalDataTypesIO.h"
 #include "BaseLib/DebugOutput.h"
 #include "StandardLib/Objects.h"
-#include "WindowLib/Window.h"
-#include "WindowLib/ClearCanvasDraw.h"
-#include "WindowLib/JewelColours.h"
 #include "WinGdiLib/WinGDIWindowFactory.h"
-#include "TesterWindowTick.h"
+#include "TesterApp.h"
 
 #include "WindowsCOM.h"
 #include "BoardPins.h"
@@ -141,8 +138,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 	{
 		CWinGDIWindowFactory	cNativeFactory;
-		Ptr<CWindow>			pTesterWindow;
-		Ptr<CTesterWindowTick>	pTick;
+		Ptr<CTesterApp>			pApp;
 
 		cNativeFactory.Init(&gcMemoryAllocator,
 			hInstance,
@@ -150,18 +146,12 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 			nCmdShow,
 			"HCP65Tester");
 
-		//The window is in the root; its tick is allocated, not on the stack, because stack objects can't be under the root.
-		pTick = OMalloc<CTesterWindowTick>();
-		pTesterWindow = OMalloc<CWindow>("HCP65 Board Tester", &cNativeFactory, pTick, OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
-		ORoot()->Add(pTesterWindow);
-
-		pTesterWindow->SetWindowSize(1280, 800);
-		pTesterWindow->Show();
-
-		ORoot()->Remove(pTesterWindow);
-		pTesterWindow = NULL;
-		pTick = NULL;
-		ORoot()->RemoveAll();
+		//The app (and its window) is held by the root while it runs.
+		pApp = OMalloc<CTesterApp>(&cNativeFactory);
+		ORoot()->Add(pApp);
+		pApp->Run();
+		ORoot()->Remove(pApp);
+		pApp = NULL;
 
 		cNativeFactory.Kill();
 	}

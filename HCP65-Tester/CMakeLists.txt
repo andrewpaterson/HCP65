@@ -96,6 +96,7 @@ vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
 set(TESTER_SOURCES
 	"${TESTER_DIR}/HCP65TesterLinux.cpp"
 	"${TESTER_DIR}/TesterWindowTick.cpp"
+	"${TESTER_DIR}/TesterApp.cpp"
 )
 
 

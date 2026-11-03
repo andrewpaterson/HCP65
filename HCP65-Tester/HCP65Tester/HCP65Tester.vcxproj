@@ -241,6 +241,7 @@
     <ClCompile Include="CommonBoard.cpp" />
     <ClCompile Include="HCP65Tester.cpp" />
     <ClCompile Include="TestBoard.cpp" />
+    <ClCompile Include="TesterApp.cpp" />
     <ClCompile Include="TesterWindowTick.cpp" />
     <ClCompile Include="UART.cpp" />
     <ClCompile Include="WindowsCOM.cpp" />
@@ -250,6 +251,7 @@
     <ClInclude Include="BoardPins.h" />
     <ClInclude Include="CommonBoard.h" />
     <ClInclude Include="TestBoard.h" />
+    <ClInclude Include="TesterApp.h" />
     <ClInclude Include="TesterWindowTick.h" />
     <ClInclude Include="UART.h" />
     <ClInclude Include="WindowsCOM.h" />
