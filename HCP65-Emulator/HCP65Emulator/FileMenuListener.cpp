@@ -8,8 +8,8 @@
 //////////////////////////////////////////////////////////////////////////
 void CFileMenuListener::Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pFileMenu)
 {
-	mpWindow = pWindow;
-	mpExit = pFileMenu->AddItem("Exit");
+	mpcWindow = &pWindow;
+	mpcExit = &pFileMenu->AddItem("Exit");
 }
 
 
@@ -19,8 +19,8 @@ void CFileMenuListener::Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pFileMenu
 //////////////////////////////////////////////////////////////////////////
 void CFileMenuListener::Kill(void)
 {
-	mpExit = NULL;
-	mpWindow = NULL;
+	mpcExit = NULL;
+	mpcWindow = NULL;
 }
 
 
@@ -30,8 +30,8 @@ void CFileMenuListener::Kill(void)
 //////////////////////////////////////////////////////////////////////////
 void CFileMenuListener::MenuItemClicked(CUnknown* pcSource, void* pvContext)
 {
-	if (&mpExit == pcSource)
+	if (mpcExit == pcSource)
 	{
-		mpWindow->Stop();
+		mpcWindow->Stop();
 	}
 }

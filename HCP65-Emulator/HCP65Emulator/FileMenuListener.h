@@ -5,13 +5,14 @@
 #include "WindowLib/MenuListener.h"
 
 
-//The File menu.  Exit stops the window's ticks, which closes it.
+//The File menu.  Exit stops the window's ticks, which closes it.  The window holds the menu; the listener only points
+//to them.
 class CFileMenuListener : public CMenuListener
 {
 CONSTRUCTABLE(CFileMenuListener);
 protected:
-	Ptr<CWindow>	mpWindow;
-	Ptr<CMenuItem>	mpExit;
+	CWindow*		mpcWindow;
+	CMenuItem*		mpcExit;
 
 public:
 	void	Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pFileMenu);
