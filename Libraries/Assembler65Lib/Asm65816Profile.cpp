@@ -30,6 +30,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define ASM65816_PROFILE_NO_LINE			0xFFFFFFFF
 #define ASM65816_PROFILE_BANKS			256
 #define ASM65816_PROFILE_BANK_SIZE		0x10000
+#define ASM65816_PROFILE_REGISTER_ENTRY	2		//In auiStarts: a function's register argument entry (1 is its start).
 
 
 //A function's code: its section in the linker's map.
@@ -201,6 +202,7 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 	uint16									uiS;
 	uint8									uiOpcode;
 	uint8									uiPreviousOpcode;
+	uint32									uiPreviousAddress;
 	uint64									uiSteps;
 	size									ui;
 	CArrayChars								aszLabels;		//Per function in asFunctions.
@@ -249,6 +251,26 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 		}
 	}
 
+	//A function's register argument entry (label.axy, after its stack argument stub) is called too.
+	szLine = strstr(szMap, "\nSymbols\n");
+	for (szLine = szLine ? strchr(szLine + 1, '\n') : NULL; szLine; szLine = strchr(szLine + 1, '\n'))
+	{
+		if ((sscanf(szLine + 1, " 0x%x %*c %511s", &uiStart, szLabel) != 2) || (uiStart >= ASM65816_PROFILE_ADDRESSES) || auiStarts[uiStart])
+		{
+			continue;
+		}
+		uiFunction = Asm65816ProfileFind(&asFunctions, uiStart);
+		if (uiFunction == ASM65816_PROFILE_NO_FUNCTION)
+		{
+			continue;
+		}
+		uiSize = (uint32)strlen(aszLabels.GetText(uiFunction));
+		if ((strncmp(szLabel, aszLabels.GetText(uiFunction), uiSize) == 0) && (szLabel[uiSize] == '.') && (strspn(szLabel + uiSize + 1, "axys") == strlen(szLabel + uiSize + 1)))
+		{
+			auiStarts[uiStart] = ASM65816_PROFILE_REGISTER_ENTRY;
+		}
+	}
+
 	//Each address's line: the lines' code runs from their address to the next line's.
 	memset(apuiBanks, 0, sizeof(apuiBanks));
 	asRun.Init();
@@ -279,12 +301,15 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 	asCalls.Init();
 	ulliCycles = pcFast->NumCycles();
 	uiPreviousOpcode = 0x22;
+	uiPreviousAddress = ASM65816_PROFILE_ADDRESSES;
 	uiLastLine = ASM65816_PROFILE_NO_LINE;
 	for (uiSteps = 0; (uiSteps < uiMaxSteps) && !pcFast->IsStopped(); uiSteps++)
 	{
 		uiAddress = pcFast->GetProgramAddress() & (ASM65816_PROFILE_ADDRESSES - 1);
 		uiOpcode = pcMemory->GetByte(uiAddress);
-		if (auiStarts[uiAddress] && Asm65816IsCall(uiPreviousOpcode))
+		//A register entry called by its function's stack argument stub (before it) is the same call.
+		if (auiStarts[uiAddress] && Asm65816IsCall(uiPreviousOpcode) &&
+			!((auiStarts[uiAddress] == ASM65816_PROFILE_REGISTER_ENTRY) && (uiPreviousAddress < uiAddress) && (Asm65816ProfileFind(&asFunctions, uiPreviousAddress) == Asm65816ProfileFind(&asFunctions, uiAddress))))
 		{
 			//A call: those that have returned are above S.
 			uiS = pcFast->GetS();
@@ -346,6 +371,7 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 			pcFast->Step();
 		}
 		uiPreviousOpcode = uiOpcode;
+		uiPreviousAddress = uiAddress;
 		if ((uiOpcode == 0x6B) || (uiOpcode == 0x60) || (uiOpcode == 0x40))
 		{
 			//A return: the calls entered below S now are over.

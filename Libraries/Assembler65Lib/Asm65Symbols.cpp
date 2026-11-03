@@ -23,6 +23,10 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65Symbols.h"
 
 
+//Names shorter than this are looked up from a copy on the stack.
+#define ASM65_SYMBOLS_SHORT_NAME	256
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 //
@@ -53,7 +57,15 @@ SAsm65Symbol* CAsm65Symbols::Get(const char* szName, size uiLength)
 {
 	CChars			szKey;
 	SAsm65Symbol*	psSymbol;
+	char			szShort[ASM65_SYMBOLS_SHORT_NAME];
 
+	//Most names fit on the stack (looking up allocates nothing).
+	if (uiLength < ASM65_SYMBOLS_SHORT_NAME)
+	{
+		memcpy(szShort, szName, uiLength);
+		szShort[uiLength] = '\0';
+		return mcSymbols.Get(szShort);
+	}
 	szKey.Init();
 	szKey.Append(szName, uiLength);
 	psSymbol = mcSymbols.Get(szKey.Text());
@@ -72,11 +84,11 @@ SAsm65Symbol* CAsm65Symbols::Put(const char* szName, size uiLength)
 	CChars			szKey;
 	SAsm65Symbol*	psSymbol;
 
-	szKey.Init();
-	szKey.Append(szName, uiLength);
-	psSymbol = mcSymbols.Get(szKey.Text());
+	psSymbol = Get(szName, uiLength);
 	if (psSymbol == NULL)
 	{
+		szKey.Init();
+		szKey.Append(szName, uiLength);
 		psSymbol = mcSymbols.Put(szKey.Text());
 		psSymbol->iValue = 0;
 		psSymbol->uiPass = 0;
@@ -91,8 +103,8 @@ SAsm65Symbol* CAsm65Symbols::Put(const char* szName, size uiLength)
 		psSymbol->bWeak = false;
 		psSymbol->bLabel = false;
 		maszNames.Add(szKey.Text());
+		szKey.Kill();
 	}
-	szKey.Kill();
 	return psSymbol;
 }
 
