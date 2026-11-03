@@ -455,50 +455,80 @@ Difference:
 
 
 		.section text.MemSwp816_16
-		.global _MemSwp16__FPvPvt
+		.global _MemSwp16__FPvPvt, _MemSwp16__FPvPvt.axssy
 
 ; void MemSwp16(const void* pv1, const void* pv2, size uiLength) (BaseLib's StringHelper.h; MemSwp,
 ; with an lsize length, is string816.asm's): a word at a time, then the byte left,
-; Y running up from both pointers.  D points at the stack: the pointers are at D + 6 and
-; D + 10, the length at D + 14.
-_MemSwp16__FPvPvt:
+; Y running up from both pointers.  The register entry (the compiler's register arguments: pv1
+; in A and X, pv2 pushed, uiLength in Y) pushes uiLength and pv1 and points D at the stack: pv1
+; is at D + 3, the length at D + 7, then the return address, and pv2 at D + 12.
+MemSwp16P1	= 3
+MemSwp16Length	= 7
+MemSwp16P2	= 12
+
+_MemSwp16__FPvPvt.axssy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		phd
 		tsc
 		tcd
 		ldy 0
-		lda [D + 14]
+		lda [D + MemSwp16Length]
 		lsr A
 		beq MemSwpOdd
 		tax
 MemSwpWord:
 		.width (A, X), 16
-		lda [[D + 6]:24 + Y]
+		lda [[D + MemSwp16P1]:24 + Y]
 		pha
-		lda [[D + 10]:24 + Y]
-		sta [[D + 6]:24 + Y]
+		lda [[D + MemSwp16P2]:24 + Y]
+		sta [[D + MemSwp16P1]:24 + Y]
 		pla
-		sta [[D + 10]:24 + Y]
+		sta [[D + MemSwp16P2]:24 + Y]
 		iny
 		iny
 		dex
 		bne MemSwpWord
 MemSwpOdd:
 		.width (A, X), 16
-		lda [D + 14]
+		lda [D + MemSwp16Length]
 		and 1
 		beq MemSwpDone
 		sep m
-		lda [[D + 6]:24 + Y]
+		lda [[D + MemSwp16P1]:24 + Y]
 		pha
-		lda [[D + 10]:24 + Y]
-		sta [[D + 6]:24 + Y]
+		lda [[D + MemSwp16P2]:24 + Y]
+		sta [[D + MemSwp16P1]:24 + Y]
 		pla
-		sta [[D + 10]:24 + Y]
+		sta [[D + MemSwp16P2]:24 + Y]
 		rep m
 MemSwpDone:
 		.width (A, X), 16
 		pld
+		tsc
+		clc
+		adc 6
+		tcs
+		rtl
+
+; The stack entry (function pointers, assembly): pushes pv2 again under its return address, loads pv1 and uiLength
+; into A, X and Y and calls the register entry.
+_MemSwp16__FPvPvt:
+		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		lda [S + 16]
+		tay
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _MemSwp16__FPvPvt.axssy
+		ply
+		ply
 		rtl
 
 
@@ -554,16 +584,72 @@ BitBits16	= 12
 		.relax
 		.global _FindFirstSetBit__FPvt, _FindFirstClearBit__FPvt, _FindLastSetBit__FPvt, _FindLastClearBit__FPvt
 		.global _FindFirstClearBit__Fj, _FindFirstSetBit__Fy
+		.global _FindFirstSetBit__FPvt.axy, _FindFirstClearBit__FPvt.axy, _FindLastSetBit__FPvt.axy, _FindLastClearBit__FPvt.axy
+		.global _FindFirstClearBit__Fj.ax
 
-; size FindFirstSetBit(void* pvArray, size iArraySize)
 _FindFirstSetBit__FPvt:
 		.width (A, X), 16
+		jsr Bits16Stack
+		bra _FindFirstSetBit__FPvt.axy
+_FindFirstClearBit__FPvt:
+		.width (A, X), 16
+		jsr Bits16Stack
+		bra _FindFirstClearBit__FPvt.axy
+_FindLastSetBit__FPvt:
+		.width (A, X), 16
+		jsr Bits16Stack
+		bra _FindLastSetBit__FPvt.axy
+_FindLastClearBit__FPvt:
+		.width (A, X), 16
+		jsr Bits16Stack
+		bra _FindLastClearBit__FPvt.axy
+
+; The stack entries' arguments (above the jsl's return address, and this jsr's) into A, X and Y.
+Bits16Stack:
+		.width (A, X), 16
+		lda [S + 10]
+		tay
+		lda [S + 8]
+		tax
+		lda [S + 6]
+		rts
+
+; size FindFirstClearBit(uint32 uiBits) with uiBits in A (low) and X (high), the register entry.
+_FindFirstClearBit__Fj.ax:
+		.width (A, X), 16
+		eor $FFFF
+		bne FindWord32FoundByRegister
+		txa
+		eor $FFFF
+		beq FindWord32NoneByRegister
+		jsl BitsCtz16
+		clc
+		adc 16
+		rtl
+FindWord32NoneByRegister:
+		.width (A, X), 16
+		lda 32
+		rtl
+FindWord32FoundByRegister:
+		.width (A, X), 16
+		jsl BitsCtz16
+		rtl
+
+; size FindFirstSetBit(void* pvArray, size iArraySize)
+_FindFirstSetBit__FPvt.axy:
+		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		bra FindFirst16
 
 ; size FindFirstClearBit(void* pvArray, size iArraySize)
-_FindFirstClearBit__FPvt:
+_FindFirstClearBit__FPvt.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea $FFFF
 FindFirst16:
 		.width (A, X), 16
@@ -615,18 +701,29 @@ FindFirst16Found:
 Bits16Return:
 		.width (A, X), 16
 		pld
-		ply
+		tax
+		tsc
+		clc
+		adc 8
+		tcs
+		txa
 		rtl
 
 ; size FindLastSetBit(void* pvArray, size iArraySize)
-_FindLastSetBit__FPvt:
+_FindLastSetBit__FPvt.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea 0
 		bra FindLast16
 
 ; size FindLastClearBit(void* pvArray, size iArraySize): Y starts at the last (partial) word.
-_FindLastClearBit__FPvt:
+_FindLastClearBit__FPvt.axy:
 		.width (A, X), 16
+		phy
+		phx
+		pha
 		pea $FFFF
 FindLast16:
 		.width (A, X), 16

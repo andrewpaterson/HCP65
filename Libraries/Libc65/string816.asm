@@ -981,65 +981,96 @@ MoreNone:
 
 
 		.section text.MemSwp816
-		.global _MemSwp__FPvPvj
+		.global _MemSwp__FPvPvj, _MemSwp__FPvPvj.ax
 
 ; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
 ; out for the W65C816; string816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
-; (carrying into the next bank), 64KB at a time.  D points at the stack: the pointers are at
-; D + 6 and D + 10, the length at D + 14.
-_MemSwp__FPvPvj:
+; (carrying into the next bank), 64KB at a time.  The register entry (the compiler's register arguments: pv1 in A and
+; X, pv2 and uiLength pushed) pushes pv1 and points D at the stack: pv1 is at D + 3 (MemSwpP1), then the return
+; address, pv2 at D + 10 and the length at D + 14.
+MemSwpP1	= 3
+MemSwpP2	= 10
+MemSwpLength	= 14
+
+_MemSwp__FPvPvj.ax:
 		.width (A, X), 16
+		phx
+		pha
 		phd
 		tsc
 		tcd
 MemSwpChunk:
 		.width (A, X), 16
-		lda [D + 16]
+		lda [D + MemSwpLength + 2]
 		beq MemSwpLast
 		ldy 0
 		ldx 32768
 		jsr MemSwpWords
 		sep m
-		inc [D + 8]
-		inc [D + 12]
+		inc [D + MemSwpP1 + 2]
+		inc [D + MemSwpP2 + 2]
 		rep m
-		dec [D + 16]
+		dec [D + MemSwpLength + 2]
 		bra MemSwpChunk
 MemSwpLast:
 		.width (A, X), 16
 		ldy 0
-		lda [D + 14]
+		lda [D + MemSwpLength]
 		lsr A
 		beq MemSwpOdd
 		tax
 		jsr MemSwpWords
 MemSwpOdd:
 		.width (A, X), 16
-		lda [D + 14]
+		lda [D + MemSwpLength]
 		and 1
 		beq MemSwpDone
 		sep m
-		lda [[D + 6]:24 + Y]
+		lda [[D + MemSwpP1]:24 + Y]
 		pha
-		lda [[D + 10]:24 + Y]
-		sta [[D + 6]:24 + Y]
+		lda [[D + MemSwpP2]:24 + Y]
+		sta [[D + MemSwpP1]:24 + Y]
 		pla
-		sta [[D + 10]:24 + Y]
+		sta [[D + MemSwpP2]:24 + Y]
 		rep m
 MemSwpDone:
 		.width (A, X), 16
 		pld
+		ply
+		ply
+		rtl
+
+; The stack entry (function pointers, assembly): pushes pv2 and the length again under its return address, loads pv1
+; into A and X and calls the register entry.
+_MemSwp__FPvPvj:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _MemSwp__FPvPvj.ax
+		tsc
+		clc
+		adc 8
+		tcs
 		rtl
 
 ; X words from Y, Y after them.
 MemSwpWords:
 		.width (A, X), 16
-		lda [[D + 6]:24 + Y]
+		lda [[D + MemSwpP1]:24 + Y]
 		pha
-		lda [[D + 10]:24 + Y]
-		sta [[D + 6]:24 + Y]
+		lda [[D + MemSwpP2]:24 + Y]
+		sta [[D + MemSwpP1]:24 + Y]
 		pla
-		sta [[D + 10]:24 + Y]
+		sta [[D + MemSwpP2]:24 + Y]
 		iny
 		iny
 		dex
@@ -1057,19 +1088,23 @@ MemSwpWords:
 ; word's bits past the count are masked off (BitsMasks16); its other byte is read even when
 ; it is past the array's end.  BitsCtz16 and BitsLog2_16 (also string816_16.asm's) find the
 ; lowest and the highest set bit of a word through a table of a byte's.  ARRAY_LARGE_ELEMENT_NOT_FOUND
-; ($FFFFFFFF) when there is none.  Each pushes 6 bytes of locals and D, and points D at the
+; ($FFFFFFFF) when there is none.  Each takes the compiler's register arguments (the array in A
+; and X, the count pushed), pushes the array and 6 bytes of locals and D, and points D at the
 ; stack:
 ;	D + 1		the caller's D
 ;	D + 3		BitInvert: 0 or $FFFF
 ;	D + 5		BitHi: the words' count's high word (X is its low word)
 ;	D + 7		BitExtra: the 64KB banks passed (first), or the moved pointer's low word (last)
-;	D + 9		the return address
-;	D + 12		the arguments: the array, then the count of bits at D + 16
+;	D + 9		BitArray: the array
+;	D + 13		the return address
+;	D + 16		the count of bits
+; The stack entries (function pointers, assembly) push the count again, load the array into A
+; and X and call the register entries (BitsLargeStack).
 
 BitInvert	= 3
 BitHi		= 5
 BitExtra	= 7
-BitArray	= 12
+BitArray	= 9
 BitBits		= 16
 
 
@@ -1078,18 +1113,62 @@ BitBits		= 16
 		.global BitsCtz16, BitsLog2_16
 		.global _FindFirstSetBitLarge__FPvj, _FindFirstClearBitLarge__FPvj
 		.global _FindLastSetBitLarge__FPvj, _FindLastClearBitLarge__FPvj
+		.global _FindFirstSetBitLarge__FPvj.ax, _FindFirstClearBitLarge__FPvj.ax
+		.global _FindLastSetBitLarge__FPvj.ax, _FindLastClearBitLarge__FPvj.ax
 
-; lsize FindFirstSetBitLarge(void* pvArray, lsize iArraySize)
 _FindFirstSetBitLarge__FPvj:
 		.width (A, X), 16
+		ldy _FindFirstSetBitLarge__FPvj.ax & 0xFFFF
+		bra BitsLargeStack
+_FindFirstClearBitLarge__FPvj:
+		.width (A, X), 16
+		ldy _FindFirstClearBitLarge__FPvj.ax & 0xFFFF
+		bra BitsLargeStack
+_FindLastSetBitLarge__FPvj:
+		.width (A, X), 16
+		ldy _FindLastSetBitLarge__FPvj.ax & 0xFFFF
+		bra BitsLargeStack
+_FindLastClearBitLarge__FPvj:
+		.width (A, X), 16
+		ldy _FindLastClearBitLarge__FPvj.ax & 0xFFFF
+
+; Calls the register entry in this section at Y's address with the count (the 2 words above the return address)
+; pushed again and the array (the 2 words above them) in A and X, and returns its result (A, X).
+BitsLargeStack:
+		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		phk
+		per BitsLargeStackReturn - 1
+		dey
+		phy
+		lda [S + 15]
+		tax
+		lda [S + 13]
+		rts
+BitsLargeStackReturn:
+		.width (A, X), 16
+		ply
+		ply
+		rtl
+
+; lsize FindFirstSetBitLarge(void* pvArray, lsize iArraySize)
+_FindFirstSetBitLarge__FPvj.ax:
+		.width (A, X), 16
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
 		bra FindFirstLarge
 
 ; lsize FindFirstClearBitLarge(void* pvArray, lsize iArraySize)
-_FindFirstClearBitLarge__FPvj:
+_FindFirstClearBitLarge__FPvj.ax:
 		.width (A, X), 16
+		phx
+		pha
 		pea 0
 		pea 0
 		pea $FFFF
@@ -1169,14 +1248,19 @@ FindFirstLargeFound:
 BitsLargeReturn:
 		.width (A, X), 16
 		pld
-		ply
-		ply
-		ply
+		tay
+		tsc
+		clc
+		adc 10
+		tcs
+		tya
 		rtl
 
 ; lsize FindLastSetBitLarge(void* pvArray, lsize iArraySize)
-_FindLastSetBitLarge__FPvj:
+_FindLastSetBitLarge__FPvj.ax:
 		.width (A, X), 16
+		phx
+		pha
 		pea 0
 		pea 0
 		pea 0
@@ -1184,8 +1268,10 @@ _FindLastSetBitLarge__FPvj:
 
 ; lsize FindLastClearBitLarge(void* pvArray, lsize iArraySize): the pointer is moved on to
 ; the last (partial) word, then Y runs down from it; the word's index is the count left.
-_FindLastClearBitLarge__FPvj:
+_FindLastClearBitLarge__FPvj.ax:
 		.width (A, X), 16
+		phx
+		pha
 		pea 0
 		pea 0
 		pea $FFFF

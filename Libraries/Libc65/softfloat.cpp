@@ -6,9 +6,10 @@
 //The code only uses integers so it also compiles for a host, to be checked against its hardware.
 //On the 65C64 every function here is softfloat.asm's, and on the W65C816 softfloat816.asm's, which give the same
 //results much faster, so this file compiles to nothing there; it is kept as their reference (TestLibc65 compiles it
-//natively).
+//natively).  A W65C816 build without its assembly (CCPP65Generator::SetW65C816Assembly(false), no
+//__W65C816_ASSEMBLY__) compiles this file instead of linking softfloat816.asm.
 #include <stdint.h>
-#if !defined(__65C64__) && !defined(__W65C816__)
+#if !defined(__65C64__) && !defined(__W65C816_ASSEMBLY__)
 
 
 #define SOFT_ZERO		0
@@ -681,4 +682,4 @@ int64_t SoftDoubleToLongLong(uint64_t ulli)								{ return (int64_t)ToInteger(u
 uint64_t SoftDoubleToUnsignedLongLong(uint64_t ulli)					{ return ToInteger(ulli, DOUBLE_FRACTION, 64, false); }
 uint64_t SoftDoubleSqrt(uint64_t ulli)									{ return SquareRoot(ulli, DOUBLE_FRACTION); }
 }
-#endif // !__65C64__ && !__W65C816__
+#endif // !__65C64__ && !__W65C816_ASSEMBLY__
