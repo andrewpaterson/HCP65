@@ -15,7 +15,8 @@ protected:
 	Ptr<CWindow>	mpWindow;
 
 public:
-	void	Init(CNativeWindowFactory* pcNativeFactory);
+	void	Init(void);
+	bool	Setup(CNativeWindowFactory* pcNativeFactory);
 	void	Class(void) override;
 	void	Free(void) override;
 

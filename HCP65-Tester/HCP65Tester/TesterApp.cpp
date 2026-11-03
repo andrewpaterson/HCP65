@@ -9,14 +9,25 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CTesterApp::Init(CNativeWindowFactory* pcNativeFactory)
+void CTesterApp::Init(void)
 {
 	PreInit();
+	PostInit();
+}
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The window.
+// Call it once the app is in the root, so that what is made here is
+// built under the root rather than as an unrooted graph.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CTesterApp::Setup(CNativeWindowFactory* pcNativeFactory)
+{
 	mpWindow = OMalloc<CWindow>("HCP65 Board Tester", pcNativeFactory, OMalloc<CTesterWindowTick>(), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 	mpWindow->SetWindowSize(1280, 800);
-
-	PostInit();
+	return true;
 }
 
 

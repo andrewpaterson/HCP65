@@ -32,9 +32,9 @@ int main(int argc, char* argv[])
 		if (bResult)
 		{
 			//The app (and its window) is held by the root while it runs.
-			pApp = OMalloc<CTesterApp>(&cNativeFactory);
+			pApp = OMalloc<CTesterApp>();
 			ORoot()->Add(pApp);
-			bResult = pApp->Run();
+			bResult = pApp->Setup(&cNativeFactory) && pApp->Run();
 			ORoot()->Remove(pApp);
 			pApp = NULL;
 		}
