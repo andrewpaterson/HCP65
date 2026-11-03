@@ -8,7 +8,7 @@
 #   cmake --build build/HCP65Emulator
 #   cd HCP65/HCP65-Emulator/HCP65Emulator && ../../../build/HCP65Emulator/HCP65Emulator
 #
-# Input/Kernal.rom and Input/SDCard.img are built by TestHCP65Lib (TestHCP65Kernal).  HCP65_EMULATOR_TRACE=1 prints
+# The ROM and SD card image it boots are built by TestHCP65Lib (TestHCP65Kernal) into TestHCP65Lib/Output; run it first.  HCP65_EMULATOR_TRACE=1 prints
 # how far the HCP65 has got each second; HCP65_EMULATOR_SECONDS=n closes the window after n seconds.
 #
 # Add -DBASELIB_ASAN=ON for AddressSanitizer and LeakSanitizer.

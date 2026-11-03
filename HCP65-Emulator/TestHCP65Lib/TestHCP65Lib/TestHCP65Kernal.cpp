@@ -21,8 +21,10 @@
 #define TEST_HCP65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ "Libraries"
 #define TEST_HCP65_KERNAL			".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "Kernal"
 #define TEST_HCP65_INPUT			".." _FS_ ".." _FS_ "HCP65Emulator" _FS_ "Input"
-#define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_INPUT _FS_ "SDCard.img"
-#define TEST_HCP65_KERNAL_ROM		TEST_HCP65_INPUT _FS_ "Kernal.rom"
+#define TEST_HCP65_BLANK_SD_CARD	TEST_HCP65_INPUT _FS_ "SDCard.img"	//Freshly formatted; never written.
+#define TEST_HCP65_OUTPUT			"Output"
+#define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots these two (HCP65Emulator.h).
+#define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
 #define TEST_HCP65_USER				".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "User"
 #define TEST_HCP65_BOOT_PROGRAM		"Input" _FS_ "Boot"
 #define TEST_HCP65_MODPLAY_PROGRAM	"Input" _FS_ "ModPlay"
@@ -119,8 +121,8 @@ static bool TestKernalPutExe(const char* szName, const char* szDirectory, const 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Puts boot.exe (Input/Boot), modplay.exe (Input/ModPlay) and the song it
-// plays on the SD card image.
+// Copies the blank SD card image to Output and puts boot.exe (Input/Boot),
+// modplay.exe (Input/ModPlay) and the song it plays on the copy.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalPutFiles(void)
@@ -128,10 +130,19 @@ static bool TestKernalPutFiles(void)
 	static const char*	aszBootUnits[] = { "Boot.cpp", NULL };
 	static const char*	aszModPlayUnits[] = { "ModPlay.cpp", NULL };
 	static const char*	aszModPlayLibraries[] = { "StandardLib", "SupportLib", NULL };
+	CFileUtil			cFileUtil;
 	FILE*				pcFile;
 	CArrayUint8			acSong;
 	long				iSize;
 	bool				bResult;
+
+	AssertTrue(cFileUtil.TouchDir(TEST_HCP65_OUTPUT));
+	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, TEST_HCP65_SD_CARD_IMAGE);
+	AssertTrue(bResult);
+	if (!bResult)
+	{
+		return false;
+	}
 
 	if (!TestKernalPutExe("\\boot.exe", TEST_HCP65_BOOT_PROGRAM, aszBootUnits, NULL, HCP65_EXE_DEFAULT_HEAP))
 	{
@@ -224,14 +235,15 @@ static void TestKernalRenderSong(lsize uiFrames, CArrayUint8* pacFrames)
 //////////////////////////////////////////////////////////////////////////
 //
 // Builds the kernal ROM, boots it with the sound board and the SD Card
-// Board (holding Input/SDCard.img with the test's boot.exe, modplay.exe and
-// Space Debris on it, not written back) and checks that it found both,
+// Board (holding Output/SDCard.img, a copy of the emulator's blank
+// Input/SDCard.img with the test's boot.exe, modplay.exe and Space Debris
+// on it, not written back) and checks that it found both,
 // copied the math tables to main memory, mounted the FAT32 volume and ran
 // boot.exe in user mode, which ran modplay.exe as a second process: it
 // played the first TEST_MODPLAY_SECONDS of the song through the sound
 // board as CModPlayer does on the host.  The ROM image is written to
-// Input/Kernal.rom for the emulator (where boot.exe's argument is zero:
-// modplay.exe plays the whole song).
+// Output/Kernal.rom; the emulator boots it and Output/SDCard.img (where
+// boot.exe's argument is zero: modplay.exe plays the whole song).
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65KernalBoot(void)

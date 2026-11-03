@@ -126,7 +126,7 @@ bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
 //////////////////////////////////////////////////////////////////////////
 //
 // The HCP65 (its kernal ROM, the sound board and an SD card board with
-// Input/SDCard.img) in a window with a menu bar, run by the window's ticks
+// HCP65_EMULATOR_SD_CARD_IMAGE) in a window with a menu bar, run by the window's ticks
 // until the window closes.  The sound board plays through the window's
 // sound mixer.  pcInput has the platform's keyboard and mouse.
 //
