@@ -125,12 +125,33 @@ bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The machine, before it is set up.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::Init(void)
+{
+	PreInit();
+
+	mcHCP65.Init();
+	mcAudio.Init();
+	mcSDCard.Init();
+	mbValid = false;
+	mbInputs = false;
+
+	PostInit();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The machine and its window.  The devices are described by the XML in
 // szInputDirectory; pcNativeInput (the platform's keyboard and mouse) is
 // added to them.  Run fails if anything here did.
+// Call it once the app is in the root, so that what is made here is
+// built under the root rather than as an unrooted graph.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorApp::Init(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
+bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
 {
 	Ptr<CHCP65SoundVoice>	pSoundVoice;
 	Ptr<CMenuContainer>		pFileMenu;
@@ -140,12 +161,6 @@ void CHCP65EmulatorApp::Init(CNativeWindowFactory* pcNativeFactory, CNativeSound
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
 
-	PreInit();
-
-	mcHCP65.Init();
-	mcAudio.Init();
-	mcSDCard.Init();
-	mbInputs = false;
 	mbValid = LoadKernal(&mcHCP65, HCP65_EMULATOR_KERNAL_ROM);
 	if (!mcSDCard.InsertCard(HCP65_EMULATOR_SD_CARD_IMAGE, false))
 	{
@@ -199,8 +214,7 @@ void CHCP65EmulatorApp::Init(CNativeWindowFactory* pcNativeFactory, CNativeSound
 		mpWindow->SetComponentInput(&mcComponentInput);
 		mpWindow->SetWindowSize(1280, 800);
 	}
-
-	PostInit();
+	return mbValid;
 }
 
 
@@ -299,8 +313,9 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 	//Validating every object each time one changes is too slow for the text's glyphs.  They are validated once at the end.
 	gcObjects.DisableValidation();
 
-	pApp = OMalloc<CHCP65EmulatorApp>(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory);
+	pApp = OMalloc<CHCP65EmulatorApp>();
 	ORoot()->Add(pApp);
+	pApp->Setup(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory);
 	bResult = pApp->Run();
 	ORoot()->Remove(pApp);
 	pApp = NULL;

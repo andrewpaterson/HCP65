@@ -48,7 +48,8 @@ protected:
 	bool					mbInputs;  //The menu listener and the component input are initialised.
 
 public:
-	void	Init(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory);
+	void	Init(void);
+	bool	Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory);
 	void	Class(void) override;
 	void	Free(void) override;
 
