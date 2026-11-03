@@ -673,16 +673,19 @@ Strlen16Done:
 ; in X (first) or Y the byte offset (last) only: a size count of bits is at most 8KB.  And
 ; FindFirstClearBit(uint32) and FindFirstSetBit(uint64): the lowest clear (set) bit's index, or
 ; the width when there is none (as __builtin_ctzl and ctzll).  ARRAY_ELEMENT_NOT_FOUND ($FFFF)
-; when the array has none.  The array functions push 2 bytes of locals and D, and point D at
-; the stack:
+; when the array has none.  The array functions take their arguments in registers (the stack
+; entries load them with Bits16Stack): they push Y, X and A, 2 bytes of locals and D, and point D
+; at the stack:
 ;	D + 1		the caller's D
 ;	D + 3		BitInvert16: 0 or $FFFF
-;	D + 5		the return address
-;	D + 8		the arguments: the array, then the count of bits at D + 12
+;	D + 5		BitArray16: the array (A then X)
+;	D + 9		BitBits16: the count of bits (Y)
+;	D + 11		the return address
+; Bits16Return pops the 8 bytes above D's.
 
 BitInvert16	= 3
-BitArray16	= 8
-BitBits16	= 12
+BitArray16	= 5
+BitBits16	= 9
 
 
 		.section text.Bits816_16
