@@ -1,6 +1,8 @@
 ; The kernal's sound board driver (HCP65Lib/HCP65Audio.h has the board): its calls (KernalProcess.cpp) find the board
 ; and the process's memory; these talk to the board.  C functions with the W65C816 compiler's calling convention:
-; arguments from S + 4 after the jsl (pointers 4 bytes, 16 bit values 2), m and x 16 bit, D kept.
+; arguments from S + 4 after the jsl (pointers 4 bytes, 16 bit values 2), m and x 16 bit, D kept.  The compiler calls
+; them with register arguments (CppParserLib/W65C816.txt): the suffixed entries push the words again, in order, and
+; call the stack entries.
 
 AUDIO_COUNTER_LOW	= 2			; Reading it snapshots the counter.
 AUDIO_COUNTER_HIGH	= 3
@@ -12,6 +14,27 @@ AUDIO_COUNTER_HIGH	= 3
 ; extern "C" void KernalAudioCopy(uint8* puiDest, uint8* puiSource, uint16 uiCount): samples into the board's RAM A or
 ; RAM B, a word at a time (the board and main memory are different banks: mvn would need its banks in the
 ; instruction).
+		.global _KernalAudioCopy.axssy
+_KernalAudioCopy.axssy:
+		.width (A, X), 16
+		pha
+		phy
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		phx
+		lda [S + 9]
+		pha
+		jsl _KernalAudioCopy
+		ply
+		ply
+		ply
+		ply
+		ply
+		ply
+		rtl
+
 		.global _KernalAudioCopy
 _KernalAudioCopy:
 		.width (A, X), 16
@@ -45,6 +68,24 @@ AudioCopyDone:
 
 
 ; extern "C" void KernalAudioSetRegister(uint8* puiRegisters, uint16 uiRegister, uint16 uiValue)
+		.global _KernalAudioSetRegister.axy
+_KernalAudioSetRegister.axy:
+		.width (A, X), 16
+		pha
+		lda [S + 6]
+		pha
+		phy
+		phx
+		lda [S + 7]
+		pha
+		jsl _KernalAudioSetRegister
+		ply
+		ply
+		ply
+		ply
+		ply
+		rtl
+
 		.global _KernalAudioSetRegister
 _KernalAudioSetRegister:
 		.width (A, X), 16
@@ -64,6 +105,16 @@ _KernalAudioSetRegister:
 
 ; extern "C" uint16 KernalAudioGetCounter(uint8* puiRegisters): the address of the samples the board plays next.  The
 ; low byte is read first: it snapshots the counter, so the high byte read after goes with it.
+		.global _KernalAudioGetCounter.ax
+_KernalAudioGetCounter.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _KernalAudioGetCounter
+		ply
+		ply
+		rtl
+
 		.global _KernalAudioGetCounter
 _KernalAudioGetCounter:
 		.width (A, X), 16
