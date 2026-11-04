@@ -149,8 +149,10 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 		//The app (and its window) is held by the root while it runs.
 		pApp = OMalloc<CTesterApp>();
 		ORoot()->Add(pApp);
-		pApp->Setup(&cNativeFactory);
-		pApp->Run();
+		if (pApp->Setup(&cNativeFactory))
+		{
+			pApp->Run();
+		}
 		ORoot()->Remove(pApp);
 		pApp = NULL;
 

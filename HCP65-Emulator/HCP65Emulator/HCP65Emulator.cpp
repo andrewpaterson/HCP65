@@ -315,8 +315,7 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 
 	pApp = OMalloc<CHCP65EmulatorApp>();
 	ORoot()->Add(pApp);
-	pApp->Setup(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory);
-	bResult = pApp->Run();
+	bResult = pApp->Setup(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory) && pApp->Run();
 	ORoot()->Remove(pApp);
 	pApp = NULL;
 
