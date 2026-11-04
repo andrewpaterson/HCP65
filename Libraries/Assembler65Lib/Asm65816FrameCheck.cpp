@@ -23,7 +23,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65816FrameCheck.h"
 
 
-#define ASM65816_FRAME_CHECK_MOST	4		//The writes GetWrites tells of (it counts them all).
+#define ASM65816_FRAME_CHECK_MOST	4		//The stores to callers' stacks kept (GetWrite): the first ones found.
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -37,7 +37,7 @@ void CAsm65816FrameCheck::Init(CAsm65Memory* pcMemory, CFast65C816* pcFast)
 	mpcFast = pcFast;
 	masCalls.Init();
 	muiStackTop = 0;
-	muiFound = 0;
+	masWrites.Init();
 	mszWrites.Init();
 }
 
@@ -49,6 +49,7 @@ void CAsm65816FrameCheck::Init(CAsm65Memory* pcMemory, CFast65C816* pcFast)
 void CAsm65816FrameCheck::Kill(void)
 {
 	mszWrites.Kill();
+	masWrites.Kill();
 	masCalls.Kill();
 }
 
@@ -101,6 +102,7 @@ uint8 CAsm65816FrameCheck::BeforeStep(void)
 		psCall->uiS = mpcFast->GetS();
 		psCall->uiD = mpcFast->GetD();
 		psCall->uiReturn = psCall->uiS - ((uiOpcode == 0x22) ? 2 : 1);
+		psCall->uiReturnTo = uiAddress + ((uiOpcode == 0x22) ? 4 : 3);
 	}
 	return uiOpcode;
 }
@@ -109,17 +111,24 @@ uint8 CAsm65816FrameCheck::BeforeStep(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // After the instruction (uiOpcode, BeforeStep's) ran: a return ends the
-// calls it returns from (they started at or below S now).
+// calls it returns from, those that started at or below S now, and the
+// one it returned to the caller of (a subroutine that moves S, as a frame
+// entry helper's jsr does, comes back with S below where it started).
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65816FrameCheck::AfterStep(uint8 uiOpcode)
 {
-	if (Asm65816IsReturn(uiOpcode))
+	if (!Asm65816IsReturn(uiOpcode))
 	{
-		while ((masCalls.NumElements() > 0) && (masCalls.Tail()->uiS <= mpcFast->GetS()))
-		{
-			masCalls.RemoveTail();
-		}
+		return;
+	}
+	if ((masCalls.NumElements() > 0) && (masCalls.Tail()->uiReturnTo == mpcFast->GetProgramAddress()))
+	{
+		masCalls.RemoveTail();
+	}
+	while ((masCalls.NumElements() > 0) && (masCalls.Tail()->uiS <= mpcFast->GetS()))
+	{
+		masCalls.RemoveTail();
 	}
 }
 
@@ -171,7 +180,8 @@ void CAsm65816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 	uint32						uiLast;
 	uint16						uiD;
 	bool						bWide;
-	char						sz[160];
+	char						sz[16];
+	SAsm65816FrameWrite*		psWrite;
 
 	if ((masCalls.NumElements() == 0) || !Asm65816DirectPageWrite(uiOpcode, &sWrite))
 	{
@@ -201,22 +211,64 @@ void CAsm65816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 		return;
 	}
 
-	if (muiFound < ASM65816_FRAME_CHECK_MOST)
+	if (masWrites.NumElements() < ASM65816_FRAME_CHECK_MOST)
 	{
-		snprintf(sz, sizeof(sz), "0x%06X writes 0x%04X, its caller's stack (from 0x%04X; D 0x%04X)\n", uiAddress, uiFirst, uiLimit, uiD);
+		psWrite = masWrites.Add();
+		psWrite->uiAddress = uiAddress;
+		psWrite->uiFirst = (uint16)uiFirst;
+		psWrite->uiLimit = (uint16)uiLimit;
+		psWrite->uiD = uiD;
+		snprintf(sz, sizeof(sz), "0x%06X", uiAddress);
 		mszWrites.Append(sz);
+		AppendWrite(psWrite, &mszWrites);
 	}
-	muiFound++;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The stores to callers' stacks found, a line each (the first few), or
-// nothing.
+// The stores to callers' stacks kept (the first few found).
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsm65816FrameCheck::NumWrites(void)
+{
+	return masWrites.NumElements();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65816FrameWrite* CAsm65816FrameCheck::GetWrite(size uiIndex)
+{
+	return masWrites.Get(uiIndex);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The stores to callers' stacks kept, a line each (the instruction's
+// address and AppendWrite), or nothing.
 //
 //////////////////////////////////////////////////////////////////////////
 char* CAsm65816FrameCheck::GetWrites(void)
 {
 	return mszWrites.Text();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What a store to a caller's stack did, after its instruction's address
+// (which a caller may name, from its map): " writes 0x..., its caller's
+// stack (from 0x...; D 0x...)" and a new line.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65816FrameCheck::AppendWrite(SAsm65816FrameWrite* psWrite, CChars* pszDest)
+{
+	char	sz[96];
+
+	snprintf(sz, sizeof(sz), " writes 0x%04X, its caller's stack (from 0x%04X; D 0x%04X)\n", psWrite->uiFirst, psWrite->uiLimit, psWrite->uiD);
+	pszDest->Append(sz);
 }

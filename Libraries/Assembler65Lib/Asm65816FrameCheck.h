@@ -26,13 +26,25 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65Memory.h"
 
 
-//A call being run: S before the jsl (S is below it while the call runs), the caller's D then and the lowest byte of
-//the return address it pushed.
+//A call being run: S before the jsl (S is below it while the call runs), the caller's D then, the lowest byte of the
+//return address it pushed and the instruction it returns to.
 struct SAsm65816FrameCall
 {
 	uint16	uiS;
 	uint16	uiD;
 	uint16	uiReturn;
+	uint32	uiReturnTo;
+};
+
+
+//A store to a caller's stack: the instruction's address, the first byte it stores to, the lowest byte it may not
+//(CAsm65816FrameCheck::Limit) and D then.
+struct SAsm65816FrameWrite
+{
+	uint32	uiAddress;
+	uint16	uiFirst;
+	uint16	uiLimit;
+	uint16	uiD;
 };
 
 
@@ -50,7 +62,7 @@ protected:
 	CFast65C816*						mpcFast;
 	CArrayTemplate<SAsm65816FrameCall>	masCalls;
 	uint16								muiStackTop;	//S at the first call: frames are below it.
-	size								muiFound;
+	CArrayTemplate<SAsm65816FrameWrite>	masWrites;		//The first few found.
 	CChars								mszWrites;
 
 public:
@@ -60,7 +72,11 @@ public:
 	size	Run(size uiMaxSteps);
 	uint8	BeforeStep(void);
 	void	AfterStep(uint8 uiOpcode);
-	char*	GetWrites(void);
+
+	size					NumWrites(void);
+	SAsm65816FrameWrite*	GetWrite(size uiIndex);
+	char*					GetWrites(void);
+	static void				AppendWrite(SAsm65816FrameWrite* psWrite, CChars* pszDest);
 
 protected:
 	void	Check(uint32 uiAddress, uint8 uiOpcode);
