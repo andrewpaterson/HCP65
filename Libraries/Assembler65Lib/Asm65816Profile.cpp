@@ -22,6 +22,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include <stdlib.h>
 #include <string.h>
 #include "BaseLib/TextFile.h"
+#include "Asm65816Opcodes.h"
 #include "Asm65816Profile.h"
 
 
@@ -48,61 +49,6 @@ struct SAsm65816ProfileCall
 	uint16	uiS;
 	uint32	uiFunction;
 };
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Whether a W65C816 opcode has a direct page operand (dp, dp,x, dp,y,
-// (dp), (dp),y, (dp,x), [dp], [dp],y or pei): a cycle more when D's low byte
-// isn't 0.
-//
-//////////////////////////////////////////////////////////////////////////
-static bool Asm65816HasDirectPageOperand(uint8 uiOpcode)
-{
-	uint8	uiLow;
-
-	uiLow = uiOpcode & 0x1F;
-	if ((uiOpcode & 0x03) == 0x01)
-	{
-		//ora and eor adc sta lda cmp sbc: (dp,x), dp, [dp], (dp),y, dp,x, [dp],y.
-		return (uiLow == 0x01) || (uiLow == 0x05) || (uiLow == 0x07) || (uiLow == 0x11) || (uiLow == 0x15) || (uiLow == 0x17);
-	}
-	if (uiLow == 0x12)
-	{
-		//(dp): ora and eor adc sta lda cmp sbc.
-		return true;
-	}
-	switch (uiOpcode)
-	{
-	case 0x04: case 0x14: case 0x24: case 0x34: case 0x64: case 0x74:
-	case 0x06: case 0x16: case 0x26: case 0x36: case 0x46: case 0x56: case 0x66: case 0x76:
-	case 0x84: case 0x94: case 0x86: case 0x96: case 0xA4: case 0xB4: case 0xA6: case 0xB6:
-	case 0xC4: case 0xC6: case 0xD6: case 0xE4: case 0xE6: case 0xF6: case 0xD4:
-		return true;
-	default:
-		return false;
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Whether an instruction gets to a function's start by calling it: jsl, jsr,
-// jsr (a,x), a jump (a tail call: jml, jmp, jml [a], jmp (a), jmp (a,x)) or
-// the rtl of an indirect call (the address pushed, then rtl).  A branch to it
-// is a loop.
-//
-//////////////////////////////////////////////////////////////////////////
-static bool Asm65816IsCall(uint8 uiOpcode)
-{
-	switch (uiOpcode)
-	{
-	case 0x22: case 0x20: case 0xFC: case 0x5C: case 0x4C: case 0xDC: case 0x6C: case 0x7C: case 0x6B:
-		return true;
-	default:
-		return false;
-	}
-}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -372,7 +318,7 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 		}
 		uiPreviousOpcode = uiOpcode;
 		uiPreviousAddress = uiAddress;
-		if ((uiOpcode == 0x6B) || (uiOpcode == 0x60) || (uiOpcode == 0x40))
+		if (Asm65816IsReturn(uiOpcode))
 		{
 			//A return: the calls entered below S now are over.
 			uiS = pcFast->GetS();
