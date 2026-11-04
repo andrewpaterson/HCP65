@@ -27,6 +27,9 @@
     <ClCompile Include="Asm65816Instructions.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Asm65816FrameCheck.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Asm65816Lockstep.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -93,6 +96,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65816Assembler.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Asm65816FrameCheck.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65816Lockstep.h">

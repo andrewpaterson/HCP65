@@ -33,6 +33,7 @@ void CAsm65816Lockstep::Init(CAsm65Memory* pcFastMemory, CFast65C816* pcFast)
 {
 	mpcFastMemory = pcFastMemory;
 	mpcFast = pcFast;
+	mpcFrameCheck = NULL;
 	muiSteps = 0;
 	mbStopped = false;
 	mszDifferences.Init();
@@ -55,6 +56,18 @@ void CAsm65816Lockstep::Kill(void)
 	mcMeta.Kill();
 	SafeKill(mpcSimMemory);
 	mszDifferences.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The fast emulator's steps are checked by pcFrameCheck too (NULL for
+// none): its stores to callers' stacks.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65816Lockstep::SetFrameCheck(CAsm65816FrameCheck* pcFrameCheck)
+{
+	mpcFrameCheck = pcFrameCheck;
 }
 
 
@@ -96,14 +109,20 @@ bool CAsm65816Lockstep::Step(void)
 {
 	CW65C816*	pcSim;
 	uint32		uiAddress;
+	uint8		uiOpcode;
 	bool		bSim;
 	bool		bFast;
 	CChars		szDifferences;
 
 	pcSim = mcMeta.GetMPU();
 	uiAddress = mpcFast->GetProgramAddress();
+	uiOpcode = mpcFrameCheck ? mpcFrameCheck->BeforeStep() : 0;
 	bSim = mcMeta.TickInstruction();
 	bFast = mpcFast->Step();
+	if (mpcFrameCheck)
+	{
+		mpcFrameCheck->AfterStep(uiOpcode);
+	}
 	muiSteps++;
 	mbStopped = !bSim || !bFast;
 

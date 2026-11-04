@@ -24,6 +24,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "MicroprocessorLib/W65C816Meta.h"
 #include "MicroprocessorLib/Fast65C816.h"
 #include "Asm65Memory.h"
+#include "Asm65816FrameCheck.h"
 
 
 //Runs a program on CFast65C816 and on the CW65C816 simulator side by side, each with its own memory, and finds where
@@ -36,6 +37,7 @@ protected:
 	CFast65C816*	mpcFast;
 	CAsm65Memory*	mpcSimMemory;
 	CW65C816Meta	mcMeta;
+	CAsm65816FrameCheck*	mpcFrameCheck;
 	size			muiSteps;
 	bool			mbStopped;
 	CChars			mszDifferences;
@@ -43,6 +45,7 @@ protected:
 public:
 	void	Init(CAsm65Memory* pcFastMemory, CFast65C816* pcFast);
 	void	Kill(void);
+	void	SetFrameCheck(CAsm65816FrameCheck* pcFrameCheck);
 
 	size	Run(size uiMaxSteps, size uiMemoryInterval);
 	bool	Step(void);
