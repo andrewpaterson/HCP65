@@ -100,8 +100,58 @@ _memset:
 		rtl
 
 ; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
+; Up to SmallBytes bytes are copied here, last first, by a byte (if odd) then words through the
+; pointers ([[D + n]:24 + Y] crosses banks), with D at the stack: D + 1 the caller's D, D + 3
+; the destination (A and X), D + 7 the return address, D + 10 the source, D + 14 the size.
+; Most of BaseLib's copies are a few bytes (a pixel's channels), which the block move's frame
+; and set up would take about 600 cycles for; this takes about 105 for 4.  More go to MoveUp.
+SmallBytes	= 32
+SmallDst	= 3
+SmallSrc	= 10
+SmallSize	= 14
+
 _memcpy.ax:
 		.width (A, X), 16
+		phx
+		pha
+		phd
+		tsc
+		tcd
+		lda [D + SmallSize + 2]
+		bne MemcpyLarge
+		ldy [D + SmallSize]
+		cpy SmallBytes + 1
+		bcs MemcpyLarge
+		tya
+		beq MemcpySmallDone
+		lsr A
+		bcc MemcpyWords
+		dey
+		sep m
+		lda [[D + SmallSrc]:24 + Y]
+		sta [[D + SmallDst]:24 + Y]
+		rep m
+		tyx
+		beq MemcpySmallDone
+MemcpyWords:
+		.width (A, X), 16
+		dey
+		dey
+		lda [[D + SmallSrc]:24 + Y]
+		sta [[D + SmallDst]:24 + Y]
+		tyx
+		bne MemcpyWords
+MemcpySmallDone:
+		.width (A, X), 16
+		pld
+		pla
+		plx
+		rtl
+MemcpyLarge:
+		.width (A, X), 16
+		pld
+		pla
+		plx
 		phy
 		phx
 		pha
