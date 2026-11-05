@@ -29,6 +29,9 @@
 //
 //Main memory is one flat 16MB here; the main memory channel (device 1) and memory boards are not modelled.
 //The MPU ROM is flash on the real board; writes to it are ignored.
+//
+//Breakpoints are kept for each mode (GetModeBreakpoints): kernel mode and user mode see different memory at the same
+//address, so the MPU stops only at those of the mode it is in.
 class CHCP65
 {
 protected:
@@ -38,6 +41,8 @@ protected:
 	uint8*				mpuiMain;
 	CHCP65Registers		mcRegisters;
 	CHCP65Device*		mapcDevices[HCP65_NUM_DEVICE_SLOTS];
+	CBreakpoints		mcKernelBreakpoints;
+	CBreakpoints		mcUserBreakpoints;
 
 	uint64				muiClockRate;
 	bool				mbNativeLatch;
@@ -61,6 +66,7 @@ public:
 	uint64				Run(uint64 uiCycles);
 	bool				IsStopped(void);
 	bool				IsAtBreakpoint(void);
+	CBreakpoints*		GetModeBreakpoints(bool bKernel);
 	void				SetBreak(int iBreak);
 
 	CFast65C816*		GetMPU(void);

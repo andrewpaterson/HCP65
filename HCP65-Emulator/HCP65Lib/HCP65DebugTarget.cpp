@@ -33,7 +33,8 @@ uint64 CHCP65DebugTarget::GetRegisterValue(size uiRegister)	{ return Get65C816De
 bool CHCP65DebugTarget::SetRegisterValue(size uiRegister, uint64 uiValue)	{ return Set65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister, uiValue); }
 uint32 CHCP65DebugTarget::GetProgramAddress(void)		{ return mpcHCP65->GetMPU()->GetProgramAddress(); }
 uint32 CHCP65DebugTarget::GetStackPointer(void)			{ return mpcHCP65->GetMPU()->GetS(); }
-CBreakpoints* CHCP65DebugTarget::GetBreakpoints(void)	{ return mpcHCP65->GetMPU()->GetBreakpoints(); }
+CBreakpoints* CHCP65DebugTarget::GetBreakpoints(void)	{ return mpcHCP65->GetModeBreakpoints(true); }
+size CHCP65DebugTarget::NumBreakpointSpaces(void)		{ return 2; }
 bool CHCP65DebugTarget::IsAtBreakpoint(void)			{ return mpcHCP65->IsAtBreakpoint(); }
 bool CHCP65DebugTarget::IsStopped(void)					{ return mpcHCP65->IsStopped(); }
 void CHCP65DebugTarget::Run(uint64 uiBudget)			{ mpcHCP65->Run(uiBudget); }
@@ -111,3 +112,26 @@ size CHCP65DebugTarget::PokeMemory(uint32 uiAddress, void* pvSource, size uiSize
 
 CDebugDecoder* CHCP65DebugTarget::GetDecoder(void)				{ return &mcDecoder; }
 EDebugAddressFormat CHCP65DebugTarget::GetAddressFormat(void)	{ return DAF_Bank; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Kernel mode's breakpoints, then user mode's: the kernal and a process
+// both have code from bank 1.
+//
+//////////////////////////////////////////////////////////////////////////
+const char* CHCP65DebugTarget::GetBreakpointSpaceName(size uiSpace)
+{
+	return (uiSpace == 0) ? "Kernel" : ((uiSpace == 1) ? "User" : "");
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+CBreakpoints* CHCP65DebugTarget::GetSpaceBreakpoints(size uiSpace)
+{
+	return (uiSpace < 2) ? mpcHCP65->GetModeBreakpoints(uiSpace == 0) : NULL;
+}
+

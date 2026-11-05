@@ -33,6 +33,9 @@ public:
 	uint32			GetStackPointer(void) override;
 
 	CBreakpoints*	GetBreakpoints(void) override;
+	size			NumBreakpointSpaces(void) override;
+	const char*		GetBreakpointSpaceName(size uiSpace) override;
+	CBreakpoints*	GetSpaceBreakpoints(size uiSpace) override;
 	bool			IsAtBreakpoint(void) override;
 	bool			IsStopped(void) override;
 

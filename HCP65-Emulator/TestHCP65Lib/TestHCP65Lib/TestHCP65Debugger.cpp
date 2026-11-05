@@ -78,6 +78,8 @@ void TestHCP65Debugger(void)
 	CDebugClient			cClient;
 	SDebugRange				sLine;
 	uint32					uiInstructions;
+	uint32					uiKernel;
+	uint32					uiUser;
 	uint8					uiByte;
 	int						i;
 	static const uint8		auiMain[] = { 0x18, 0xFB, 0xE8, 0x20, 0x10, 0x80, 0xC8, 0x80, 0xF9 };
@@ -119,13 +121,26 @@ void TestHCP65Debugger(void)
 	AssertInt(DI_Call, cClient.GetInstruction(3)->uiKind);
 	AssertIntHex(0x8010, cClient.GetInstruction(3)->uiTarget);
 
-	//To the breakpoint after the call, once round the loop and again.
+	//Breakpoint spaces: kernel mode and user mode.  It stays in kernel mode (the reset counts as an interrupt, and
+	//nothing returns from it), so a user mode breakpoint doesn't stop it.
+	AssertSize(2, cClient.NumBreakpointSpaces());
+	AssertString("Kernel", cClient.GetBreakpointSpaceName(0));
+	AssertString("User", cClient.GetBreakpointSpaceName(1));
+	AssertTrue(cClient.FindBreakpointSpace("kernel", &uiKernel));
+	AssertInt(1, uiKernel);
+	AssertTrue(cClient.FindBreakpointSpace("User", &uiUser));
+	AssertInt(2, uiUser);
+	AssertFalse(cClient.FindBreakpointSpace("Supervisor", &uiUser));
+	AssertTrue(cClient.AddBreakpoint(0x8002, true, uiUser));
+
+	//To the breakpoint after the call (in every space), once round the loop and again.
 	AssertTrue(cClient.AddBreakpoint(0x8006, true));
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
 	AssertLongLongIntHex(2, cClient.GetRegisterValue(D816R_X));
 	AssertLongLongIntHex(0, cClient.GetRegisterValue(D816R_E));
 	AssertTrue(cHCP65.IsNativeLatched());
+	AssertTrue(cHCP65.IsKernelMode());
 
 	//The return before the breakpoint isn't an instruction: once round is six.
 	uiInstructions = cHCP65.GetInstructionCount();
@@ -155,6 +170,18 @@ void TestHCP65Debugger(void)
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
 	AssertLongLongIntHex(10, cClient.GetRegisterValue(D816R_X));
 
+	//A kernel mode breakpoint stops it in the function; removed, it goes on to the one after the call.
+	AssertTrue(cClient.AddBreakpoint(0x8010, true, uiKernel));
+	AssertTrue(cClient.Continue());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8010);
+	AssertLongLongIntHex(11, cClient.GetRegisterValue(D816R_X));
+	AssertTrue(cHCP65.GetModeBreakpoints(true)->Contains(0x8010));
+	AssertFalse(cHCP65.GetModeBreakpoints(false)->Contains(0x8010));
+	AssertTrue(cClient.RemoveBreakpoint(0x8010, uiKernel));
+	AssertTrue(cClient.Continue());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
+	AssertLongLongIntHex(12, cClient.GetRegisterValue(D816R_X));
+
 	//Memory through the map: RAM at 0 once native.  A device reads as $FF and isn't written.
 	AssertTrue(cClient.ReadMemory(0x8000, sizeof(auiMain)));
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumMemoryReplies, 1);
@@ -182,7 +209,8 @@ void TestHCP65Debugger(void)
 		cServer.Tick(TEST_HCP65_DEBUG_CYCLES);
 	}
 	AssertTrue(cServer.IsClosed());
-	AssertSize(0, cHCP65.GetMPU()->GetBreakpoints()->NumBreakpoints());
+	AssertSize(0, cHCP65.GetModeBreakpoints(true)->NumBreakpoints());
+	AssertSize(0, cHCP65.GetModeBreakpoints(false)->NumBreakpoints());
 
 	cClient.Kill();
 	cServer.Kill();

@@ -24,6 +24,8 @@ void CHCP65::Init(uint64 uiClockRate)
 
 	mcMPU.Init(ReadByte, WriteByte, this, mpuiRAM, HCP65_MPU_RAM_SIZE);
 	mcMPU.SetSignal(Signal);
+	mcKernelBreakpoints.Init();
+	mcUserBreakpoints.Init();
 
 	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
@@ -64,6 +66,8 @@ void CHCP65::Kill(void)
 	}
 	mcRegisters.Kill();
 	mcMPU.Kill();
+	mcUserBreakpoints.Kill();
+	mcKernelBreakpoints.Kill();
 	SafeFree(mpuiMain);
 	SafeFree(mpuiROM);
 	SafeFree(mpuiRAM);
@@ -266,6 +270,18 @@ bool CHCP65::IsAtBreakpoint(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The breakpoints of kernel mode (bKernel) or user mode.  Change them at
+// any time; the MPU stops at those of the mode it is in.
+//
+//////////////////////////////////////////////////////////////////////////
+CBreakpoints* CHCP65::GetModeBreakpoints(bool bKernel)
+{
+	return bKernel ? &mcKernelBreakpoints : &mcUserBreakpoints;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A falling edge on break input iBreak (1 to 3), an NMI source.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -349,12 +365,14 @@ uint64 CHCP65::NextDeviceEvent(void)
 //
 // Kernel mode is a non-zero interrupt depth, or before the processor has
 // been native.  MPU RAM is the processor's flat block only when it is at
-// address 0: kernel mode after the swap.
+// address 0: kernel mode after the swap.  The MPU looks at the mode's
+// breakpoints.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65::UpdateMode(void)
 {
 	mbKernel = (muiInterruptDepth != 0) || !mbNativeLatch;
+	mcMPU.UseBreakpoints(mbKernel ? &mcKernelBreakpoints : &mcUserBreakpoints);
 	if (mbKernel && mbNativeLatch)
 	{
 		mcMPU.SetHole(0, 0);
