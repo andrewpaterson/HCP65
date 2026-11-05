@@ -39,3 +39,4 @@ temp-freerouting.dsn
 
 /Tests/TestLibc65/TestLibc65/Log_65C64.txt
 /Tests/TestLibc65/TestLibc65/Log_816.txt
+*.layout.user
