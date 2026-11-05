@@ -1,0 +1,170 @@
+The kernal's IRQ dispatch - plan
+================================
+
+Started 2026-11-05.  Nothing here is built yet.  Today KernalIrq (Start.asm) is a bare rti, main runs with
+interrupts disabled, processes start with I set (KERNAL_PROCESS_STATUS = $34), and drivers poll: the SD Card Board's
+block read polls Flags D7 (KernalSDCard.cpp ReadSector), and modplay polls the sound board's counter (COP 9).
+
+Goal: devices signal the CPU with IRQ and the kernal dispatches each interrupt to its device's driver, so nothing
+polls a device to find out that it has finished.  The first users are the SD Card Board (end of a DMA block read) and
+the sound board (counter reached its interrupt address).
+
+
+What the hardware gives
+-----------------------
+
+- IRQ is low while any device's ~Device Interrupt line is (Device Interrupts sheet).  It is level triggered: a driver
+  must clear its device's interrupt before the handler returns, or the IRQ is taken again at once.
+- The processor board can't mask a device's interrupt.  Each device masks its own (its interrupt enable flag), and the
+  CPU's I flag masks them all.  Holding a device in reset (registers 3 and 5) also silences it.
+- Which devices are interrupting: register 0 D1-D7 = devices 1-7 and register 2 D0-D3 = devices 16-19, 0 = interrupting
+  (at KERNAL_REGISTERS = $100000).
+- Kernel mode is a non-zero interrupt depth: the depth counts up on each vector pull and down on each RTI, and is
+  readable as register 9.  An IRQ taken in user mode pushes its frame (PBR, PC, P) on the process's stack, in main
+  memory through the remap table, before the vector pull makes it kernel mode.  After that, bank 0 is MPU RAM, so S
+  still holds the process's stack address but nothing may be pushed until S is moved (KernalCop has the same problem
+  and saves the registers with long stores).  RTI drops the depth before it pulls, so the frame comes back from the
+  process's stack.
+- NMI is separate: the processor board's latched sources (the 32.768kHz timer and the break sources) in register 7.
+- The SD board's interrupt is latched until Clear Interrupt is written or interrupt enable / Enable is turned off (as
+  intended; see "SD Card Board Faults.txt" item 9 for the board as drawn).  The sound board's is latched the same way.
+
+
+Constraints
+-----------
+
+1. Main memory contention.  While the SD board's DMA runs (a 512 byte block is about 1100 MPU clocks), the CPU must not
+   touch main memory at all, or Main Memory Full Abort latches Contention: main memory is shut off until reset and
+   NMI1 fires.  Main memory holds:
+   - every process's memory, its stack and its interrupt frames;
+   - the kernal's heap ($440000-$4FFFFF), so the SD bounce buffer and anything malloc'ed;
+   - the MULT and INVERT tables ($400000-$43FFFF), which the compiler's multiply and divide runtime
+     (R816_Mul16/32, R816_UDiv16, ...) reads.  So any C++ that multiplies or divides touches main memory.
+   So a DMA can only run while the CPU is in kernel mode in MPU RAM and ROM, and no process can run during it.  An IRQ
+   taken during a DMA must not run code that reaches main memory.
+2. No compiler support for interrupt handlers (__attribute__((interrupt)) is only planned in
+   CppParserLib/W65C816.txt step 8).  The entry and exit are assembly in Start.asm, like KernalCop; C++ is reached with
+   jsl after the registers are saved.  Each C++ function sets its own D (the frame is the direct page), and DBR is not
+   used by compiled code, so the entry only has to save and restore them.
+3. ROM space: the kernal image is close to its 192KB.  The dispatch must be small.
+
+
+Design
+------
+
+A. Entry and exit (Start.asm, KernalIrq)
+   - Save A with a long store to an IRQ save area in MPU RAM (not the stack), switch to 16 bit registers, read the
+     interrupt depth (register 9).
+   - Depth 1 (taken in user mode): save X, Y, S, D and DBR to the save area too, then set S to the kernal's stack
+     (gsKernalCall.uiKernalS, as KernalCop does; no COP can be running, because COP sets I).
+     Depth > 1 (taken in kernel mode): push X, Y, D and DBR on the current stack (MPU RAM) as usual.
+   - D = 0, then jsl _KernalIrqDispatch.
+   - Exit in reverse; the user mode path puts the process's S back and its last instruction is rti.
+   - The save area is only used by one IRQ at a time: handlers run with I set and the kernal never sets I clear inside
+     a handler.  NMI gets its own save area.
+
+B. Dispatch (assembly, user 2026-11-05; the handlers it calls can be C++)
+   - A handler table indexed by slot (1-7 and 16-19): the handler's function and a context pointer, in MPU RAM.
+     KernalSetInterruptHandler(uiSlot, fHandler, pvContext, bTrusted) and KernalClearInterruptHandler(uiSlot).
+     bTrusted: the handler never touches main memory (no process memory, heap, MULT/INVERT tables - so no multiply or
+     divide in C++), so it may run while the main bus is in use.  Drivers
+     register in their Init (CKernalSDCard::Init, the audio open call).
+   - Read registers 0 and 2 once, call the handler of every interrupting slot, then return.  If the IRQ line is still
+     low the CPU takes it again after the rti; one pass per IRQ keeps the dispatch short.
+   - An interrupting slot with no handler: the device is reset (its bit in register 3 or 5 written 0 then 1) and that
+     is recorded in gsKernalStatus, so one unexpected device can't lock the machine in an endless IRQ.  The processor
+     board can't mask a device's IRQ, but its ~Reset line is how it tells a device to stop signalling: a board built on
+     Device Decode stage A + Flags & Interrupt comes out of reset with Enable clear, so its interrupt is off until its
+     driver enables it again.  Resetting loses the device's state, so it is no use for deferring a device during a
+     DMA (quietening is used for that).  (Question 3, user 2026-11-05.)
+   - Handler contract: first quieten the device (interrupt enable off, Clear Interrupt), then record what happened (a
+     flag, a counter), return quickly.  No malloc, no file system, no kernal calls.
+   - Quietening (user 2026-11-05: every driver does it first).  Most boards (SD Card, Audio, PS2, Video, Graphics,
+     Blitter, Coprocessor) share the Flags & Interrupt component board: reading its Flags register gives F0-F5, D6 =
+     Enable and D7 = interrupt pending; writing it sets F0-F5, D6 = Enable and D7 = interrupt enable.  So writing back
+     what was read with D7 clear turns only the interrupt enable off, and forces the line off.  The registration gives
+     the dispatch the address of the device's Flags register, and the dispatch can quieten such a device itself
+     without any driver code.  The VIA, UART and LCD boards don't use it (the VIA and UART chips have their own
+     interrupt enable registers): their drivers register a quiet routine instead, which must be trusted (it only
+     touches the device's registers).
+   - While the main bus is busy, an interrupting device whose handler isn't trusted is quietened and marked pending;
+     its handler runs when the SD driver clears the busy flag, and turns its device's interrupt enable back on.  A
+     latched interrupt stays latched while the enable is off, so nothing is lost.  There is no spinning in the dispatch.
+
+C. Waiting for an interrupt
+   - KernalWaitForInterrupt(volatile flag, timeout): with I set, test the flag; if it isn't set, wai.  WAI ends on IRQ
+     even with I set and goes on with the next instruction, so nothing is missed between the test and the wai.  Then
+     cli and sei lets the pending IRQ be dispatched, and the flag is tested again.
+   - Timeouts need time: the NMI timer (step 6).  Until then the wait counts wakes instead of polls.
+
+D. SD Card Board
+   - ReadSector: write the DMA address and counts, set interrupt enable in Flags, CMD17, Read Start, wait for the
+     handler's flag.  Then memcpy out of the bounce buffer, after the DMA is over.
+   - The SD handler's first act (user 2026-11-05) is to quieten the board: write Flags with interrupt enable off
+     (which drops the line on the board as drawn too) and write Clear Interrupt.  Only then does it clear the
+     main-bus-busy flag and set the done flag.  It is trusted: it touches only the board's registers and MPU RAM.
+   - Because of constraint 1, the wait during a DMA must not dispatch anything that touches main memory.
+   - User 2026-11-05: interrupts stay on during a DMA; handlers registered as trusted (they never touch main memory)
+     are dispatched as usual, the others are deferred.  The SD driver sets a kernal flag (gbKernalMainBusBusy, in MPU
+     RAM) from just before Read Start until its handler has seen the end of the DMA.  The dispatch reads the flag and
+     skips untrusted handlers while it is set.  The SD board's own handler is trusted.
+   - Deferred devices are quietened at the device (see B), so the CPU doesn't keep re-entering the dispatch during
+     the DMA.
+
+E. Processes with interrupts on
+   - User 2026-11-05: processes must run with interrupts enabled.
+   - KERNAL_PROCESS_STATUS loses I once the user mode entry path is tested, so the sound board's interrupt reaches the
+     kernal while modplay runs.  COP calls still start with I set; a call that waits for a device sets I clear only in
+     KernalWaitForInterrupt.
+   - The sound board handler then refills or signals the process instead of the process polling the counter (question
+     5).
+
+F. NMI
+   - KernalNmi: save as in A, read register 7, write back the sources it saw to clear them, count timer ticks in a
+     global (the timeouts in C use it), leave the break sources to the debugger (they are the emulator's breakpoints'
+     business today), rti.
+
+G. Emulator
+   - Model contention: while CHCP65SDCard's DMA window is open (Read Start to the end of the data), a CPU access to
+     main memory latches Contention, makes main memory read $FF and ignore writes, and pulls NMI low, as Main Memory
+     Small Enable does.  Without this the emulator can't catch a kernal that breaks constraint 1.
+   - Everything else (IRQ as the OR of the devices' lines, the depth counting, the frame on the process's stack) is
+     already modelled.
+
+
+Steps
+-----
+
+1. Emulator contention model + a TestHCP65Machine test (a hand-assembled program touching main memory during a read
+   gets NMI and a dead main memory).
+2. Start.asm IRQ entry/exit for both depths + a dispatch with a handler table.  TestHCP65Machine-style tests: an IRQ
+   from kernel mode and from user mode (frame on the process's stack, registers back afterwards), two devices at once,
+   a device with no handler is held in reset.
+3. KernalWaitForInterrupt.
+4. SD Card Board on the dispatch (ReadSector waits instead of polling).  TestHCP65Kernal still mounts and runs
+   modplay; check cycles against today's.
+5. Processes run with interrupts on.
+6. NMI timer ticks and timeouts.
+7. Sound board interrupt for modplay.
+
+
+Questions for the user
+----------------------
+
+Answered 2026-11-05: 1 = (b) with trusted handlers and a main-bus-busy flag set by the SD driver; 2 = yes; 4 =
+assembly.  3 = the device is reset (not held).  Still open: 5 (explained to the user: (a) the handler refills the board
+from the process's ring buffer, (b) the handler only signals and modplay waits in a kernal call; (b) recommended).
+
+1. During an SD DMA, other interrupts:
+   (a) stay masked: the read waits with I set and wai, the SD board's IRQ only wakes the CPU, the driver reads Flags
+       once to check it was the SD board, and other devices are dispatched after the DMA (at most ~45-90us late at
+       25 / 12.5 MHz); or
+   (b) are dispatched, but only handlers marked "MPU RAM only" run, and the rest are deferred (their lines stay low,
+       so the CPU keeps re-entering the dispatch until the DMA ends).
+   Recommendation: (a).
+2. Should processes run with interrupts enabled (step 5)?  The sound board's interrupt needs it.
+3. A device that interrupts with no handler: hold it in reset (recommended), or just turn the IRQ handling off?
+4. The dispatch in assembly (no multiply or divide can sneak in from the compiler, smaller) or C++ (easier to change)?
+   Recommendation: the entry, exit and table walk in assembly, the handlers in C++.
+5. The sound board: the kernal refills its RAM from the process's buffer in the handler (the kernal owns the mixing
+   buffer), or the handler only signals the process?
