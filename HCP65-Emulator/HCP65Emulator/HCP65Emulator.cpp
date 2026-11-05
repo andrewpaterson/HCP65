@@ -135,6 +135,7 @@ void CHCP65EmulatorApp::Init(void)
 	mcHCP65.Init();
 	mcAudio.Init();
 	mcSDCard.Init();
+	mcDebugger.Init();
 	mbValid = false;
 	mbInputs = false;
 
@@ -151,7 +152,7 @@ void CHCP65EmulatorApp::Init(void)
 // built under the root rather than as an unrooted graph.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
+bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, int argc, char* argv[])
 {
 	Ptr<CHCP65SoundVoice>	pSoundVoice;
 	Ptr<CMenuContainer>		pFileMenu;
@@ -171,10 +172,20 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
 	mcHCP65.Reset();
 
+	//Debugged, it holds stopped until the debugger connects and continues it.
+	if (mbValid)
+	{
+		mbValid = mcDebugger.ParseArguments(argc, argv);
+	}
+	if (mbValid && mcDebugger.IsEnabled())
+	{
+		mbValid = mcDebugger.Start(&mcHCP65);
+	}
+
 	if (mbValid)
 	{
 		pSoundVoice = OMalloc<CHCP65SoundVoice>(&mcAudio);
-		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		mpWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
 		mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
 
@@ -227,6 +238,7 @@ void CHCP65EmulatorApp::Class(void)
 	U_Data(CHCP65, mcHCP65);
 	U_Data(CHCP65Audio, mcAudio);
 	U_Data(CHCP65SDCard, mcSDCard);
+	U_Data(CHCP65EmulatorDebugger, mcDebugger);
 	M_Pointer(mpWindow);
 	M_Pointer(mpMenuBar);
 	U_Data(CFileMenuListener, mcFileMenuListener);
@@ -252,6 +264,7 @@ void CHCP65EmulatorApp::Free(void)
 		mcFileMenuListener.Kill();
 		mcComponentInput.Kill();
 	}
+	mcDebugger.Kill();
 	mcHCP65.Kill();
 	mcSDCard.Kill();
 	mcAudio.Kill();
@@ -305,7 +318,7 @@ bool CHCP65EmulatorApp::Run(void)
 // The emulator, held by the root while it runs.
 //
 //////////////////////////////////////////////////////////////////////////
-bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory)
+bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, int argc, char* argv[])
 {
 	Ptr<CHCP65EmulatorApp>	pApp;
 	bool					bResult;
@@ -315,7 +328,7 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 
 	pApp = OMalloc<CHCP65EmulatorApp>();
 	ORoot()->Add(pApp);
-	bResult = pApp->Setup(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory) && pApp->Run();
+	bResult = pApp->Setup(pcNativeFactory, pcSoundFactory, pcNativeInput, szInputDirectory, argc, argv) && pApp->Run();
 	ORoot()->Remove(pApp);
 	pApp = NULL;
 

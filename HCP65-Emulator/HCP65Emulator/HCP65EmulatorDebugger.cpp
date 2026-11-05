@@ -1,0 +1,196 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "BaseLib/Logger.h"
+#include "BaseLib/Socket.h"
+#include "HCP65EmulatorDebugger.h"
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorDebugger::Init(void)
+{
+	meTransport = HDT_None;
+	mszName.Init();
+	miPort = 0;
+	mbExitOnDetach = false;
+	mcNetwork.Init();
+	mcShared.Init();
+	mbStarted = false;
+	mbChannelOpen = false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorDebugger::Kill(void)
+{
+	if (mbStarted)
+	{
+		mcServer.Kill();
+		mcTarget.Kill();
+		if (meTransport == HDT_Network)
+		{
+			mcListen.Kill();
+			SocketsKill();
+		}
+	}
+	mcShared.Kill();
+	mcNetwork.Kill();
+	mszName.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The debugging arguments (HCP65_DEBUG_*); others are left for the rest of
+// the emulator.  False if one is malformed.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorDebugger::ParseArguments(int argc, char* argv[])
+{
+	int		i;
+
+	for (i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], HCP65_DEBUG_SHARED_MEMORY) == 0)
+		{
+			if ((i + 1 >= argc) || (meTransport != HDT_None))
+			{
+				gcLogger.Error2(__METHOD__, " " HCP65_DEBUG_SHARED_MEMORY " needs a name, and only one debug channel can be given.", NULL);
+				return false;
+			}
+			i++;
+			meTransport = HDT_SharedMemory;
+			mszName.Kill();
+			mszName.Init(argv[i]);
+		}
+		else if (strcmp(argv[i], HCP65_DEBUG_NETWORK) == 0)
+		{
+			if ((i + 1 >= argc) || (meTransport != HDT_None))
+			{
+				gcLogger.Error2(__METHOD__, " " HCP65_DEBUG_NETWORK " needs a port, and only one debug channel can be given.", NULL);
+				return false;
+			}
+			i++;
+			meTransport = HDT_Network;
+			miPort = atoi(argv[i]);
+		}
+		else if (strcmp(argv[i], HCP65_DEBUG_EXIT_ON_DETACH) == 0)
+		{
+			mbExitOnDetach = true;
+		}
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorDebugger::IsEnabled(void)
+{
+	return meTransport != HDT_None;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Makes the channel.  A shared memory channel is created now; the network
+// listens now and accepts the debugger in a later Tick.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorDebugger::Start(CHCP65* pcHCP65)
+{
+	CProcessChannel*	pcChannel;
+
+	mcTarget.Init(pcHCP65);
+	if (meTransport == HDT_SharedMemory)
+	{
+		if (!mcShared.Create(mszName.Text()))
+		{
+			gcLogger.Error2(__METHOD__, " Could not create the debug channel [", mszName.Text(), "].", NULL);
+			mcTarget.Kill();
+			return false;
+		}
+		mbChannelOpen = true;
+		pcChannel = &mcShared;
+	}
+	else
+	{
+		SocketsInit();
+		if (!mcListen.Init(NETWORK_LOOPBACK_ADDRESS, miPort))
+		{
+			gcLogger.Error2(__METHOD__, " Could not listen for a debugger on port [", IntToString(miPort), "].", NULL);
+			SocketsKill();
+			mcTarget.Kill();
+			return false;
+		}
+		printf(HCP65_DEBUG_PORT_LINE "%d\n", mcListen.GetPort());
+		fflush(stdout);
+		pcChannel = &mcNetwork;
+	}
+
+	mcServer.Init(pcChannel, &mcTarget);
+	mbStarted = true;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each window tick, with the cycles the HCP65 is due (0 while it isn't
+// running).  False when the emulator should close: the debugger sent
+// DM_Quit, or it went and HCP65_DEBUG_EXIT_ON_DETACH was given.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorDebugger::Tick(uint64 uiCycles)
+{
+	if (!mbChannelOpen)
+	{
+		Accept();
+		return true;
+	}
+
+	mcServer.Tick(uiCycles);
+	if (mcServer.IsQuitting())
+	{
+		return false;
+	}
+	if (mcServer.IsClosed() && mbExitOnDetach)
+	{
+		return false;
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the HCP65's time goes on: not while the debugger has it stopped
+// or is stepping it, nor before a debugger has connected.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorDebugger::IsRunning(void)
+{
+	return mbChannelOpen && (mcServer.GetState() == DSS_Running);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Without waiting.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorDebugger::Accept(void)
+{
+	if (mcNetwork.Accept(&mcListen, 0))
+	{
+		mbChannelOpen = true;
+	}
+}

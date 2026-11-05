@@ -25,11 +25,12 @@
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "FileMenuListener.h"
+#include "HCP65EmulatorDebugger.h"
 
 
 //The emulator: the HCP65 (its kernal ROM, the sound board and an SD card board with HCP65_EMULATOR_SD_CARD_IMAGE) in a
 //window with a menu bar, and the input that drives it.  HCP65EmulatorRun makes it, adds it to the root, runs it and removes
-//it from the root.
+//it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
 class CHCP65EmulatorApp : public CObject
 {
 CONSTRUCTABLE(CHCP65EmulatorApp);
@@ -38,6 +39,7 @@ protected:
 	CHCP65					mcHCP65;
 	CHCP65Audio				mcAudio;
 	CHCP65SDCard			mcSDCard;
+	CHCP65EmulatorDebugger	mcDebugger;
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;
 	CFileMenuListener		mcFileMenuListener;
@@ -49,7 +51,7 @@ protected:
 
 public:
 	void	Init(void);
-	bool	Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory);
+	bool	Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, int argc, char* argv[]);
 	void	Class(void) override;
 	void	Free(void) override;
 
@@ -60,7 +62,7 @@ public:
 };
 
 
-bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory);
+bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, int argc, char* argv[]);
 
 
 #endif // __HCP65_EMULATOR_H__

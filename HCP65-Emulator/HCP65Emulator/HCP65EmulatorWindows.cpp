@@ -46,7 +46,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 		cWinInput.Init(NULL, false);
 		cNativeFactory.SetRawInput(WinRawInputCallback, cWinInput.GetRaw());
 
-		bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml");
+		bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml", __argc, __argv);
 
 		cNativeFactory.SetRawInput(NULL, NULL);
 		cWinInput.Kill();
