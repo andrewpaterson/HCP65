@@ -5,17 +5,12 @@
 #include "ThreadLib/NetworkConnection.h"
 #include "ThreadLib/SharedMemoryChannel.h"
 #include "EmulatorDebugLib/DebugServer.h"
+#include "EmulatorDebugLib/DebugLaunch.h"
 #include "HCP65Lib/HCP65DebugTarget.h"
 
 
-//The command line arguments that make the emulator debuggable.
-#define HCP65_DEBUG_SHARED_MEMORY	"--debug-shm"		//Then a name: the emulator Creates a shared memory channel with it.
-#define HCP65_DEBUG_NETWORK			"--debug-tcp"		//Then a port (0 for any): the emulator listens on the loopback network.
-#define HCP65_DEBUG_EXIT_ON_DETACH	"--exit-on-detach"	//The emulator closes when the debugger detaches or goes.
-#define HCP65_DEBUG_WAIT			"--debug-wait"		//The HCP65 holds stopped before its first instruction until a debugger continues it.
-
-//Printed on standard output when listening, with the port, so a debugger that started the emulator can connect.
-#define HCP65_DEBUG_PORT_LINE		"HCP65 debug port "
+//The command line arguments that make the emulator debuggable are EmulatorDebugLib's (DebugLaunch.h), shared with
+//whatever starts it.
 
 
 enum EHCP65DebugTransport
@@ -27,7 +22,7 @@ enum EHCP65DebugTransport
 
 
 //The emulator's end of a debugger's connection: the channel (made from the command line), the HCP65 as a debug target
-//and the server.  The HCP65 runs from the start and a debugger can attach whenever it likes, or with HCP65_DEBUG_WAIT
+//and the server.  The HCP65 runs from the start and a debugger can attach whenever it likes, or with DEBUG_ARGUMENT_WAIT
 //it holds stopped before its first instruction until a debugger attaches and continues it.  On the network another
 //debugger can attach after one detaches.
 class CHCP65EmulatorDebugger
