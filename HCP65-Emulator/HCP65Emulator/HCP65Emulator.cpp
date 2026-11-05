@@ -162,6 +162,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CWindowTheme>		pTheme;
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
+	const char*				szCard;
 
 	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.  A
 	//debugger it waits for may load the kernal itself, so then the ROM file needn't be there.
@@ -177,9 +178,20 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 			mbValid = false;
 		}
 	}
-	if (!mcSDCard.InsertCard(HCP65_EMULATOR_SD_CARD_IMAGE, false))
+	//The SD card is --card's disk image, or its own.
+	szCard = DebugLaunchValue(argc, argv, DEBUG_ARGUMENT_CARD);
+	if (szCard && (szCard[0] == '\0'))
 	{
-		gcLogger.Error2(__METHOD__, " Could not insert the SD card [", HCP65_EMULATOR_SD_CARD_IMAGE, "].", NULL);
+		gcLogger.Error2(__METHOD__, " " DEBUG_ARGUMENT_CARD " needs a disk image file.", NULL);
+		mbValid = false;
+	}
+	if (!szCard || (szCard[0] == '\0'))
+	{
+		szCard = HCP65_EMULATOR_SD_CARD_IMAGE;
+	}
+	if (!mcSDCard.InsertCard(szCard, false))
+	{
+		gcLogger.Error2(__METHOD__, " Could not insert the SD card [", szCard, "].", NULL);
 		mbValid = false;
 	}
 	mcHCP65.SetDevice(HCP65_EMULATOR_SD_SOCKET, &mcSDCard);

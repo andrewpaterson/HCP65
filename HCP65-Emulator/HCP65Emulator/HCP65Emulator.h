@@ -30,7 +30,8 @@
 #include "HCP65EmulatorDebugger.h"
 
 
-//The emulator: the HCP65 (its kernal ROM, the sound board and an SD card board with HCP65_EMULATOR_SD_CARD_IMAGE) in a
+//The emulator: the HCP65 (its kernal ROM, the sound board and an SD card board with HCP65_EMULATOR_SD_CARD_IMAGE, or
+//the card given with --card) in a
 //window with a menu bar, and the input that drives it.  HCP65EmulatorRun makes it, adds it to the root, runs it and removes
 //it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
 class CHCP65EmulatorApp : public CObject
