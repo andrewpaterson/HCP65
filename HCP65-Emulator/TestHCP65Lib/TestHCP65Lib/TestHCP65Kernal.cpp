@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "BaseLib/FileUtil.h"
+#include "BaseLib/FatImageFile.h"
 #include "BaseLib/ArrayUint8.h"
 #include "BaseLib/GlobalDataTypesIO.h"
 #include "StandardLib/Objects.h"
@@ -111,7 +112,7 @@ static bool TestKernalPutExe(const char* szName, const char* szDirectory, const 
 		{
 			printf("%s: %d bytes\n", szName, (int)cExe.GetExecutableSize());
 		}
-		bBuilt = HCP65PutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, szName, cExe.GetExecutable(), cExe.GetExecutableSize());
+		bBuilt = FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, szName, cExe.GetExecutable(), cExe.GetExecutableSize());
 		AssertTrue(bBuilt);
 	}
 	cExe.Kill();
@@ -168,7 +169,7 @@ static bool TestKernalPutFiles(void)
 	acSong.Resize((size)iSize);
 	bResult = fread(acSong.GetData(), 1, (size_t)iSize, pcFile) == (size_t)iSize;
 	fclose(pcFile);
-	bResult = bResult && HCP65PutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, MODPLAY_FILE, acSong.GetData(), acSong.NumElements());
+	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, MODPLAY_FILE, acSong.GetData(), acSong.NumElements());
 	AssertTrue(bResult);
 	acSong.Kill();
 	return bResult;

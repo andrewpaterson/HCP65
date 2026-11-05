@@ -42,7 +42,4 @@ protected:
 };
 
 
-bool HCP65PutFileOnImage(const char* szImage, const char* szName, uint8* puiData, size uiSize);
-
-
 #endif // __HCP65_EXE_BUILDER_H__

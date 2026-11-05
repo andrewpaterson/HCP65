@@ -3,9 +3,6 @@
 #include <string.h>
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/MemoryFile.h"
-#include "BaseLib/MemoryDrive.h"
-#include "BaseLib/FatVolume.h"
-#include "BaseLib/FatFile.h"
 #include "BaseLib/PointerFunctions.h"
 #include "Assembler65Lib/Asm65Object.h"
 #include "HCP65ExeBuilder.h"
@@ -238,56 +235,4 @@ size CHCP65ExeBuilder::GetExecutableSize(void)
 const char* CHCP65ExeBuilder::GetErrors(void)
 {
 	return mszErrors.Text();
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Writes uiSize bytes as szName (a FAT path, \boot.exe) on the FAT volume in
-// the image file szImage, replacing it if it is there.
-//
-//////////////////////////////////////////////////////////////////////////
-bool HCP65PutFileOnImage(const char* szImage, const char* szName, uint8* puiData, size uiSize)
-{
-	CMemoryDrive	cDrive;
-	CFatVolume		cVolume;
-	CFatFile		cFile;
-	FILE*			pcFile;
-	long			iSize;
-	bool			bResult;
-
-	pcFile = fopen(szImage, "rb");
-	if (!pcFile)
-	{
-		return false;
-	}
-	fseek(pcFile, 0, SEEK_END);
-	iSize = ftell(pcFile);
-	fseek(pcFile, 0, SEEK_SET);
-	cDrive.Init((uint64)iSize, 512);
-	bResult = fread(cDrive.GetMemory(), 1, (size_t)iSize, pcFile) == (size_t)iSize;
-	fclose(pcFile);
-
-	bResult = bResult && (cVolume.Mount(&cDrive) == FAT_SUCCESS);
-	if (bResult)
-	{
-		cFile.Init(&cVolume);
-		bResult = cFile.Open(szName, FAT_FILE_ACCESS_CREATE | FAT_FILE_ACCESS_OVERWRITE | FAT_FILE_ACCESS_WRITE) == FAT_SUCCESS;
-		bResult = bResult && (cFile.Write(puiData, uiSize) == FAT_SUCCESS);
-		bResult &= cFile.Close() == FAT_SUCCESS;
-		bResult &= cVolume.Unmount() == FAT_SUCCESS;
-	}
-
-	if (bResult)
-	{
-		pcFile = fopen(szImage, "wb");
-		bResult = pcFile != NULL;
-		if (pcFile)
-		{
-			bResult = fwrite(cDrive.GetMemory(), 1, (size_t)iSize, pcFile) == (size_t)iSize;
-			fclose(pcFile);
-		}
-	}
-	cDrive.Kill();
-	return bResult;
 }
