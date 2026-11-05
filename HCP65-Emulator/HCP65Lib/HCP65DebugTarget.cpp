@@ -27,10 +27,54 @@ void CHCP65DebugTarget::Kill(void)
 //////////////////////////////////////////////////////////////////////////
 const char* CHCP65DebugTarget::GetProcessorName(void)	{ return "W65C816"; }
 size CHCP65DebugTarget::NumAddressBits(void)			{ return 24; }
-size CHCP65DebugTarget::NumRegisters(void)				{ return D816R_NumRegisters; }
-void CHCP65DebugTarget::GetRegister(size uiRegister, SDebugRegister* psDest)	{ Get65C816DebugRegister(uiRegister, psDest); }
-uint64 CHCP65DebugTarget::GetRegisterValue(size uiRegister)	{ return Get65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister); }
-bool CHCP65DebugTarget::SetRegisterValue(size uiRegister, uint64 uiValue)	{ return Set65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister, uiValue); }
+size CHCP65DebugTarget::NumRegisters(void)				{ return HCP65_DEBUG_NUM_REGISTERS; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The W65C816's registers, then the process ID (PID).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65DebugTarget::GetRegister(size uiRegister, SDebugRegister* psDest)
+{
+	if (uiRegister == HCP65_DEBUG_REGISTER_PROCESS)
+	{
+		SetDebugRegister(psDest, "PID", 8, DRK_Value);
+	}
+	else
+	{
+		Get65C816DebugRegister(uiRegister, psDest);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+uint64 CHCP65DebugTarget::GetRegisterValue(size uiRegister)
+{
+	if (uiRegister == HCP65_DEBUG_REGISTER_PROCESS)
+	{
+		return mpcHCP65->GetProcessID();
+	}
+	return Get65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The process ID can't be changed.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugTarget::SetRegisterValue(size uiRegister, uint64 uiValue)
+{
+	if (uiRegister == HCP65_DEBUG_REGISTER_PROCESS)
+	{
+		return false;
+	}
+	return Set65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister, uiValue);
+}
 uint32 CHCP65DebugTarget::GetProgramAddress(void)		{ return mpcHCP65->GetMPU()->GetProgramAddress(); }
 uint32 CHCP65DebugTarget::GetStackPointer(void)			{ return mpcHCP65->GetMPU()->GetS(); }
 CBreakpoints* CHCP65DebugTarget::GetBreakpoints(void)	{ return mpcHCP65->GetModeBreakpoints(true); }

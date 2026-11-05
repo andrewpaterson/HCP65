@@ -108,6 +108,13 @@ void TestHCP65Debugger(void)
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Start, 0x8000);
 	AssertString("W65C816", cClient.GetProcessorName());
 	AssertInt(DAF_Bank, cClient.GetAddressFormat());
+
+	//After the processor's registers, the process the MMU maps for: the kernal's (zero) until it runs one.
+	AssertSize(HCP65_DEBUG_NUM_REGISTERS, cClient.NumRegisters());
+	AssertString("PID", cClient.GetRegister(HCP65_DEBUG_REGISTER_PROCESS)->szName);
+	AssertInt(8, cClient.GetRegister(HCP65_DEBUG_REGISTER_PROCESS)->uiBits);
+	AssertLongLongIntHex(0, cClient.GetRegisterValue(HCP65_DEBUG_REGISTER_PROCESS));
+	AssertFalse(cTarget.SetRegisterValue(HCP65_DEBUG_REGISTER_PROCESS, 3));
 	AssertTrue(cClient.CanDecode());
 
 	//The emulator disassembles with the assembler's knowledge, in emulation mode (8 bit immediates).

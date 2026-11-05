@@ -6,6 +6,12 @@
 #include "HCP65.h"
 
 
+//After the W65C816's registers: the process the MMU maps user mode for, read only (changing it would move the running
+//process's memory from under it).
+#define HCP65_DEBUG_REGISTER_PROCESS	D816R_NumRegisters
+#define HCP65_DEBUG_NUM_REGISTERS		(D816R_NumRegisters + 1)
+
+
 //The HCP65 as a CDebugServer sees it: its W65C816 and the memory map it sees now.  Run's budget is CPU cycles,
 //as CHCP65::Run's.  Memory is read and written without touching devices: device addresses read as $FF and a
 //write stops at the first one.  Breakpoints are the processor's addresses, in whichever process is running.  Its
