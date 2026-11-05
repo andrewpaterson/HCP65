@@ -699,6 +699,7 @@ void TestAsm65LinkerLineTable(void)
 	CMemoryFile*		pcMemoryFile;
 	SAsm65LineEntry*	psLine;
 	SAsm65LineEntry*	psRead;
+	CArrayUint32		auiAddresses;
 	int64				iStart;
 	int64				iOther;
 	size				ui;
@@ -710,7 +711,9 @@ void TestAsm65LinkerLineTable(void)
 		"	.line \"a.cpp\", 10\n"
 		"	jsr Other\n"
 		"	.line \"a.cpp\", 11\n"
-		"	ret\n");
+		"	ret\n"
+		"	.line \"a.cpp\", 10\n"
+		"	nop\n");
 	LinkTestObject(&sTest,
 		"	.global Other\n"
 		"Other:\n"
@@ -731,6 +734,30 @@ void TestAsm65LinkerLineTable(void)
 	AssertTrue(psLine != NULL);
 	AssertString("b.asm", pcTable->GetFile(psLine->uiFile));
 	AssertInt(3, psLine->uiLine);
+
+	//A line's code in each place it starts; a line without code is the next line with some; paths in either case
+	//and with either slash are the same file.
+	auiAddresses.Init();
+	AssertInt(10, pcTable->FindLineAddresses("a.cpp", 10, &auiAddresses));
+	AssertSize(2, auiAddresses.NumElements());
+	AssertInt((uint32)iStart, auiAddresses.GetValue(0));
+	AssertTrue(auiAddresses.GetValue(1) > auiAddresses.GetValue(0));
+	auiAddresses.ReInit();
+	AssertInt(10, pcTable->FindLineAddresses("A.CPP", 4, &auiAddresses));
+	AssertSize(2, auiAddresses.NumElements());
+	auiAddresses.ReInit();
+	AssertInt(11, pcTable->FindLineAddresses("a.cpp", 11, &auiAddresses));
+	AssertSize(1, auiAddresses.NumElements());
+	auiAddresses.ReInit();
+	AssertInt(0, pcTable->FindLineAddresses("a.cpp", 12, &auiAddresses));
+	AssertInt(0, pcTable->FindLineAddresses("c.cpp", 1, &auiAddresses));
+	AssertSize(0, auiAddresses.NumElements());
+	pcTable->AddLine(0x123456, "Dir\\Sub/File.asm", 7);
+	pcTable->Sort();
+	AssertInt(7, pcTable->FindLineAddresses("dir/sub\\file.ASM", 7, &auiAddresses));
+	AssertSize(1, auiAddresses.NumElements());
+	AssertInt(0x123456, auiAddresses.GetValue(0));
+	auiAddresses.Kill();
 
 	pcMemoryFile = MemoryFile();
 	pcMemoryFile->mbBasicFileMustFree = false;

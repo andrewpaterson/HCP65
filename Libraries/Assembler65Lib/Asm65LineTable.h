@@ -22,6 +22,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define __ASM65_LINE_TABLE_H__
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/ArrayChars.h"
+#include "BaseLib/ArrayUint32.h"
 #include "BaseLib/MapStringTemplate.h"
 #include "BaseLib/AbstractFile.h"
 #include "BaseLib/ChunkFile.h"
@@ -78,6 +79,8 @@ public:
 	size					NumLines(void);
 	SAsm65LineEntry*		GetLine(size uiIndex);
 	SAsm65LineEntry*		FindLine(uint32 uiAddress);
+	uint32					FindLineAddresses(const char* szFile, uint32 uiLine, CArrayUint32* pauiAddresses);
+	bool					FindFile(const char* szFile, uint32* puiFile);
 	size					NumFiles(void);
 	char*					GetFile(size uiIndex);
 	size					NumFingerprints(void);

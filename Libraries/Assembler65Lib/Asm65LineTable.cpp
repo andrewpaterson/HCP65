@@ -241,6 +241,99 @@ size CAsm65LineTable::NumFingerprints(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Whether two paths name the same file: letters in either case, and '/'
+// and '\' the same.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool Asm65SamePath(const char* szLeft, const char* szRight)
+{
+	char	cLeft;
+	char	cRight;
+
+	for (;; szLeft++, szRight++)
+	{
+		cLeft = (*szLeft == '\\') ? '/' : ToLower(*szLeft);
+		cRight = (*szRight == '\\') ? '/' : ToLower(*szRight);
+		if (cLeft != cRight)
+		{
+			return false;
+		}
+		if (cLeft == '\0')
+		{
+			return true;
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The index of the file szFile names (Asm65SamePath).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::FindFile(const char* szFile, uint32* puiFile)
+{
+	size	ui;
+
+	for (ui = 0; ui < maszFiles.NumElements(); ui++)
+	{
+		if (Asm65SamePath(maszFiles.GetText(ui), szFile))
+		{
+			*puiFile = (uint32)ui;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Where the code for line uiLine of szFile starts, each place, added to
+// pauiAddresses in address order: a line can have code in more than one
+// place (a loop's test, a function inlined).  A line with no code is
+// taken as the next line of the file that has some, as a debugger moves
+// a breakpoint to it.  Returns the line found, 0 if there is none.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CAsm65LineTable::FindLineAddresses(const char* szFile, uint32 uiLine, CArrayUint32* pauiAddresses)
+{
+	uint32				uiFile;
+	uint32				uiFound;
+	size				ui;
+	SAsm65LineEntry*	psLine;
+
+	if (!FindFile(szFile, &uiFile))
+	{
+		return 0;
+	}
+	uiFound = 0;
+	for (ui = 0; ui < masLines.NumElements(); ui++)
+	{
+		psLine = masLines.Get(ui);
+		if ((psLine->uiFile == uiFile) && (psLine->uiLine >= uiLine) && ((uiFound == 0) || (psLine->uiLine < uiFound)))
+		{
+			uiFound = psLine->uiLine;
+		}
+	}
+	if (uiFound == 0)
+	{
+		return 0;
+	}
+	for (ui = 0; ui < masLines.NumElements(); ui++)
+	{
+		psLine = masLines.Get(ui);
+		if ((psLine->uiFile == uiFile) && (psLine->uiLine == uiFound))
+		{
+			pauiAddresses->Add(psLine->uiAddress);
+		}
+	}
+	return uiFound;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 SAsm65LineFingerprint* CAsm65LineTable::GetFingerprint(size uiIndex)
