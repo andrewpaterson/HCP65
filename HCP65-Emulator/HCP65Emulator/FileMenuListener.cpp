@@ -28,9 +28,9 @@ void CFileMenuListener::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CFileMenuListener::MenuItemClicked(CUnknown* pcSource, void* pvContext)
+void CFileMenuListener::MenuItemClicked(CMenuItem* pcItem)
 {
-	if (mpcExit == pcSource)
+	if (mpcExit == pcItem)
 	{
 		mpcWindow->Stop();
 	}

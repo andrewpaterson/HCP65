@@ -212,7 +212,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		mpWindow->SetContainer(pMain);
 
 		mcFileMenuListener.Init(mpWindow, pFileMenu);
-		mpMenuBar->AddListener(&mcFileMenuListener);
+		mpMenuBar->GetItemClickEvent()->Add(&mcFileMenuListener, &CFileMenuListener::MenuItemClicked);
 
 		mpInput = OMalloc<CInput>((CNativeInput*)NULL);
 		mbValid = mpInput->Read((char*)szInputDirectory);
@@ -260,7 +260,10 @@ void CHCP65EmulatorApp::Free(void)
 {
 	if (mbInputs)
 	{
-		mcFileMenuListener.RemoveFromListenerCalls();
+		if (mpMenuBar.IsNotNull())
+		{
+			mpMenuBar->GetItemClickEvent()->Remove(&mcFileMenuListener);
+		}
 		mcFileMenuListener.Kill();
 		mcComponentInput.Kill();
 	}
@@ -306,7 +309,7 @@ bool CHCP65EmulatorApp::Run(void)
 
 	if (mbInputs)
 	{
-		mpMenuBar->RemoveListener(&mcFileMenuListener);
+		mpMenuBar->GetItemClickEvent()->Remove(&mcFileMenuListener);
 		mpWindow->SetComponentInput(NULL);
 	}
 	return mbValid;
