@@ -273,6 +273,8 @@ void TestHCP65KernalBoot(void)
 	int					i;
 	bool				bBuilt;
 	bool				bSilence;
+	CAsm65LineTable*	pcLines;
+	SAsm65LineEntry*	psLine;
 
 	if (!TestKernalPutFiles())
 	{
@@ -292,6 +294,16 @@ void TestHCP65KernalBoot(void)
 	AssertTrue(cBuilder.GetCodeEnd() <= HCP65_ROM_CODE_END);
 	AssertTrue(cBuilder.GetSymbol("_gsKernalStatus", &uiStatus));
 	AssertTrue(cBuilder.Write(TEST_HCP65_KERNAL_ROM));
+
+	//Start.asm's lines are in the line table, as the C++ units' are, so a debugger can stop at them: the native
+	//vectors at $FFE4 are its data.
+	pcLines = cBuilder.GetBuilder()->GetLineTable();
+	psLine = pcLines->FindLine(0xFFE4);
+	AssertTrue(psLine != NULL);
+	if (psLine)
+	{
+		AssertTrue(strstr(pcLines->GetFile(psLine->uiFile), "Start.asm") != NULL);
+	}
 
 	//guiKernalBootArgument is image data: in the ROM at its MPU RAM address (the kernal's status is set by the start
 	//up).  boot.exe gets the boot argument.
