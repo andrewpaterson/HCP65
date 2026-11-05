@@ -9,6 +9,7 @@
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
 #include "HCP65Lib/HCP65.h"
+#include "HCP65Lib/HCP65DebugPort.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "TestLib/Assert.h"
@@ -39,6 +40,7 @@
 #define TEST_MODPLAY_SECONDS		1			//boot.exe's argument, patched into the test's copy of the ROM.
 #define TEST_HCP65_SD_SOCKET		2			//Socket 1 is the main memory channel.
 #define TEST_HCP65_AUDIO_SOCKET		16
+#define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
 
 //The kernal's states (Kernal/Kernal.h, which is W65C816 code).
 #define TEST_KERNAL_STATE_DEVICES_SCANNED	2
@@ -236,6 +238,9 @@ void TestHCP65KernalBoot(void)
 	CHCP65				cHCP65;
 	CHCP65Audio			cAudio;
 	CHCP65SDCard		cSDCard;
+	CHCP65DebugPort		cPort;
+	EDebugProcessEvent	eEvent;
+	SDebugProcess		sProcess;
 	STestKernalStatus	sStatus;
 	CArrayUint8			acPlayed;
 	CArrayUint8			acExpected;
@@ -305,9 +310,12 @@ void TestHCP65KernalBoot(void)
 	cHCP65.Init(getenv("TEST_HCP65_CLOCK") ? (uint64)atoll(getenv("TEST_HCP65_CLOCK")) : TEST_HCP65_CLOCK_RATE);
 	cAudio.Init();
 	cSDCard.Init();
+	cPort.Init();
 	AssertTrue(cSDCard.InsertCard(TEST_HCP65_SD_CARD_IMAGE, false));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO_SOCKET, &cAudio));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
+	cPort.Watch(true);
 	AssertTrue(cHCP65.LoadROM(puiROM, HCP65_ROM_SIZE));
 	cHCP65.Reset();
 
@@ -356,6 +364,27 @@ void TestHCP65KernalBoot(void)
 	AssertInt(20000, sStatus.uiUserValue);
 	AssertInt(0xFF, cHCP65.GetProcessID());
 	AssertInt(1, cHCP65.GetInterruptDepth());
+
+	//The kernal told the debug port of each process, in order: boot.exe ($FF) started, modplay.exe ($FE) started and
+	//ended, then boot.exe ended with modplay.exe's exit code.  Each start stopped a Run, which went on in the next.
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Started, eEvent);
+	AssertInt(0xFF, sProcess.uiProcess);
+	AssertString("\\boot.exe", sProcess.szName);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Started, eEvent);
+	AssertInt(0xFE, sProcess.uiProcess);
+	AssertString("\\modplay.exe", sProcess.szName);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Ended, eEvent);
+	AssertInt(0xFE, sProcess.uiProcess);
+	AssertInt(MODPLAY_EXIT_SUCCESS, sProcess.iExitCode);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Ended, eEvent);
+	AssertInt(0xFF, sProcess.uiProcess);
+	AssertInt(sStatus.uiExitCode, sProcess.iExitCode);
+	AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertSize(0, cPort.NumProcesses());
 
 	//The SD Card Board was enabled at boot, the sound board by modplay.exe, which left it disabled.
 	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET), cHCP65.GetDeviceEnables());
@@ -406,6 +435,7 @@ void TestHCP65KernalBoot(void)
 	acPlayed.Kill();
 
 	cHCP65.Kill();
+	cPort.Kill();
 	cSDCard.Kill();
 	cAudio.Kill();
 	cBuilder.Kill();

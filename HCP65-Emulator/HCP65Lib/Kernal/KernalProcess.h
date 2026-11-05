@@ -3,6 +3,18 @@
 #include "BaseLib/PrimitiveTypes.h"
 
 
+//The emulator's debug port (HCP65Lib/HCP65DebugPort.h): the kernal tells it of each process started and ended.
+#define KERNAL_DEBUG_PORT_NAME			"HCP65 Debug Port"
+#define KERNAL_DEBUG_PORT_COMMAND		0x400
+#define KERNAL_DEBUG_PORT_PROCESS		0x401
+#define KERNAL_DEBUG_PORT_EXIT_LOW		0x402
+#define KERNAL_DEBUG_PORT_EXIT_HIGH		0x403
+#define KERNAL_DEBUG_PORT_NAME_BUFFER	0x500
+#define KERNAL_DEBUG_PORT_NAME_SIZE		64
+#define KERNAL_DEBUG_PORT_STARTED		1
+#define KERNAL_DEBUG_PORT_ENDED			2
+
+
 #define KERNAL_FIRST_PROCESS_ID		0xFF		//boot.exe's.  A process run by another gets the next ID down.
 #define KERNAL_LAST_PROCESS_ID		0xFC
 #define KERNAL_REMAP_TABLE			0x070000	//MPU RAM: a 256 byte page of physical banks per process ID.

@@ -39,6 +39,8 @@ SKernalCall			gsKernalCall;
 static uint8		guiKernalProcess;							//The process running (or calling), 0 for none.
 static uint16		gauiKernalArguments[256];					//Each process ID's argument.
 static uint8		gauiKernalBankOwners[KERNAL_LAST_PROCESS_BANK + 1];	//The process ID a physical bank is given to.
+static SKernalDevice*	gpsKernalDebugPort;			//The debug port, if there is one.
+static bool				gbKernalDebugPortLooked;	//It has been looked for.
 static SKernalDevice*	gpsKernalSoundBoard;
 static uint8*			gpuiKernalArguments;					//The call's arguments, on the process's stack in its bank 0.
 
@@ -434,11 +436,48 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Tells the debug port (an emulator's: it is how a debugger follows the
+// processes) that uiProcess, running szPath, has started
+// (KERNAL_DEBUG_PORT_STARTED) or ended with uiExitCode
+// (KERNAL_DEBUG_PORT_ENDED).  Without one it tells nothing.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalDebugTell(uint8 uiCommand, uint8 uiProcess, uint16 uiExitCode, const char* szPath)
+{
+	uint8*	puiPort;
+	uint16	i;
+
+	if (!gbKernalDebugPortLooked)
+	{
+		gpsKernalDebugPort = KernalFindDevice(KERNAL_DEBUG_PORT_NAME);
+		gbKernalDebugPortLooked = true;
+	}
+	if (!gpsKernalDebugPort)
+	{
+		return;
+	}
+
+	puiPort = (uint8*)gpsKernalDebugPort->uiAddress;
+	puiPort[KERNAL_DEBUG_PORT_PROCESS] = uiProcess;
+	puiPort[KERNAL_DEBUG_PORT_EXIT_LOW] = (uint8)uiExitCode;
+	puiPort[KERNAL_DEBUG_PORT_EXIT_HIGH] = (uint8)(uiExitCode >> 8);
+	for (i = 0; (i < KERNAL_DEBUG_PORT_NAME_SIZE - 1) && (szPath[i] != '\0'); i++)
+	{
+		puiPort[KERNAL_DEBUG_PORT_NAME_BUFFER + i] = (uint8)szPath[i];
+	}
+	puiPort[KERNAL_DEBUG_PORT_NAME_BUFFER + i] = 0;
+	puiPort[KERNAL_DEBUG_PORT_COMMAND] = uiCommand;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Runs an executable (see KernalLoadExecutable) as a new process in user
 // mode until it exits.  boot.exe is process $FF; a process run by another
 // (during the other's execute call) gets the next ID down and its own
-// banks, and the other carries on once it exits.  Returns
-// KERNAL_PROCESS_EXITED with its exit code, or why it couldn't run.
+// banks, and the other carries on once it exits.  The debug port is told
+// of it starting and ending.  Returns KERNAL_PROCESS_EXITED with its exit
+// code, or why it couldn't run.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode)
@@ -472,9 +511,11 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 	gsKernalCall.uiUserS = KERNAL_USER_STACK_TOP - 4;
 	gauiKernalArguments[uiProcess] = uiArgument;
 
+	KernalDebugTell(KERNAL_DEBUG_PORT_STARTED, uiProcess, 0, szPath);
 	KernalWriteRegister(8, uiProcess);
 	KernalEnterUser();
 	*puiExitCode = gsKernalCall.uiExitCode;
+	KernalDebugTell(KERNAL_DEBUG_PORT_ENDED, uiProcess, *puiExitCode, szPath);
 
 	KernalFreeProcess(uiProcess);
 	memcpy(&gsKernalCall, &sCaller, sizeof(SKernalCall));
