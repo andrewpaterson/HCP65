@@ -130,6 +130,18 @@ void TestHCP65Debugger(void)
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
 	AssertLongLongIntHex(6, cClient.GetRegisterValue(D816R_X));
 
+	//Over the jsr, and into it and out again.
+	AssertTrue(cClient.Step(3));
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8003);
+	AssertTrue(cClient.StepOver());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
+	AssertLongLongIntHex(8, cClient.GetRegisterValue(D816R_X));
+	AssertTrue(cClient.Step(4));
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8010);
+	AssertTrue(cClient.StepOut());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
+	AssertLongLongIntHex(10, cClient.GetRegisterValue(D816R_X));
+
 	//Memory through the map: RAM at 0 once native.  A device reads as $FF and isn't written.
 	AssertTrue(cClient.ReadMemory(0x8000, sizeof(auiMain)));
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumMemoryReplies, 1);

@@ -38,6 +38,7 @@ public:
 
 	size			PeekMemory(uint32 uiAddress, void* pvDest, size uiSize) override;
 	size			PokeMemory(uint32 uiAddress, void* pvSource, size uiSize) override;
+	EDebugInstruction	GetInstruction(uint32 uiAddress, size* puiCallLength) override;
 };
 
 

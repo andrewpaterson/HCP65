@@ -107,3 +107,18 @@ size CHCP65DebugTarget::PokeMemory(uint32 uiAddress, void* pvSource, size uiSize
 	}
 	return i;
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The opcode as it is now in the memory map (a device's address is $FF,
+// not a call).
+//
+//////////////////////////////////////////////////////////////////////////
+EDebugInstruction CHCP65DebugTarget::GetInstruction(uint32 uiAddress, size* puiCallLength)
+{
+	uint8	uiOpcode;
+
+	PeekMemory(uiAddress, &uiOpcode, 1);
+	return Get65C816Instruction(uiOpcode, puiCallLength);
+}
