@@ -23,6 +23,12 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/ArrayChars.h"
 #include "BaseLib/MapStringTemplate.h"
+#include "BaseLib/AbstractFile.h"
+#include "BaseLib/ChunkFile.h"
+
+
+#define ASM65_LINE_TABLE_MAGIC		"Asm65LineTable"
+#define ASM65_LINE_TABLE_VERSION	1
 
 
 //Where the code for a line of a source file starts.  A line of 0 is code for no line (past the end of a section that
@@ -50,7 +56,8 @@ typedef CArrayTemplate<SAsm65LineFingerprint>	CArrayAsm65LineFingerprints;
 
 
 //The linker's line table: from an address in the program to the source line its code is for (.line), and the
-//linked functions' fingerprints.  Lines are in address order once Sort is called.
+//linked functions' fingerprints.  Lines are in address order once Sort is called.  Write and Read keep it in a file
+//beside the program it is for (WriteFile, ReadFile), for a debugger.
 class CAsm65LineTable
 {
 protected:
@@ -76,6 +83,16 @@ public:
 	size					NumFingerprints(void);
 	SAsm65LineFingerprint*	GetFingerprint(size uiIndex);
 	SAsm65LineFingerprint*	FindFingerprint(const char* szLabel);
+
+	bool					Write(CAbstractFile* pcFile);
+	bool					Read(CAbstractFile* pcFile);
+	bool					WriteFile(const char* szFilename);
+	bool					ReadFile(const char* szFilename);
+
+protected:
+	uint32					FileIndex(const char* szFile);
+	bool					WriteChunks(CChunkFile* pcChunkFile);
+	bool					ReadChunks(CChunkFile* pcChunkFile);
 };
 
 

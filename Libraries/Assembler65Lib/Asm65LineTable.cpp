@@ -19,6 +19,9 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 ** ------------------------------------------------------------------------ **/
 #include "BaseLib/StringHelper.h"
+#include "BaseLib/DiskFile.h"
+#include "BaseLib/FileUtil.h"
+#include "Asm65Object.h"
 #include "Asm65LineTable.h"
 
 
@@ -94,25 +97,34 @@ void CAsm65LineTable::Clear(void)
 void CAsm65LineTable::AddLine(uint32 uiAddress, const char* szFile, uint32 uiLine)
 {
 	SAsm65LineEntry*	psLine;
-	uint32*				puiFile;
-	uint32				uiFile;
+
+	psLine = masLines.Add();
+	psLine->uiAddress = uiAddress;
+	psLine->uiFile = FileIndex(szFile);
+	psLine->uiLine = uiLine;
+	psLine->uiOrder = (uint32)(masLines.NumElements() - 1);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// szFile's index in the files, added if it isn't one yet.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CAsm65LineTable::FileIndex(const char* szFile)
+{
+	uint32*	puiFile;
+	uint32	uiFile;
 
 	puiFile = mcFileIndices.Get(szFile);
 	if (puiFile)
 	{
-		uiFile = *puiFile;
+		return *puiFile;
 	}
-	else
-	{
-		uiFile = (uint32)maszFiles.NumElements();
-		maszFiles.Add(szFile);
-		mcFileIndices.Put(szFile, &uiFile);
-	}
-	psLine = masLines.Add();
-	psLine->uiAddress = uiAddress;
-	psLine->uiFile = uiFile;
-	psLine->uiLine = uiLine;
-	psLine->uiOrder = (uint32)(masLines.NumElements() - 1);
+	uiFile = (uint32)maszFiles.NumElements();
+	maszFiles.Add(szFile);
+	mcFileIndices.Put(szFile, &uiFile);
+	return uiFile;
 }
 
 
@@ -255,3 +267,210 @@ SAsm65LineFingerprint* CAsm65LineTable::FindFingerprint(const char* szLabel)
 	return NULL;
 }
 
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Writes the table as a chunk file.  pcFile is freed by the chunk file
+// when it is a must free file (DiskFile, MemoryFile).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::Write(CAbstractFile* pcFile)
+{
+	CChunkFile	cChunkFile;
+	bool		bResult;
+
+	cChunkFile.Init(pcFile);
+	bResult = cChunkFile.WriteOpen();
+	if (bResult)
+	{
+		bResult = WriteChunks(&cChunkFile);
+		bResult &= cChunkFile.WriteClose();
+	}
+	cChunkFile.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Reads a table Write wrote into an initialised, empty table.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::Read(CAbstractFile* pcFile)
+{
+	CChunkFile	cChunkFile;
+	bool		bResult;
+
+	//ReadClose frees what a failed ReadOpen allocated too.
+	cChunkFile.Init(pcFile);
+	bResult = cChunkFile.ReadOpen();
+	bResult = bResult && ReadChunks(&cChunkFile);
+	bResult &= cChunkFile.ReadClose();
+	cChunkFile.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::WriteFile(const char* szFilename)
+{
+	return Write(DiskFile(szFilename));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// False, with the table emptied, if the file can't be read or isn't a
+// line table of this version.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::ReadFile(const char* szFilename)
+{
+	CFileUtil	cFileUtil;
+
+	Clear();
+	if (!cFileUtil.Exists(szFilename))
+	{
+		return false;
+	}
+	if (!Read(DiskFile(szFilename)))
+	{
+		Clear();
+		return false;
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::WriteChunks(CChunkFile* pcChunkFile)
+{
+	size					ui;
+	SAsm65LineEntry*		psLine;
+	SAsm65LineFingerprint*	psFingerprint;
+	bool					bResult;
+
+	bResult = pcChunkFile->WriteChunkBegin();
+	bResult &= Asm65WriteMagic(pcChunkFile, ASM65_LINE_TABLE_MAGIC, ASM65_LINE_TABLE_VERSION);
+	bResult &= pcChunkFile->WriteChunkEnd("Header");
+
+	bResult &= pcChunkFile->WriteChunkBegin();
+	bResult &= pcChunkFile->WriteInt32((uint32)maszFiles.NumElements());
+	for (ui = 0; ui < maszFiles.NumElements(); ui++)
+	{
+		bResult &= Asm65WriteText(pcChunkFile, maszFiles.GetText(ui));
+	}
+	bResult &= pcChunkFile->WriteChunkEnd("Files");
+
+	bResult &= pcChunkFile->WriteChunkBegin();
+	bResult &= pcChunkFile->WriteInt32((uint32)masLines.NumElements());
+	for (ui = 0; ui < masLines.NumElements(); ui++)
+	{
+		psLine = masLines.Get(ui);
+		bResult &= pcChunkFile->WriteInt32(psLine->uiAddress);
+		bResult &= pcChunkFile->WriteInt32(psLine->uiFile);
+		bResult &= pcChunkFile->WriteInt32(psLine->uiLine);
+		bResult &= pcChunkFile->WriteInt32(psLine->uiOrder);
+	}
+	bResult &= pcChunkFile->WriteChunkEnd("Lines");
+
+	bResult &= pcChunkFile->WriteChunkBegin();
+	bResult &= pcChunkFile->WriteInt32((uint32)masFingerprints.NumElements());
+	for (ui = 0; ui < masFingerprints.NumElements(); ui++)
+	{
+		psFingerprint = masFingerprints.Get(ui);
+		bResult &= psFingerprint->szLabel.WriteString(pcChunkFile);
+		bResult &= pcChunkFile->WriteInt32(psFingerprint->uiHash);
+		bResult &= pcChunkFile->WriteInt64(psFingerprint->iTime);
+	}
+	bResult &= pcChunkFile->WriteChunkEnd("Fingerprints");
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::ReadChunks(CChunkFile* pcChunkFile)
+{
+	uint32					uiCount;
+	uint32					ui;
+	SAsm65LineEntry*		psLine;
+	SAsm65LineFingerprint*	psFingerprint;
+	CChars					sz;
+	bool					bRead;
+
+	if (!pcChunkFile->ReadChunkBegin("Header") || !Asm65ReadMagic(pcChunkFile, ASM65_LINE_TABLE_MAGIC, ASM65_LINE_TABLE_VERSION) || !pcChunkFile->ReadChunkEnd())
+	{
+		return false;
+	}
+
+	if (!pcChunkFile->ReadChunkBegin("Files") || !pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		sz.Init();
+		bRead = Asm65ReadText(pcChunkFile, &sz);
+		if (bRead)
+		{
+			FileIndex(sz.Text());
+		}
+		sz.Kill();
+		if (!bRead)
+		{
+			return false;
+		}
+	}
+	if (!pcChunkFile->ReadChunkEnd())
+	{
+		return false;
+	}
+
+	if (!pcChunkFile->ReadChunkBegin("Lines") || !pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		psLine = masLines.Add();
+		if (!pcChunkFile->ReadInt32(&psLine->uiAddress) || !pcChunkFile->ReadInt32(&psLine->uiFile) ||
+			!pcChunkFile->ReadInt32(&psLine->uiLine) || !pcChunkFile->ReadInt32(&psLine->uiOrder))
+		{
+			return false;
+		}
+		if (psLine->uiFile >= maszFiles.NumElements())
+		{
+			return false;
+		}
+	}
+	if (!pcChunkFile->ReadChunkEnd())
+	{
+		return false;
+	}
+
+	if (!pcChunkFile->ReadChunkBegin("Fingerprints") || !pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		psFingerprint = masFingerprints.Add();
+		psFingerprint->szLabel.Init();
+		if (!Asm65ReadText(pcChunkFile, &psFingerprint->szLabel) || !pcChunkFile->ReadInt32(&psFingerprint->uiHash) ||
+			!pcChunkFile->ReadInt64(&psFingerprint->iTime))
+		{
+			return false;
+		}
+	}
+	return pcChunkFile->ReadChunkEnd();
+}

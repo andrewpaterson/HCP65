@@ -686,6 +686,90 @@ void TestAsm65LinkerPrograms(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The objects' source lines (.line) are the linked program's line table, by
+// address: past the end of a section's lines there is no line.  Written
+// and read back, the table is the same.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerLineTable(void)
+{
+	SLinkTest			sTest;
+	CAsm65LineTable*	pcTable;
+	CAsm65LineTable		cRead;
+	CMemoryFile*		pcMemoryFile;
+	SAsm65LineEntry*	psLine;
+	SAsm65LineEntry*	psRead;
+	int64				iStart;
+	int64				iOther;
+	size				ui;
+
+	LinkTestInit(&sTest);
+	LinkTestObject(&sTest,
+		"	.global Start\n"
+		"Start:\n"
+		"	.line \"a.cpp\", 10\n"
+		"	jsr Other\n"
+		"	.line \"a.cpp\", 11\n"
+		"	ret\n");
+	LinkTestObject(&sTest,
+		"	.global Other\n"
+		"Other:\n"
+		"	.line \"b.asm\", 3\n"
+		"	nop\n"
+		"	ret\n");
+	AssertTrue(sTest.cLinker.Link());
+	AssertString("", sTest.cLinker.GetErrors());
+	iStart = LinkedSymbol(&sTest, "Start");
+	iOther = LinkedSymbol(&sTest, "Other");
+
+	pcTable = sTest.cLinker.GetLineTable();
+	psLine = pcTable->FindLine((uint32)iStart);
+	AssertTrue(psLine != NULL);
+	AssertString("a.cpp", pcTable->GetFile(psLine->uiFile));
+	AssertInt(10, psLine->uiLine);
+	psLine = pcTable->FindLine((uint32)iOther + 2);
+	AssertTrue(psLine != NULL);
+	AssertString("b.asm", pcTable->GetFile(psLine->uiFile));
+	AssertInt(3, psLine->uiLine);
+
+	pcMemoryFile = MemoryFile();
+	pcMemoryFile->mbBasicFileMustFree = false;
+	AssertTrue(pcTable->Write(pcMemoryFile));
+	cRead.Init();
+	AssertTrue(cRead.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
+	AssertSize(pcTable->NumFiles(), cRead.NumFiles());
+	for (ui = 0; ui < pcTable->NumFiles(); ui++)
+	{
+		AssertString(pcTable->GetFile(ui), cRead.GetFile(ui));
+	}
+	AssertSize(pcTable->NumLines(), cRead.NumLines());
+	for (ui = 0; ui < pcTable->NumLines(); ui++)
+	{
+		psLine = pcTable->GetLine(ui);
+		psRead = cRead.GetLine(ui);
+		AssertInt(psLine->uiAddress, psRead->uiAddress);
+		AssertInt(psLine->uiFile, psRead->uiFile);
+		AssertInt(psLine->uiLine, psRead->uiLine);
+	}
+	psRead = cRead.FindLine((uint32)iStart + 3);
+	AssertTrue(psRead != NULL);
+	AssertInt(10, psRead->uiLine);
+	AssertSize(pcTable->NumFingerprints(), cRead.NumFingerprints());
+	cRead.Kill();
+
+	//Not a line table: nothing is read.
+	cRead.Init();
+	AssertFalse(cRead.Read(MemoryFile((void*)"Not a line table at all.", 24)));
+	AssertSize(0, cRead.NumLines());
+	cRead.Kill();
+
+	SafeKill(pcMemoryFile);
+	LinkTestKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65Linker(void)
@@ -703,6 +787,7 @@ void TestAsm65Linker(void)
 	TestAsm65LinkerRemoveUnused();
 	TestAsm65LinkerRemoveUnusedLibrary();
 	TestAsm65LinkerPrograms();
+	TestAsm65LinkerLineTable();
 
 	TestStatistics();
 }
