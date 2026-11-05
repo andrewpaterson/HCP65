@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{A1F2C3D4-5B6E-4F70-8192-A3B4C5D6E7F8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header">
+      <UniqueIdentifier>{B2E3D4C5-6A7F-4081-92A3-B4C5D6E7F809}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Start.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Kernal.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="MathTables.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalDevices.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalSDCard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalProcess.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalAudio.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Libraries\Assembler65Lib\Asm65Object.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Kernal.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalDevices.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalProcess.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalSDCard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

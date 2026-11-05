@@ -6,10 +6,6 @@
 #include "HCP65KernalBuilder.h"
 
 
-//The kernal's units, linked only when used.  Start.asm and Kernal.cpp (main) are always linked.
-static const char* gaszHCP65KernalUnits[] = { "KernalDevices.cpp", "KernalSDCard.cpp", "KernalProcess.cpp", "KernalAudio.asm", NULL };
-
-
 //////////////////////////////////////////////////////////////////////////
 //
 //
@@ -55,7 +51,6 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 	CChars		szKernalDirectory;
 	CChars		szPath;
 	bool		bResult;
-	size		i;
 
 	szCommon.Init(szCommonLibraries);
 	cFileUtil.FullPath(&szCommon);
@@ -64,34 +59,28 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 	szKernalDirectory.Init(szKernal);
 	cFileUtil.FullPath(&szKernalDirectory);
 
+	//Built as HCP65-IDE builds HCP65Kernal.sln: the kernal's project (its units in link order, Assembler65Lib's
+	//Asm65Object.cpp for the executable format among them), then BaseLib as a library, then Libc65's runtime.
 	mcBuilder.SetTarget(CPPT_W65C816);
 	mcBuilder.SetRemoveUnused(true);
+	mcBuilder.SetLineTable(true);
 	szPath.Init(szLibraries);
 	cFileUtil.AppendToPath(&szPath, "Libc65");
 	mcBuilder.AddIncludeDirectory(szPath.Text(), false, true);
 	szPath.Kill();
+	mcBuilder.AddIncludeDirectory(szKernalDirectory.Text(), true, false);
 	mcBuilder.AddIncludeDirectory(szCommon.Text(), true, false);
 	mcBuilder.AddIncludeDirectory(szLibraries.Text(), true, false);
-	mcBuilder.AddIncludeDirectory(szKernalDirectory.Text(), false, false);
 
-	mcBuilder.AddUnit("Kernal", szKernalDirectory.Text(), "Start.asm");
-	mcBuilder.AddUnit("Kernal", szKernalDirectory.Text(), "Kernal.cpp");
-	mcBuilder.AddUnit("Kernal", szKernalDirectory.Text(), "MathTables.asm");
-	for (i = 0; gaszHCP65KernalUnits[i]; i++)
-	{
-		mcBuilder.AddUnit("Kernal", szKernalDirectory.Text(), gaszHCP65KernalUnits[i], true);
-	}
+	szPath.Init(szKernalDirectory);
+	cFileUtil.AppendToPath(&szPath, "HCP65Kernal.vcxproj");
+	bResult = mcBuilder.AddVisualStudioProject("HCP65Kernal", szPath.Text(), false);
+	szPath.Kill();
 
 	szPath.Init(szCommon);
 	cFileUtil.AppendToPath(&szPath, "BaseLib");
 	cFileUtil.AppendToPath(&szPath, "BaseLib.vcxproj");
-	bResult = mcBuilder.AddVisualStudioProject("BaseLib", szPath.Text(), true);
-	szPath.Kill();
-
-	//The executable format is Assembler65Lib's object.
-	szPath.Init(szLibraries);
-	cFileUtil.AppendToPath(&szPath, "Assembler65Lib");
-	mcBuilder.AddUnit("Assembler65Lib", szPath.Text(), "Asm65Object.cpp", true);
+	bResult &= mcBuilder.AddVisualStudioProject("BaseLib", szPath.Text(), true);
 	szPath.Kill();
 
 	szPath.Init(szLibraries);

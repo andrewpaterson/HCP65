@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<BuildConfigurations>
+	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32">
+		<Image File="Kernal.rom" Size="0x80000" Fill="0xFF" Limit="0x7FC00" Load="0x0">
+			<Region Start="0x0" End="0x40000" Offset="0x0"/>
+			<Region Start="0x400000" End="0x440000" Offset="0x40000"/>
+		</Image>
+	</Configuration>
+	<Configuration Name="Release|W65C816" Toolchain="W65C816" Solution="Release|Win32">
+		<Image File="Kernal.rom" Size="0x80000" Fill="0xFF" Limit="0x7FC00" Load="0x0">
+			<Region Start="0x0" End="0x40000" Offset="0x0"/>
+			<Region Start="0x400000" End="0x440000" Offset="0x40000"/>
+		</Image>
+	</Configuration>
+</BuildConfigurations>

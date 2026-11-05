@@ -15,7 +15,8 @@
 //Builds the HCP65 kernal's ROM image from its source in HCP65Lib/Kernal: the start up (Start.asm), the kernal's C++
 //(compiled for the W65C816) with BaseLib and Libc65, and the math tables (MathTables.asm).  The image is 512KB of
 //ROM, $FF where nothing is (erased flash): banks 0-3 hold what is linked at $000000-$03FFFF (the vectors and the
-//kernal), banks 4-7 what is linked at $400000-$43FFFF (the tables).  See Start.asm for how it starts.
+//kernal), banks 4-7 what is linked at $400000-$43FFFF (the tables).  See Start.asm for how it starts.  The units are
+//HCP65Kernal.vcxproj's, as HCP65-IDE builds HCP65Kernal.sln (its HCP65Kernal.hcp65build has the same layout).
 class CHCP65KernalBuilder
 {
 protected:
