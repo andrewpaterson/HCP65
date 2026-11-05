@@ -334,6 +334,53 @@ uint32 CAsm65LineTable::FindLineAddresses(const char* szFile, uint32 uiLine, CAr
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The code of the line the code at uiAddress is for, in every place it
+// is: each from where it starts up to where the next line's starts, added
+// to pauiRanges as a start and an end (exclusive), for a debugger to step
+// the line.  False if the address has no line.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::FindLineRanges(uint32 uiAddress, CArrayUint32* pauiRanges)
+{
+	SAsm65LineEntry*	psFound;
+	SAsm65LineEntry*	psLine;
+	size				ui;
+	size				uiNext;
+
+	psFound = FindLine(uiAddress);
+	if (psFound == NULL)
+	{
+		return false;
+	}
+	for (ui = 0; ui < masLines.NumElements(); ui++)
+	{
+		psLine = masLines.Get(ui);
+		if ((psLine->uiFile != psFound->uiFile) || (psLine->uiLine != psFound->uiLine))
+		{
+			continue;
+		}
+
+		//Of lines at one address the last is the one there.
+		for (uiNext = ui + 1; (uiNext < masLines.NumElements()) && (masLines.Get(uiNext)->uiAddress == psLine->uiAddress); uiNext++)
+		{
+		}
+		if (uiNext != ui + 1)
+		{
+			psLine = masLines.Get(uiNext - 1);
+			if ((psLine->uiFile != psFound->uiFile) || (psLine->uiLine != psFound->uiLine))
+			{
+				continue;
+			}
+		}
+		pauiRanges->Add(psLine->uiAddress);
+		pauiRanges->Add((uiNext < masLines.NumElements()) ? masLines.Get(uiNext)->uiAddress : 0xFFFFFFFF);
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 SAsm65LineFingerprint* CAsm65LineTable::GetFingerprint(size uiIndex)

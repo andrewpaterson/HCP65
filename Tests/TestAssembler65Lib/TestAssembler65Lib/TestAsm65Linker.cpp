@@ -752,6 +752,19 @@ void TestAsm65LinkerLineTable(void)
 	AssertInt(0, pcTable->FindLineAddresses("a.cpp", 12, &auiAddresses));
 	AssertInt(0, pcTable->FindLineAddresses("c.cpp", 1, &auiAddresses));
 	AssertSize(0, auiAddresses.NumElements());
+
+	//Line 10's code in both places, each up to the next line's; the address can be anywhere in the line's code.
+	AssertTrue(pcTable->FindLineRanges((uint32)iStart + 1, &auiAddresses));
+	AssertSize(4, auiAddresses.NumElements());
+	AssertInt((uint32)iStart, auiAddresses.GetValue(0));
+	pcTable->FindLineAddresses("a.cpp", 11, &auiAddresses);
+	AssertSize(5, auiAddresses.NumElements());
+	AssertInt(auiAddresses.GetValue(4), auiAddresses.GetValue(1));
+	AssertTrue(auiAddresses.GetValue(2) > auiAddresses.GetValue(4));
+	AssertTrue(auiAddresses.GetValue(3) > auiAddresses.GetValue(2));
+	auiAddresses.ReInit();
+	AssertFalse(pcTable->FindLineRanges(0, &auiAddresses));
+	AssertSize(0, auiAddresses.NumElements());
 	pcTable->AddLine(0x123456, "Dir\\Sub/File.asm", 7);
 	pcTable->Sort();
 	AssertInt(7, pcTable->FindLineAddresses("dir/sub\\file.ASM", 7, &auiAddresses));
