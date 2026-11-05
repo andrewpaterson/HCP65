@@ -135,3 +135,60 @@ bool Asm65816IsReturn(uint8 uiOpcode)
 {
 	return (uiOpcode == 0x6B) || (uiOpcode == 0x60) || (uiOpcode == 0x40);
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+EAsm65816Flow Asm65816Flow(uint8 uiOpcode)
+{
+	switch (uiOpcode)
+	{
+	case 0x20: case 0x22: case 0xFC: case 0x00: case 0x02:
+		return A65816F_Call;
+	case 0x60: case 0x6B: case 0x40:
+		return A65816F_Return;
+	case 0x4C: case 0x5C: case 0x6C: case 0x7C: case 0xDC: case 0x80: case 0x82:
+		return A65816F_Jump;
+	case 0x10: case 0x30: case 0x50: case 0x70: case 0x90: case 0xB0: case 0xD0: case 0xF0:
+		return A65816F_Branch;
+	default:
+		return A65816F_Other;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Where the instruction at uiAddress (puiBytes, all of it) goes, if its
+// operand says: a branch's (from the next instruction, in the program
+// bank), an absolute jump's or call's (in the program bank) or a long
+// one's.  False through a vector, or for any other instruction.
+//
+//////////////////////////////////////////////////////////////////////////
+bool Asm65816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget)
+{
+	uint32	uiBank;
+	uint32	uiAbsolute;
+
+	uiBank = uiAddress & 0xFF0000;
+	uiAbsolute = (uint32)puiBytes[1] | ((uint32)puiBytes[2] << 8);
+	switch (puiBytes[0])
+	{
+	case 0x10: case 0x30: case 0x50: case 0x70: case 0x90: case 0xB0: case 0xD0: case 0xF0: case 0x80:
+		*puiTarget = uiBank | ((uiAddress + 2 + (uint32)(int32)(int8)puiBytes[1]) & 0xFFFF);
+		return true;
+	case 0x82:
+		*puiTarget = uiBank | ((uiAddress + 3 + (uint32)(int32)(int16)uiAbsolute) & 0xFFFF);
+		return true;
+	case 0x4C: case 0x20:
+		*puiTarget = uiBank | uiAbsolute;
+		return true;
+	case 0x5C: case 0x22:
+		*puiTarget = uiAbsolute | ((uint32)puiBytes[3] << 16);
+		return true;
+	default:
+		return false;
+	}
+}

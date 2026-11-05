@@ -1,6 +1,7 @@
 #include "BaseLib/Chars.h"
 #include "Assembler65Lib/Asm65816Assembler.h"
 #include "Assembler65Lib/Asm65816Disassembler.h"
+#include "Assembler65Lib/Asm65816Opcodes.h"
 #include "TestLib/Assert.h"
 
 
@@ -142,6 +143,40 @@ static void TestAsm65816DisassembleModes(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// What the instructions do to the flow, and where they go.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestAsm65816DisassembleFlow(void)
+{
+	uint32			uiTarget;
+	static uint8	auiBne[] = { 0xD0, 0xFE };
+	static uint8	auiBrl[] = { 0x82, 0x00, 0x01 };
+	static uint8	auiJsr[] = { 0x20, 0x34, 0x12 };
+	static uint8	auiJsl[] = { 0x22, 0x56, 0x34, 0x12 };
+	static uint8	auiJmpX[] = { 0x7C, 0x34, 0x12 };
+
+	AssertInt(A65816F_Call, Asm65816Flow(0x20));
+	AssertInt(A65816F_Call, Asm65816Flow(0x00));
+	AssertInt(A65816F_Return, Asm65816Flow(0x6B));
+	AssertInt(A65816F_Jump, Asm65816Flow(0x80));
+	AssertInt(A65816F_Branch, Asm65816Flow(0xD0));
+	AssertInt(A65816F_Other, Asm65816Flow(0x62));
+	AssertInt(A65816F_Other, Asm65816Flow(0xEA));
+
+	AssertTrue(Asm65816FlowTarget(0x021000, auiBne, &uiTarget));
+	AssertIntHex(0x021000, uiTarget);
+	AssertTrue(Asm65816FlowTarget(0x021000, auiBrl, &uiTarget));
+	AssertIntHex(0x021103, uiTarget);
+	AssertTrue(Asm65816FlowTarget(0x021000, auiJsr, &uiTarget));
+	AssertIntHex(0x021234, uiTarget);
+	AssertTrue(Asm65816FlowTarget(0x021000, auiJsl, &uiTarget));
+	AssertIntHex(0x123456, uiTarget);
+	AssertFalse(Asm65816FlowTarget(0x021000, auiJmpX, &uiTarget));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65816Disassembler(void)
@@ -149,6 +184,7 @@ void TestAsm65816Disassembler(void)
 	BeginTests();
 
 	TestAsm65816DisassembleModes();
+	TestAsm65816DisassembleFlow();
 	TestAsm65816DisassembleRoundTrip();
 
 	TestStatistics();
