@@ -19,6 +19,9 @@
     <ClCompile Include="HCP65DebugTarget.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="HCP65DebugPort.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Asm65816DebugDecoder.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -40,6 +43,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65DebugTarget.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="HCP65DebugPort.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="Asm65816DebugDecoder.h">

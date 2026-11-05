@@ -26,6 +26,8 @@ void CHCP65::Init(uint64 uiClockRate)
 	mcMPU.SetSignal(Signal);
 	mcKernelBreakpoints.Init();
 	mcUserBreakpoints.Init();
+	memset(mapcProcessBreakpoints, 0, sizeof(mapcProcessBreakpoints));
+	mbStopRun = false;
 
 	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
@@ -66,6 +68,10 @@ void CHCP65::Kill(void)
 	}
 	mcRegisters.Kill();
 	mcMPU.Kill();
+	for (i = 0; i < HCP65_NUM_PROCESSES; i++)
+	{
+		ClearProcessBreakpoints((uint8)i);
+	}
 	mcUserBreakpoints.Kill();
 	mcKernelBreakpoints.Kill();
 	SafeFree(mpuiMain);
@@ -198,7 +204,8 @@ uint64 CHCP65::Run(uint64 uiCycles)
 	uiStart = mcMPU.NumCycles();
 	uiEnd = uiStart + uiCycles;
 	bRunning = true;
-	while (bRunning && (mcMPU.NumCycles() < uiEnd))
+	mbStopRun = false;
+	while (bRunning && !mbStopRun && (mcMPU.NumCycles() < uiEnd))
 	{
 		muiChunkEnd = uiEnd;
 		uiEvent = NextDeviceEvent();
@@ -223,7 +230,7 @@ uint64 CHCP65::Run(uint64 uiCycles)
 				break;
 			}
 		}
-		while (mcMPU.NumCycles() < muiChunkEnd);
+		while (!mbStopRun && (mcMPU.NumCycles() < muiChunkEnd));
 
 		CatchUpDevices(mcMPU.NumCycles());
 		UpdateInterrupts();
@@ -277,6 +284,93 @@ bool CHCP65::IsAtBreakpoint(void)
 CBreakpoints* CHCP65::GetModeBreakpoints(bool bKernel)
 {
 	return bKernel ? &mcKernelBreakpoints : &mcUserBreakpoints;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// User mode's breakpoints for the process uiProcess, made the first time
+// it is asked for.  Change them at any time.
+//
+//////////////////////////////////////////////////////////////////////////
+CBreakpoints* CHCP65::GetProcessBreakpoints(uint8 uiProcess)
+{
+	if (mapcProcessBreakpoints[uiProcess] == NULL)
+	{
+		mapcProcessBreakpoints[uiProcess] = (CBreakpoints*)malloc(sizeof(CBreakpoints));
+		mapcProcessBreakpoints[uiProcess]->Init();
+		UseModeBreakpoints();
+	}
+	return mapcProcessBreakpoints[uiProcess];
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The process's breakpoints go (it has ended: its ID may be given to
+// another).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::ClearProcessBreakpoints(uint8 uiProcess)
+{
+	if (mapcProcessBreakpoints[uiProcess] != NULL)
+	{
+		mapcProcessBreakpoints[uiProcess]->Kill();
+		free(mapcProcessBreakpoints[uiProcess]);
+		mapcProcessBreakpoints[uiProcess] = NULL;
+		UseModeBreakpoints();
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Every mode's and process's breakpoints go.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::ClearBreakpoints(void)
+{
+	size	i;
+
+	mcKernelBreakpoints.Clear();
+	mcUserBreakpoints.Clear();
+	for (i = 0; i < HCP65_NUM_PROCESSES; i++)
+	{
+		ClearProcessBreakpoints((uint8)i);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::EnableAllBreakpoints(bool bEnabled)
+{
+	size	i;
+
+	mcKernelBreakpoints.EnableAll(bEnabled);
+	mcUserBreakpoints.EnableAll(bEnabled);
+	for (i = 0; i < HCP65_NUM_PROCESSES; i++)
+	{
+		if (mapcProcessBreakpoints[i] != NULL)
+		{
+			mapcProcessBreakpoints[i]->EnableAll(bEnabled);
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Run returns after the current instruction (a device asks, as the debug
+// port does when a process starts).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::StopRun(void)
+{
+	mbStopRun = true;
+	EndChunk();
 }
 
 
@@ -372,7 +466,7 @@ uint64 CHCP65::NextDeviceEvent(void)
 void CHCP65::UpdateMode(void)
 {
 	mbKernel = (muiInterruptDepth != 0) || !mbNativeLatch;
-	mcMPU.UseBreakpoints(mbKernel ? &mcKernelBreakpoints : &mcUserBreakpoints);
+	UseModeBreakpoints();
 	if (mbKernel && mbNativeLatch)
 	{
 		mcMPU.SetHole(0, 0);
@@ -582,6 +676,25 @@ uint8* CHCP65::MemoryAt(uint32 uiAddress)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The MPU looks at the mode's breakpoints, and in user mode the running
+// process's too.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::UseModeBreakpoints(void)
+{
+	if (mbKernel)
+	{
+		mcMPU.UseBreakpoints(&mcKernelBreakpoints);
+	}
+	else
+	{
+		mcMPU.UseBreakpoints(&mcUserBreakpoints, mapcProcessBreakpoints[muiProcessID]);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 uint8 CHCP65::ReadByte(void* pvContext, uint32 uiAddress)
@@ -700,6 +813,7 @@ uint8 CHCP65::GetInterruptDepth(void)
 void CHCP65::SetProcessID(uint8 uiProcessID)
 {
 	muiProcessID = uiProcessID;
+	UseModeBreakpoints();
 }
 
 

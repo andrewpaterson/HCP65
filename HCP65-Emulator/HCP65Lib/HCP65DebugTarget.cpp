@@ -5,9 +5,10 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65DebugTarget::Init(CHCP65* pcHCP65)
+void CHCP65DebugTarget::Init(CHCP65* pcHCP65, CHCP65DebugPort* pcPort)
 {
 	mpcHCP65 = pcHCP65;
+	mpcPort = pcPort;
 }
 
 
@@ -177,5 +178,69 @@ const char* CHCP65DebugTarget::GetBreakpointSpaceName(size uiSpace)
 CBreakpoints* CHCP65DebugTarget::GetSpaceBreakpoints(size uiSpace)
 {
 	return (uiSpace < 2) ? mpcHCP65->GetModeBreakpoints(uiSpace == 0) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// User mode's breakpoints for one process; kernel mode's are every
+// process's (the kernal is the same in each).
+//
+//////////////////////////////////////////////////////////////////////////
+CBreakpoints* CHCP65DebugTarget::GetProcessBreakpoints(size uiSpace, uint32 uiProcess)
+{
+	if ((uiSpace != 1) || (uiProcess >= HCP65_NUM_PROCESSES))
+	{
+		return NULL;
+	}
+	return mpcHCP65->GetProcessBreakpoints((uint8)uiProcess);
+}
+
+
+void CHCP65DebugTarget::ClearBreakpoints(void)					{ mpcHCP65->ClearBreakpoints(); }
+void CHCP65DebugTarget::EnableAllBreakpoints(bool bEnabled)		{ mpcHCP65->EnableAllBreakpoints(bEnabled); }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The kernal's processes, as it tells the debug port of them (none
+// without one).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugTarget::HasProcesses(void)								{ return mpcPort != NULL; }
+size CHCP65DebugTarget::NumProcesses(void)								{ return mpcPort ? mpcPort->NumProcesses() : 0; }
+bool CHCP65DebugTarget::GetProcess(size uiIndex, SDebugProcess* psDest)	{ return mpcPort && mpcPort->GetProcess(uiIndex, psDest); }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65DebugTarget::WatchProcesses(bool bWatch)
+{
+	if (mpcPort)
+	{
+		mpcPort->Watch(bWatch);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process that has ended loses its breakpoints: its ID may be given to
+// the next.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugTarget::TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest)
+{
+	if (!mpcPort || !mpcPort->TakeEvent(peEvent, psDest))
+	{
+		return false;
+	}
+	if ((*peEvent == DPE_Ended) && (psDest->uiProcess < HCP65_NUM_PROCESSES))
+	{
+		mpcHCP65->ClearProcessBreakpoints((uint8)psDest->uiProcess);
+	}
+	return true;
 }
 

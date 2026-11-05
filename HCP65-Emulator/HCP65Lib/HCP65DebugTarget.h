@@ -4,6 +4,7 @@
 #include "EmulatorDebugLib/W65C816DebugRegisters.h"
 #include "Asm65816DebugDecoder.h"
 #include "HCP65.h"
+#include "HCP65DebugPort.h"
 
 
 //After the W65C816's registers: the process the MMU maps user mode for, read only (changing it would move the running
@@ -20,10 +21,11 @@ class CHCP65DebugTarget : public CDebugTarget
 {
 protected:
 	CHCP65*					mpcHCP65;
+	CHCP65DebugPort*		mpcPort;		//Where the kernal tells of its processes, NULL for none.
 	CAsm65816DebugDecoder	mcDecoder;
 
 public:
-	void			Init(CHCP65* pcHCP65);
+	void			Init(CHCP65* pcHCP65, CHCP65DebugPort* pcPort = NULL);
 	void			Kill(void);
 
 	const char*		GetProcessorName(void) override;
@@ -42,6 +44,15 @@ public:
 	size			NumBreakpointSpaces(void) override;
 	const char*		GetBreakpointSpaceName(size uiSpace) override;
 	CBreakpoints*	GetSpaceBreakpoints(size uiSpace) override;
+	CBreakpoints*	GetProcessBreakpoints(size uiSpace, uint32 uiProcess) override;
+	void			ClearBreakpoints(void) override;
+	void			EnableAllBreakpoints(bool bEnabled) override;
+
+	bool			HasProcesses(void) override;
+	size			NumProcesses(void) override;
+	bool			GetProcess(size uiIndex, SDebugProcess* psDest) override;
+	void			WatchProcesses(bool bWatch) override;
+	bool			TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest) override;
 	bool			IsAtBreakpoint(void) override;
 	bool			IsStopped(void) override;
 

@@ -11,6 +11,7 @@
 #define HCP65_MAIN_MEMORY_SIZE		0x1000000	//16MB.
 #define HCP65_REMAP_TABLE			0x70000		//In MPU RAM: a 256 byte page of physical banks per process.
 #define HCP65_NUM_DEVICE_SLOTS		20			//0 to 19; 8 to 15 do not exist.
+#define HCP65_NUM_PROCESSES			256			//Process IDs 0 to $FF.
 #define HCP65_CRYSTAL_RATE			32768		//The timer and sound crystal, in Hz.
 #define HCP65_DEFAULT_CLOCK_RATE	25000000	//CPU cycles per second: the board's MPU clock (an LTC6903 set to 25MHz).
 
@@ -31,7 +32,10 @@
 //The MPU ROM is flash on the real board; writes to it are ignored.
 //
 //Breakpoints are kept for each mode (GetModeBreakpoints): kernel mode and user mode see different memory at the same
-//address, so the MPU stops only at those of the mode it is in.
+//address, so the MPU stops only at those of the mode it is in.  User mode's can be for one process too
+//(GetProcessBreakpoints): the MPU stops at those only while that process is running in user mode.
+//
+//StopRun (from a device, during an instruction) makes Run return after the instruction.
 class CHCP65
 {
 protected:
@@ -43,6 +47,8 @@ protected:
 	CHCP65Device*		mapcDevices[HCP65_NUM_DEVICE_SLOTS];
 	CBreakpoints		mcKernelBreakpoints;
 	CBreakpoints		mcUserBreakpoints;
+	CBreakpoints*		mapcProcessBreakpoints[HCP65_NUM_PROCESSES];	//User mode's for a process, NULL until it has any.
+	bool				mbStopRun;
 
 	uint64				muiClockRate;
 	bool				mbNativeLatch;
@@ -67,6 +73,11 @@ public:
 	bool				IsStopped(void);
 	bool				IsAtBreakpoint(void);
 	CBreakpoints*		GetModeBreakpoints(bool bKernel);
+	CBreakpoints*		GetProcessBreakpoints(uint8 uiProcess);
+	void				ClearProcessBreakpoints(uint8 uiProcess);
+	void				ClearBreakpoints(void);
+	void				EnableAllBreakpoints(bool bEnabled);
+	void				StopRun(void);
 	void				SetBreak(int iBreak);
 
 	CFast65C816*		GetMPU(void);
@@ -98,6 +109,7 @@ public:
 
 protected:
 	void				UpdateMode(void);
+	void				UseModeBreakpoints(void);
 	void				EndChunk(void);
 	uint32				UserAddress(uint32 uiAddress);
 	CHCP65Device*		DecodeDevice(uint32 uiAddress, uint32* puiOffset);
