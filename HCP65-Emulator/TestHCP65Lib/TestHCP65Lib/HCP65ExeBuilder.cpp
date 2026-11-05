@@ -11,10 +11,6 @@
 #include "HCP65ExeBuilder.h"
 
 
-//Libc65's units for the W65C816 (its own assembly for string and soft float).
-static const char* gaszHCP65ExeLibc65[] = { "string.cpp", "stdlib.cpp", "ctype.cpp", "time.cpp", "math.cpp", "softfloat.cpp", "new.cpp", "signal.cpp", "stdio.cpp", "host.cpp", "string816.asm", "string816_16.asm", "softfloat816.asm", NULL };
-
-
 //////////////////////////////////////////////////////////////////////////
 //
 //
@@ -115,10 +111,7 @@ bool CHCP65ExeBuilder::Build(const char* szCommonLibraries, const char* szHCP65L
 
 	szPath.Init(szLibraries);
 	cFileUtil.AppendToPath(&szPath, "Libc65");
-	for (i = 0; gaszHCP65ExeLibc65[i]; i++)
-	{
-		mcBuilder.AddUnit("Libc65", szPath.Text(), gaszHCP65ExeLibc65[i], true);
-	}
+	mcBuilder.AddLibc65(szPath.Text());
 	szPath.Kill();
 
 	mcBuilder.SetLimit(HCP65_EXE_CODE_LIMIT);

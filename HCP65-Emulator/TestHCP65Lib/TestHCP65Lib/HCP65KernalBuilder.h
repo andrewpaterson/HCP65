@@ -2,6 +2,7 @@
 #define __HCP65_KERNAL_BUILDER_H__
 #include "BaseLib/Chars.h"
 #include "CppParserLib/CPP65Builder.h"
+#include "Assembler65Lib/Asm65Image.h"
 
 
 #define HCP65_ROM_SIZE				0x80000		//512KB of flash.
@@ -19,7 +20,7 @@ class CHCP65KernalBuilder
 {
 protected:
 	CCPP65Builder	mcBuilder;
-	uint8*			mpuiROM;
+	CAsm65Image		mcImage;
 	uint32			muiCodeEnd;		//The end of the kernal's code and data.
 	CChars			mszErrors;
 

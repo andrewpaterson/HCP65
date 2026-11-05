@@ -6,9 +6,6 @@
 #include "HCP65KernalBuilder.h"
 
 
-//Libc65's units for the W65C816 (its own assembly for string and soft float).
-static const char* gaszHCP65Libc65[] = { "string.cpp", "stdlib.cpp", "ctype.cpp", "time.cpp", "math.cpp", "softfloat.cpp", "new.cpp", "signal.cpp", "stdio.cpp", "host.cpp", "string816.asm", "string816_16.asm", "softfloat816.asm", NULL };
-
 //The kernal's units, linked only when used.  Start.asm and Kernal.cpp (main) are always linked.
 static const char* gaszHCP65KernalUnits[] = { "KernalDevices.cpp", "KernalSDCard.cpp", "KernalProcess.cpp", "KernalAudio.asm", NULL };
 
@@ -20,7 +17,12 @@ static const char* gaszHCP65KernalUnits[] = { "KernalDevices.cpp", "KernalSDCard
 void CHCP65KernalBuilder::Init(void)
 {
 	mcBuilder.Init();
-	mpuiROM = NULL;
+
+	//Banks 0-3 hold what is linked at $000000-$03FFFF, banks 4-7 the tables.  Code and data flow from bank 1; bss
+	//after them may go up to the remap table, but what is in the image must stay below the tables' ROM banks.
+	mcImage.Init("Kernal.rom", HCP65_ROM_SIZE, 0xFF, HCP65_RAM_END, 0);
+	mcImage.AddRegion(0, HCP65_ROM_CODE_END, 0);
+	mcImage.AddRegion(HCP65_TABLES_START, HCP65_TABLES_END, HCP65_ROM_CODE_END);
 	muiCodeEnd = 0;
 	mszErrors.Init();
 }
@@ -33,7 +35,7 @@ void CHCP65KernalBuilder::Init(void)
 void CHCP65KernalBuilder::Kill(void)
 {
 	mszErrors.Kill();
-	SafeFree(mpuiROM);
+	mcImage.Kill();
 	mcBuilder.Kill();
 }
 
@@ -94,15 +96,10 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 
 	szPath.Init(szLibraries);
 	cFileUtil.AppendToPath(&szPath, "Libc65");
-	for (i = 0; gaszHCP65Libc65[i]; i++)
-	{
-		mcBuilder.AddUnit("Libc65", szPath.Text(), gaszHCP65Libc65[i], true);
-	}
+	mcBuilder.AddLibc65(szPath.Text());
 	szPath.Kill();
 
-	//Code and data flow from bank 1; bss after them may go up to the remap table, but what is in the image must stay
-	//below the tables' ROM banks (MakeImage checks).
-	mcBuilder.SetLimit(HCP65_RAM_END);
+	mcBuilder.SetLimit(mcImage.GetLimit());
 	bResult &= mcBuilder.Link();
 	mszErrors.Append(mcBuilder.GetErrors());
 	szKernalDirectory.Kill();
@@ -118,7 +115,8 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The linked segments in the ROM's layout.
+// The linked segments in the ROM's layout, and where the kernal's code
+// and data end (bank 0's stubs and vectors aren't counted).
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65KernalBuilder::MakeImage(void)
@@ -128,39 +126,23 @@ bool CHCP65KernalBuilder::MakeImage(void)
 	size			i;
 	uint32			uiStart;
 	uint32			uiEnd;
-	uint32			uiROM;
-
-	SafeFree(mpuiROM);
-	mpuiROM = (uint8*)malloc(HCP65_ROM_SIZE);
-	memset(mpuiROM, 0xFF, HCP65_ROM_SIZE);
-	muiCodeEnd = 0;
 
 	pcOutput = mcBuilder.GetOutput();
+	if (!mcImage.Make(pcOutput, &mszErrors))
+	{
+		return false;
+	}
+
+	muiCodeEnd = 0;
 	for (i = 0; i < pcOutput->NumSegments(); i++)
 	{
 		psSegment = pcOutput->GetSegment(i);
 		uiStart = psSegment->uiAddress;
 		uiEnd = uiStart + (uint32)psSegment->cBytes.NumElements();
-		if ((uiStart >= HCP65_TABLES_START) && (uiEnd <= HCP65_TABLES_END))
+		if ((uiStart >= 0x10000) && (uiEnd <= HCP65_ROM_CODE_END) && (uiEnd > muiCodeEnd))
 		{
-			uiROM = uiStart - HCP65_TABLES_START + HCP65_ROM_CODE_END;
+			muiCodeEnd = uiEnd;
 		}
-		else if (uiEnd <= HCP65_ROM_CODE_END)
-		{
-			uiROM = uiStart;
-			if ((uiStart >= 0x10000) && (uiEnd > muiCodeEnd))
-			{
-				muiCodeEnd = uiEnd;
-			}
-		}
-		else
-		{
-			mszErrors.Append("A segment at 0x");
-			mszErrors.Append(uiStart, 16);
-			mszErrors.Append(" is outside the ROM's layout.\n");
-			return false;
-		}
-		memcpy(&mpuiROM[uiROM], psSegment->cBytes.GetData(), psSegment->cBytes.NumElements());
 	}
 	return true;
 }
@@ -172,21 +154,7 @@ bool CHCP65KernalBuilder::MakeImage(void)
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65KernalBuilder::Write(const char* szFilename)
 {
-	FILE*	pcFile;
-	bool	bResult;
-
-	if (!mpuiROM)
-	{
-		return false;
-	}
-	pcFile = fopen(szFilename, "wb");
-	if (!pcFile)
-	{
-		return false;
-	}
-	bResult = fwrite(mpuiROM, 1, HCP65_ROM_SIZE, pcFile) == HCP65_ROM_SIZE;
-	fclose(pcFile);
-	return bResult;
+	return mcImage.Write(szFilename);
 }
 
 
@@ -215,7 +183,7 @@ bool CHCP65KernalBuilder::GetSymbol(const char* szName, uint32* puiAddress)
 //////////////////////////////////////////////////////////////////////////
 uint8* CHCP65KernalBuilder::GetROM(void)
 {
-	return mpuiROM;
+	return mcImage.GetImage();
 }
 
 
