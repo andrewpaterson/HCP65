@@ -136,7 +136,9 @@ static bool TestKernalPutFiles(void)
 	long				iSize;
 	bool				bResult;
 
-	AssertTrue(cFileUtil.TouchDir(TEST_HCP65_OUTPUT));
+	//TouchDir returns false when Output is already there (every run after the first).
+	cFileUtil.TouchDir(TEST_HCP65_OUTPUT);
+	AssertTrue(cFileUtil.IsDirectory(TEST_HCP65_OUTPUT));
 	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, TEST_HCP65_SD_CARD_IMAGE);
 	AssertTrue(bResult);
 	if (!bResult)
