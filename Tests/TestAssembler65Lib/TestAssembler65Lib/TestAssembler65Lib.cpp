@@ -33,6 +33,7 @@ void TestAsm65C64Fast(void);
 void TestAsm65816(void);
 void TestAsm65816Disassembler(void);
 void TestAsm65IncHex(void);
+void TestAsm65Image(void);
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,6 +79,7 @@ int __cdecl main(void)
 	TestAsm65816();
 	TestAsm65816Disassembler();
 	TestAsm65IncHex();
+	TestAsm65Image();
 
 	C65C64InstructionFactory::GetInstance()->Kill();
 	ObjectsKill(false);

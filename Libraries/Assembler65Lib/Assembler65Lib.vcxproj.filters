@@ -66,6 +66,9 @@
     <ClCompile Include="Asm65LineTable.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Asm65Image.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Asm65LinkerLazy.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -135,6 +138,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65LineTable.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Asm65Image.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65Memory.h">
