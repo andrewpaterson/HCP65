@@ -162,7 +162,20 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
 
-	mbValid = LoadKernal(&mcHCP65, HCP65_EMULATOR_KERNAL_ROM);
+	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.  A
+	//debugger it waits for may load the kernal itself, so then the ROM file needn't be there.
+	mbValid = mcDebugger.ParseArguments(argc, argv);
+	if (mbValid && !LoadKernal(&mcHCP65, HCP65_EMULATOR_KERNAL_ROM))
+	{
+		if (mcDebugger.IsWaiting())
+		{
+			gcLogger.Warning2(__METHOD__, " Starting without a kernal ROM: the debugger is to load one.", NULL);
+		}
+		else
+		{
+			mbValid = false;
+		}
+	}
 	if (!mcSDCard.InsertCard(HCP65_EMULATOR_SD_CARD_IMAGE, false))
 	{
 		gcLogger.Error2(__METHOD__, " Could not insert the SD card [", HCP65_EMULATOR_SD_CARD_IMAGE, "].", NULL);
@@ -172,11 +185,6 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
 	mcHCP65.Reset();
 
-	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.
-	if (mbValid)
-	{
-		mbValid = mcDebugger.ParseArguments(argc, argv);
-	}
 	if (mbValid && mcDebugger.IsEnabled())
 	{
 		mbValid = mcDebugger.Start(&mcHCP65);

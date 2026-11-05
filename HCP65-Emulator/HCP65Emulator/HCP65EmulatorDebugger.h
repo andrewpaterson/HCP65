@@ -49,6 +49,7 @@ public:
 
 	bool	ParseArguments(int argc, char* argv[]);
 	bool	IsEnabled(void);
+	bool	IsWaiting(void);
 
 	bool	Start(CHCP65* pcHCP65);
 	bool	Tick(uint64 uiCycles);

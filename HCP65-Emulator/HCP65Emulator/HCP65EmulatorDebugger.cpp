@@ -106,6 +106,18 @@ bool CHCP65EmulatorDebugger::IsEnabled(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A debugger is to continue it (--debug-wait), so it may load the
+// program first.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65EmulatorDebugger::IsWaiting(void)
+{
+	return IsEnabled() && mbWait;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Makes the channel.  A shared memory channel is created now; the network
 // listens now and accepts the debugger in a later Tick.  The server holds
 // the HCP65 stopped (DEBUG_ARGUMENT_WAIT) or runs it until then.
