@@ -84,6 +84,7 @@ protected:
 	CArrayUint8			mcMinimumLengths;
 	CAsm65KeptTokens	mcPendingLabels;
 	CAsm65Source*		mpcSource;
+	CAsm65IncludeSource*	mpcIncludeSource;	//mpcSource, saying which file and line each line is.
 	CAsm65TextSource	mcTextSource;
 	uint32				muiLine;
 
@@ -113,6 +114,7 @@ protected:
 	SAsm65Token*		mpsTermToken;
 
 	CChars							mszDirectory;
+	CChars							mszSourceFile;	//SetSourceFile's: each line that writes bytes is a source line.
 	CArrayChars						maszHexFiles;
 	CArrayTemplatePtr<CIntelHex>	mapcHexFiles;
 
@@ -125,6 +127,7 @@ public:
 	bool			AssembleObject(const char* szSource, CAsm65Object* pcObject);
 	bool			AssembleObject(CAsm65Source* pcSource, CAsm65Object* pcObject);
 	void			SetDirectory(const char* szDirectory);
+	void			SetSourceFile(const char* szFile);
 
 	CAsm65Output*	GetOutput(void);
 	char*			GetErrors(void);
@@ -165,6 +168,7 @@ protected:
 	void			Associate(void);
 	bool			SymbolBinding(SAsm65Token* psDirective);
 	bool			SourceLine(SAsm65Token* psDirective);
+	void			SourceFileLine(uint32 uiSection);
 	bool			Fingerprint(SAsm65Token* psDirective);
 	void			SwitchSection(uint32 uiSection);
 	bool			InBss(SAsm65Token* psToken);

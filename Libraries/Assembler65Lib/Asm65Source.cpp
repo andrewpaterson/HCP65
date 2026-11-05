@@ -93,7 +93,9 @@ void CAsm65IncludeSource::Init(CAsm65Source* pcSource, const char* szDirectory)
 {
 	mpcSource = pcSource;
 	mszDirectory.Init(szDirectory);
+	mszName.Init();
 	muiDepth = 0;
+	mauiLines[0] = 0;
 }
 
 
@@ -107,8 +109,21 @@ void CAsm65IncludeSource::Kill(void)
 	{
 		Pop();
 	}
+	mszName.Kill();
 	mszDirectory.Kill();
 	mpcSource = NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The name GetFile gives for the source's own lines (its file's path).
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65IncludeSource::SetName(const char* szName)
+{
+	mszName.Kill();
+	mszName.Init(szName);
 }
 
 
@@ -122,6 +137,7 @@ void CAsm65IncludeSource::Rewind(void)
 	{
 		Pop();
 	}
+	mauiLines[0] = 0;
 	mpcSource->Rewind();
 }
 
@@ -154,6 +170,7 @@ const char* CAsm65IncludeSource::NextLine(void)
 				return NULL;
 			}
 		}
+		mauiLines[muiDepth]++;
 		if (!Include(szLine))
 		{
 			return szLine;
@@ -217,15 +234,18 @@ bool CAsm65IncludeSource::Include(const char* szLine)
 
 	macFiles[muiDepth].Init();
 	bRead = macFiles[muiDepth].Read(szPath.Text());
-	szPath.Kill();
 	if (!bRead)
 	{
+		szPath.Kill();
 		macFiles[muiDepth].Kill();
 		return false;
 	}
 	macFiles[muiDepth].PassifyNewlines();
 	macSources[muiDepth].Init(macFiles[muiDepth].Text());
+	maszPaths[muiDepth].Init(szPath);
+	szPath.Kill();
 	muiDepth++;
+	mauiLines[muiDepth] = 0;
 	return true;
 }
 
@@ -237,6 +257,30 @@ bool CAsm65IncludeSource::Include(const char* szLine)
 void CAsm65IncludeSource::Pop(void)
 {
 	muiDepth--;
+	maszPaths[muiDepth].Kill();
 	macSources[muiDepth].Kill();
 	macFiles[muiDepth].Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The file of the line NextLine last gave: an included file's path, or the
+// source's name (empty if SetName wasn't called).
+//
+//////////////////////////////////////////////////////////////////////////
+char* CAsm65IncludeSource::GetFile(void)
+{
+	return (muiDepth > 0) ? maszPaths[muiDepth - 1].Text() : mszName.Text();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The line (1 based) in its file of the line NextLine last gave.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CAsm65IncludeSource::GetLine(void)
+{
+	return mauiLines[muiDepth];
 }

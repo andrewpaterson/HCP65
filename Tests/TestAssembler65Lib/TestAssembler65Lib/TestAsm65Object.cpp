@@ -355,6 +355,72 @@ void TestAsm65ObjectFile(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// SetSourceFile: each line that writes bytes (an instruction or data) is a
+// source line at its offset, in the file or the included file it is in.
+// Labels, comments, blank lines and .include lines have none.  Without
+// SetSourceFile there are none.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65ObjectSourceFile(void)
+{
+	CAsm65C64Assembler	cAssembler;
+	CAsm65Object		cObject;
+	SAsm65SourceLine*	psLine;
+	const char*			szSource;
+
+	szSource =
+		"Start:\n"						//1
+		"		nop\n"					//2
+		"		; A comment.\n"			//3
+		"		.byte 5, 6\n"			//4
+		"\n"							//5
+		"		.include \"IncludeCode.inc\"\n"	//6: its nops are its lines 2 and 3.
+		"Done:	ret\n";					//7
+
+	cObject.Init("test");
+	cAssembler.Init();
+	cAssembler.SetDirectory("Input");
+	cAssembler.SetSourceFile("Test.asm");
+	AssertTrue(cAssembler.AssembleObject(szSource, &cObject));
+	AssertString("", cAssembler.GetErrors());
+	cAssembler.Kill();
+
+	AssertSize(5, cObject.NumSourceLines());
+	psLine = cObject.GetSourceLine(0);
+	AssertInt(0, psLine->uiOffset);
+	AssertString("Test.asm", cObject.GetSourceFile(psLine->uiFile));
+	AssertInt(2, psLine->uiLine);
+	psLine = cObject.GetSourceLine(1);
+	AssertInt(2, psLine->uiOffset);
+	AssertString("Test.asm", cObject.GetSourceFile(psLine->uiFile));
+	AssertInt(4, psLine->uiLine);
+	psLine = cObject.GetSourceLine(2);
+	AssertInt(4, psLine->uiOffset);
+	AssertTrue(strstr(cObject.GetSourceFile(psLine->uiFile), "IncludeCode.inc") != NULL);
+	AssertInt(2, psLine->uiLine);
+	psLine = cObject.GetSourceLine(3);
+	AssertInt(6, psLine->uiOffset);
+	AssertTrue(strstr(cObject.GetSourceFile(psLine->uiFile), "IncludeCode.inc") != NULL);
+	AssertInt(3, psLine->uiLine);
+	psLine = cObject.GetSourceLine(4);
+	AssertInt(8, psLine->uiOffset);
+	AssertString("Test.asm", cObject.GetSourceFile(psLine->uiFile));
+	AssertInt(7, psLine->uiLine);
+	AssertInt(0, psLine->uiSection);
+	cObject.Kill();
+
+	cObject.Init("test");
+	cAssembler.Init();
+	cAssembler.SetDirectory("Input");
+	AssertTrue(cAssembler.AssembleObject(szSource, &cObject));
+	cAssembler.Kill();
+	AssertSize(0, cObject.NumSourceLines());
+	cObject.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65Object(void)
@@ -367,6 +433,7 @@ void TestAsm65Object(void)
 	TestAsm65ObjectErrors();
 	TestAsm65ObjectSectionOptions();
 	TestAsm65ObjectFile();
+	TestAsm65ObjectSourceFile();
 
 	TestStatistics();
 }

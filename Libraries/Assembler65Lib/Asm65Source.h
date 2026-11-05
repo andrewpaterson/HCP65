@@ -60,21 +60,30 @@ public:
 //A source with .include "file" lines replaced by the file's lines (an included file may include others).  A file
 //name is relative to the directory given, like .inchex's.  A .include line whose file can't be read is passed on, for
 //the assembler to report.
+//
+//GetFile and GetLine say where the line NextLine last gave is: the source's own name (SetName) and line, or an
+//included file's path and its line.
 class CAsm65IncludeSource : public CAsm65Source
 {
 protected:
 	CAsm65Source*		mpcSource;
 	CChars				mszDirectory;
+	CChars				mszName;
 	CTextFile			macFiles[ASM65_MAX_INCLUDE_DEPTH];
 	CAsm65TextSource	macSources[ASM65_MAX_INCLUDE_DEPTH];
+	CChars				maszPaths[ASM65_MAX_INCLUDE_DEPTH];
+	uint32				mauiLines[ASM65_MAX_INCLUDE_DEPTH + 1];	//The lines read at each depth, the source's first.
 	size				muiDepth;
 
 public:
 	void			Init(CAsm65Source* pcSource, const char* szDirectory);
 	void			Kill(void);
 
+	void			SetName(const char* szName);
 	void			Rewind(void) override;
 	const char*		NextLine(void) override;
+	char*			GetFile(void);
+	uint32			GetLine(void);
 
 protected:
 	bool			Include(const char* szLine);

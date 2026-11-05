@@ -39,6 +39,7 @@ void CAsm65BaseAssembler::Init(void)
 	mcMinimumLengths.Init();
 	mcPendingLabels.Init();
 	mpcSource = NULL;
+	mpcIncludeSource = NULL;
 	muiLine = 0;
 
 	muiToken = 0;
@@ -64,6 +65,7 @@ void CAsm65BaseAssembler::Init(void)
 	muiStatementTerms = 0;
 	muiStatementTermsUsed = 0;
 	mszDirectory.Init();
+	mszSourceFile.Init();
 	maszHexFiles.Init();
 	mapcHexFiles.Init();
 	mpsTermToken = NULL;
@@ -86,6 +88,7 @@ void CAsm65BaseAssembler::Kill(void)
 	}
 	mapcHexFiles.Kill();
 	maszHexFiles.Kill();
+	mszSourceFile.Kill();
 	mszDirectory.Kill();
 	mcAssociations.Kill();
 	mcAssociatedSections.Kill();
@@ -131,7 +134,9 @@ bool CAsm65BaseAssembler::Assemble(CAsm65Source* pcSource)
 	bool				bResult;
 
 	cIncludeSource.Init(pcSource, mszDirectory.Text());
+	cIncludeSource.SetName(mszSourceFile.Text());
 	mpcSource = &cIncludeSource;
+	mpcIncludeSource = &cIncludeSource;
 	bResult = CheckTokens();
 	if (bResult)
 	{
@@ -140,6 +145,7 @@ bool CAsm65BaseAssembler::Assemble(CAsm65Source* pcSource)
 		mcTokeniser.SetErrors(&mcErrors);
 	}
 	mpcSource = NULL;
+	mpcIncludeSource = NULL;
 	cIncludeSource.Kill();
 	return bResult;
 }
@@ -280,6 +286,7 @@ void CAsm65BaseAssembler::Pass(void)
 {
 	size			i;
 	SAsm65Section*	psSection;
+	uint32			uiSection;
 
 	muiToken = 0;
 	muiAddress = 0;
@@ -311,7 +318,9 @@ void CAsm65BaseAssembler::Pass(void)
 	muiLine = 0;
 	while (NextLine() && (Peek()->eType != AT65_End))
 	{
+		uiSection = muiSection;
 		Statement();
+		SourceFileLine(uiSection);
 	}
 	muiStatementAddress = muiAddress;
 	BindLabels();
@@ -1017,6 +1026,38 @@ void CAsm65BaseAssembler::SetDirectory(const char* szDirectory)
 {
 	mszDirectory.Kill();
 	mszDirectory.Init(szDirectory);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The path of the file being assembled into an object.  When set, each
+// line that writes bytes (an instruction or data) is a source line of the
+// object (as .line gives compiled code's), in the file or the included
+// file it is in, for the linker's line table: so a debugger can stop at a
+// line of assembly.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65BaseAssembler::SetSourceFile(const char* szFile)
+{
+	mszSourceFile.Kill();
+	mszSourceFile.Init(szFile);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// After a statement of the final pass: if it wrote bytes in the section it
+// started in (uiSection), its line is a source line at its start
+// (SetSourceFile).
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65BaseAssembler::SourceFileLine(uint32 uiSection)
+{
+	if (mbFinal && mbObject && !mszSourceFile.Empty() && (muiSection == uiSection) && (muiAddress > muiStatementAddress))
+	{
+		mpcObject->AddSourceLine(muiSection, muiStatementAddress, mpcIncludeSource->GetFile(), mpcIncludeSource->GetLine());
+	}
 }
 
 
