@@ -1,0 +1,105 @@
+SD Card Board - faults and timing problems
+==========================================
+
+Found 2026-11-05 by reading the netlists (kicad-cli sch export netlist) of the SD Card Board, its SD Card daughter
+boards (../SD Card *), the Component Boards it uses and the HCP65 Main Memory Address / Data boards
+(../../Processor/HCP65 Main Memory *).  Nothing has been changed in the schematics.
+
+Board names below are the daughter board sheets; B numbers are the SD Card Board's references.
+
+
+Faults
+------
+
+1. Fast CLK has no source.
+   Fast CLK (B2 Main CLK, B14 Fast CLK) comes from B3's CLK pin (64), with Main CLK (J1 B3) going into its MCLK pin
+   (30).  B3 is the HCP65 Main Memory Address board, and its J2 pins 30, 63 and 64 are unconnected.  Every clock on the
+   board (SD CLK, First/Second Half CLK, the dragged clocks, the write nybble counter, the address counter) comes from
+   Fast CLK.
+
+2. SD Card Read Function (B5): the 74HCT193 down counters never count.
+   - MR (pin 14) is active HIGH on the '193 but is wired to ~Reset, so IC3, IC4 and IC5 are held cleared whenever the
+     board is not being reset.
+   - CPU (pin 5) is tied to GND.  Counting down needs CPU held HIGH while CPD rises.
+   The counters are always zero, so ~TCD 8..11 goes low on the first Second Half CLK low and state 5 (data) ends at
+   once.
+
+3. SD Card Read Signals (B13): the start bit test is inverted.
+   IC5 gates 1-3 OR DAT0-DAT3 together (net "DAT 0..3 Zero", low only when all four lines are low).  IC8 gate 2 inverts
+   it and the inverted net goes to IC5 gate 4 with ~Wait For Read Transmit.  So in state 4 ~Read Transmit Started is
+   low while the lines are high (idle) and high during the start bit, and the Funk counter only steps to state 5 on the
+   first non-zero nybble after a zero one, in the middle of the data.  IC5 gate 4 should take the OR output directly.
+
+4. ~Main RD and ~Main WD are crossed.
+   B3's ~Main WD output (daughter J2 pin 60, made from ~WD) goes to the net named ~Main RD on edge pin D10, and its
+   ~Main RD output (J2 pin 61) goes to ~Main WD on D11.  The memory board wires D10 to its ~RD and D11 to its ~WD, so
+   the board's DMA writes arrive at main memory as reads (with the board also driving DM0-DM7).
+   The Processor Board wires its Main Memory Address board (B7) the same way, so this is system wide; fix it in one
+   place (the Main Memory Address symbol's M~WD/M~RD pins, or the parent nets) for every board.
+
+5. GPIO 4bit (B1) drives 5V onto the SD bus.
+   Its output buffer IC4 (74AHC125) has VCC on 5V, and so do the OE NANDs (IC6, 74AHCT132) and the latch (IC1,
+   74VHCT573).  GPIO0-3 are SD CLK, SD CMD, DAT0 and DAT3.  The sockets' CBT3244 switches (VCC 5V) only pull this down
+   to about 4V, above the card's 3.6V maximum.  IC4 should run from 3.3V.
+
+
+Timing problems (likely)
+------------------------
+
+6. Nybble pairing is not lined up with the start bit.
+   The First/Second Half CLK flip-flop (SD Card Clock IC5 1) is only reset by ~Reset and ~Write Read Start, and then
+   toggles on every Fast CLK.  The card's start bit comes N_AC clocks after the CMD17 response, which the CPU paces,
+   so it lands on an odd or an even clock by chance.  Half the time each stored byte is the low nybble of one byte and
+   the high nybble of the next.  The flop needs resynchronising to the start bit (keeping in mind that the start bit
+   nybble is still on the lines at the next Fast CLK rising edge).
+
+7. The DMA address counter load is unreliable.
+   Counter 24bit (B8) loads synchronously (~PE) on Address CLK rising.  Address CLK = Write Count Address OR
+   ~Second Half CLK Dragged2 (Read Signals IC3 gate 3).  Dragged2 toggles all the time, including when idle, and during
+   a register write Write Count Address holds Address CLK high.  So a write to $00/$01/$02 gives at most one rising
+   edge, at the start of the strobe (before the data is valid, and racing ~PE's setup time), or none at all when
+   ~Dragged2 was already high.  The load wants one edge at the end of the strobe, with the dragged clock kept out
+   while idle.
+
+8. Extra SD clocks while Write Data ($0E/$0F) is being written.
+   SD Card Write Signals (B14): ~Write Data sets the SD Write latch and holds the nybble counter at 0 for the whole
+   strobe.  With SD Write set, IC7 passes ~Fast CLK to SD CLK and Y0 (~Write High Nybble) drives the high nybble, so a
+   strobe longer than one Fast CLK clocks the high nybble into the card more than once (and while the latch is still
+   transparent).  SD CLK should only run once the strobe has ended.
+
+9. Clear Interrupt does not clear the interrupt.
+   Flags & Interrupt (B9): the interrupt flop's D is ~Stop Read Funk, clocked by PHI2, and Write Clear Interrupt only
+   forces it off (~1SD) while the write lasts.  The read engine stays in state 7 until the next Read Start, so the
+   interrupt comes back on the next PHI2.  Flags D7 reads the masked interrupt, so polling it needs Interrupt Enable on.
+   (The kernal works round this by turning Interrupt Enable off after a read.)
+
+10. Read data is latched just after SD CLK's rising edge.
+    SD CLK is Fast CLK, and SD Card Read Data latches on First/Second Half CLK, a flop delay after Fast CLK rises.
+    That suits default speed (the card changes its outputs after the falling edge).  In high speed mode (CMD6 switch)
+    the card changes its outputs after the rising edge with only 2.5ns of hold, so the board must stay in default
+    speed.  (The Pico example in LCDBusReader switches to high speed.)
+
+11. The count load pulses are a few gate delays long.
+    ~Load Down Count (Read Signals IC2 gate 3) is low only while ~Read Transmit Started or ~Read CRC Started is low,
+    which ends as soon as the Funk counter steps (74LVC161 + 74LVC138 + 74LVC32, about 10-15ns).  It drives the
+    74HCT193s' asynchronous ~PL and the 16373 latches' ~OE onto the CPL bus.  This is short for the '193's minimum
+    ~PL pulse width.  The Funk counter's own load (~PE = ~Write Read Start) also races its clock, which is made from the
+    same signal two gates later.
+
+12. Main memory contention is fatal until reset.
+    There is no arbiter: Main Memory Full Abort sets Contention when any two ~Main lines are low together, and Main
+    Memory Small Enable latches it (cleared only by ~Reset), forces ~Main Memory high and raises NMI1.  The board's ~Main
+    window (Read Signals IC1 gate 2) starts and ends on Fast CLK edges, the same edges the processor's ~Main changes on,
+    so a hand-off between the CPU and the DMA can overlap by a few nanoseconds.  The CPU must not touch main memory
+    during a block read, and the hand-off needs a gap.
+
+
+Smaller points
+--------------
+
+- Enable only gates the GPIO outputs and the card select '138 (IC8).  A Read Start while disabled still runs the read
+  engine and writes whatever is on the floating DAT lines to main memory.
+- The board side of SD CLK, CMD and DAT0-3 has no pull-ups (the 33K pull-ups are on the card side of the CBT3244s), so
+  those nets float when no card is selected.
+- SD CLK has three drivers: GPIO0 (B1), SD Card Clock IC10 (Fast CLK while reading) and SD Card Write Signals IC7
+  (~Fast CLK while writing).  Software has to turn the GPIO CLK output off before Read Start or Write Data.
