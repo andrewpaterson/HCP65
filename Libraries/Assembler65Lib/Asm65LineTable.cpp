@@ -381,6 +381,47 @@ bool CAsm65LineTable::FindLineRanges(uint32 uiAddress, CArrayUint32* pauiRanges)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Where the next line's code starts after uiAddress (a function's first
+// line, after its entry code that has none).  False if no line is after
+// it.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65LineTable::FindNextLine(uint32 uiAddress, uint32* puiNext)
+{
+	size				uiLow;
+	size				uiHigh;
+	size				uiMiddle;
+	SAsm65LineEntry*	psLine;
+
+	uiLow = 0;
+	uiHigh = masLines.NumElements();
+	while (uiLow < uiHigh)
+	{
+		uiMiddle = (uiLow + uiHigh) / 2;
+		if (masLines.Get(uiMiddle)->uiAddress <= uiAddress)
+		{
+			uiLow = uiMiddle + 1;
+		}
+		else
+		{
+			uiHigh = uiMiddle;
+		}
+	}
+	for (; uiLow < masLines.NumElements(); uiLow++)
+	{
+		psLine = masLines.Get(uiLow);
+		if (psLine->uiLine != 0)
+		{
+			*puiNext = psLine->uiAddress;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 SAsm65LineFingerprint* CAsm65LineTable::GetFingerprint(size uiIndex)

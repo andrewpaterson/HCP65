@@ -81,6 +81,7 @@ public:
 	SAsm65LineEntry*		FindLine(uint32 uiAddress);
 	uint32					FindLineAddresses(const char* szFile, uint32 uiLine, CArrayUint32* pauiAddresses);
 	bool					FindLineRanges(uint32 uiAddress, CArrayUint32* pauiRanges);
+	bool					FindNextLine(uint32 uiAddress, uint32* puiNext);
 	bool					FindFile(const char* szFile, uint32* puiFile);
 	size					NumFiles(void);
 	char*					GetFile(size uiIndex);

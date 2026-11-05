@@ -700,6 +700,7 @@ void TestAsm65LinkerLineTable(void)
 	SAsm65LineEntry*	psLine;
 	SAsm65LineEntry*	psRead;
 	CArrayUint32		auiAddresses;
+	uint32				uiNext;
 	int64				iStart;
 	int64				iOther;
 	size				ui;
@@ -765,6 +766,11 @@ void TestAsm65LinkerLineTable(void)
 	auiAddresses.ReInit();
 	AssertFalse(pcTable->FindLineRanges(0, &auiAddresses));
 	AssertSize(0, auiAddresses.NumElements());
+
+	//The next line after an address: Other's first (b.asm 3) from before it; none after the last.
+	AssertTrue(pcTable->FindNextLine((uint32)iOther - 1, &uiNext));
+	AssertInt((uint32)iOther, uiNext);
+	AssertFalse(pcTable->FindNextLine(0xFFFFFFF0, &uiNext));
 	pcTable->AddLine(0x123456, "Dir\\Sub/File.asm", 7);
 	pcTable->Sort();
 	AssertInt(7, pcTable->FindLineAddresses("dir/sub\\file.ASM", 7, &auiAddresses));
