@@ -775,16 +775,8 @@ bool CAsm65Object::Read(CAbstractFile* pcFile)
 	CChunkFile	cChunkFile;
 	bool		bResult;
 
-	//ReadClose frees what a failed ReadOpen allocated too.  Skipping the sections' bytes, the file's hashes can't be
-	//checked (they are over all of it).
-	if (mbSkipSectionBytes)
-	{
-		cChunkFile.InitUnhashed(pcFile);
-	}
-	else
-	{
-		cChunkFile.Init(pcFile);
-	}
+	//ReadClose frees what a failed ReadOpen allocated too.
+	cChunkFile.Init(pcFile);
 	bResult = cChunkFile.ReadOpen();
 	bResult = bResult && ReadChunks(&cChunkFile);
 	bResult &= cChunkFile.ReadClose();

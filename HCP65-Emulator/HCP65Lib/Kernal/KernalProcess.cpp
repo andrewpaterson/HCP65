@@ -297,13 +297,13 @@ static uint16 KernalLoadExecutable(const char* szPath, uint8 uiProcess)
 		return KERNAL_PROCESS_NOT_FOUND;
 	}
 
-	//Read straight from the volume without checking its hashes (the kernal has no MD5).  The sections' bytes are
+	//Read straight from the volume (chunk files without hashes don't link MD5, which the kernal hasn't).  The sections' bytes are
 	//left in the file and read into the process's banks once they are mapped: an executable can be bigger than the
 	//kernal's heap.
 	cFatAbstractFile.Init(&cFile);
 	cObject.Init("");
 	cObject.SetSkipSectionBytes(true);
-	cChunkFile.InitUnhashed(&cFatAbstractFile);
+	cChunkFile.Init(&cFatAbstractFile);
 	bLoaded = cChunkFile.ReadOpen();
 	bLoaded = bLoaded && cObject.ReadChunks(&cChunkFile);
 	uiResult = KernalLoadExecutableObject(&cObject, &cFile, uiProcess, bLoaded);
