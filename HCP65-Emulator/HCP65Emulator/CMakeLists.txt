@@ -45,6 +45,7 @@ set(PULSEAUDIOLIB_DIR "${COMMON_DIR}/PulseAudioLib")
 set(MICROPROCESSORLIB_DIR "${COMMON_DIR}/MicroprocessorLib")
 set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
 set(EMULATORDEBUGLIB_DIR "${COMMON_DIR}/EmulatorDebugLib")
+set(ASSEMBLER65LIB_DIR "${HCP65_ROOT}/Libraries/Assembler65Lib")
 set(HCP65LIB_DIR "${EMULATOR_ROOT}/HCP65Lib")
 set(EMULATOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -110,6 +111,8 @@ vcxproj_sources(MICROPROCESSORLIB_SOURCES "${MICROPROCESSORLIB_DIR}/Microprocess
 vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
 
 vcxproj_sources(EMULATORDEBUGLIB_SOURCES "${EMULATORDEBUGLIB_DIR}/EmulatorDebugLib.vcxproj")
+
+vcxproj_sources(ASSEMBLER65LIB_SOURCES "${ASSEMBLER65LIB_DIR}/Assembler65Lib.vcxproj")
 
 vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 
@@ -184,10 +187,13 @@ target_link_libraries(ThreadLib PUBLIC BaseLib)
 add_library(EmulatorDebugLib STATIC ${EMULATORDEBUGLIB_SOURCES})
 target_link_libraries(EmulatorDebugLib PUBLIC ThreadLib MicroprocessorLib StandardLib BaseLib)
 
+add_library(Assembler65Lib STATIC ${ASSEMBLER65LIB_SOURCES})
+target_link_libraries(Assembler65Lib PUBLIC MicroprocessorLib StandardLib BaseLib)
+
 add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
 target_include_directories(HCP65Lib PUBLIC "${EMULATOR_ROOT}")
-target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib MicroprocessorLib StandardLib BaseLib)
+target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib Assembler65Lib MicroprocessorLib StandardLib BaseLib)
 
 add_executable(HCP65Emulator ${EMULATOR_SOURCES})
 target_include_directories(HCP65Emulator PRIVATE "${EMULATOR_DIR}")
-target_link_libraries(HCP65Emulator PRIVATE HCP65Lib EmulatorDebugLib ThreadLib X11Lib PulseAudioLib WindowLib InputLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
+target_link_libraries(HCP65Emulator PRIVATE HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib X11Lib PulseAudioLib WindowLib InputLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})

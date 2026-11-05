@@ -281,6 +281,9 @@
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\ThreadLib\ThreadLib.vcxproj">
       <Project>{7269d64f-994a-4233-9add-bad415a07b64}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\Libraries\Assembler65Lib\Assembler65Lib.vcxproj">
+      <Project>{785fc14c-ccfc-45f8-bf51-2fd3049cea4a}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\EmulatorDebugLib\EmulatorDebugLib.vcxproj">
       <Project>{f13e4923-1574-4f23-984b-ae4b0b4e7d24}</Project>
     </ProjectReference>

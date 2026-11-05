@@ -215,7 +215,7 @@ add_library(EmulatorDebugLib STATIC ${EMULATORDEBUGLIB_SOURCES})
 target_link_libraries(EmulatorDebugLib PUBLIC ThreadLib MicroprocessorLib StandardLib BaseLib)
 
 add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
-target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib MicroprocessorLib StandardLib BaseLib)
+target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib Assembler65Lib MicroprocessorLib StandardLib BaseLib)
 
 add_executable(TestHCP65Lib ${TESTHCP65LIB_SOURCES})
 target_include_directories(TestHCP65Lib PRIVATE "${HCP65_ROOT}/HCP65-Emulator")

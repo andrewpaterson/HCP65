@@ -105,6 +105,19 @@ void TestHCP65Debugger(void)
 	AssertTrue(cClient.Hello());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Start, 0x8000);
 	AssertString("W65C816", cClient.GetProcessorName());
+	AssertInt(DAF_Bank, cClient.GetAddressFormat());
+	AssertTrue(cClient.CanDecode());
+
+	//The emulator disassembles with the assembler's knowledge, in emulation mode (8 bit immediates).
+	AssertTrue(cClient.Disassemble(0x8000, 4));
+	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumDisassemblies, 1);
+	AssertSize(4, cClient.NumInstructions());
+	AssertString("clc", cClient.GetInstruction(0)->szText);
+	AssertString("xce", cClient.GetInstruction(1)->szText);
+	AssertString("inx", cClient.GetInstruction(2)->szText);
+	AssertString("jsr $8010", cClient.GetInstruction(3)->szText);
+	AssertInt(DI_Call, cClient.GetInstruction(3)->uiKind);
+	AssertIntHex(0x8010, cClient.GetInstruction(3)->uiTarget);
 
 	//To the breakpoint after the call, once round the loop and again.
 	AssertTrue(cClient.AddBreakpoint(0x8006, true));
@@ -153,7 +166,7 @@ void TestHCP65Debugger(void)
 	uiByte = 0x55;
 	AssertTrue(cClient.WriteMemory(0x100008, &uiByte, 1));
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumErrors, 1);
-	AssertInt(DM_WriteMemory, cClient.GetErrorRequest());
+	AssertInt(DM_WriteMemory, cClient.GetErrorType());
 	AssertInt(0, cHCP65.GetProcessID());
 
 	//Loaded into RAM: the loop now ends at stp.
