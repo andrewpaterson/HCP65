@@ -31,6 +31,7 @@ void TestAsm65C64Drive(void);
 void TestAsm65Lazy(void);
 void TestAsm65C64Fast(void);
 void TestAsm65816(void);
+void TestAsm65816Disassembler(void);
 void TestAsm65IncHex(void);
 
 
@@ -75,6 +76,7 @@ int __cdecl main(void)
 	TestAsm65Lazy();
 	TestAsm65C64Fast();
 	TestAsm65816();
+	TestAsm65816Disassembler();
 	TestAsm65IncHex();
 
 	C65C64InstructionFactory::GetInstance()->Kill();

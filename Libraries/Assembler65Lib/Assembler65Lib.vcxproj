@@ -191,6 +191,7 @@
     <ClCompile Include="Asm65816Instructions.cpp" />
     <ClCompile Include="Asm65816Lockstep.cpp" />
     <ClCompile Include="Asm65816Opcodes.cpp" />
+    <ClCompile Include="Asm65816Disassembler.cpp" />
     <ClCompile Include="Asm65816Profile.cpp" />
     <ClCompile Include="Asm65Errors.cpp" />
     <ClCompile Include="Asm65HostFiles.cpp" />
@@ -217,6 +218,7 @@
     <ClInclude Include="Asm65816FrameCheck.h" />
     <ClInclude Include="Asm65816Lockstep.h" />
     <ClInclude Include="Asm65816Opcodes.h" />
+    <ClInclude Include="Asm65816Disassembler.h" />
     <ClInclude Include="Asm65816Profile.h" />
     <ClInclude Include="Asm65Errors.h" />
     <ClInclude Include="Asm65HostFiles.h" />
