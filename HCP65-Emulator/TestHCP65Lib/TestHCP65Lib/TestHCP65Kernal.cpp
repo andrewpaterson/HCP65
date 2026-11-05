@@ -132,9 +132,6 @@ static bool TestKernalPutFiles(void)
 	static const char*	aszModPlayUnits[] = { "ModPlay.cpp", NULL };
 	static const char*	aszModPlayLibraries[] = { "StandardLib", "SupportLib", NULL };
 	CFileUtil			cFileUtil;
-	FILE*				pcFile;
-	CArrayUint8			acSong;
-	long				iSize;
 	bool				bResult;
 
 	//TouchDir returns false when Output is already there (every run after the first).
@@ -156,22 +153,8 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 
-	pcFile = fopen(TEST_HCP65_SONG, "rb");
-	AssertNotNull(pcFile);
-	if (!pcFile)
-	{
-		return false;
-	}
-	fseek(pcFile, 0, SEEK_END);
-	iSize = ftell(pcFile);
-	fseek(pcFile, 0, SEEK_SET);
-	acSong.Init();
-	acSong.Resize((size)iSize);
-	bResult = fread(acSong.GetData(), 1, (size_t)iSize, pcFile) == (size_t)iSize;
-	fclose(pcFile);
-	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, MODPLAY_FILE, acSong.GetData(), acSong.NumElements());
+	bResult = FatPutDiskFileOnImage(TEST_HCP65_SD_CARD_IMAGE, MODPLAY_FILE, TEST_HCP65_SONG);
 	AssertTrue(bResult);
-	acSong.Kill();
 	return bResult;
 }
 
