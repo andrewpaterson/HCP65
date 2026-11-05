@@ -9,6 +9,7 @@
 #define HCP65_EMULATOR_SD_CARD_IMAGE	"../TestHCP65Lib/TestHCP65Lib/Output/SDCard.img"
 #define HCP65_EMULATOR_SD_SOCKET		2			//Socket 1 is the main memory channel.
 #define HCP65_EMULATOR_AUDIO_SOCKET		16
+#define HCP65_EMULATOR_DEBUG_SOCKET		7			//The debug port: the kernal tells it of its processes.
 
 
 #include "StandardLib/Object.h"
@@ -24,6 +25,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
+#include "HCP65Lib/HCP65DebugPort.h"
 #include "FileMenuListener.h"
 #include "HCP65EmulatorDebugger.h"
 
@@ -39,6 +41,7 @@ protected:
 	CHCP65					mcHCP65;
 	CHCP65Audio				mcAudio;
 	CHCP65SDCard			mcSDCard;
+	CHCP65DebugPort			mcDebugPort;
 	CHCP65EmulatorDebugger	mcDebugger;
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;

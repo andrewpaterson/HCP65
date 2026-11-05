@@ -51,7 +51,7 @@ public:
 	bool	IsEnabled(void);
 	bool	IsWaiting(void);
 
-	bool	Start(CHCP65* pcHCP65);
+	bool	Start(CHCP65* pcHCP65, CHCP65DebugPort* pcPort = NULL);
 	bool	Tick(uint64 uiCycles);
 	bool	IsRunning(void);
 
