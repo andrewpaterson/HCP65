@@ -5,6 +5,7 @@
 #include "BaseLib/MemoryFile.h"
 #include "BaseLib/PointerFunctions.h"
 #include "Assembler65Lib/Asm65Object.h"
+#include "HCP65ProgramBuild.h"
 #include "HCP65ExeBuilder.h"
 
 
@@ -46,78 +47,21 @@ void CHCP65ExeBuilder::Kill(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// aszUnits (NULL terminated) are the program's files in
-// szProgramDirectory; one of them has main.  aszLibraries (NULL terminated,
-// or NULL) are more of the common libraries (StandardLib, SupportLib) to
-// link from: their Visual Studio projects.  szHCP65Libraries holds Libc65.
+// szProjectFile is the program's Visual Studio project (its units, the
+// user start up first, one of them with main), as HCP65-IDE builds it;
+// szUser holds HCP65User.h.  aszLibraries (NULL terminated, or NULL) are
+// more of the common libraries (StandardLib, SupportLib) to link from.
+// szHCP65Libraries holds Libc65.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65ExeBuilder::Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szUser, const char* szProgramDirectory, const char** aszUnits, const char** aszLibraries)
+bool CHCP65ExeBuilder::Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szUser, const char* szProjectFile, const char** aszLibraries)
 {
-	CFileUtil	cFileUtil;
-	CChars		szCommon;
-	CChars		szLibraries;
-	CChars		szUserDirectory;
-	CChars		szProgram;
-	CChars		szPath;
-	bool		bResult;
-	size		i;
+	bool	bResult;
 
-	szCommon.Init(szCommonLibraries);
-	cFileUtil.FullPath(&szCommon);
-	szLibraries.Init(szHCP65Libraries);
-	cFileUtil.FullPath(&szLibraries);
-	szUserDirectory.Init(szUser);
-	cFileUtil.FullPath(&szUserDirectory);
-	szProgram.Init(szProgramDirectory);
-	cFileUtil.FullPath(&szProgram);
-
-	mcBuilder.SetTarget(CPPT_W65C816);
-	mcBuilder.SetRemoveUnused(true);
-	szPath.Init(szLibraries);
-	cFileUtil.AppendToPath(&szPath, "Libc65");
-	mcBuilder.AddIncludeDirectory(szPath.Text(), false, true);
-	szPath.Kill();
-	mcBuilder.AddIncludeDirectory(szCommon.Text(), true, false);
-	mcBuilder.AddIncludeDirectory(szLibraries.Text(), true, false);
-	mcBuilder.AddIncludeDirectory(szUserDirectory.Text(), false, false);
-	mcBuilder.AddIncludeDirectory(szProgram.Text(), false, false);
-
-	mcBuilder.AddUnit("User", szUserDirectory.Text(), "UserStart.asm");
-	mcBuilder.AddUnit("User", szUserDirectory.Text(), "UserCalls.asm", true);
-	mcBuilder.AddUnit("User", szUserDirectory.Text(), "UserMathTables.asm", true);
-	for (i = 0; aszUnits[i]; i++)
-	{
-		mcBuilder.AddUnit("Program", szProgram.Text(), aszUnits[i]);
-	}
-
-	szPath.Init(szCommon);
-	cFileUtil.AppendToPath(&szPath, "BaseLib");
-	cFileUtil.AppendToPath(&szPath, "BaseLib.vcxproj");
-	bResult = mcBuilder.AddVisualStudioProject("BaseLib", szPath.Text(), true);
-	szPath.Kill();
-	for (i = 0; aszLibraries && aszLibraries[i]; i++)
-	{
-		szPath.Init(szCommon);
-		cFileUtil.AppendToPath(&szPath, aszLibraries[i]);
-		cFileUtil.AppendToPath(&szPath, aszLibraries[i]);
-		szPath.Append(".vcxproj");
-		bResult &= mcBuilder.AddVisualStudioProject(aszLibraries[i], szPath.Text(), true);
-		szPath.Kill();
-	}
-
-	szPath.Init(szLibraries);
-	cFileUtil.AppendToPath(&szPath, "Libc65");
-	mcBuilder.AddLibc65(szPath.Text());
-	szPath.Kill();
-
+	bResult = HCP65AddProgram(&mcBuilder, szCommonLibraries, szHCP65Libraries, szProjectFile, szUser, aszLibraries);
 	mcBuilder.SetLimit(mcExecutable.GetLimit());
 	bResult &= mcBuilder.Link();
 	mszErrors.Append(mcBuilder.GetErrors());
-	szProgram.Kill();
-	szUserDirectory.Kill();
-	szLibraries.Kill();
-	szCommon.Kill();
 	if (!bResult)
 	{
 		return false;

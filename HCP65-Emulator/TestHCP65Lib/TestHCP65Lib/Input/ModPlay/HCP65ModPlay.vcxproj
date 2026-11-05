@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- modplay.exe, which boot.exe runs: it plays a MOD song from the SD card through the sound board.  It is built by HCP65-IDE's W65C816
+       configurations (HCP65ModPlay.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
+       files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3A7C9E21-5D4B-4F86-9B1E-6C2D8A0F4E57}</ProjectGuid>
+    <RootNamespace>HCP65ModPlay</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\HCP65Lib\User\UserStart.asm" />
+    <ClCompile Include="..\..\..\..\HCP65Lib\User\UserCalls.asm" />
+    <ClCompile Include="..\..\..\..\HCP65Lib\User\UserMathTables.asm" />
+    <ClCompile Include="ModPlay.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\HCP65Lib\User\HCP65User.h" />
+    <ClInclude Include="ModPlaySamples.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
+      <Project>{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\CommonLibraries\Libraries\StandardLib\StandardLib.vcxproj">
+      <Project>{2CFA23FA-6565-4744-8B75-9790B21CC0E5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\..\CommonLibraries\Libraries\SupportLib\SupportLib.vcxproj">
+      <Project>{221022F1-B103-456A-8F55-721F33F2E26D}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

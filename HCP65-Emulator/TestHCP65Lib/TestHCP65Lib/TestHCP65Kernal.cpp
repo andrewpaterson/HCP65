@@ -27,8 +27,8 @@
 #define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots these two (HCP65Emulator.h).
 #define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
 #define TEST_HCP65_USER				".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "User"
-#define TEST_HCP65_BOOT_PROGRAM		"Input" _FS_ "Boot"
-#define TEST_HCP65_MODPLAY_PROGRAM	"Input" _FS_ "ModPlay"
+#define TEST_HCP65_BOOT_PROGRAM		"Input" _FS_ "Boot" _FS_ "HCP65Boot.vcxproj"
+#define TEST_HCP65_MODPLAY_PROGRAM	"Input" _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
@@ -91,18 +91,18 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Builds an executable from Input/szDirectory and puts it on the SD card
-// image as szName.
+// Builds an executable from its project, szProjectFile (as HCP65-IDE
+// builds it), and puts it on the SD card image as szName.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalPutExe(const char* szName, const char* szDirectory, const char** aszUnits, const char** aszLibraries, uint32 uiHeapSize)
+static bool TestKernalPutExe(const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize)
 {
 	CHCP65ExeBuilder	cExe;
 	bool				bBuilt;
 
 	cExe.Init();
 	cExe.SetHeapSize(uiHeapSize);
-	bBuilt = cExe.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_USER, szDirectory, aszUnits, aszLibraries);
+	bBuilt = cExe.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_USER, szProjectFile, aszLibraries);
 	AssertString("", cExe.GetErrors());
 	AssertTrue(bBuilt);
 	if (bBuilt)
@@ -128,8 +128,6 @@ static bool TestKernalPutExe(const char* szName, const char* szDirectory, const 
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalPutFiles(void)
 {
-	static const char*	aszBootUnits[] = { "Boot.cpp", NULL };
-	static const char*	aszModPlayUnits[] = { "ModPlay.cpp", NULL };
 	static const char*	aszModPlayLibraries[] = { "StandardLib", "SupportLib", NULL };
 	CFileUtil			cFileUtil;
 	bool				bResult;
@@ -144,11 +142,11 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 
-	if (!TestKernalPutExe("\\boot.exe", TEST_HCP65_BOOT_PROGRAM, aszBootUnits, NULL, HCP65_EXE_DEFAULT_HEAP))
+	if (!TestKernalPutExe("\\boot.exe", TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP))
 	{
 		return false;
 	}
-	if (!TestKernalPutExe("\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayUnits, aszModPlayLibraries, MODPLAY_HEAP_SIZE))
+	if (!TestKernalPutExe("\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE))
 	{
 		return false;
 	}

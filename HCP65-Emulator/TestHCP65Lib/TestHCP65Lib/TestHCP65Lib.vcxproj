@@ -235,10 +235,12 @@
     <ClCompile Include="TestHCP65Kernal.cpp" />
     <ClCompile Include="HCP65KernalBuilder.cpp" />
     <ClCompile Include="HCP65ExeBuilder.cpp" />
+    <ClCompile Include="HCP65ProgramBuild.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HCP65KernalBuilder.h" />
     <ClInclude Include="HCP65ExeBuilder.h" />
+    <ClInclude Include="HCP65ProgramBuild.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">

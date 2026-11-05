@@ -13,8 +13,9 @@
 #define HCP65_EXE_DEFAULT_HEAP		0x20000
 
 
-//Builds a program for the HCP65 kernal to run: the user start up (HCP65Lib/User/UserStart.asm), the program's units
-//(compiled for the W65C816) with BaseLib and Libc65, and the kernal calls.  The executable is a CAsm65Object (as
+//Builds a program for the HCP65 kernal to run from its Visual Studio project (as HCP65-IDE builds its solution): the
+//user start up (HCP65Lib/User/UserStart.asm) and the kernal calls, the program's units (compiled for the W65C816),
+//BaseLib and Libc65.  The executable is a CAsm65Object (as
 //CAsm65Object::Write writes it) with one section placed at each linked segment's address in the process's own banks,
 //no relocations, an absolute global UserStart, the entry point, and an absolute global UserMemorySize: what Libc65
 //reads as the memory size (at $FF0300), $200000 plus the heap's size, so its heap is from $200000 (the kernal maps
@@ -32,7 +33,7 @@ public:
 	void			Kill(void);
 
 	void			SetHeapSize(uint32 uiHeapSize);
-	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szUser, const char* szProgramDirectory, const char** aszUnits, const char** aszLibraries = NULL);
+	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szUser, const char* szProjectFile, const char** aszLibraries = NULL);
 
 	uint8*			GetExecutable(void);
 	size			GetExecutableSize(void);
