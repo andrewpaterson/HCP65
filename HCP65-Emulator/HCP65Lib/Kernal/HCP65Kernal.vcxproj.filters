@@ -24,6 +24,9 @@
     <ClCompile Include="KernalSDCard.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KernalSDCard.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="KernalProcess.cpp">
       <Filter>Source</Filter>
     </ClCompile>

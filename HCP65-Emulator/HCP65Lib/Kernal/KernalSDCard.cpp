@@ -35,6 +35,16 @@
 #define SD_R1_ERRORS			0xFDF90008	//Every R1 error bit.
 
 
+//The board's GPIO register, for KernalSDCard.asm's bit banging.
+extern "C" volatile uint8*	gpuiKernalSDGPIO;
+volatile uint8*				gpuiKernalSDGPIO;
+
+extern "C" void		KernalSDSendBits(const uint8* puiBytes, uint16 uiBytes);
+extern "C" void		KernalSDReceiveBits(uint8* puiBytes, uint16 uiBits);
+extern "C" uint16	KernalSDWaitStart(uint16 uiClocks);
+extern "C" void		KernalSDClocks(uint16 uiClocks);
+
+
 //x^7 + x^3 + 1, a byte at a time: the CRC is kept shifted up a bit (in D7-D1, D0 zero), and the next is
 //gauiKernalCRC7[CRC ^ byte].  Each entry is the CRC of its index, shifted up.
 const uint8 gauiKernalCRC7[256] =
@@ -91,9 +101,11 @@ uint16 CKernalSDCard::Init(SKernalDevice* psDevice)
 
 	CFileDrive::Init(SD_SECTOR_SIZE);
 	mpuiRegisters = (volatile uint8*)(psDevice->uiAddress + SD_REGISTERS);
+	gpuiKernalSDGPIO = &mpuiRegisters[SD_GPIO];
 	mpuiBounce = (uint8*)malloc(SD_SECTOR_SIZE);
 	muiRCA = 0;
 	muiError = KERNAL_SD_SUCCESS;
+	mbIdentification = true;
 
 	//GPIO first: its latch isn't reset, and enabling the board turns its drivers on.
 	SetGPIO(SD_CLK | SD_CMD | SD_DRIVE_CLK | SD_DRIVE_CMD);
@@ -132,6 +144,7 @@ uint16 CKernalSDCard::Init(SKernalDevice* psDevice)
 		return muiError;
 	}
 	muiRCA = (uint16)(ResponseContent() >> 16);
+	mbIdentification = false;
 
 	//CSD version 2: C_SIZE (bits 69 to 48) + 1 times 1024 sectors.
 	if (!Command(9, (uint32)muiRCA << 16, 136))
@@ -180,6 +193,11 @@ void CKernalSDCard::Clocks(uint16 uiClocks)
 {
 	uint16	i;
 
+	if (!mbIdentification)
+	{
+		KernalSDClocks(uiClocks);
+		return;
+	}
 	for (i = 0; i < uiClocks; i++)
 	{
 		SetGPIO(SD_CMD | SD_DRIVE_CLK | SD_DRIVE_CMD);
@@ -208,7 +226,11 @@ void CKernalSDCard::SendCommand(uint8 uiIndex, uint32 uiArgument)
 	auiCommand[3] = (uint8)(uiArgument >> 8);
 	auiCommand[4] = (uint8)uiArgument;
 	auiCommand[5] = (uint8)(gauiKernalCRC7[gauiKernalCRC7[gauiKernalCRC7[gauiKernalCRC7[gauiKernalCRC7[auiCommand[0]] ^ auiCommand[1]] ^ auiCommand[2]] ^ auiCommand[3]] ^ auiCommand[4]] | 1);
-
+	if (!mbIdentification)
+	{
+		KernalSDSendBits(auiCommand, 6);
+		return;
+	}
 	for (i = 0; i < 6; i++)
 	{
 		uiByte = auiCommand[i];
@@ -234,6 +256,20 @@ bool CKernalSDCard::ReadResponse(uint16 uiBits)
 {
 	uint16	i;
 	uint8	uiByte;
+
+	if (!mbIdentification)
+	{
+		if (KernalSDWaitStart(SD_RESPONSE_WAIT) == 0)
+		{
+			muiError = KERNAL_SD_NO_RESPONSE;
+			return false;
+		}
+
+		//The start bit is the first byte's top bit; uiBits is a multiple of 8.
+		KernalSDReceiveBits(mauiResponse, (uint16)(uiBits - 1));
+		Clocks(8);
+		return true;
+	}
 
 	memset(mauiResponse, 0, sizeof(mauiResponse));
 	for (i = 0; i < SD_RESPONSE_WAIT; i++)

@@ -82,6 +82,7 @@
     <ClCompile Include="MathTables.asm" />
     <ClCompile Include="KernalDevices.cpp" />
     <ClCompile Include="KernalSDCard.cpp" />
+    <ClCompile Include="KernalSDCard.asm" />
     <ClCompile Include="KernalProcess.cpp" />
     <ClCompile Include="KernalAudio.asm" />
     <ClCompile Include="..\..\..\Libraries\Assembler65Lib\Asm65Object.cpp" />

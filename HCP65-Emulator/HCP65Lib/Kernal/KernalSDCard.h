@@ -29,6 +29,8 @@ protected:
 	uint8*			mpuiBounce;		//512 bytes in main memory.
 	uint8			mauiResponse[17];
 	uint16			muiError;
+	bool			mbIdentification;	//Until CMD3 the clock must stay under 400kHz: the C++ bit banging (a SetGPIO call per edge) is
+										//used, not KernalSDCard.asm's, which clocks at about a MHz at 25MHz.
 
 public:
 	uint16	Init(SKernalDevice* psDevice);
