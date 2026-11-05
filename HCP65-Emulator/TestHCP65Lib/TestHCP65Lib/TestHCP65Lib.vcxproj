@@ -231,6 +231,7 @@
   <ItemGroup>
     <ClCompile Include="TestHCP65Lib.cpp" />
     <ClCompile Include="TestHCP65Machine.cpp" />
+    <ClCompile Include="TestHCP65Debugger.cpp" />
     <ClCompile Include="TestHCP65Kernal.cpp" />
     <ClCompile Include="HCP65KernalBuilder.cpp" />
     <ClCompile Include="HCP65ExeBuilder.cpp" />
@@ -246,6 +247,14 @@
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\CppParserLib\CppParserLib.vcxproj">
       <Project>{4d010c1e-4dce-4271-9b1c-87bbf0bc761c}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\ThreadLib\ThreadLib.vcxproj">
+      <Project>{7269d64f-994a-4233-9add-bad415a07b64}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\EmulatorDebugLib\EmulatorDebugLib.vcxproj">
+      <Project>{f13e4923-1574-4f23-984b-ae4b0b4e7d24}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\MicroprocessorLib\MicroprocessorLib.vcxproj">

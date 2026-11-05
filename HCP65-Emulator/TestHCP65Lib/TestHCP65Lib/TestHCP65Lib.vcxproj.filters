@@ -4,6 +4,9 @@
     <ClCompile Include="TestHCP65Lib.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="TestHCP65Debugger.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="TestHCP65Machine.cpp">
       <Filter>Source</Filter>
     </ClCompile>

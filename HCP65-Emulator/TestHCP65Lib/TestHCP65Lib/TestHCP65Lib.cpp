@@ -7,6 +7,7 @@
 
 
 void TestHCP65Machine(void);
+void TestHCP65Debugger(void);
 void TestHCP65Kernal(void);
 
 
@@ -27,6 +28,7 @@ int __cdecl main(int argc, char** argv)
 	MemoryInit();
 
 	TestHCP65Machine();
+	TestHCP65Debugger();
 	TestHCP65Kernal();
 
 	MemoryKill();

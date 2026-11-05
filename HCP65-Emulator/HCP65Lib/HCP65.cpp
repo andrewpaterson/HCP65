@@ -176,7 +176,8 @@ void CHCP65::Reset(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // Runs for at least uiCycles cycles (it finishes the instruction that
-// crosses the end) or until the processor stops.  The run is cut into
+// crosses the end) or until the processor stops or the next instruction is
+// at one of its enabled breakpoints (IsAtBreakpoint).  The run is cut into
 // chunks that end where a device's interrupt changes, so interrupts are
 // raised on the instruction they should be.  Returns the cycles run.
 //
@@ -187,6 +188,8 @@ uint64 CHCP65::Run(uint64 uiCycles)
 	uint64	uiEnd;
 	uint64	uiEvent;
 	bool	bRunning;
+	bool	bWaiting;
+	bool	bStepped;
 
 	uiStart = mcMPU.NumCycles();
 	uiEnd = uiStart + uiCycles;
@@ -203,11 +206,14 @@ uint64 CHCP65::Run(uint64 uiCycles)
 		//At least one step, so that an event that is already due cannot stop the run.
 		do
 		{
-			if (!mcMPU.IsWaiting())
+			bWaiting = mcMPU.IsWaiting();
+			bStepped = mcMPU.Step();
+			if (!bWaiting && !mcMPU.IsAtBreakpoint())
 			{
+				//Not a cycle of waiting, nor a return before an instruction at a breakpoint.
 				muiInstructions++;
 			}
-			if (!mcMPU.Step())
+			if (!bStepped)
 			{
 				bRunning = false;
 				break;
@@ -243,6 +249,18 @@ void CHCP65::EndChunk(void)
 bool CHCP65::IsStopped(void)
 {
 	return mcMPU.IsStopped();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The last Run returned before the instruction at one of the processor's
+// breakpoints; the next Run executes it.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65::IsAtBreakpoint(void)
+{
+	return mcMPU.IsAtBreakpoint();
 }
 
 
@@ -511,6 +529,36 @@ void CHCP65::Write(uint32 uiAddress, uint8 uiValue)
 		UpdateInterrupts();
 		EndChunk();
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The memory a processor address is now (as Read and Write would find it),
+// or NULL where it is a device or an empty socket.  For a debugger, which
+// must read and write without touching devices.  ROM can be written here.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8* CHCP65::MemoryAt(uint32 uiAddress)
+{
+	uiAddress &= 0xFFFFFF;
+	if (!mbKernel)
+	{
+		return &mpuiMain[UserAddress(uiAddress)];
+	}
+	if (uiAddress >= 0x200000)
+	{
+		return &mpuiMain[uiAddress];
+	}
+	if (uiAddress < 0x100000)
+	{
+		if ((uiAddress >= HCP65_MPU_RAM_SIZE) == mbNativeLatch)
+		{
+			return &mpuiROM[uiAddress & (HCP65_MPU_ROM_SIZE - 1)];
+		}
+		return &mpuiRAM[uiAddress & (HCP65_MPU_RAM_SIZE - 1)];
+	}
+	return NULL;
 }
 
 

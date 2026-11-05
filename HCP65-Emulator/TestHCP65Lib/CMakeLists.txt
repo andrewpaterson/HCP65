@@ -1,5 +1,5 @@
 # Linux build of TestHCP65Lib (BaseLib + TestLib + StandardLib + SupportLib + MicroprocessorLib +
-# Assembler65Lib + CppParserLib + HCP65Lib + TestHCP65Lib).  The tests run the HCP65
+# Assembler65Lib + CppParserLib + ThreadLib + EmulatorDebugLib + HCP65Lib + TestHCP65Lib).  The tests run the HCP65
 # emulator and build and boot the kernal ROM (compiled for the W65C816).
 #
 # Builds 32-bit (-m32, needs g++-multilib) by default.  Add -DBASELIB_64=ON
@@ -42,6 +42,8 @@ set(STANDARDLIB_DIR "${COMMON_DIR}/StandardLib")
 set(SUPPORTLIB_DIR "${COMMON_DIR}/SupportLib")
 set(CPPPARSERLIB_DIR "${COMMON_DIR}/CppParserLib")
 set(MICROPROCESSORLIB_DIR "${COMMON_DIR}/MicroprocessorLib")
+set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
+set(EMULATORDEBUGLIB_DIR "${COMMON_DIR}/EmulatorDebugLib")
 set(ASSEMBLER65LIB_DIR "${HCP65_LIBRARIES_DIR}/Assembler65Lib")
 set(HCP65LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../HCP65Lib")
 set(TESTHCP65LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/TestHCP65Lib")
@@ -100,6 +102,10 @@ vcxproj_sources(SUPPORTLIB_SOURCES "${SUPPORTLIB_DIR}/SupportLib.vcxproj")
 vcxproj_sources(CPPPARSERLIB_SOURCES "${CPPPARSERLIB_DIR}/CppParserLib.vcxproj")
 
 vcxproj_sources(MICROPROCESSORLIB_SOURCES "${MICROPROCESSORLIB_DIR}/MicroprocessorLib.vcxproj")
+
+vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
+
+vcxproj_sources(EMULATORDEBUGLIB_SOURCES "${EMULATORDEBUGLIB_DIR}/EmulatorDebugLib.vcxproj")
 
 vcxproj_sources(ASSEMBLER65LIB_SOURCES "${ASSEMBLER65LIB_DIR}/Assembler65Lib.vcxproj")
 
@@ -202,12 +208,18 @@ target_link_libraries(MicroprocessorLib PUBLIC StandardLib BaseLib)
 add_library(Assembler65Lib STATIC ${ASSEMBLER65LIB_SOURCES})
 target_link_libraries(Assembler65Lib PUBLIC MicroprocessorLib StandardLib BaseLib)
 
+add_library(ThreadLib STATIC ${THREADLIB_SOURCES})
+target_link_libraries(ThreadLib PUBLIC BaseLib)
+
+add_library(EmulatorDebugLib STATIC ${EMULATORDEBUGLIB_SOURCES})
+target_link_libraries(EmulatorDebugLib PUBLIC ThreadLib MicroprocessorLib StandardLib BaseLib)
+
 add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
-target_link_libraries(HCP65Lib PUBLIC MicroprocessorLib StandardLib BaseLib)
+target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib MicroprocessorLib StandardLib BaseLib)
 
 add_executable(TestHCP65Lib ${TESTHCP65LIB_SOURCES})
 target_include_directories(TestHCP65Lib PRIVATE "${HCP65_ROOT}/HCP65-Emulator")
-target_link_libraries(TestHCP65Lib PRIVATE TestLib HCP65Lib CppParserLib Assembler65Lib MicroprocessorLib SupportLib StandardLib BaseLib)
+target_link_libraries(TestHCP65Lib PRIVATE TestLib HCP65Lib EmulatorDebugLib ThreadLib CppParserLib Assembler65Lib MicroprocessorLib SupportLib StandardLib BaseLib)
 
 # The tests read their input (../../HCP65Emulator/Input ...) relative to the project directory,
 # as Visual Studio does.

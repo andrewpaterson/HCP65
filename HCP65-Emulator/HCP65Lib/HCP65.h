@@ -60,6 +60,7 @@ public:
 	void				Reset(void);
 	uint64				Run(uint64 uiCycles);
 	bool				IsStopped(void);
+	bool				IsAtBreakpoint(void);
 	void				SetBreak(int iBreak);
 
 	CFast65C816*		GetMPU(void);
@@ -87,6 +88,7 @@ public:
 
 	uint8				Read(uint32 uiAddress);
 	void				Write(uint32 uiAddress, uint8 uiValue);
+	uint8*				MemoryAt(uint32 uiAddress);
 
 protected:
 	void				UpdateMode(void);

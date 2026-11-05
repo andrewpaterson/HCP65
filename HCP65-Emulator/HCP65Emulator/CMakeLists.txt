@@ -1,4 +1,5 @@
-# Linux build of the HCP65 Emulator: the HCP65 (HCP65Lib on MicroprocessorLib's W65C816) in an X11 window (WindowLib +
+# Linux build of the HCP65 Emulator: the HCP65 (HCP65Lib on MicroprocessorLib's W65C816, debuggable through EmulatorDebugLib
+# and ThreadLib's channels: --debug-shm <name> or --debug-tcp <port>) in an X11 window (WindowLib +
 # X11Lib), its sound board played through the window's sound mixer on PulseAudio (PulseAudioLib, which loads it at run
 # time: only libpulse-simple.so.0 is needed).
 #
@@ -42,6 +43,8 @@ set(WINDOWLIB_DIR "${COMMON_DIR}/WindowLib")
 set(X11LIB_DIR "${COMMON_DIR}/X11Lib")
 set(PULSEAUDIOLIB_DIR "${COMMON_DIR}/PulseAudioLib")
 set(MICROPROCESSORLIB_DIR "${COMMON_DIR}/MicroprocessorLib")
+set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
+set(EMULATORDEBUGLIB_DIR "${COMMON_DIR}/EmulatorDebugLib")
 set(HCP65LIB_DIR "${EMULATOR_ROOT}/HCP65Lib")
 set(EMULATOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
@@ -103,6 +106,10 @@ vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
 vcxproj_sources(PULSEAUDIOLIB_SOURCES "${PULSEAUDIOLIB_DIR}/PulseAudioLib.vcxproj")
 
 vcxproj_sources(MICROPROCESSORLIB_SOURCES "${MICROPROCESSORLIB_DIR}/MicroprocessorLib.vcxproj")
+
+vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
+
+vcxproj_sources(EMULATORDEBUGLIB_SOURCES "${EMULATORDEBUGLIB_DIR}/EmulatorDebugLib.vcxproj")
 
 vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 
@@ -171,10 +178,16 @@ target_link_libraries(PulseAudioLib PUBLIC WindowLib SupportLib StandardLib Base
 add_library(MicroprocessorLib STATIC ${MICROPROCESSORLIB_SOURCES})
 target_link_libraries(MicroprocessorLib PUBLIC StandardLib BaseLib)
 
+add_library(ThreadLib STATIC ${THREADLIB_SOURCES})
+target_link_libraries(ThreadLib PUBLIC BaseLib)
+
+add_library(EmulatorDebugLib STATIC ${EMULATORDEBUGLIB_SOURCES})
+target_link_libraries(EmulatorDebugLib PUBLIC ThreadLib MicroprocessorLib StandardLib BaseLib)
+
 add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
 target_include_directories(HCP65Lib PUBLIC "${EMULATOR_ROOT}")
-target_link_libraries(HCP65Lib PUBLIC MicroprocessorLib StandardLib BaseLib)
+target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib MicroprocessorLib StandardLib BaseLib)
 
 add_executable(HCP65Emulator ${EMULATOR_SOURCES})
 target_include_directories(HCP65Emulator PRIVATE "${EMULATOR_DIR}")
-target_link_libraries(HCP65Emulator PRIVATE HCP65Lib X11Lib PulseAudioLib WindowLib InputLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
+target_link_libraries(HCP65Emulator PRIVATE HCP65Lib EmulatorDebugLib ThreadLib X11Lib PulseAudioLib WindowLib InputLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
