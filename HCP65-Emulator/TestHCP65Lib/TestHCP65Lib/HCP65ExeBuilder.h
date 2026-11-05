@@ -3,6 +3,7 @@
 #include "BaseLib/Chars.h"
 #include "BaseLib/ArrayUint8.h"
 #include "CppParserLib/CPP65Builder.h"
+#include "Assembler65Lib/Asm65Executable.h"
 
 
 #define HCP65_EXE_ENTRY_SYMBOL		"UserStart"
@@ -17,12 +18,12 @@
 //CAsm65Object::Write writes it) with one section placed at each linked segment's address in the process's own banks,
 //no relocations, an absolute global UserStart, the entry point, and an absolute global UserMemorySize: what Libc65
 //reads as the memory size (at $FF0300), $200000 plus the heap's size, so its heap is from $200000 (the kernal maps
-//those banks).
+//those banks).  The format is a CAsm65Executable's, as an HCP65 configuration of HCP65-IDE describes it.
 class CHCP65ExeBuilder
 {
 protected:
 	CCPP65Builder	mcBuilder;
-	CArrayUint8		macExecutable;
+	CAsm65Executable	mcExecutable;
 	CChars			mszErrors;
 	uint32			muiHeapSize;
 

@@ -15,7 +15,7 @@
 void CHCP65ExeBuilder::Init(void)
 {
 	mcBuilder.Init();
-	macExecutable.Init();
+	mcExecutable.Init("", HCP65_EXE_ENTRY_SYMBOL, HCP65_EXE_CODE_LIMIT);
 	mszErrors.Init();
 	muiHeapSize = HCP65_EXE_DEFAULT_HEAP;
 }
@@ -39,7 +39,7 @@ void CHCP65ExeBuilder::SetHeapSize(uint32 uiHeapSize)
 void CHCP65ExeBuilder::Kill(void)
 {
 	mszErrors.Kill();
-	macExecutable.Kill();
+	mcExecutable.Kill();
 	mcBuilder.Kill();
 }
 
@@ -111,7 +111,7 @@ bool CHCP65ExeBuilder::Build(const char* szCommonLibraries, const char* szHCP65L
 	mcBuilder.AddLibc65(szPath.Text());
 	szPath.Kill();
 
-	mcBuilder.SetLimit(HCP65_EXE_CODE_LIMIT);
+	mcBuilder.SetLimit(mcExecutable.GetLimit());
 	bResult &= mcBuilder.Link();
 	mszErrors.Append(mcBuilder.GetErrors());
 	szProgram.Kill();
@@ -128,83 +128,16 @@ bool CHCP65ExeBuilder::Build(const char* szCommonLibraries, const char* szHCP65L
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The linked segments as placed sections of an object, and the entry.
+// The linked segments as placed sections of an object, the entry, and
+// the memory size Libc65 reads.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65ExeBuilder::MakeExecutable(void)
 {
-	CAsm65Object		cObject;
-	CAsm65Output*		pcOutput;
-	SAsm65Segment*		psSegment;
-	SAsm65Section*		psSection;
-	SAsm65ObjectSymbol*	psSymbol;
-	CMemoryFile*		pcMemoryFile;
-	CChars				szName;
-	int64				lliEntry;
-	int64				lliBssStart;
-	int64				lliBssEnd;
-	uint32				uiSection;
-	uint32				uiSymbol;
-	size				i;
-	bool				bResult;
-
-	if (!mcBuilder.GetSymbol(HCP65_EXE_ENTRY_SYMBOL, &lliEntry))
-	{
-		mszErrors.Append("No " HCP65_EXE_ENTRY_SYMBOL ".\n");
-		return false;
-	}
-
-	cObject.Init("Executable");
-	pcOutput = mcBuilder.GetOutput();
-	for (i = 0; i < pcOutput->NumSegments(); i++)
-	{
-		psSegment = pcOutput->GetSegment(i);
-		szName.Init("segment");
-		szName.Append((int)i);
-		uiSection = cObject.AddSection(szName.Text(), "", ASK65_Data);
-		szName.Kill();
-		psSection = cObject.GetSection(uiSection);
-		psSection->bAt = true;
-		psSection->uiAt = psSegment->uiAddress;
-		psSection->bKeep = true;
-		psSection->uiSize = (uint32)psSegment->cBytes.NumElements();
-		psSection->cBytes.Resize(psSegment->cBytes.NumElements());
-		memcpy(psSection->cBytes.GetData(), psSegment->cBytes.GetData(), psSegment->cBytes.NumElements());
-	}
-	//bss has no bytes: a section of its size and no bytes, which the kernal maps (its banks are cleared).
-	if (mcBuilder.GetSymbol("__bss_start", &lliBssStart) && mcBuilder.GetSymbol("__bss_end", &lliBssEnd) && (lliBssEnd > lliBssStart))
-	{
-		uiSection = cObject.AddSection("bss", "", ASK65_Bss);
-		psSection = cObject.GetSection(uiSection);
-		psSection->bAt = true;
-		psSection->uiAt = (uint32)lliBssStart;
-		psSection->bKeep = true;
-		psSection->uiSize = (uint32)(lliBssEnd - lliBssStart);
-	}
-
-	uiSymbol = cObject.PutSymbol(HCP65_EXE_ENTRY_SYMBOL);
-	psSymbol = cObject.GetSymbol(uiSymbol);
-	psSymbol->iSection = -1;
-	psSymbol->iValue = lliEntry;
-	psSymbol->eBinding = AB65_Global;
-
-	uiSymbol = cObject.PutSymbol(HCP65_EXE_MEMORY_SIZE_SYMBOL);
-	psSymbol = cObject.GetSymbol(uiSymbol);
-	psSymbol->iSection = -1;
-	psSymbol->iValue = HCP65_EXE_HIGH_MEMORY + muiHeapSize;
-	psSymbol->eBinding = AB65_Global;
-
-	pcMemoryFile = MemoryFile();
-	pcMemoryFile->mbBasicFileMustFree = false;
-	bResult = cObject.Write(pcMemoryFile);
-	if (bResult)
-	{
-		macExecutable.Resize((size)pcMemoryFile->GetBufferSize());
-		memcpy(macExecutable.GetData(), pcMemoryFile->GetBufferPointer(), (size)pcMemoryFile->GetBufferSize());
-	}
-	SafeKill(pcMemoryFile);
-	cObject.Kill();
-	return bResult;
+	mcExecutable.Kill();
+	mcExecutable.Init("", HCP65_EXE_ENTRY_SYMBOL, HCP65_EXE_CODE_LIMIT);
+	mcExecutable.AddSymbol(HCP65_EXE_MEMORY_SIZE_SYMBOL, HCP65_EXE_HIGH_MEMORY + muiHeapSize);
+	return mcExecutable.Make(mcBuilder.GetOutput(), mcBuilder.GetLinker(), &mszErrors);
 }
 
 
@@ -214,7 +147,7 @@ bool CHCP65ExeBuilder::MakeExecutable(void)
 //////////////////////////////////////////////////////////////////////////
 uint8* CHCP65ExeBuilder::GetExecutable(void)
 {
-	return macExecutable.GetData();
+	return mcExecutable.GetBytes();
 }
 
 
@@ -224,7 +157,7 @@ uint8* CHCP65ExeBuilder::GetExecutable(void)
 //////////////////////////////////////////////////////////////////////////
 size CHCP65ExeBuilder::GetExecutableSize(void)
 {
-	return macExecutable.NumElements();
+	return mcExecutable.GetSize();
 }
 
 
