@@ -23,6 +23,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include <string.h>
 #include "BaseLib/StringHelper.h"
 #include "BaseLib/PointerFunctions.h"
+#include "Asm65Attributes.h"
 #include "Asm65Image.h"
 
 
@@ -95,46 +96,6 @@ void CAsm65Image::AddRegion(uint32 uiStart, uint32 uiEnd, uint32 uiOffset)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static void WriteHexAttribute(CXMLWriter* pcWriter, const char* szName, uint32 uiValue)
-{
-	char	szValue[16];
-
-	snprintf(szValue, sizeof(szValue), "0x%X", (unsigned int)uiValue);
-	pcWriter->Attribute(szName, szValue);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// An attribute in hexadecimal (0x) or decimal.  False if it isn't there
-// or isn't a 32 bit number.
-//
-//////////////////////////////////////////////////////////////////////////
-static bool ReadNumberAttribute(CMarkupTag* pcTag, const char* szName, uint32* puiValue)
-{
-	char*				szValue;
-	char*				szEnd;
-	unsigned long long	ulli;
-
-	szValue = pcTag->GetStringAttribute(szName);
-	if ((szValue == NULL) || (*szValue == '\0') || (*szValue == '-'))
-	{
-		return false;
-	}
-	ulli = strtoull(szValue, &szEnd, 0);
-	if ((*szEnd != '\0') || (ulli > 0xFFFFFFFFULL))
-	{
-		return false;
-	}
-	*puiValue = (uint32)ulli;
-	return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
 void CAsm65Image::SaveXML(CXMLWriter* pcWriter)
 {
 	size				i;
@@ -142,17 +103,17 @@ void CAsm65Image::SaveXML(CXMLWriter* pcWriter)
 
 	pcWriter->Begin(ASM65_IMAGE_TAG);
 	pcWriter->Attribute(ASM65_IMAGE_FILE, mszFile.Text());
-	WriteHexAttribute(pcWriter, ASM65_IMAGE_SIZE, muiSize);
-	WriteHexAttribute(pcWriter, ASM65_IMAGE_FILL, muiFill);
-	WriteHexAttribute(pcWriter, ASM65_IMAGE_LIMIT, muiLimit);
-	WriteHexAttribute(pcWriter, ASM65_IMAGE_LOAD, muiLoad);
+	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_SIZE, muiSize);
+	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_FILL, muiFill);
+	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_LIMIT, muiLimit);
+	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_LOAD, muiLoad);
 	for (i = 0; i < masRegions.NumElements(); i++)
 	{
 		psRegion = masRegions.Get(i);
 		pcWriter->Begin(ASM65_IMAGE_REGION_TAG);
-		WriteHexAttribute(pcWriter, ASM65_IMAGE_REGION_START, psRegion->uiStart);
-		WriteHexAttribute(pcWriter, ASM65_IMAGE_REGION_END, psRegion->uiEnd);
-		WriteHexAttribute(pcWriter, ASM65_IMAGE_REGION_OFFSET, psRegion->uiOffset);
+		Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_REGION_START, psRegion->uiStart);
+		Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_REGION_END, psRegion->uiEnd);
+		Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_REGION_OFFSET, psRegion->uiOffset);
 		pcWriter->End();
 	}
 	pcWriter->End();
@@ -182,25 +143,25 @@ bool CAsm65Image::LoadXML(CMarkupTag* pcTag)
 		return false;
 	}
 	szFile = pcTag->GetStringAttribute(ASM65_IMAGE_FILE);
-	if (!szFile || (szFile[0] == '\0') || !ReadNumberAttribute(pcTag, ASM65_IMAGE_SIZE, &muiSize) || (muiSize == 0))
+	if (!szFile || (szFile[0] == '\0') || !Asm65ReadUint32Attribute(pcTag, ASM65_IMAGE_SIZE, &muiSize) || (muiSize == 0))
 	{
 		return false;
 	}
 	mszFile.Set(szFile);
 
 	uiFill = 0xFF;
-	if (pcTag->GetStringAttribute(ASM65_IMAGE_FILL) && (!ReadNumberAttribute(pcTag, ASM65_IMAGE_FILL, &uiFill) || (uiFill > 0xFF)))
+	if (pcTag->GetStringAttribute(ASM65_IMAGE_FILL) && (!Asm65ReadUint32Attribute(pcTag, ASM65_IMAGE_FILL, &uiFill) || (uiFill > 0xFF)))
 	{
 		return false;
 	}
 	muiFill = (uint8)uiFill;
 	muiLimit = 0;
-	if (pcTag->GetStringAttribute(ASM65_IMAGE_LIMIT) && !ReadNumberAttribute(pcTag, ASM65_IMAGE_LIMIT, &muiLimit))
+	if (pcTag->GetStringAttribute(ASM65_IMAGE_LIMIT) && !Asm65ReadUint32Attribute(pcTag, ASM65_IMAGE_LIMIT, &muiLimit))
 	{
 		return false;
 	}
 	muiLoad = 0;
-	if (pcTag->GetStringAttribute(ASM65_IMAGE_LOAD) && !ReadNumberAttribute(pcTag, ASM65_IMAGE_LOAD, &muiLoad))
+	if (pcTag->GetStringAttribute(ASM65_IMAGE_LOAD) && !Asm65ReadUint32Attribute(pcTag, ASM65_IMAGE_LOAD, &muiLoad))
 	{
 		return false;
 	}
@@ -209,7 +170,7 @@ bool CAsm65Image::LoadXML(CMarkupTag* pcTag)
 	masRegions.Init();
 	for (pcRegion = pcTag->GetTag(ASM65_IMAGE_REGION_TAG, &sIterator); pcRegion; pcRegion = pcTag->GetNextTag(&sIterator))
 	{
-		if (!ReadNumberAttribute(pcRegion, ASM65_IMAGE_REGION_START, &uiStart) || !ReadNumberAttribute(pcRegion, ASM65_IMAGE_REGION_END, &uiEnd) || !ReadNumberAttribute(pcRegion, ASM65_IMAGE_REGION_OFFSET, &uiOffset))
+		if (!Asm65ReadUint32Attribute(pcRegion, ASM65_IMAGE_REGION_START, &uiStart) || !Asm65ReadUint32Attribute(pcRegion, ASM65_IMAGE_REGION_END, &uiEnd) || !Asm65ReadUint32Attribute(pcRegion, ASM65_IMAGE_REGION_OFFSET, &uiOffset))
 		{
 			return false;
 		}

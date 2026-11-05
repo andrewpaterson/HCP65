@@ -24,6 +24,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/StringHelper.h"
 #include "BaseLib/MemoryFile.h"
 #include "BaseLib/PointerFunctions.h"
+#include "Asm65Attributes.h"
 #include "Asm65Object.h"
 #include "Asm65Executable.h"
 
@@ -92,46 +93,6 @@ void CAsm65Executable::AddSymbol(const char* szName, int64 iValue)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static void WriteHexAttribute(CXMLWriter* pcWriter, const char* szName, int64 iValue)
-{
-	char	szValue[24];
-
-	snprintf(szValue, sizeof(szValue), "0x%llX", (unsigned long long)iValue);
-	pcWriter->Attribute(szName, szValue);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// An attribute in hexadecimal (0x) or decimal.  False if it isn't there
-// or isn't a number.
-//
-//////////////////////////////////////////////////////////////////////////
-static bool ReadNumberAttribute(CMarkupTag* pcTag, const char* szName, int64* piValue)
-{
-	char*		szValue;
-	char*		szEnd;
-	long long	lli;
-
-	szValue = pcTag->GetStringAttribute(szName);
-	if ((szValue == NULL) || (*szValue == '\0'))
-	{
-		return false;
-	}
-	lli = strtoll(szValue, &szEnd, 0);
-	if (*szEnd != '\0')
-	{
-		return false;
-	}
-	*piValue = (int64)lli;
-	return true;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
 void CAsm65Executable::SaveXML(CXMLWriter* pcWriter)
 {
 	size	i;
@@ -139,12 +100,12 @@ void CAsm65Executable::SaveXML(CXMLWriter* pcWriter)
 	pcWriter->Begin(ASM65_EXECUTABLE_TAG);
 	pcWriter->Attribute(ASM65_EXECUTABLE_FILE, mszFile.Text());
 	pcWriter->Attribute(ASM65_EXECUTABLE_ENTRY, mszEntry.Text());
-	WriteHexAttribute(pcWriter, ASM65_EXECUTABLE_LIMIT, muiLimit);
+	Asm65WriteHexAttribute(pcWriter, ASM65_EXECUTABLE_LIMIT, muiLimit);
 	for (i = 0; i < maszSymbols.NumElements(); i++)
 	{
 		pcWriter->Begin(ASM65_EXECUTABLE_SYMBOL_TAG);
 		pcWriter->Attribute(ASM65_EXECUTABLE_SYMBOL_NAME, maszSymbols.GetText(i));
-		WriteHexAttribute(pcWriter, ASM65_EXECUTABLE_SYMBOL_VALUE, *maiValues.Get(i));
+		Asm65WriteHexAttribute(pcWriter, ASM65_EXECUTABLE_SYMBOL_VALUE, *maiValues.Get(i));
 		pcWriter->End();
 	}
 	pcWriter->End();
@@ -183,11 +144,10 @@ bool CAsm65Executable::LoadXML(CMarkupTag* pcTag)
 	muiLimit = 0;
 	if (pcTag->GetStringAttribute(ASM65_EXECUTABLE_LIMIT))
 	{
-		if (!ReadNumberAttribute(pcTag, ASM65_EXECUTABLE_LIMIT, &iValue) || (iValue < 0) || (iValue > 0xFFFFFFFFLL))
+		if (!Asm65ReadUint32Attribute(pcTag, ASM65_EXECUTABLE_LIMIT, &muiLimit))
 		{
 			return false;
 		}
-		muiLimit = (uint32)iValue;
 	}
 
 	maszSymbols.Kill();
@@ -197,7 +157,7 @@ bool CAsm65Executable::LoadXML(CMarkupTag* pcTag)
 	for (pcSymbol = pcTag->GetTag(ASM65_EXECUTABLE_SYMBOL_TAG, &sIterator); pcSymbol; pcSymbol = pcTag->GetNextTag(&sIterator))
 	{
 		szName = pcSymbol->GetStringAttribute(ASM65_EXECUTABLE_SYMBOL_NAME);
-		if (!szName || (szName[0] == '\0') || !ReadNumberAttribute(pcSymbol, ASM65_EXECUTABLE_SYMBOL_VALUE, &iValue))
+		if (!szName || (szName[0] == '\0') || !Asm65ReadNumberAttribute(pcSymbol, ASM65_EXECUTABLE_SYMBOL_VALUE, &iValue))
 		{
 			return false;
 		}

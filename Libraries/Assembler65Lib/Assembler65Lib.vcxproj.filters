@@ -72,6 +72,9 @@
     <ClCompile Include="Asm65Executable.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Asm65Attributes.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Asm65LinkerLazy.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -147,6 +150,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65Executable.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Asm65Attributes.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65Memory.h">
