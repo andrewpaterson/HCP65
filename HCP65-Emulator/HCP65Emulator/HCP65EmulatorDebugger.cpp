@@ -16,6 +16,7 @@ void CHCP65EmulatorDebugger::Init(void)
 	mszName.Init();
 	miPort = 0;
 	mbExitOnDetach = false;
+	mbWait = false;
 	mcNetwork.Init();
 	mcShared.Init();
 	mbStarted = false;
@@ -84,6 +85,10 @@ bool CHCP65EmulatorDebugger::ParseArguments(int argc, char* argv[])
 		{
 			mbExitOnDetach = true;
 		}
+		else if (strcmp(argv[i], HCP65_DEBUG_WAIT) == 0)
+		{
+			mbWait = true;
+		}
 	}
 	return true;
 }
@@ -102,7 +107,8 @@ bool CHCP65EmulatorDebugger::IsEnabled(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // Makes the channel.  A shared memory channel is created now; the network
-// listens now and accepts the debugger in a later Tick.
+// listens now and accepts the debugger in a later Tick.  The server holds
+// the HCP65 stopped (HCP65_DEBUG_WAIT) or runs it until then.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65EmulatorDebugger::Start(CHCP65* pcHCP65)
@@ -133,10 +139,10 @@ bool CHCP65EmulatorDebugger::Start(CHCP65* pcHCP65)
 		}
 		printf(HCP65_DEBUG_PORT_LINE "%d\n", mcListen.GetPort());
 		fflush(stdout);
-		pcChannel = &mcNetwork;
+		pcChannel = NULL;
 	}
 
-	mcServer.Init(pcChannel, &mcTarget);
+	mcServer.Init(pcChannel, &mcTarget, mbWait);
 	mbStarted = true;
 	return true;
 }
@@ -146,7 +152,9 @@ bool CHCP65EmulatorDebugger::Start(CHCP65* pcHCP65)
 //
 // Each window tick, with the cycles the HCP65 is due (0 while it isn't
 // running).  False when the emulator should close: the debugger sent
-// DM_Quit, or it went and HCP65_DEBUG_EXIT_ON_DETACH was given.
+// DM_Quit, or it went and HCP65_DEBUG_EXIT_ON_DETACH was given.  Without
+// a debugger the server runs the HCP65 itself; on the network the next
+// debugger is accepted once the last has gone.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65EmulatorDebugger::Tick(uint64 uiCycles)
@@ -154,7 +162,6 @@ bool CHCP65EmulatorDebugger::Tick(uint64 uiCycles)
 	if (!mbChannelOpen)
 	{
 		Accept();
-		return true;
 	}
 
 	mcServer.Tick(uiCycles);
@@ -162,9 +169,18 @@ bool CHCP65EmulatorDebugger::Tick(uint64 uiCycles)
 	{
 		return false;
 	}
-	if (mcServer.IsClosed() && mbExitOnDetach)
+	if (mbChannelOpen && mcServer.IsClosed())
 	{
-		return false;
+		if (mbExitOnDetach)
+		{
+			return false;
+		}
+		if (meTransport == HDT_Network)
+		{
+			mcNetwork.Kill();
+			mcNetwork.Init();
+			mbChannelOpen = false;
+		}
 	}
 	return true;
 }
@@ -173,12 +189,12 @@ bool CHCP65EmulatorDebugger::Tick(uint64 uiCycles)
 //////////////////////////////////////////////////////////////////////////
 //
 // Whether the HCP65's time goes on: not while the debugger has it stopped
-// or is stepping it, nor before a debugger has connected.
+// or is stepping it, nor while it waits for a debugger (HCP65_DEBUG_WAIT).
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65EmulatorDebugger::IsRunning(void)
 {
-	return mbChannelOpen && (mcServer.GetState() == DSS_Running);
+	return mcServer.GetState() == DSS_Running;
 }
 
 
@@ -192,5 +208,6 @@ void CHCP65EmulatorDebugger::Accept(void)
 	if (mcNetwork.Accept(&mcListen, 0))
 	{
 		mbChannelOpen = true;
+		mcServer.Attach(&mcNetwork);
 	}
 }

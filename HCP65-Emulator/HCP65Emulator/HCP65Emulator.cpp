@@ -172,7 +172,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
 	mcHCP65.Reset();
 
-	//Debugged, it holds stopped until the debugger connects and continues it.
+	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.
 	if (mbValid)
 	{
 		mbValid = mcDebugger.ParseArguments(argc, argv);

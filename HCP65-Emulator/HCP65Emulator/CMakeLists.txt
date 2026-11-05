@@ -1,5 +1,5 @@
 # Linux build of the HCP65 Emulator: the HCP65 (HCP65Lib on MicroprocessorLib's W65C816, debuggable through EmulatorDebugLib
-# and ThreadLib's channels: --debug-shm <name> or --debug-tcp <port>) in an X11 window (WindowLib +
+# and ThreadLib's channels: --debug-shm <name> or --debug-tcp <port>, --debug-wait) in an X11 window (WindowLib +
 # X11Lib), its sound board played through the window's sound mixer on PulseAudio (PulseAudioLib, which loads it at run
 # time: only libpulse-simple.so.0 is needed).
 #
