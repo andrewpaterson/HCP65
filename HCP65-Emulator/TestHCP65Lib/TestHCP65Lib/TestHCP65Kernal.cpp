@@ -15,7 +15,7 @@
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
 #include "HCP65ExeBuilder.h"
-#include "Input/ModPlay/ModPlaySamples.h"
+#include "../../../ModPlay/ModPlaySamples.h"
 
 
 //Relative to the test's directory (TestHCP65Lib/TestHCP65Lib), as Visual Studio runs it.
@@ -29,7 +29,7 @@
 #define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
 #define TEST_HCP65_USER				".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "User"
 #define TEST_HCP65_BOOT_PROGRAM		"Input" _FS_ "Boot" _FS_ "HCP65Boot.vcxproj"
-#define TEST_HCP65_MODPLAY_PROGRAM	"Input" _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
+#define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
@@ -153,7 +153,7 @@ static bool TestKernalPutExe(const char* szName, const char* szProjectFile, cons
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output and puts boot.exe (Input/Boot),
-// modplay.exe (Input/ModPlay) and the song it plays on the copy.
+// modplay.exe (HCP65/ModPlay) and the song it plays on the copy.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalPutFiles(void)
