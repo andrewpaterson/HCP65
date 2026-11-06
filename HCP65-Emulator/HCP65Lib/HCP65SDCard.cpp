@@ -875,6 +875,7 @@ void CHCP65SDCard::StartRead(void)
 	{
 		uiClocks = HCP65_SD_ACCESS_CLOCKS + 1 + 2 * ((uint64)muiDataCount + muiCRCCount) + 1;
 		muiReadDone = mpcHCP65->NumCycles() + uiClocks;
+		mpcHCP65->SetMainMemoryBusy(muiReadDone);
 	}
 	else
 	{
@@ -944,7 +945,10 @@ void CHCP65SDCard::FinishRead(void)
 		{
 			uiByte = 0xFF;
 		}
-		puiMain[(muiAddress + i) & 0xFFFFFF] = uiByte;
+		if (!mpcHCP65->IsContention())
+		{
+			puiMain[(muiAddress + i) & 0xFFFFFF] = uiByte;
+		}
 	}
 	muiAddress = (muiAddress + muiDataCount) & 0xFFFFFF;
 	muiSectorsRead++;

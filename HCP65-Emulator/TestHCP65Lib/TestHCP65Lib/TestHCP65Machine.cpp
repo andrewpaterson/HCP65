@@ -291,6 +291,50 @@ void TestHCP65Timer(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A processor access to main memory while a device is using it (the SD
+// Card Board's DMA) latches contention: main memory is shut off (the store
+// is lost, reads float to $FF) and NMI fires after the instruction.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65Contention(void)
+{
+	CHCP65	cHCP65;
+	uint8*	puiRAM;
+
+	static const uint8 auiKernal[] = {
+		0x18, 0xFB,					//8000 clc  xce
+		0xA9, 0x55,					//8002 lda #$55
+		0x8F, 0x00, 0x00, 0x20,		//8004 sta $200000
+		0xAF, 0x00, 0x00, 0x20,		//8008 lda $200000
+		0x8D, 0x00, 0x83,			//800C sta $8300
+		0x80, 0xFE };				//800F bra $800F
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65Program(&cHCP65, auiKernal, sizeof(auiKernal));
+	puiRAM = cHCP65.GetMPURAM();
+	puiRAM[0x8100] = 0xDB;
+	puiRAM[0xFFEA] = 0x00;
+	puiRAM[0xFFEB] = 0x81;
+	cHCP65.Reset();
+	AssertFalse(cHCP65.IsContention());
+
+	cHCP65.SetMainMemoryBusy(1000);
+	cHCP65.Run(2000);
+	AssertTrue(cHCP65.IsContention());
+	AssertTrue(cHCP65.IsStopped());
+	AssertInt(0x8101, cHCP65.GetMPU()->GetProgramAddress() & 0xFFFF);
+	AssertInt(0, cHCP65.GetMainMemory()[0x200000]);
+	AssertInt(0xFF, cHCP65.Read(0x200000));
+
+	//Only a reset clears it.
+	cHCP65.Reset();
+	AssertFalse(cHCP65.IsContention());
+	cHCP65.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -301,6 +345,7 @@ void TestHCP65Machine(void)
 	TestHCP65AudioBoard();
 	TestHCP65AudioFromProgram();
 	TestHCP65Timer();
+	TestHCP65Contention();
 
 	TestStatistics();
 }

@@ -28,6 +28,8 @@ void CHCP65::Init(uint64 uiClockRate)
 	mcUserBreakpoints.Init();
 	memset(mapcProcessBreakpoints, 0, sizeof(mapcProcessBreakpoints));
 	mbStopRun = false;
+	mbContention = false;
+	muiMainBusyUntil = 0;
 
 	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
@@ -166,6 +168,8 @@ void CHCP65::Reset(void)
 	mbNativeLatch = false;
 	muiInterruptDepth = 0;
 	muiProcessID = 0;
+	mbContention = false;
+	muiMainBusyUntil = 0;
 	muiInstructionsCleared = muiInstructions;
 	mcRegisters.Reset();
 	SetDeviceEnables(0);
@@ -407,7 +411,49 @@ void CHCP65::UpdateInterrupts(void)
 		}
 	}
 	mcMPU.SetIRQ(bIrq);
-	mcMPU.SetNMI(mcRegisters.IsNMILow());
+	mcMPU.SetNMI(mcRegisters.IsNMILow() || mbContention);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A device (the SD Card Board's DMA) uses main memory until uiUntil.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::SetMainMemoryBusy(uint64 uiUntil)
+{
+	if (uiUntil > muiMainBusyUntil)
+	{
+		muiMainBusyUntil = uiUntil;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65::IsContention(void)
+{
+	return mbContention;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether a processor access to main memory reaches it: not while a device
+// is using it (that latches Contention) or once Contention is latched.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65::MainMemoryAccess(void)
+{
+	if (!mbContention && (muiMainBusyUntil != 0) && (mcMPU.NumCycles() < muiMainBusyUntil))
+	{
+		mbContention = true;
+		UpdateInterrupts();
+		EndChunk();
+	}
+	return !mbContention;
 }
 
 
@@ -563,12 +609,12 @@ uint8 CHCP65::Read(uint32 uiAddress)
 	uiAddress &= 0xFFFFFF;
 	if (!mbKernel)
 	{
-		return mpuiMain[UserAddress(uiAddress)];
+		return MainMemoryAccess() ? mpuiMain[UserAddress(uiAddress)] : 0xFF;
 	}
 
 	if (uiAddress >= 0x200000)
 	{
-		return mpuiMain[uiAddress];
+		return MainMemoryAccess() ? mpuiMain[uiAddress] : 0xFF;
 	}
 
 	if (uiAddress < 0x100000)
@@ -614,13 +660,19 @@ void CHCP65::Write(uint32 uiAddress, uint8 uiValue)
 	uiAddress &= 0xFFFFFF;
 	if (!mbKernel)
 	{
-		mpuiMain[UserAddress(uiAddress)] = uiValue;
+		if (MainMemoryAccess())
+		{
+			mpuiMain[UserAddress(uiAddress)] = uiValue;
+		}
 		return;
 	}
 
 	if (uiAddress >= 0x200000)
 	{
-		mpuiMain[uiAddress] = uiValue;
+		if (MainMemoryAccess())
+		{
+			mpuiMain[uiAddress] = uiValue;
+		}
 		return;
 	}
 

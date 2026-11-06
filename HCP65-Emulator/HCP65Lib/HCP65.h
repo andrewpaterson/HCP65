@@ -36,6 +36,11 @@
 //(GetProcessBreakpoints): the MPU stops at those only while that process is running in user mode.
 //
 //StopRun (from a device, during an instruction) makes Run return after the instruction.
+//
+//Main memory contention: there is no arbiter on the main memory bus.  A device using it (the SD Card Board's DMA)
+//says until when (SetMainMemoryBusy); a processor access to main memory before then latches Contention, as the
+//mainboard's Main Memory Abort and Small Enable boards do: main memory is shut off (reads float to $FF, writes are
+//lost) and NMI is held low until reset.
 class CHCP65
 {
 protected:
@@ -49,6 +54,8 @@ protected:
 	CBreakpoints		mcUserBreakpoints;
 	CBreakpoints*		mapcProcessBreakpoints[HCP65_NUM_PROCESSES];	//User mode's for a process, NULL until it has any.
 	bool				mbStopRun;
+	bool				mbContention;
+	uint64				muiMainBusyUntil;	//The CPU cycle a device's use of main memory ends.
 
 	uint64				muiClockRate;
 	bool				mbNativeLatch;
@@ -103,6 +110,9 @@ public:
 	void				ClearInstructionCount(void);
 	void				UpdateInterrupts(void);
 
+	void				SetMainMemoryBusy(uint64 uiUntil);
+	bool				IsContention(void);
+
 	uint8				Read(uint32 uiAddress);
 	void				Write(uint32 uiAddress, uint8 uiValue);
 	uint8*				MemoryAt(uint32 uiAddress);
@@ -111,6 +121,7 @@ protected:
 	void				UpdateMode(void);
 	void				UseModeBreakpoints(void);
 	void				EndChunk(void);
+	bool				MainMemoryAccess(void);
 	uint32				UserAddress(uint32 uiAddress);
 	CHCP65Device*		DecodeDevice(uint32 uiAddress, uint32* puiOffset);
 	void				CatchUpDevices(uint64 uiCycle);
