@@ -12,9 +12,15 @@
     <ClCompile Include="DeviceROM.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="DeviceROMSchematic.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeviceROM.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceROMSchematic.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

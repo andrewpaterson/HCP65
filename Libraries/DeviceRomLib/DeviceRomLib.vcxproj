@@ -184,9 +184,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DeviceROM.cpp" />
+    <ClCompile Include="DeviceROMSchematic.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DeviceROM.h" />
+    <ClInclude Include="DeviceROMSchematic.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -45,6 +45,7 @@ set(MICROPROCESSORLIB_DIR "${COMMON_DIR}/MicroprocessorLib")
 set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
 set(EMULATORDEBUGLIB_DIR "${COMMON_DIR}/EmulatorDebugLib")
 set(ASSEMBLER65LIB_DIR "${HCP65_LIBRARIES_DIR}/Assembler65Lib")
+set(KICADLIB_DIR "${COMMON_DIR}/KicadLib")
 set(DEVICEROMLIB_DIR "${HCP65_LIBRARIES_DIR}/DeviceRomLib")
 set(HCP65LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../HCP65Lib")
 set(TESTHCP65LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/TestHCP65Lib")
@@ -109,6 +110,8 @@ vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
 vcxproj_sources(EMULATORDEBUGLIB_SOURCES "${EMULATORDEBUGLIB_DIR}/EmulatorDebugLib.vcxproj")
 
 vcxproj_sources(ASSEMBLER65LIB_SOURCES "${ASSEMBLER65LIB_DIR}/Assembler65Lib.vcxproj")
+
+vcxproj_sources(KICADLIB_SOURCES "${KICADLIB_DIR}/KicadLib.vcxproj")
 
 vcxproj_sources(DEVICEROMLIB_SOURCES "${DEVICEROMLIB_DIR}/DeviceRomLib.vcxproj")
 
@@ -219,8 +222,11 @@ target_link_libraries(ThreadLib PUBLIC BaseLib)
 add_library(EmulatorDebugLib STATIC ${EMULATORDEBUGLIB_SOURCES})
 target_link_libraries(EmulatorDebugLib PUBLIC ThreadLib MicroprocessorLib StandardLib BaseLib)
 
+add_library(KicadLib STATIC ${KICADLIB_SOURCES})
+target_link_libraries(KicadLib PUBLIC BaseLib)
+
 add_library(DeviceRomLib STATIC ${DEVICEROMLIB_SOURCES})
-target_link_libraries(DeviceRomLib PUBLIC BaseLib)
+target_link_libraries(DeviceRomLib PUBLIC KicadLib BaseLib)
 
 add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
 target_link_libraries(HCP65Lib PUBLIC DeviceRomLib EmulatorDebugLib Assembler65Lib MicroprocessorLib StandardLib BaseLib)

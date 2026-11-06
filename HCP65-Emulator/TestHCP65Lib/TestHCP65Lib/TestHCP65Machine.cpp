@@ -3,6 +3,7 @@
 #include "BaseLib/Chars.h"
 #include "BaseLib/DataMemory.h"
 #include "BaseLib/XMLFile.h"
+#include "DeviceRomLib/DeviceROMSchematic.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
@@ -11,6 +12,7 @@
 
 #define TEST_HCP65_CLOCK_RATE	10000000
 #define TEST_HCP65_BOARDS		".." _FS_ ".." _FS_ ".." _FS_ "DeviceROM" _FS_ "Boards"
+#define TEST_HCP65_KICAD		".." _FS_ ".." _FS_ ".." _FS_ "Kicad" _FS_ "Computer"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -519,6 +521,88 @@ void TestHCP65DeviceROMFromXML(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The ROM made from szSchematic's description, through the XML file the
+// device ROM tool writes, is pcDevice's ROM.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DeviceROMSchematicMatches(const char* szSchematic, CHCP65Device* pcDevice, CDeviceROMSchematic* pcSchematic)
+{
+	CDeviceROM		cROM;
+	CChars			szError;
+	uint32			i;
+	bool			bSame;
+
+	szError.Init();
+	AssertTrue(pcSchematic->Read(szSchematic, &szError));
+	AssertString("", szError.Text());
+	AssertTrue(pcSchematic->WriteXML("Output" _FS_ "Schematic.xml"));
+	AssertTrue(TestHCP65LoadDeviceROM("Output", "Schematic.xml", &cROM, &szError));
+	bSame = true;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		bSame &= cROM.Read(i) == pcDevice->Read(i);
+	}
+	AssertTrue(bSame);
+	szError.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The Sound Board's and SD Card Board's KiCad schematics describe exactly
+// the ROMs the emulator's boards have: the registers from their Device
+// Decode Stage Bs, named by their strobes' nets, the buses from what A16,
+// ~{Main Access} and ~{Memory A} and B reach, the name from the title block
+// and the maker and driver from their device ROM chips' properties.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65DeviceROMFromSchematic(void)
+{
+	CDeviceROMSchematic	cSchematic;
+	CHCP65Audio			cAudio;
+	CHCP65SDCard		cSDCard;
+	CChars				szError;
+
+	DataMemoryInit();
+
+	cAudio.Init();
+	cSchematic.Init();
+	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "Audio" _FS_ "Audio Board" _FS_ "Audio Board.kicad_sch", &cAudio, &cSchematic);
+	AssertString("Sound Board", cSchematic.GetName());
+	AssertInt(DEVICE_BUS_128KB, cSchematic.GetDeviceBus());
+	AssertInt(0, cSchematic.GetMainBus());
+	AssertSize(11, cSchematic.NumRegisters());
+	AssertString("Flags", cSchematic.GetRegister(0)->szName);
+	AssertString("Counter Address Low", cSchematic.GetRegister(3)->szName);
+	AssertInt(DEVICE_REGISTER_READ, cSchematic.GetRegister(3)->uiDirection);
+	AssertString("Start Address Low", cSchematic.GetRegister(4)->szName);
+	cSchematic.Kill();
+	cAudio.Kill();
+
+	cSDCard.Init();
+	cSchematic.Init();
+	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "SD Card" _FS_ "SD Card Board" _FS_ "SD Card Board.kicad_sch", &cSDCard, &cSchematic);
+	AssertString("SD Card Board", cSchematic.GetName());
+	AssertInt(DEVICE_BUS_32KB, cSchematic.GetDeviceBus());
+	AssertInt(DEVICE_MAIN_BUS_MASTER, cSchematic.GetMainBus());
+	AssertSize(15, cSchematic.NumRegisters());
+	cSchematic.Kill();
+	cSDCard.Kill();
+
+	//A memory board has no Device Decode Stage A to read the rest by.
+	szError.Init();
+	cSchematic.Init();
+	AssertFalse(cSchematic.Read(TEST_HCP65_KICAD _FS_ "Memory" _FS_ "Memory Board" _FS_ "Memory Board.kicad_sch", &szError));
+	AssertString("The board must have one Device_Decode_Stage_A", szError.Text());
+	cSchematic.Kill();
+	szError.Kill();
+
+	DataMemoryKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -527,6 +611,7 @@ void TestHCP65Machine(void)
 
 	TestHCP65DeviceROM();
 	TestHCP65DeviceROMFromXML();
+	TestHCP65DeviceROMFromSchematic();
 	TestHCP65BootAndUserMode();
 	TestHCP65AudioBoard();
 	TestHCP65AudioFromProgram();

@@ -100,6 +100,23 @@ if the board doesn't use the main bus.  `Driver` and `Revision` (0) can be left 
 `Read`, `Write` or `ReadWrite`.  `Count` lists that many registers one after another from `Offset`.  A
 register's `Name` is only for the reader.
 
+The tool can also work the description out from the board's KiCad schematic:
+`DeviceROM <board.kicad_sch> [<board.xml> [<image.bin>]]` writes the description (as `<board>.xml` in
+the current directory unless it is named) and makes the image from it.  From the schematic:
+
+- The registers come from each *Device Decode Stage B*.  What its ~E2 and E3 are wired to (A3, A4,
+  ~A3, ~A4 or a supply) gives the group of eight it decodes, from `$400 + 8 × group`.  Each of its
+  Y*n*R and Y*n*W outputs that is wired to something is a read or write register at *n*, named by the
+  net it drives (`Write Flags` is `Flags`).
+- The board needs a 128KB socket if A16 goes anywhere but *Device Decode Stage A* and the *Device
+  Buffer*.
+- It drives the main bus if `~Main Access` goes past the connector, and provides memory window A or B
+  if `~Memory A` or `~Memory B` does.
+- The name and revision are the title block's title and revision (`V0` is 0).  The manufacturer and
+  the driver file are properties of the device ROM chip (the chip on *Device Decode Stage A*'s
+  ~Device ROM): `ROM_Manufacturer` and `ROM_Driver`.  `ROM_Name` and `ROM_Revision` override the
+  title block.
+
 The HCP65's own boards have the manufacturer `HCP65`:
 
 | Device name | Socket | Main bus | Driver file |

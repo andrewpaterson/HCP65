@@ -32,6 +32,7 @@ get_filename_component(CODAPHELA_ROOT "${HCP65_ROOT}/.." ABSOLUTE)
 set(HCP65_LIBRARIES_DIR "${HCP65_ROOT}/Libraries")
 set(COMMON_DIR "${CODAPHELA_ROOT}/commonlibraries/Libraries")
 set(BASELIB_DIR "${COMMON_DIR}/BaseLib")
+set(KICADLIB_DIR "${COMMON_DIR}/KicadLib")
 set(DEVICEROMLIB_DIR "${HCP65_LIBRARIES_DIR}/DeviceRomLib")
 set(DEVICEROM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/DeviceROM")
 
@@ -79,6 +80,8 @@ endfunction()
 
 
 vcxproj_sources(BASELIB_SOURCES "${BASELIB_DIR}/BaseLib.vcxproj")
+
+vcxproj_sources(KICADLIB_SOURCES "${KICADLIB_DIR}/KicadLib.vcxproj")
 
 vcxproj_sources(DEVICEROMLIB_SOURCES "${DEVICEROMLIB_DIR}/DeviceRomLib.vcxproj")
 
@@ -132,8 +135,11 @@ add_library(BaseLib STATIC ${BASELIB_SOURCES})
 target_link_libraries(BaseLib PUBLIC baselib_options)
 target_link_libraries(BaseLib PUBLIC Threads::Threads)
 
+add_library(KicadLib STATIC ${KICADLIB_SOURCES})
+target_link_libraries(KicadLib PUBLIC BaseLib)
+
 add_library(DeviceRomLib STATIC ${DEVICEROMLIB_SOURCES})
-target_link_libraries(DeviceRomLib PUBLIC BaseLib)
+target_link_libraries(DeviceRomLib PUBLIC KicadLib BaseLib)
 
 add_executable(DeviceROM ${DEVICEROM_SOURCES})
 target_link_libraries(DeviceROM PRIVATE DeviceRomLib BaseLib)
