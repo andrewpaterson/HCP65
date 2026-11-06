@@ -80,6 +80,7 @@ static void Asm65816EndCall(CArrayTemplate<SAsm65816ProfileCaller>* pasCallers, 
 		return;
 	}
 	piFirst = paiFirstCallers->Get(psCall->uiFunction);
+	psCaller = NULL;  //Always set below; the compiler can't see that a loop that ends with iCaller >= 0 set it.
 	for (iCaller = *piFirst; iCaller >= 0; iCaller = psCaller->iNext)
 	{
 		psCaller = pasCallers->Get((size)iCaller);
