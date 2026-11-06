@@ -59,8 +59,8 @@ back.
 
 | Routines | How they work |
 |---|---|
-| `R816_UDiv16`, `R816_URem16` | Unrolled shift and subtract; 8 steps when the quotient fits in a byte.  Quick exits for a divisor of 0, a divisor of `$8000` or more, and a dividend smaller than the divisor. |
-| `R816_UDiv32`, `R816_URem32` | Jump to the 16 bit divide when both operands fit in 16 bits.  Otherwise 8, 16 or 32 unrolled steps, or a 16 step loop when the divisor is wider than 16 bits. |
+| `R816_UDiv16`, `R816_URem16` | Unrolled shift and subtract; 8 steps when the quotient fits in a byte, and 8 bit wide steps (a byte at a time) for a divisor under 128.  Quick exits for a divisor of 0, a divisor of `$8000` or more, and a dividend smaller than the divisor. |
+| `R816_UDiv32`, `R816_URem32` | Jump to the 16 bit divide when both operands fit in 16 bits.  Otherwise unrolled steps chosen by the divisor: 8 bits wide for one under 128, without the overflow guard for one under `$8000`, with it above; for one of 65536 or more, 16 unrolled steps (8 when the quotient fits in a byte), or a guarded loop for one of 2^31 or more. |
 | `R816_SDiv16`, `R816_SRem16`, `R816_SDiv32`, `R816_SRem32` | Make the operands positive, call the unsigned divide on the same D, then fix the signs (the remainder takes the dividend's sign, as in C). |
 | `R816_UDiv64`, `R816_URem64`, `R816_SDiv64`, `R816_SRem64` | One shared body.  When both values fit in 32 bits it uses the 32 bit divide; otherwise it skips zero top words and divides a bit at a time. |
 | `R816_Mul64` | The low 64 bits of a product, from one `R816_UMulWide32` and up to two `R816_Mul32` (skipped when a high half is 0). |
@@ -74,6 +74,9 @@ back.
 | `R816_Mul16` | Up to three lookups in the product table (only the low bytes of the cross products are needed). |
 | `R816_Mul32` | Up to ten byte products, skipping zero bytes and zero high halves; a fast path when b is under 256. |
 | `R816_UMulWide32` | The full 64 bit product of two 32 bit values, from 16 byte products read through row pointers. |
+
+With the tables, a 16 bit multiply inside a loop is `R816_Mul16`'s code in place, which saves the call's 14 cycles;
+outside loops the shorter call is kept.
 
 ## IR816Runtime-MathSafe.asm
 
@@ -97,9 +100,13 @@ The divides are the same in both:
 
 | Divide | Cycles |
 |---|---|
-| 16 / 16 bits | about 110 (counting dividends below the divisor, which return early) |
-| 16 / 8 bits | about 274 |
-| 32 / 16 bits | about 470 |
+| 16 / 16 bits | about 113 (counting dividends below the divisor, which return early) |
+| 16 bits / a divisor under 128 | about 275 |
+| 16 bits / a divisor of 128 to 255 | about 254 |
+| 32 bits / a divisor under 128 | about 515 |
+| 32 bits / a divisor under `$8000` | about 487 |
+| 32 bits / a divisor of `$8000` to `$FFFF` | about 428 |
+| 32 / 32 bits | about 694 |
 | `R816_SDiv64` | about 4230 on average; about 830 when both values fit in 32 bits |
 
 The divides don't use a reciprocal table.  With only 8 × 8 products, one product costs about the
