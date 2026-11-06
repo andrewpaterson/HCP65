@@ -21,9 +21,9 @@
 ;
 ; IR816Runtime-Common.asm: the W65C816 back end's runtime routines that are the same with the math tables
 ; (IR816Runtime-MathTables.asm) or without them (IR816Runtime-MathSafe.asm): the divides, the 64 bit multiply, the 32
-; and 64 bit shifts and the BCD adds.  CCPP65Builder links this and one of the math files as libraries (each routine in
-; its own section, so only the ones a program uses are kept).  The compiler calls them (IR816Runtime.cpp says how each
-; takes its operands).
+; and 64 bit shifts, the BCD adds and the leading and trailing zero counts.  CCPP65Builder links this and one of the
+; math files as libraries (each routine in its own section, so only the ones a program uses are kept).  The compiler
+; calls them (IR816Runtime.cpp says how each takes its operands).
 ;
 
 
@@ -2804,3 +2804,185 @@ R816_Div32_Next:
 		dex
 		bne R816_Div32_Bit
 		rts
+
+
+; R816_Clz16, R816_Clz32, R816_Ctz16 and R816_Ctz32: __builtin_clz and __builtin_ctz (of unsigned int and unsigned long,
+; 16 and 32 bits on the W65C816), the compiler's convention (the value pushed: at S + 4 after the jsl, low word first),
+; the count returned in A (the width for 0).  The word and then the byte the count starts in are found by tests, and the
+; byte's leading or trailing zeros read from a 256 byte table (R816_Clz8, R816_Ctz8; 8 for 0) with a long,X load.
+		.section rodata.R816_Clz8
+		.global R816_Clz8
+R816_Clz8:
+		.byte 8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4
+		.byte 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+		.byte 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+		.byte 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2
+		.byte 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		.byte 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		.byte 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		.byte 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+		.section rodata.R816_Ctz8
+		.global R816_Ctz8
+R816_Ctz8:
+		.byte 8, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+		.byte 4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0
+
+		.section text.R816_Clz16
+		.global R816_Clz16
+		.global R816_Clz32
+		.width (A, X), 16
+R816_Clz16:
+		lda [S + 4]
+		beq R816_Clz16_Zero
+		cmp 0x100
+		bcc R816_Clz16_Low
+		xba
+		and 0xFF
+		tax
+		lda [R816_Clz8 + X]:24
+		and 0xFF
+		rtl
+R816_Clz16_Low:
+		tax
+		lda [R816_Clz8 + X]:24
+		and 0xFF
+		clc
+		adc 8
+		rtl
+R816_Clz16_Zero:
+		lda 16
+		rtl
+R816_Clz32:
+		lda [S + 6]
+		beq R816_Clz32_LowWord
+		cmp 0x100
+		bcc R816_Clz32_HighLow
+		xba
+		and 0xFF
+		tax
+		lda [R816_Clz8 + X]:24
+		and 0xFF
+		rtl
+R816_Clz32_HighLow:
+		tax
+		lda [R816_Clz8 + X]:24
+		and 0xFF
+		clc
+		adc 8
+		rtl
+R816_Clz32_LowWord:
+		lda [S + 4]
+		beq R816_Clz32_Zero
+		cmp 0x100
+		bcc R816_Clz32_LowLow
+		xba
+		and 0xFF
+		tax
+		lda [R816_Clz8 + X]:24
+		and 0xFF
+		clc
+		adc 16
+		rtl
+R816_Clz32_LowLow:
+		tax
+		lda [R816_Clz8 + X]:24
+		and 0xFF
+		clc
+		adc 24
+		rtl
+R816_Clz32_Zero:
+		lda 32
+		rtl
+
+		.section text.R816_Ctz16
+		.global R816_Ctz16
+		.global R816_Ctz32
+		.width (A, X), 16
+R816_Ctz16:
+		lda [S + 4]
+		beq R816_Ctz16_Zero
+		and 0xFF
+		beq R816_Ctz16_High
+		tax
+		lda [R816_Ctz8 + X]:24
+		and 0xFF
+		rtl
+R816_Ctz16_High:
+		lda [S + 4]
+		xba
+		and 0xFF
+		tax
+		lda [R816_Ctz8 + X]:24
+		and 0xFF
+		clc
+		adc 8
+		rtl
+R816_Ctz16_Zero:
+		lda 16
+		rtl
+R816_Ctz32:
+		lda [S + 4]
+		beq R816_Ctz32_HighWord
+		and 0xFF
+		beq R816_Ctz32_LowHigh
+		tax
+		lda [R816_Ctz8 + X]:24
+		and 0xFF
+		rtl
+R816_Ctz32_LowHigh:
+		lda [S + 4]
+		xba
+		and 0xFF
+		tax
+		lda [R816_Ctz8 + X]:24
+		and 0xFF
+		clc
+		adc 8
+		rtl
+R816_Ctz32_HighWord:
+		lda [S + 6]
+		beq R816_Ctz32_Zero
+		and 0xFF
+		beq R816_Ctz32_HighHigh
+		tax
+		lda [R816_Ctz8 + X]:24
+		and 0xFF
+		clc
+		adc 16
+		rtl
+R816_Ctz32_HighHigh:
+		lda [S + 6]
+		xba
+		and 0xFF
+		tax
+		lda [R816_Ctz8 + X]:24
+		and 0xFF
+		clc
+		adc 24
+		rtl
+R816_Ctz32_Zero:
+		lda 32
+		rtl
