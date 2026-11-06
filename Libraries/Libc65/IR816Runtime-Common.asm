@@ -20,114 +20,44 @@
 ; ** ------------------------------------------------------------------------ 
 ;
 ; IR816Runtime-Common.asm: the W65C816 back end's runtime routines that are the same with the math tables
-; (IR816Runtime-MathTables.asm) or without them (IR816Runtime-MathSafe.asm): the divides (the 64 bit signed ones are
-; the compiler's), the 64 bit multiply, the 32 and 64 bit shifts and the BCD adds.  CCPP65Builder links this and one
-; of the math files as libraries (each routine in its own section, so only the ones a program uses are kept).  The
-; compiler calls them (IR816Runtime.cpp says how each takes its operands).
+; (IR816Runtime-MathTables.asm) or without them (IR816Runtime-MathSafe.asm): the divides, the 64 bit multiply, the 32
+; and 64 bit shifts and the BCD adds.  CCPP65Builder links this and one of the math files as libraries (each routine in
+; its own section, so only the ones a program uses are kept).  The compiler calls them (IR816Runtime.cpp says how each
+; takes its operands).
 ;
 
 
-; R816_UDiv64 and R816_URem64: the 64 bit divide, with the compiler's convention (D is pointed at the stack): D + 3
-; to D + 10 is the remainder, then the caller's return address, the hidden result pointer at D + 14, the dividend
-; (shifted into the quotient) at D + 18 and the divisor at D + 26.  Zero words at the top of the dividend are skipped 16
-; steps at a time (the remainder stays 0 through them); the result is written through the pointer.
-		.section text.R816_UDiv64
+; R816_UDiv64, R816_URem64, R816_SDiv64 and R816_SRem64: the 64 bit divides, one body, with the compiler's convention
+; for a 64 bit result (D is pointed at the stack): each entry pushes its flags (bit 0: the remainder is the result, bit
+; 1: signed), then D + 3 to D + 10 is the remainder, D + 11 the flags, then the caller's return address, the hidden
+; result pointer at D + 16, the dividend (shifted into the quotient) at D + 20 and the divisor at D + 28.  Signed, the
+; operands are made their magnitudes in place (the caller's pushed copies), the flags' bit 15 is set when the quotient
+; is negative and bit 14 when the remainder is (the dividend's sign).  When both magnitudes fit in 32 bits (file
+; positions and sizes nearly always do) R816_UDiv32 works it out on a scratch frame 32 bytes below; otherwise zero words
+; at the top of the dividend are skipped 16 steps at a time (the remainder stays 0 through them) and the rest is a bit
+; at a time.  The result is written through the pointer, and the remainder is left at the caller's D + 5 to D + 12 (its
+; scratch bytes), where a urem or srem of the same operands written straight after the divide takes it
+; (CIR816Backend::RemainderLeft).
+		.section text.R816_Div64
 		.global R816_UDiv64
-R816_UDiv64:
-		.width (A, X), 16
-		pea 0
-		pea 0
-		pea 0
-		pea 0
-		phd
-		tsc
-		tcd
-		ldx 64
-R816_UDiv64_Skip:
-		lda [D + 24]
-		bne R816_UDiv64_Bit
-		cpx 16
-		beq R816_UDiv64_Bit
-		lda [D + 22]
-		sta [D + 24]
-		lda [D + 20]
-		sta [D + 22]
-		lda [D + 18]
-		sta [D + 20]
-		stz [D + 18]
-		txa
-		sec
-		sbc 16
-		tax
-		bra R816_UDiv64_Skip
-R816_UDiv64_Bit:
-		asl [D + 18]
-		rol [D + 20]
-		rol [D + 22]
-		rol [D + 24]
-		rol [D + 3]
-		rol [D + 5]
-		rol [D + 7]
-		rol [D + 9]
-		bcs R816_UDiv64_Subtract
-		lda [D + 9]
-		cmp [D + 32]
-		bcc R816_UDiv64_Next
-		bne R816_UDiv64_Subtract
-		lda [D + 7]
-		cmp [D + 30]
-		bcc R816_UDiv64_Next
-		bne R816_UDiv64_Subtract
-		lda [D + 5]
-		cmp [D + 28]
-		bcc R816_UDiv64_Next
-		bne R816_UDiv64_Subtract
-		lda [D + 3]
-		cmp [D + 26]
-		bcc R816_UDiv64_Next
-R816_UDiv64_Subtract:
-		sec
-		lda [D + 3]
-		sbc [D + 26]
-		sta [D + 3]
-		lda [D + 5]
-		sbc [D + 28]
-		sta [D + 5]
-		lda [D + 7]
-		sbc [D + 30]
-		sta [D + 7]
-		lda [D + 9]
-		sbc [D + 32]
-		sta [D + 9]
-		inc [D + 18]
-R816_UDiv64_Next:
-		dex
-		bne R816_UDiv64_Bit
-		ldy 0
-		lda [D + 18]
-		sta [[D + 14]:24 + Y]
-		ldy 2
-		lda [D + 18 + 2]
-		sta [[D + 14]:24 + Y]
-		ldy 4
-		lda [D + 18 + 4]
-		sta [[D + 14]:24 + Y]
-		ldy 6
-		lda [D + 18 + 6]
-		sta [[D + 14]:24 + Y]
-		pld
-		pla
-		pla
-		pla
-		pla
-		rtl
-
-
-;
-		.section text.R816_URem64
 		.global R816_URem64
-R816_URem64:
+		.global R816_SDiv64
+		.global R816_SRem64
 		.width (A, X), 16
+		.relax
+R816_UDiv64:
+		pea 0
+		bra R816_Div64_Body
+R816_URem64:
+		pea 1
+		bra R816_Div64_Body
+R816_SDiv64:
+		pea 2
+		bra R816_Div64_Body
+R816_SRem64:
+		pea 3
+		bra R816_Div64_Body
+R816_Div64_Body:
 		pea 0
 		pea 0
 		pea 0
@@ -135,83 +65,216 @@ R816_URem64:
 		phd
 		tsc
 		tcd
-		ldx 64
-R816_URem64_Skip:
+		lda [D + 11]
+		and 2
+		beq R816_Div64_Magnitudes
+		lda [D + 26]
+		bpl R816_Div64_APositive
+		lda 0
+		sec
+		sbc [D + 20]
+		sta [D + 20]
+		lda 0
+		sbc [D + 22]
+		sta [D + 22]
+		lda 0
+		sbc [D + 24]
+		sta [D + 24]
+		lda 0
+		sbc [D + 26]
+		sta [D + 26]
+		lda [D + 11]
+		eor 0xC000
+		sta [D + 11]
+R816_Div64_APositive:
+		lda [D + 34]
+		bpl R816_Div64_Magnitudes
+		lda 0
+		sec
+		sbc [D + 28]
+		sta [D + 28]
+		lda 0
+		sbc [D + 30]
+		sta [D + 30]
+		lda 0
+		sbc [D + 32]
+		sta [D + 32]
+		lda 0
+		sbc [D + 34]
+		sta [D + 34]
+		lda [D + 11]
+		eor 0x8000
+		sta [D + 11]
+R816_Div64_Magnitudes:
 		lda [D + 24]
-		bne R816_URem64_Bit
+		ora [D + 26]
+		ora [D + 32]
+		ora [D + 34]
+		bne R816_Div64_Long
+		tsc
+		sec
+		sbc 32
+		tcs
+		tcd
+		lda [D + 52]
+		sta [D + 15]
+		lda [D + 54]
+		sta [D + 17]
+		lda [D + 60]
+		sta [D + 19]
+		lda [D + 62]
+		sta [D + 21]
+		jsl R816_UDiv32
+		sta [D + 52]
+		txa
+		sta [D + 54]
+		lda [D + 5]
+		sta [D + 35]
+		lda [D + 7]
+		sta [D + 37]
+		tsc
+		clc
+		adc 32
+		tcs
+		tcd
+		stz [D + 7]
+		stz [D + 9]
+		bra R816_Div64_Signs
+R816_Div64_Long:
+		ldx 64
+R816_Div64_Skip:
+		lda [D + 26]
+		bne R816_Div64_Bit
 		cpx 16
-		beq R816_URem64_Bit
+		beq R816_Div64_Bit
+		lda [D + 24]
+		sta [D + 26]
 		lda [D + 22]
 		sta [D + 24]
 		lda [D + 20]
 		sta [D + 22]
-		lda [D + 18]
-		sta [D + 20]
-		stz [D + 18]
+		stz [D + 20]
 		txa
 		sec
 		sbc 16
 		tax
-		bra R816_URem64_Skip
-R816_URem64_Bit:
-		asl [D + 18]
-		rol [D + 20]
+		bra R816_Div64_Skip
+R816_Div64_Bit:
+		asl [D + 20]
 		rol [D + 22]
 		rol [D + 24]
+		rol [D + 26]
 		rol [D + 3]
 		rol [D + 5]
 		rol [D + 7]
 		rol [D + 9]
-		bcs R816_URem64_Subtract
+		bcs R816_Div64_Subtract
 		lda [D + 9]
-		cmp [D + 32]
-		bcc R816_URem64_Next
-		bne R816_URem64_Subtract
+		cmp [D + 34]
+		bcc R816_Div64_Next
+		bne R816_Div64_Subtract
 		lda [D + 7]
-		cmp [D + 30]
-		bcc R816_URem64_Next
-		bne R816_URem64_Subtract
+		cmp [D + 32]
+		bcc R816_Div64_Next
+		bne R816_Div64_Subtract
 		lda [D + 5]
-		cmp [D + 28]
-		bcc R816_URem64_Next
-		bne R816_URem64_Subtract
+		cmp [D + 30]
+		bcc R816_Div64_Next
+		bne R816_Div64_Subtract
 		lda [D + 3]
-		cmp [D + 26]
-		bcc R816_URem64_Next
-R816_URem64_Subtract:
+		cmp [D + 28]
+		bcc R816_Div64_Next
+R816_Div64_Subtract:
 		sec
 		lda [D + 3]
-		sbc [D + 26]
+		sbc [D + 28]
 		sta [D + 3]
 		lda [D + 5]
-		sbc [D + 28]
+		sbc [D + 30]
 		sta [D + 5]
 		lda [D + 7]
-		sbc [D + 30]
+		sbc [D + 32]
 		sta [D + 7]
 		lda [D + 9]
-		sbc [D + 32]
+		sbc [D + 34]
 		sta [D + 9]
-		inc [D + 18]
-R816_URem64_Next:
+		inc [D + 20]
+R816_Div64_Next:
 		dex
-		bne R816_URem64_Bit
+		bne R816_Div64_Bit
+R816_Div64_Signs:
+		lda [D + 11]
+		bpl R816_Div64_QPositive
+		lda 0
+		sec
+		sbc [D + 20]
+		sta [D + 20]
+		lda 0
+		sbc [D + 22]
+		sta [D + 22]
+		lda 0
+		sbc [D + 24]
+		sta [D + 24]
+		lda 0
+		sbc [D + 26]
+		sta [D + 26]
+R816_Div64_QPositive:
+		lda [D + 11]
+		and 0x4000
+		beq R816_Div64_RPositive
+		lda 0
+		sec
+		sbc [D + 3]
+		sta [D + 3]
+		lda 0
+		sbc [D + 5]
+		sta [D + 5]
+		lda 0
+		sbc [D + 7]
+		sta [D + 7]
+		lda 0
+		sbc [D + 9]
+		sta [D + 9]
+R816_Div64_RPositive:
+		lda [D + 11]
+		lsr A
+		bcs R816_Div64_Remainder
+		ldy 0
+		lda [D + 20]
+		sta [[D + 16]:24 + Y]
+		ldy 2
+		lda [D + 22]
+		sta [[D + 16]:24 + Y]
+		ldy 4
+		lda [D + 24]
+		sta [[D + 16]:24 + Y]
+		ldy 6
+		lda [D + 26]
+		sta [[D + 16]:24 + Y]
+		bra R816_Div64_Written
+R816_Div64_Remainder:
 		ldy 0
 		lda [D + 3]
-		sta [[D + 14]:24 + Y]
+		sta [[D + 16]:24 + Y]
 		ldy 2
-		lda [D + 3 + 2]
-		sta [[D + 14]:24 + Y]
+		lda [D + 5]
+		sta [[D + 16]:24 + Y]
 		ldy 4
-		lda [D + 3 + 4]
-		sta [[D + 14]:24 + Y]
+		lda [D + 7]
+		sta [[D + 16]:24 + Y]
 		ldy 6
-		lda [D + 3 + 6]
-		sta [[D + 14]:24 + Y]
+		lda [D + 9]
+		sta [[D + 16]:24 + Y]
+R816_Div64_Written:
 		pld
 		pla
+		sta [D + 5]
 		pla
+		sta [D + 7]
 		pla
+		sta [D + 9]
+		pla
+		sta [D + 11]
 		pla
 		rtl
 
