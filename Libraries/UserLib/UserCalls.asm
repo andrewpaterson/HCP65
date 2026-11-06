@@ -121,6 +121,47 @@ _KernalFileLoad:
 		cop 5
 		rtl
 
+		.section text.KernalFileRead
+		.global _KernalFileRead.ax
+_KernalFileRead.ax:
+		.width (A, X), 16
+		pha
+		lda [S + 16]
+		pha
+		lda [S + 16]
+		pha
+		lda [S + 16]
+		pha
+		lda [S + 16]
+		pha
+		lda [S + 16]
+		pha
+		lda [S + 16]
+		pha
+		phx
+		lda [S + 15]
+		pha
+		jsl _KernalFileRead
+		ply
+		ply
+		ply
+		ply
+		ply
+		ply
+		ply
+		ply
+		ply
+		rtl
+
+		.global _KernalFileRead
+_KernalFileRead:
+		.width (A, X), 16
+		tsc
+		clc
+		adc 4
+		cop 11
+		rtl
+
 		.section text.KernalAudioOpen
 		.global _KernalAudioOpen
 _KernalAudioOpen:

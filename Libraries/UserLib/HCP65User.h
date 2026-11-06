@@ -42,6 +42,10 @@ extern "C" uint32	KernalFileSize(const char* szPath);
 //Reads up to uiMaxSize bytes of the file szPath to pvDest.  KERNAL_RESULT_SUCCESS if it read the whole file.
 extern "C" uint16	KernalFileLoad(const char* szPath, void* pvDest, uint32 uiMaxSize);
 
+//Reads the uiSize bytes of the file szPath from uiOffset to pvDest.  KERNAL_RESULT_SUCCESS, KERNAL_RESULT_NOT_FOUND,
+//or KERNAL_RESULT_BAD_FILE if the file doesn't have them all.
+extern "C" uint16	KernalFileRead(const char* szPath, uint32 uiOffset, void* pvDest, uint32 uiSize);
+
 //Finds the sound board and takes it out of reset, disabled.  KERNAL_RESULT_SUCCESS, or KERNAL_RESULT_NOT_FOUND.
 extern "C" uint16	KernalAudioOpen(void);
 

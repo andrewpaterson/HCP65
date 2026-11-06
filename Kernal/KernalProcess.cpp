@@ -682,6 +682,49 @@ static uint16 KernalCallFileLoad(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The file read call: the path, the offset in the file, the destination
+// and the number of bytes, which must all be in the file.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 KernalCallFileRead(void)
+{
+	char		szPath[KERNAL_MAX_PATH];
+	CFatFile	cFile;
+	uint32		uiOffset;
+	uint32		uiDest;
+	uint32		uiSize;
+	uint32		uiFileSize;
+	uint16		uiResult;
+
+	if (!KernalUserString(KernalArgumentLong(0), szPath, KERNAL_MAX_PATH))
+	{
+		return KERNAL_PROCESS_NOT_FOUND;
+	}
+	uiOffset = KernalArgumentLong(4);
+	uiDest = KernalArgumentLong(8);
+	uiSize = KernalArgumentLong(12);
+
+	cFile.Init(&gcKernalVolume);
+	if (cFile.Open(szPath, FAT_FILE_ACCESS_READ) != FAT_SUCCESS)
+	{
+		return KERNAL_PROCESS_NOT_FOUND;
+	}
+	uiFileSize = cFile.Size();
+	if ((uiOffset > uiFileSize) || (uiSize > uiFileSize - uiOffset) || (cFile.Seek(uiOffset, FAT_SEEK_START) != FAT_SUCCESS))
+	{
+		uiResult = KERNAL_PROCESS_BAD_FILE;
+	}
+	else
+	{
+		uiResult = KernalReadToUser(&cFile, uiDest, uiSize);
+	}
+	cFile.Close();
+	return uiResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The audio open call: finds the sound board and takes it out of reset.
 // It starts disabled.
 //
@@ -868,6 +911,10 @@ extern "C" void KernalCopCall(void)
 
 	case KERNAL_CALL_FILE_LOAD:
 		gsKernalCall.uiA = KernalCallFileLoad();
+		break;
+
+	case KERNAL_CALL_FILE_READ:
+		gsKernalCall.uiA = KernalCallFileRead();
 		break;
 
 	case KERNAL_CALL_AUDIO_OPEN:
