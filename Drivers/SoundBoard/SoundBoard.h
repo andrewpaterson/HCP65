@@ -25,7 +25,10 @@ protected:
 };
 
 
-extern "C" CKernalDriver*	KernalCreateDriver(void);
+#define SOUND_BOARD_MAX_BOARDS			4		//Sound boards it drives.
+
+
+extern "C" CKernalDriver*	KernalCreateDriver(uint16 uiIndex);
 
 
 #endif // __SOUND_BOARD_H__

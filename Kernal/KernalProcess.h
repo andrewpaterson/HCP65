@@ -59,7 +59,11 @@ extern "C" void		KernalEnterUser(void);		//Start.asm: RTI into the process; retu
 extern "C" void		KernalCopCall(void);		//Called by Start.asm's COP handler.
 
 uint16	KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode);
-uint8*	KernalUserPointer(uint32 uiAddress, uint32* puiInBank);	//The running process's memory, for drivers.
+//The running process's memory, for drivers: a process address's physical address and how much of its bank is left,
+//and copies to and from it (false if the process hasn't all of the banks).
+uint8*	KernalUserPointer(uint32 uiAddress, uint32* puiInBank);
+bool	KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 uiLength);
+bool	KernalCopyFromUser(uint8* puiDest, uint32 uiAddress, uint32 uiLength);
 
 
 #endif // __KERNAL_PROCESS_H__

@@ -5,7 +5,8 @@
 
 
 #define KERNAL_DRIVER_DIRECTORY			"\\OS\\Drivers\\"		//Where a board's device ROM's driver file is.
-#define KERNAL_DRIVER_ENTRY				"_KernalCreateDriver"	//extern "C" CKernalDriver* KernalCreateDriver(void).
+#define KERNAL_DRIVER_ENTRY				"_KernalCreateDriver"	//extern "C" CKernalDriver* KernalCreateDriver(uint16 uiIndex).
+#define KERNAL_MAX_MODULES				16						//Different driver files loaded.
 #define KERNAL_DRIVER_MEMORY_END		0x070000				//Drivers go in MPU RAM after the kernal, up to the remap table.
 
 //What loading a board's driver came to.
@@ -16,6 +17,7 @@
 #define KERNAL_LOAD_MISSING_EXPORT		4		//It uses a name the kernal doesn't export.
 #define KERNAL_LOAD_BAD_RELOCATION		5		//A field it can't be written in where it was put.
 #define KERNAL_LOAD_NO_DRIVER			6		//Its create function gave no driver, or the driver couldn't drive the board.
+#define KERNAL_LOAD_TOO_MANY			7		//KERNAL_MAX_MODULES driver files are loaded already.
 
 
 //A name a loaded driver may use and what it is (KernalExports.asm).

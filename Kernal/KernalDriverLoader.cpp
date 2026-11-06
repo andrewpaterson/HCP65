@@ -3,6 +3,7 @@
 #include "BaseLib/FatAbstractFile.h"
 #include "BaseLib/ChunkFile.h"
 #include "Assembler65Lib/Asm65Object.h"
+#include "KernalDebugPort.h"
 #include "KernalDriverLoader.h"
 
 
@@ -13,13 +14,24 @@
 
 
 typedef void			(*KernalInitRoutine)(void);
-typedef CKernalDriver*	(*KernalCreateDriverFunction)(void);
+typedef CKernalDriver*	(*KernalCreateDriverFunction)(uint16 uiIndex);
+
+
+//A driver file loaded: its create function and how many boards it drives.
+struct SKernalModule
+{
+	char						szFile[DEVICE_ROM_DRIVER_LENGTH];
+	KernalCreateDriverFunction	fCreate;
+	uint16						uiNumDrivers;
+};
 
 
 extern CFatVolume	gcKernalVolume;
 extern "C" uint8	_end;		//The linker's __end: the end of the kernal's bss.
 
 static uint32		guiKernalDriverMemory;		//The next free MPU RAM for a driver, 0 until the first.
+static SKernalModule	gasKernalModules[KERNAL_MAX_MODULES];
+static uint16		guiKernalNumModules;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -150,11 +162,12 @@ static uint16 KernalRelocateDriver(CAsm65Object* pcObject, uint8* puiBase)
 //////////////////////////////////////////////////////////////////////////
 //
 // The module read from pcFile (its section's bytes still in the file) is
-// put in MPU RAM, relocated, its globals constructed and its driver
-// started for the board in uiSlot.
+// put in MPU RAM, relocated (the debug port is told where, for the board
+// in uiSlot) and its globals constructed.  psModule gets its create
+// function.
 //
 //////////////////////////////////////////////////////////////////////////
-static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, uint16 uiSlot)
+static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, SKernalModule* psModule, uint16 uiSlot, const char* szPath)
 {
 	SAsm65Section*				psSection;
 	uint8*						puiBase;
@@ -164,8 +177,6 @@ static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, uint16
 	int32						iInit;
 	lsize						uiRead;
 	uint16						uiResult;
-	KernalCreateDriverFunction	fCreate;
-	CKernalDriver*				pcDriver;
 
 	if ((pcObject->NumSections() != 1) || (strcmp(pcObject->GetSection(0)->szName.Text(), KERNAL_MODULE_SECTION) != 0))
 	{
@@ -197,6 +208,10 @@ static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, uint16
 	{
 		return uiResult;
 	}
+	if (gpcKernalDebugPort)
+	{
+		gpcKernalDebugPort->TellDriver(uiSlot, szPath, (uint32)puiBase, psSection->uiSize);
+	}
 
 	//Its globals' constructors, in link order, as the start up runs the kernal's.
 	for (iInit = iInitStart; iInit < iInitEnd; iInit += 4)
@@ -204,35 +219,45 @@ static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, uint16
 		((KernalInitRoutine)(*(uint32*)&puiBase[iInit]))();
 	}
 
-	fCreate = (KernalCreateDriverFunction)&puiBase[iEntry];
-	pcDriver = fCreate();
-	if (!pcDriver || (KernalStartDriver(pcDriver, uiSlot) != KERNAL_DRIVER_SUCCESS))
-	{
-		return KERNAL_LOAD_NO_DRIVER;
-	}
+	psModule->fCreate = (KernalCreateDriverFunction)&puiBase[iEntry];
 	return KERNAL_LOAD_SUCCESS;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Loads the driver the device ROM of the board in uiSlot names, from
-// KERNAL_DRIVER_DIRECTORY, and starts it for the board.  Returns
-// KERNAL_LOAD_SUCCESS or why it couldn't.
+// The driver file szFile, loaded from KERNAL_DRIVER_DIRECTORY if it isn't
+// already.  *ppsModule is NULL unless it is KERNAL_LOAD_SUCCESS.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 KernalLoadDriver(uint16 uiSlot)
+static uint16 KernalLoadModule(const char* szFile, uint16 uiSlot, SKernalModule** ppsModule)
 {
 	char				szPath[KERNAL_DRIVER_PATH_LENGTH];
 	CFatFile			cFile;
 	CFatAbstractFile	cFatAbstractFile;
 	CAsm65Object		cObject;
 	CChunkFile			cChunkFile;
+	SKernalModule*		psModule;
 	bool				bLoaded;
 	uint16				uiResult;
+	uint16				i;
+
+	*ppsModule = NULL;
+	for (i = 0; i < guiKernalNumModules; i++)
+	{
+		if (strcmp(gasKernalModules[i].szFile, szFile) == 0)
+		{
+			*ppsModule = &gasKernalModules[i];
+			return KERNAL_LOAD_SUCCESS;
+		}
+	}
+	if (guiKernalNumModules == KERNAL_MAX_MODULES)
+	{
+		return KERNAL_LOAD_TOO_MANY;
+	}
 
 	strcpy(szPath, KERNAL_DRIVER_DIRECTORY);
-	strcat(szPath, gasKernalDevices[uiSlot].psROM->szDriverFile);
+	strcat(szPath, szFile);
 	cFile.Init(&gcKernalVolume);
 	if (cFile.Open(szPath, FAT_FILE_ACCESS_READ) != FAT_SUCCESS)
 	{
@@ -240,13 +265,14 @@ uint16 KernalLoadDriver(uint16 uiSlot)
 	}
 
 	//The module's symbols and relocations go in the heap; its bytes are read straight into MPU RAM once it has a place.
+	psModule = &gasKernalModules[guiKernalNumModules];
 	cFatAbstractFile.Init(&cFile);
 	cObject.Init("");
 	cObject.SetSkipSectionBytes(true);
 	cChunkFile.Init(&cFatAbstractFile);
 	bLoaded = cChunkFile.ReadOpen();
 	bLoaded = bLoaded && cObject.ReadChunks(&cChunkFile);
-	uiResult = bLoaded ? KernalPlaceDriver(&cObject, &cFile, uiSlot) : KERNAL_LOAD_BAD_FILE;
+	uiResult = bLoaded ? KernalPlaceDriver(&cObject, &cFile, psModule, uiSlot, szPath) : KERNAL_LOAD_BAD_FILE;
 	if (bLoaded)
 	{
 		cChunkFile.ReadClose();
@@ -254,5 +280,41 @@ uint16 KernalLoadDriver(uint16 uiSlot)
 	cChunkFile.Kill();
 	cObject.Kill();
 	cFile.Close();
+	if (uiResult == KERNAL_LOAD_SUCCESS)
+	{
+		strcpy(psModule->szFile, szFile);
+		psModule->uiNumDrivers = 0;
+		guiKernalNumModules++;
+		*ppsModule = psModule;
+	}
 	return uiResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Starts a driver for the board in uiSlot from the driver file its device
+// ROM names (loaded from KERNAL_DRIVER_DIRECTORY once, however many boards
+// use it: each gets the next driver it creates).  Returns
+// KERNAL_LOAD_SUCCESS or why it couldn't.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 KernalLoadDriver(uint16 uiSlot)
+{
+	SKernalModule*	psModule;
+	CKernalDriver*	pcDriver;
+	uint16			uiResult;
+
+	uiResult = KernalLoadModule(gasKernalDevices[uiSlot].psROM->szDriverFile, uiSlot, &psModule);
+	if (uiResult != KERNAL_LOAD_SUCCESS)
+	{
+		return uiResult;
+	}
+	pcDriver = psModule->fCreate(psModule->uiNumDrivers);
+	if (!pcDriver || (KernalStartDriver(pcDriver, uiSlot) != KERNAL_DRIVER_SUCCESS))
+	{
+		return KERNAL_LOAD_NO_DRIVER;
+	}
+	psModule->uiNumDrivers++;
+	return KERNAL_LOAD_SUCCESS;
 }

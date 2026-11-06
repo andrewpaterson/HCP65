@@ -88,7 +88,7 @@ static uint8* KernalUserAddress(uint32 uiAddress)
 // process hasn't all of the banks.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 uiLength)
+bool KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 uiLength)
 {
 	uint8*	puiDest;
 	uint32	uiInBank;
@@ -146,7 +146,7 @@ static uint16 KernalReadToUser(CFatFile* pcFile, uint32 uiAddress, uint32 uiLeng
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static bool KernalCopyFromUser(uint8* puiDest, uint32 uiAddress, uint32 uiLength)
+bool KernalCopyFromUser(uint8* puiDest, uint32 uiAddress, uint32 uiLength)
 {
 	uint8*	puiSource;
 	uint32	uiInBank;

@@ -255,11 +255,13 @@ uint16 CKernalSDCard::Init(volatile uint8* puiRegisters, uint8 uiSocket)
 //////////////////////////////////////////////////////////////////////////
 //
 // The board's bus switch connects this card's socket (the board is shared
-// by the cards in its four sockets).
+// by the cards in its four sockets), and KernalSDCard.asm's bit banging
+// goes to its board.
 //
 //////////////////////////////////////////////////////////////////////////
 void CKernalSDCard::Select(void)
 {
+	gpuiKernalSDGPIO = &mpuiRegisters[SD_GPIO];
 	mpuiRegisters[SD_FLAGS] = muiFlags;
 }
 

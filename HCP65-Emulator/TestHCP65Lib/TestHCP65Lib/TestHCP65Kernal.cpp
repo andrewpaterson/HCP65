@@ -48,6 +48,7 @@
 #define TEST_HCP65_BLANK_CARD_SIZE	0x100000
 #define TEST_HCP65_STRAY_SOCKET		3			//A device with no driver that interrupts.
 #define TEST_HCP65_AUDIO_SOCKET		16
+#define TEST_HCP65_AUDIO2_SOCKET	17			//A second sound board, which the same driver drives.
 #define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
 
 //The kernal's states (Kernal/Kernal.h, which is W65C816 code).
@@ -208,6 +209,59 @@ static bool TestKernalPutDriver(const char* szName, const char* szProjectFile)
 	}
 	cDriver.Kill();
 	return bBuilt;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A 24 bit address in the kernal's ROM image at uiAddress (a .long: the
+// address and a zero byte).
+//
+//////////////////////////////////////////////////////////////////////////
+static uint32 TestKernalROMLong(uint8* puiROM, uint32 uiAddress)
+{
+	return (uint32)puiROM[uiAddress] | ((uint32)puiROM[uiAddress + 1] << 8) | ((uint32)puiROM[uiAddress + 2] << 16);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The kernal's exports (Kernal/KernalExports.asm) as its ROM has them:
+// each name is the symbol at its address in the kernal's link, so a
+// driver that imports the name gets that symbol.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestKernalExports(CHCP65KernalBuilder* pcBuilder)
+{
+	uint8*	puiROM;
+	uint32	uiTable;
+	uint32	uiCount;
+	uint32	uiAddress;
+	uint32	uiSymbol;
+	char*	szName;
+	CChars	szWrong;
+	uint32	uiNumExports;
+	uint32	i;
+
+	AssertTrue(pcBuilder->GetSymbol("_gauiKernalExports", &uiTable));
+	AssertTrue(pcBuilder->GetSymbol("_guiKernalNumExports", &uiCount));
+	puiROM = pcBuilder->GetROM();
+	uiNumExports = (uint32)puiROM[uiCount] | ((uint32)puiROM[uiCount + 1] << 8);
+	AssertTrue(uiNumExports > 0);
+
+	szWrong.Init();
+	for (i = 0; i < uiNumExports; i++)
+	{
+		szName = (char*)&puiROM[TestKernalROMLong(puiROM, uiTable + i * 8)];
+		uiAddress = TestKernalROMLong(puiROM, uiTable + i * 8 + 4);
+		if (!pcBuilder->GetSymbol(szName, &uiSymbol) || (uiSymbol != uiAddress))
+		{
+			szWrong.Append(szName);
+			szWrong.Append(" ");
+		}
+	}
+	AssertString("", szWrong.Text());
+	szWrong.Kill();
 }
 
 
@@ -390,6 +444,9 @@ void TestHCP65KernalBoot(void)
 	CHCP65KernalBuilder	cBuilder;
 	CHCP65				cHCP65;
 	CHCP65Audio			cAudio;
+	CHCP65Audio			cAudio2;
+	SHCP65DebugDriver	sDriver;
+	uint32				uiKernalEnd;
 	CHCP65SDCard		cSDCard;
 	uint8*				puiBlankCard;
 	CTestStrayDevice	cStray;
@@ -452,6 +509,7 @@ void TestHCP65KernalBoot(void)
 	szMissing.Init();
 	cBuilder.GetBuilder()->GetMissingNames(&szMissing);
 	AssertString("", szMissing.Text());
+	TestKernalExports(&cBuilder);
 	szMissing.Kill();
 	AssertTrue(cBuilder.GetSymbol("_gsKernalStatus", &uiStatus));
 	AssertTrue(cBuilder.Write(TEST_HCP65_KERNAL_ROM));
@@ -484,6 +542,7 @@ void TestHCP65KernalBoot(void)
 	}
 	cHCP65.Init(getenv("TEST_HCP65_CLOCK") ? (uint64)atoll(getenv("TEST_HCP65_CLOCK")) : TEST_HCP65_CLOCK_RATE);
 	cAudio.Init();
+	cAudio2.Init();
 	cSDCard.Init();
 	cPort.Init();
 	//The kernal brings up each socket's card and mounts the first volume it finds: socket 0's card has none.
@@ -492,6 +551,7 @@ void TestHCP65KernalBoot(void)
 	free(puiBlankCard);
 	AssertTrue(cSDCard.InsertCard(TEST_HCP65_SD_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO_SOCKET, &cAudio));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO2_SOCKET, &cAudio2));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
 	cStray.Init();
@@ -560,13 +620,24 @@ void TestHCP65KernalBoot(void)
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
 
 	//The scan found the three boards by their device ROMs, and the stray device's blank ROM unrecognised.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiBadDevices);
 
-	//The sound board's driver was loaded from \OS\Drivers\SOUND.DRV (the SD Card Board's and the debug port's are in the
-	//ROM), and modplay.exe played through it.
+	//The sound boards' driver was loaded from \OS\Drivers\SOUND.DRV once and drives both (the SD Card Board's and the
+	//debug port's are in the ROM); modplay.exe played through the first, with the device calls.  The debug port was told
+	//where the driver went, after the kernal, and (watched) stopped the run before the driver ran.
 	AssertInt(0, sStatus.uiDriverError);
-	AssertInt(1 << TEST_HCP65_AUDIO_SOCKET, sStatus.uiLoadedDrivers);
+	AssertInt((1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET), sStatus.uiLoadedDrivers);
+	AssertSize(1, cPort.NumDrivers());
+	AssertTrue(cBuilder.GetSymbol("__end", &uiKernalEnd));
+	AssertString(TEST_HCP65_SOUND_DRIVER_PATH, cPort.GetDriver(0)->szName);
+	AssertInt(TEST_HCP65_AUDIO_SOCKET, cPort.GetDriver(0)->uiSlot);
+	AssertTrue(cPort.GetDriver(0)->uiAddress >= uiKernalEnd);
+	AssertTrue(cPort.GetDriver(0)->uiSize > 0);
+	AssertTrue(cPort.GetDriver(0)->uiAddress + cPort.GetDriver(0)->uiSize <= 0x070000);
+	AssertTrue(cPort.TakeDriverEvent(&sDriver));
+	AssertInt(cPort.GetDriver(0)->uiAddress, sDriver.uiAddress);
+	AssertFalse(cPort.TakeDriverEvent(&sDriver));
 	AssertTrue(cStray.IsQuiet());
 	AssertInt(uiSeconds, (uint32)sStatus.uiBootArgument);
 
@@ -599,10 +670,12 @@ void TestHCP65KernalBoot(void)
 	AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
 	AssertSize(0, cPort.NumProcesses());
 
-	//The ROM's drivers took the SD Card Board, the sound board and the debug port out of reset at boot (modplay.exe left
-	//the sound board disabled), and the test the stray device (the kernal's reset of it put its enable back).
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
+	//The drivers took the SD Card Board, the debug port and both sound boards out of reset at boot (modplay.exe left the
+	//first disabled; nothing used the second), and the test the stray device (the kernal's reset of it put its enable
+	//back).
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
 	AssertFalse(cAudio.IsEnabled());
+	AssertFalse(cAudio2.IsEnabled());
 
 	//boot.exe loaded MULT and INVERT's upper half (round(2^32 / $8000) first) from the SD card to main memory at
 	//$400000, and the kernal was copied from ROM banks 0-3 to MPU RAM.  The processes' pages of the remap table were
@@ -658,6 +731,7 @@ void TestHCP65KernalBoot(void)
 	cPort.Kill();
 	cStray.Kill();
 	cSDCard.Kill();
+	cAudio2.Kill();
 	cAudio.Kill();
 	cBuilder.Kill();
 }

@@ -165,17 +165,18 @@ void CKernalSoundBoard::CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 ui
 }
 
 
-//The driver of the first sound board.
-static CKernalSoundBoard	gcSoundBoard;
+//The drivers of the sound boards, in slot order.
+static CKernalSoundBoard	gacSoundBoards[SOUND_BOARD_MAX_BOARDS];
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The kernal's loader calls it once the driver is in place and its globals
-// are constructed: the driver it starts for the board.
+// The kernal's loader calls it, once the driver is in place and its
+// globals are constructed, for each board it drives: the driver of the
+// uiIndex'th, NULL if there are too many.
 //
 //////////////////////////////////////////////////////////////////////////
-extern "C" CKernalDriver* KernalCreateDriver(void)
+extern "C" CKernalDriver* KernalCreateDriver(uint16 uiIndex)
 {
-	return &gcSoundBoard;
+	return (uiIndex < SOUND_BOARD_MAX_BOARDS) ? &gacSoundBoards[uiIndex] : NULL;
 }

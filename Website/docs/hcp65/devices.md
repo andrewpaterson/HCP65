@@ -135,8 +135,14 @@ A driver is a relocatable W65C816 module, built from its project in `HCP65/Drive
 puts it in free MPU RAM after its own code and data, within one bank, and fills in the addresses
 in it.  A driver calls the kernel by name: the kernel's *exports* (`Kernal/KernalExports.asm`) are
 the names a driver may use, and a driver that uses any other name isn't loaded.  The kernel then
-runs the driver's constructors and calls its `KernalCreateDriver`, which returns the driver
-(a `CKernalDriver`) the kernel starts for the board.
+runs the driver's constructors and calls its `KernalCreateDriver(index)`, which returns the driver
+(a `CKernalDriver`) the kernel starts for the board.  A driver file is loaded once however many
+boards use it: each board gets the next index (the sound board's driver drives up to four).  The ROM
+drives up to two SD Card Boards.
+
+On the emulator, the kernel tells the debug port of each driver it loads (its file, where it is and
+its first board's socket) after filling in its addresses and before any of it runs.  While a
+debugger watches, that stops the run, so breakpoints can be bound in the driver first.
 
 ## Main memory
 

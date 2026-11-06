@@ -13,8 +13,8 @@
 
 
 SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//The drivers in the ROM, for the HCP65's own boards: one board of each (a second has no driver).
-CKernalSDCardBoard	gcKernalSDCardBoard;
+//The drivers in the ROM, for the HCP65's own boards: up to KERNAL_SD_MAX_BOARDS SD Card Boards and one debug port.
+CKernalSDCardBoard	gacKernalSDCardBoards[KERNAL_SD_MAX_BOARDS];
 CKernalDebugPort	gcKernalDebugPort;
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
@@ -41,16 +41,17 @@ extern "C" void KernalInitHeap(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The ROM's driver for szName (an HCP65 board), NULL if there is none.
+// The ROM's driver for the uiIndex'th board called szName (an HCP65
+// board), NULL if it has none for it.
 //
 //////////////////////////////////////////////////////////////////////////
-static CKernalDriver* KernalBuiltInDriver(const char* szName)
+static CKernalDriver* KernalBuiltInDriver(const char* szName, uint16 uiIndex)
 {
-	if (strcmp(szName, KERNAL_SD_CARD_NAME) == 0)
+	if ((strcmp(szName, KERNAL_SD_CARD_NAME) == 0) && (uiIndex < KERNAL_SD_MAX_BOARDS))
 	{
-		return &gcKernalSDCardBoard;
+		return &gacKernalSDCardBoards[uiIndex];
 	}
-	if (strcmp(szName, KERNAL_DEBUG_PORT_NAME) == 0)
+	if ((strcmp(szName, KERNAL_DEBUG_PORT_NAME) == 0) && (uiIndex == 0))
 	{
 		return &gcKernalDebugPort;
 	}
@@ -60,8 +61,26 @@ static CKernalDriver* KernalBuiltInDriver(const char* szName)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Starts the ROM's driver of each present HCP65 board that has one, the
-// first board of each kind.  The rest stay in reset.
+// How many boards made by szManufacturer called szName have drivers.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 KernalNumDrivers(const char* szManufacturer, const char* szName)
+{
+	uint16	uiCount;
+
+	uiCount = 0;
+	while (KernalFindDriver(szManufacturer, szName, uiCount))
+	{
+		uiCount++;
+	}
+	return uiCount;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Starts the ROM's driver of each present HCP65 board it has one for.  The
+// rest stay in reset (their drivers may be on the SD card).
 //
 //////////////////////////////////////////////////////////////////////////
 static void KernalStartBuiltInDrivers(void)
@@ -75,8 +94,8 @@ static void KernalStartBuiltInDrivers(void)
 		psROM = gasKernalDevices[uiSlot].psROM;
 		if (psROM && (strcmp(psROM->szManufacturer, KERNAL_DEVICE_MANUFACTURER) == 0))
 		{
-			pcDriver = KernalBuiltInDriver(psROM->szName);
-			if (pcDriver && !KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, psROM->szName, 0))
+			pcDriver = KernalBuiltInDriver(psROM->szName, KernalNumDrivers(KERNAL_DEVICE_MANUFACTURER, psROM->szName));
+			if (pcDriver)
 			{
 				KernalStartDriver(pcDriver, uiSlot);
 			}

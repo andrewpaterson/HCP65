@@ -14,77 +14,253 @@
 		.align 4
 		.global _gauiKernalExports
 _gauiKernalExports:
-		.long ExportDriverInit
+		; CKernalDriver: the base class a driver's board class derives from.
+		.long Export_CKernalDriver__Init
 		.long _CKernalDriver__Init
-		.long ExportDriverInitRegisters
+		.long Export_CKernalDriver__Init_axssy
 		.long _CKernalDriver__Init.axssy
-		.long ExportDriverKill
+		.long Export_CKernalDriver__Kill
 		.long _CKernalDriver__Kill
-		.long ExportDriverNumUnits
+		.long Export_CKernalDriver__Kill_ax
+		.long _CKernalDriver__Kill.ax
+		.long Export_CKernalDriver__NumUnits
 		.long _CKernalDriver__NumUnits
-		.long ExportDriverInterrupt
+		.long Export_CKernalDriver__NumUnits_ax
+		.long _CKernalDriver__NumUnits.ax
+		.long Export_CKernalDriver__Interrupt
 		.long _CKernalDriver__Interrupt
-		.long ExportDriverOpen
+		.long Export_CKernalDriver__Interrupt_ax
+		.long _CKernalDriver__Interrupt.ax
+		.long Export_CKernalDriver__Open
 		.long _CKernalDriver__Open
-		.long ExportDriverClose
+		.long Export_CKernalDriver__Open_axy
+		.long _CKernalDriver__Open.axy
+		.long Export_CKernalDriver__Close
 		.long _CKernalDriver__Close
-		.long ExportDriverRead
+		.long Export_CKernalDriver__Close_axy
+		.long _CKernalDriver__Close.axy
+		.long Export_CKernalDriver__Read
 		.long _CKernalDriver__Read
-		.long ExportDriverWrite
+		.long Export_CKernalDriver__Read_axy
+		.long _CKernalDriver__Read.axy
+		.long Export_CKernalDriver__Write
 		.long _CKernalDriver__Write
-		.long ExportDriverControl
+		.long Export_CKernalDriver__Write_axy
+		.long _CKernalDriver__Write.axy
+		.long Export_CKernalDriver__Control
 		.long _CKernalDriver__Control
-		.long ExportDriverWait
+		.long Export_CKernalDriver__Control_axy
+		.long _CKernalDriver__Control.axy
+		.long Export_CKernalDriver__Wait
 		.long _CKernalDriver__Wait
-		.long ExportDriverSetInterrupt
+		.long Export_CKernalDriver__Wait_axy
+		.long _CKernalDriver__Wait.axy
+		.long Export_CKernalDriver__SetInterrupt
 		.long _CKernalDriver__SetInterrupt
-		.long ExportDriverSetInterruptRegisters
+		.long Export_CKernalDriver__SetInterrupt_axssy
 		.long _CKernalDriver__SetInterrupt.axssy
-		.long ExportTicks
+		.long Export_CKernalDriver__GetDevice
+		.long _CKernalDriver__GetDevice
+		.long Export_CKernalDriver__GetDevice_ax
+		.long _CKernalDriver__GetDevice.ax
+		.long Export_CKernalDriver__GetSlot
+		.long _CKernalDriver__GetSlot
+		.long Export_CKernalDriver__GetSlot_ax
+		.long _CKernalDriver__GetSlot.ax
+		.long Export_CKernalDriver__GetRegisters
+		.long _CKernalDriver__GetRegisters
+		.long Export_CKernalDriver__GetRegisters_ax
+		.long _CKernalDriver__GetRegisters.ax
+		.long Export_CKernalDriver__GetOwner
+		.long _CKernalDriver__GetOwner
+		.long Export_CKernalDriver__GetOwner_ax
+		.long _CKernalDriver__GetOwner.ax
+		; The devices (KernalDevices.h) and their drivers (KernalDriver.h).
+		.long Export_gasKernalDevices
+		.long _gasKernalDevices
+		.long Export_KernalReadRegister__Fh
+		.long _KernalReadRegister__Fh
+		.long Export_KernalReadRegister__Fh_a
+		.long _KernalReadRegister__Fh.a
+		.long Export_KernalWriteRegister__Fhh
+		.long _KernalWriteRegister__Fhh
+		.long Export_KernalWriteRegister__Fhh_ax
+		.long _KernalWriteRegister__Fhh.ax
+		.long Export_KernalEnableDevice__Ft
+		.long _KernalEnableDevice__Ft
+		.long Export_KernalEnableDevice__Ft_a
+		.long _KernalEnableDevice__Ft.a
+		.long Export_KernalDisableDevice__Ft
+		.long _KernalDisableDevice__Ft
+		.long Export_KernalDisableDevice__Ft_a
+		.long _KernalDisableDevice__Ft.a
+		.long Export_KernalGetDriver__Ft
+		.long _KernalGetDriver__Ft
+		.long Export_KernalGetDriver__Ft_a
+		.long _KernalGetDriver__Ft.a
+		.long Export_KernalFindDriver__FPcPct
+		.long _KernalFindDriver__FPcPct
+		.long Export_KernalFindDriver__FPcPct_axssy
+		.long _KernalFindDriver__FPcPct.axssy
+		; Interrupts and time (KernalInterrupts.h).
+		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPhb
+		.long _KernalSetInterruptHandler__FtPFvPvEPvPhb
+		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPhb_axy
+		.long _KernalSetInterruptHandler__FtPFvPvEPvPhb.axy
+		.long Export_KernalClearInterruptHandler__Ft
+		.long _KernalClearInterruptHandler__Ft
+		.long Export_KernalClearInterruptHandler__Ft_a
+		.long _KernalClearInterruptHandler__Ft.a
+		.long Export_KernalTicks
 		.long _KernalTicks
-		.long ExportWaitForInterrupt
+		.long Export_KernalWaitForInterrupt
 		.long _KernalWaitForInterrupt
-		.long ExportUserPointer
+		.long Export_KernalRunPendingInterrupts
+		.long _KernalRunPendingInterrupts
+		.long Export_KernalInterruptsOn
+		.long _KernalInterruptsOn
+		.long Export_KernalInterruptsOff
+		.long _KernalInterruptsOff
+		.long Export_gbKernalMainBusBusy
+		.long _gbKernalMainBusBusy
+		.long Export_guiKernalTicks
+		.long _guiKernalTicks
+		; The running process's memory (KernalProcess.h).
+		.long Export_KernalUserPointer__FjPj
 		.long _KernalUserPointer__FjPj
-		.long ExportUserPointerRegisters
+		.long Export_KernalUserPointer__FjPj_ax
 		.long _KernalUserPointer__FjPj.ax
+		.long Export_KernalCopyToUser__FjPhj
+		.long _KernalCopyToUser__FjPhj
+		.long Export_KernalCopyToUser__FjPhj_ax
+		.long _KernalCopyToUser__FjPhj.ax
+		.long Export_KernalCopyFromUser__FPhjj
+		.long _KernalCopyFromUser__FPhjj
+		.long Export_KernalCopyFromUser__FPhjj_ax
+		.long _KernalCopyFromUser__FPhjj.ax
 
 		.global _guiKernalNumExports
 _guiKernalNumExports:
-		.word 17
+		.word 60
 
 		.section rodata.KernalExportNames
-ExportDriverInit:
+Export_CKernalDriver__Init:
 		.byte "_CKernalDriver__Init", 0
-ExportDriverInitRegisters:
+Export_CKernalDriver__Init_axssy:
 		.byte "_CKernalDriver__Init.axssy", 0
-ExportDriverKill:
+Export_CKernalDriver__Kill:
 		.byte "_CKernalDriver__Kill", 0
-ExportDriverNumUnits:
+Export_CKernalDriver__Kill_ax:
+		.byte "_CKernalDriver__Kill.ax", 0
+Export_CKernalDriver__NumUnits:
 		.byte "_CKernalDriver__NumUnits", 0
-ExportDriverInterrupt:
+Export_CKernalDriver__NumUnits_ax:
+		.byte "_CKernalDriver__NumUnits.ax", 0
+Export_CKernalDriver__Interrupt:
 		.byte "_CKernalDriver__Interrupt", 0
-ExportDriverOpen:
+Export_CKernalDriver__Interrupt_ax:
+		.byte "_CKernalDriver__Interrupt.ax", 0
+Export_CKernalDriver__Open:
 		.byte "_CKernalDriver__Open", 0
-ExportDriverClose:
+Export_CKernalDriver__Open_axy:
+		.byte "_CKernalDriver__Open.axy", 0
+Export_CKernalDriver__Close:
 		.byte "_CKernalDriver__Close", 0
-ExportDriverRead:
+Export_CKernalDriver__Close_axy:
+		.byte "_CKernalDriver__Close.axy", 0
+Export_CKernalDriver__Read:
 		.byte "_CKernalDriver__Read", 0
-ExportDriverWrite:
+Export_CKernalDriver__Read_axy:
+		.byte "_CKernalDriver__Read.axy", 0
+Export_CKernalDriver__Write:
 		.byte "_CKernalDriver__Write", 0
-ExportDriverControl:
+Export_CKernalDriver__Write_axy:
+		.byte "_CKernalDriver__Write.axy", 0
+Export_CKernalDriver__Control:
 		.byte "_CKernalDriver__Control", 0
-ExportDriverWait:
+Export_CKernalDriver__Control_axy:
+		.byte "_CKernalDriver__Control.axy", 0
+Export_CKernalDriver__Wait:
 		.byte "_CKernalDriver__Wait", 0
-ExportDriverSetInterrupt:
+Export_CKernalDriver__Wait_axy:
+		.byte "_CKernalDriver__Wait.axy", 0
+Export_CKernalDriver__SetInterrupt:
 		.byte "_CKernalDriver__SetInterrupt", 0
-ExportDriverSetInterruptRegisters:
+Export_CKernalDriver__SetInterrupt_axssy:
 		.byte "_CKernalDriver__SetInterrupt.axssy", 0
-ExportTicks:
+Export_CKernalDriver__GetDevice:
+		.byte "_CKernalDriver__GetDevice", 0
+Export_CKernalDriver__GetDevice_ax:
+		.byte "_CKernalDriver__GetDevice.ax", 0
+Export_CKernalDriver__GetSlot:
+		.byte "_CKernalDriver__GetSlot", 0
+Export_CKernalDriver__GetSlot_ax:
+		.byte "_CKernalDriver__GetSlot.ax", 0
+Export_CKernalDriver__GetRegisters:
+		.byte "_CKernalDriver__GetRegisters", 0
+Export_CKernalDriver__GetRegisters_ax:
+		.byte "_CKernalDriver__GetRegisters.ax", 0
+Export_CKernalDriver__GetOwner:
+		.byte "_CKernalDriver__GetOwner", 0
+Export_CKernalDriver__GetOwner_ax:
+		.byte "_CKernalDriver__GetOwner.ax", 0
+Export_gasKernalDevices:
+		.byte "_gasKernalDevices", 0
+Export_KernalReadRegister__Fh:
+		.byte "_KernalReadRegister__Fh", 0
+Export_KernalReadRegister__Fh_a:
+		.byte "_KernalReadRegister__Fh.a", 0
+Export_KernalWriteRegister__Fhh:
+		.byte "_KernalWriteRegister__Fhh", 0
+Export_KernalWriteRegister__Fhh_ax:
+		.byte "_KernalWriteRegister__Fhh.ax", 0
+Export_KernalEnableDevice__Ft:
+		.byte "_KernalEnableDevice__Ft", 0
+Export_KernalEnableDevice__Ft_a:
+		.byte "_KernalEnableDevice__Ft.a", 0
+Export_KernalDisableDevice__Ft:
+		.byte "_KernalDisableDevice__Ft", 0
+Export_KernalDisableDevice__Ft_a:
+		.byte "_KernalDisableDevice__Ft.a", 0
+Export_KernalGetDriver__Ft:
+		.byte "_KernalGetDriver__Ft", 0
+Export_KernalGetDriver__Ft_a:
+		.byte "_KernalGetDriver__Ft.a", 0
+Export_KernalFindDriver__FPcPct:
+		.byte "_KernalFindDriver__FPcPct", 0
+Export_KernalFindDriver__FPcPct_axssy:
+		.byte "_KernalFindDriver__FPcPct.axssy", 0
+Export_KernalSetInterruptHandler__FtPFvPvEPvPhb:
+		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPhb", 0
+Export_KernalSetInterruptHandler__FtPFvPvEPvPhb_axy:
+		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPhb.axy", 0
+Export_KernalClearInterruptHandler__Ft:
+		.byte "_KernalClearInterruptHandler__Ft", 0
+Export_KernalClearInterruptHandler__Ft_a:
+		.byte "_KernalClearInterruptHandler__Ft.a", 0
+Export_KernalTicks:
 		.byte "_KernalTicks", 0
-ExportWaitForInterrupt:
+Export_KernalWaitForInterrupt:
 		.byte "_KernalWaitForInterrupt", 0
-ExportUserPointer:
+Export_KernalRunPendingInterrupts:
+		.byte "_KernalRunPendingInterrupts", 0
+Export_KernalInterruptsOn:
+		.byte "_KernalInterruptsOn", 0
+Export_KernalInterruptsOff:
+		.byte "_KernalInterruptsOff", 0
+Export_gbKernalMainBusBusy:
+		.byte "_gbKernalMainBusBusy", 0
+Export_guiKernalTicks:
+		.byte "_guiKernalTicks", 0
+Export_KernalUserPointer__FjPj:
 		.byte "_KernalUserPointer__FjPj", 0
-ExportUserPointerRegisters:
+Export_KernalUserPointer__FjPj_ax:
 		.byte "_KernalUserPointer__FjPj.ax", 0
+Export_KernalCopyToUser__FjPhj:
+		.byte "_KernalCopyToUser__FjPhj", 0
+Export_KernalCopyToUser__FjPhj_ax:
+		.byte "_KernalCopyToUser__FjPhj.ax", 0
+Export_KernalCopyFromUser__FPhjj:
+		.byte "_KernalCopyFromUser__FPhjj", 0
+Export_KernalCopyFromUser__FPhjj_ax:
+		.byte "_KernalCopyFromUser__FPhjj.ax", 0

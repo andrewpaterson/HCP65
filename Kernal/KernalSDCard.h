@@ -5,6 +5,7 @@
 
 
 #define KERNAL_SD_NUM_SOCKETS		4
+#define KERNAL_SD_MAX_BOARDS		2		//The ROM's driver drives this many SD Card Boards.
 #define KERNAL_SD_CARD_NAME			"SD Card Board"
 
 #define KERNAL_SD_SUCCESS			0
