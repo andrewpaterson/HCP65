@@ -20,10 +20,10 @@
 ; ** ------------------------------------------------------------------------ 
 ;
 ; IR816Runtime-Common.asm: the W65C816 back end's runtime routines that are the same with the math tables
-; (IR816Runtime-MathTables.asm) or without them (IR816Runtime-MathSafe.asm): the unsigned divides, the 64 bit multiply,
-; the 32 and 64 bit shifts and the BCD adds.  CCPP65Builder links this and one of the math files as libraries (each
-; routine in its own section, so only the ones a program uses are kept).  The compiler calls them (IR816Runtime.cpp
-; says how each takes its operands).
+; (IR816Runtime-MathTables.asm) or without them (IR816Runtime-MathSafe.asm): the divides (the 64 bit signed ones are
+; the compiler's), the 64 bit multiply, the 32 and 64 bit shifts and the BCD adds.  CCPP65Builder links this and one
+; of the math files as libraries (each routine in its own section, so only the ones a program uses are kept).  The
+; compiler calls them (IR816Runtime.cpp says how each takes its operands).
 ;
 
 
@@ -1504,6 +1504,130 @@ R816_UDiv16_Zero:
 		lda [D + 15]
 		ldx 0xFFFF
 		stx [D + 15]
+		rts
+
+
+; R816_SDiv16, R816_SRem16, R816_SDiv32 and R816_SRem32: the signed divides (the quotient and the remainder share one
+; body for each width), scratch routines as the unsigned ones are: a at D + 15 and b at D + 19.  a's sign word goes to
+; D + 11 and the quotient's (a's xor b's) to D + 9, a and b are made their magnitudes in place, and R816_UDiv16 or
+; R816_UDiv32 (on the same D) leaves the magnitudes' quotient at D + 15 (and D + 17) and remainder at D + 5 (and D +
+; 7).  The quotient is negated when the signs differ and the remainder when a is negative (C rounds towards 0: the
+; remainder has the dividend's sign).  Both routines leave the signed remainder at D + 5, where a srem of the same
+; operands written straight after them takes it (CIR816Backend::RemainderLeft).  The most negative value divided by -1
+; wraps, as the magnitudes do.
+		.section text.R816_SDiv16
+		.global R816_SDiv16
+		.global R816_SRem16
+		.width (A, X), 16
+		.relax
+R816_SDiv16:
+		jsr R816_SDiv16_Divide
+		lda [D + 15]
+		ldx 0
+		rtl
+R816_SRem16:
+		jsr R816_SDiv16_Divide
+		lda [D + 5]
+		ldx 0
+		rtl
+R816_SDiv16_Divide:
+		lda [D + 15]
+		sta [D + 11]
+		eor [D + 19]
+		sta [D + 9]
+		lda [D + 15]
+		bpl R816_SDiv16_APositive
+		lda 0
+		sec
+		sbc [D + 15]
+		sta [D + 15]
+R816_SDiv16_APositive:
+		lda [D + 19]
+		bpl R816_SDiv16_BPositive
+		lda 0
+		sec
+		sbc [D + 19]
+		sta [D + 19]
+R816_SDiv16_BPositive:
+		jsl R816_UDiv16
+		lda [D + 9]
+		bpl R816_SDiv16_QPositive
+		lda 0
+		sec
+		sbc [D + 15]
+		sta [D + 15]
+R816_SDiv16_QPositive:
+		lda [D + 11]
+		bpl R816_SDiv16_RPositive
+		lda 0
+		sec
+		sbc [D + 5]
+		sta [D + 5]
+R816_SDiv16_RPositive:
+		rts
+
+
+		.section text.R816_SDiv32
+		.global R816_SDiv32
+		.global R816_SRem32
+		.width (A, X), 16
+		.relax
+R816_SDiv32:
+		jsr R816_SDiv32_Divide
+		ldx [D + 17]
+		lda [D + 15]
+		rtl
+R816_SRem32:
+		jsr R816_SDiv32_Divide
+		ldx [D + 7]
+		lda [D + 5]
+		rtl
+R816_SDiv32_Divide:
+		lda [D + 17]
+		sta [D + 11]
+		eor [D + 21]
+		sta [D + 9]
+		lda [D + 17]
+		bpl R816_SDiv32_APositive
+		lda 0
+		sec
+		sbc [D + 15]
+		sta [D + 15]
+		lda 0
+		sbc [D + 17]
+		sta [D + 17]
+R816_SDiv32_APositive:
+		lda [D + 21]
+		bpl R816_SDiv32_BPositive
+		lda 0
+		sec
+		sbc [D + 19]
+		sta [D + 19]
+		lda 0
+		sbc [D + 21]
+		sta [D + 21]
+R816_SDiv32_BPositive:
+		jsl R816_UDiv32
+		lda [D + 9]
+		bpl R816_SDiv32_QPositive
+		lda 0
+		sec
+		sbc [D + 15]
+		sta [D + 15]
+		lda 0
+		sbc [D + 17]
+		sta [D + 17]
+R816_SDiv32_QPositive:
+		lda [D + 11]
+		bpl R816_SDiv32_RPositive
+		lda 0
+		sec
+		sbc [D + 5]
+		sta [D + 5]
+		lda 0
+		sbc [D + 7]
+		sta [D + 7]
+R816_SDiv32_RPositive:
 		rts
 
 
