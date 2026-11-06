@@ -89,6 +89,14 @@ void CHCP65DebugPort::Tell(uint8 uiCommand)
 {
 	SHCP65DebugPortEvent*	psEvent;
 
+	if (uiCommand == HCP65_DEBUG_PORT_BANK)
+	{
+		if (mpcHCP65 != NULL)
+		{
+			mpcHCP65->FillMainMemoryBank(muiProcess);
+		}
+		return;
+	}
 	if ((uiCommand != HCP65_DEBUG_PORT_STARTED) && (uiCommand != HCP65_DEBUG_PORT_ENDED))
 	{
 		return;

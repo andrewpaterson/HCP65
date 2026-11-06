@@ -10,6 +10,7 @@
 #define HCP65_EMULATOR_SD_SOCKET		2			//Socket 1 is the main memory channel.
 #define HCP65_EMULATOR_AUDIO_SOCKET		16
 #define HCP65_EMULATOR_DEBUG_SOCKET		7			//The debug port: the kernal tells it of its processes.
+#define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
 
 
 #include "StandardLib/Object.h"

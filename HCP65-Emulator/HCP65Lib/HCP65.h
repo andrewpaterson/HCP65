@@ -14,6 +14,7 @@
 #define HCP65_NUM_PROCESSES			256			//Process IDs 0 to $FF.
 #define HCP65_CRYSTAL_RATE			32768		//The timer and sound crystal, in Hz.
 #define HCP65_DEFAULT_CLOCK_RATE	25000000	//CPU cycles per second: the board's MPU clock (an LTC6903 set to 25MHz).
+#define HCP65_DEBUG_FILL_BYTE		0xCC		//What memory nothing has written holds in fill mode.
 
 
 //The HCP65 computer: a CFast65C816, the processor board's memory and registers, and the devices in its
@@ -41,6 +42,10 @@
 //says until when (SetMainMemoryBusy); a processor access to main memory before then latches Contention, as the
 //mainboard's Main Memory Abort and Small Enable boards do: main memory is shut off (reads float to $FF, writes are
 //lost) and NMI is held low until reset.
+//
+//Fill mode (a debugging aid; SetMemoryFill): main memory and MPU RAM are filled with HCP65_DEBUG_FILL_BYTE at reset,
+//and each bank the kernal gives a process (it tells the emulator's debug port) is filled again, by the emulator, not by
+//the processor, so a program that reads memory it never wrote sees $CC rather than a lucky zero.
 class CHCP65
 {
 protected:
@@ -55,6 +60,8 @@ protected:
 	CBreakpoints*		mapcProcessBreakpoints[HCP65_NUM_PROCESSES];	//User mode's for a process, NULL until it has any.
 	bool				mbStopRun;
 	bool				mbContention;
+	bool				mbFill;
+	uint8				muiFillByte;
 	uint64				muiMainBusyUntil;	//The CPU cycle a device's use of main memory ends.
 
 	uint64				muiClockRate;
@@ -110,6 +117,9 @@ public:
 	void				ClearInstructionCount(void);
 	void				UpdateInterrupts(void);
 
+	void				SetMemoryFill(bool bFill, uint8 uiFillByte = HCP65_DEBUG_FILL_BYTE);
+	bool				IsMemoryFill(void);
+	void				FillMainMemoryBank(uint8 uiBank);
 	void				SetMainMemoryBusy(uint64 uiUntil);
 	bool				IsContention(void);
 

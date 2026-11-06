@@ -30,6 +30,8 @@ void CHCP65::Init(uint64 uiClockRate)
 	mbStopRun = false;
 	mbContention = false;
 	muiMainBusyUntil = 0;
+	mbFill = false;
+	muiFillByte = HCP65_DEBUG_FILL_BYTE;
 
 	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
@@ -171,6 +173,11 @@ void CHCP65::Reset(void)
 	mbContention = false;
 	muiMainBusyUntil = 0;
 	muiInstructionsCleared = muiInstructions;
+	if (mbFill)
+	{
+		memset(mpuiRAM, muiFillByte, HCP65_MPU_RAM_SIZE);
+		memset(mpuiMain, muiFillByte, HCP65_MAIN_MEMORY_SIZE);
+	}
 	mcRegisters.Reset();
 	SetDeviceEnables(0);
 	for (i = 1; i < HCP65_NUM_DEVICE_SLOTS; i++)
@@ -412,6 +419,43 @@ void CHCP65::UpdateInterrupts(void)
 	}
 	mcMPU.SetIRQ(bIrq);
 	mcMPU.SetNMI(mcRegisters.IsNMILow() || mbContention);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Fill mode: memory is filled with uiFillByte at reset (and banks given to
+// processes as the kernal says, FillMainMemoryBank).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::SetMemoryFill(bool bFill, uint8 uiFillByte)
+{
+	mbFill = bFill;
+	muiFillByte = uiFillByte;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65::IsMemoryFill(void)
+{
+	return mbFill;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// In fill mode, the 64KB main memory bank uiBank is filled (by the host).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::FillMainMemoryBank(uint8 uiBank)
+{
+	if (mbFill)
+	{
+		memset(&mpuiMain[(uint32)uiBank << 16], muiFillByte, 0x10000);
+	}
 }
 
 

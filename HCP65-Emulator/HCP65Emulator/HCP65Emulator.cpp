@@ -163,6 +163,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
 	const char*				szCard;
+	int						i;
 
 	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.  A
 	//debugger it waits for may load the kernal itself, so then the ROM file needn't be there.
@@ -197,6 +198,13 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	mcHCP65.SetDevice(HCP65_EMULATOR_SD_SOCKET, &mcSDCard);
 	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
 	mcHCP65.SetDevice(HCP65_EMULATOR_DEBUG_SOCKET, &mcDebugPort);
+	for (i = 1; i < argc; i++)
+	{
+		if (strcmp(argv[i], HCP65_EMULATOR_ARGUMENT_FILL) == 0)
+		{
+			mcHCP65.SetMemoryFill(true);
+		}
+	}
 	mcHCP65.Reset();
 
 	if (mbValid && mcDebugger.IsEnabled())

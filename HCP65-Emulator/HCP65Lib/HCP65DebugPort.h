@@ -7,13 +7,14 @@
 
 #define HCP65_DEBUG_PORT_NAME			"HCP65 Debug Port"
 #define HCP65_DEBUG_PORT_ROM_SIZE		0x400		//The device identifier, $0000 to $03FF.
-#define HCP65_DEBUG_PORT_COMMAND		0x400		//Write: HCP65_DEBUG_PORT_STARTED or HCP65_DEBUG_PORT_ENDED.
-#define HCP65_DEBUG_PORT_PROCESS		0x401		//The process's ID.
+#define HCP65_DEBUG_PORT_COMMAND		0x400		//Write: HCP65_DEBUG_PORT_STARTED, HCP65_DEBUG_PORT_ENDED or HCP65_DEBUG_PORT_BANK.
+#define HCP65_DEBUG_PORT_PROCESS		0x401		//The process's ID (HCP65_DEBUG_PORT_BANK: the bank).
 #define HCP65_DEBUG_PORT_EXIT_LOW		0x402		//Its exit code, once it has ended.
 #define HCP65_DEBUG_PORT_EXIT_HIGH		0x403
 #define HCP65_DEBUG_PORT_NAME_BUFFER	0x500		//Its program's file, zero terminated ($0500 to $053F).
 #define HCP65_DEBUG_PORT_STARTED		1
 #define HCP65_DEBUG_PORT_ENDED			2
+#define HCP65_DEBUG_PORT_BANK			3			//A main memory bank was given to a process: the emulator fills it in fill mode.
 
 
 //A process started or ended, as the kernal told the debug port.
@@ -28,7 +29,8 @@ typedef CArrayTemplate<SHCP65DebugPortEvent>	CArrayHCP65DebugPortEvents;
 
 
 //The emulator's debug port, a device no real HCP65 has: the kernal tells it of each process it starts and ends (its
-//ID, its program's file and its exit code) for a debugger to follow.  The kernal finds it by its name, as it finds
+//ID, its program's file and its exit code) for a debugger to follow, and of each main memory bank it gives a process (for
+//the emulator's fill mode, CHCP65::SetMemoryFill).  The kernal finds it by its name, as it finds
 //any device; without one it tells nothing.  It keeps the processes running, and while they are watched (a debugger is
 //connected) each event, and a process started stops the HCP65's Run (StopRun) before the process's first instruction
 //so the debugger can give it its breakpoints first.

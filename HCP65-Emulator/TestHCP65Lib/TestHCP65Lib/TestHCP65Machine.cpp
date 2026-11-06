@@ -335,6 +335,37 @@ void TestHCP65Contention(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Fill mode: memory is filled at reset, and a main memory bank when the
+// kernal's debug port says it was given to a process.  Off, nothing is.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65MemoryFill(void)
+{
+	CHCP65	cHCP65;
+	uint8*	puiMain;
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	puiMain = cHCP65.GetMainMemory();
+	cHCP65.Reset();
+	AssertInt(0, puiMain[0x500000]);
+	cHCP65.FillMainMemoryBank(0x50);
+	AssertInt(0, puiMain[0x500000]);
+
+	cHCP65.SetMemoryFill(true);
+	cHCP65.Reset();
+	AssertInt(HCP65_DEBUG_FILL_BYTE, puiMain[0x500000]);
+	AssertInt(HCP65_DEBUG_FILL_BYTE, cHCP65.GetMPURAM()[0x1234]);
+	puiMain[0x50FFFF] = 0;
+	puiMain[0x510000] = 0;
+	cHCP65.FillMainMemoryBank(0x50);
+	AssertInt(HCP65_DEBUG_FILL_BYTE, puiMain[0x50FFFF]);
+	AssertInt(0, puiMain[0x510000]);
+	cHCP65.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -346,6 +377,7 @@ void TestHCP65Machine(void)
 	TestHCP65AudioFromProgram();
 	TestHCP65Timer();
 	TestHCP65Contention();
+	TestHCP65MemoryFill();
 
 	TestStatistics();
 }
