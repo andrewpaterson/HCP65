@@ -114,6 +114,10 @@ void CAsm65Linker::Init(void)
 	mbStubMissing = false;
 	miStubOpcode = -1;
 	mbRemoveUnused = false;
+	maszForbidden.Init();
+	mszForbiddenReason.Init();
+	maiForbiddenUsers.Init();
+	muiUsingSection = 0;
 
 	mcOutput.Init();
 	mszMap.Init();
@@ -133,6 +137,10 @@ void CAsm65Linker::Kill(void)
 	mcLineTable.Kill();
 	mszMap.Kill();
 	mcOutput.Kill();
+
+	maiForbiddenUsers.Kill();
+	mszForbiddenReason.Kill();
+	maszForbidden.Kill();
 
 	mcLazyImage.Kill();
 	mcLazy.Kill();
@@ -265,6 +273,22 @@ void CAsm65Linker::SetStubOpcode(uint8 uiOpcode)
 void CAsm65Linker::SetRemoveUnused(bool bRemoveUnused)
 {
 	mbRemoveUnused = bRemoveUnused;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// No used section of another object may use what the object named
+// szObjectName (as its name ends) defines: each one that does is an error,
+// "szReason: the section uses the symbol".  Only with SetRemoveUnused (it is
+// found while the used sections are marked).  A W65C816 kernal forbids the
+// soft float, for one.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Linker::ForbidObject(const char* szObjectName, const char* szReason)
+{
+	maszForbidden.Add(szObjectName);
+	mszForbiddenReason.Set(szReason);
 }
 
 
@@ -700,6 +724,7 @@ void CAsm65Linker::MarkUsed(void)
 			uiObject = ObjectOfSection(uiSection);
 			psObject = masObjects.Get(uiObject);
 			psLinkSection = masSections.Get(uiSection);
+			muiUsingSection = uiSection;
 			for (i = 0; i < psLinkSection->uiNumRelocations; i++)
 			{
 				UseTarget(uiObject, psObject->pcObject->GetRelocation(maiRelocations.GetValue(psLinkSection->uiFirstRelocation + i)), &aiWork);
@@ -782,12 +807,69 @@ void CAsm65Linker::UseTarget(size uiObject, SAsm65Relocation* psRelocation, CArr
 	}
 	if (psGlobal->iObject >= 0)
 	{
+		if ((maszForbidden.NumElements() > 0) && IsForbidden((size)psGlobal->iObject) && !IsForbidden(uiObject))
+		{
+			ForbiddenUse(uiObject, psRelocation, psSymbol->szName.Text());
+		}
 		psSymbol = masObjects.Get(psGlobal->iObject)->pcObject->GetSymbol(psGlobal->uiSymbol);
 		if (psSymbol->iSection >= 0)
 		{
 			UseSection(SectionIndex(psGlobal->iObject, psSymbol->iSection), paiWork);
 		}
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether uiObject is one ForbidObject named.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65Linker::IsForbidden(size uiObject)
+{
+	CChars	szName;
+	size	i;
+	bool	bForbidden;
+
+	szName.Init(masObjects.Get(uiObject)->pcObject->GetName());
+	bForbidden = false;
+	for (i = 0; (i < maszForbidden.NumElements()) && !bForbidden; i++)
+	{
+		bForbidden = szName.EndsWithIgnoreCase(maszForbidden.GetText(i));
+	}
+	szName.Kill();
+	return bForbidden;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The used section MarkUsed is following (of uiObject) uses szName, which a
+// forbidden object defines: an error naming the section, once.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Linker::ForbiddenUse(size uiObject, SAsm65Relocation* psRelocation, const char* szName)
+{
+	SAsm65LinkObject*	psObject;
+	SAsm65Section*		psSection;
+	CChars				szDetail;
+	size				i;
+
+	for (i = 0; i < maiForbiddenUsers.NumElements(); i++)
+	{
+		if ((size)maiForbiddenUsers.GetValue(i) == muiUsingSection)
+		{
+			return;
+		}
+	}
+	maiForbiddenUsers.Add((int)muiUsingSection);
+	psObject = masObjects.Get(uiObject);
+	psSection = psObject->pcObject->GetSection(muiUsingSection - psObject->uiFirstSection);
+	szDetail.Init(psSection->szName.Text());
+	szDetail.Append(" uses ");
+	szDetail.Append(szName);
+	Error(psObject->pcObject, psRelocation, mszForbiddenReason.Empty() ? "Forbidden symbol used" : mszForbiddenReason.Text(), szDetail.Text());
+	szDetail.Kill();
 }
 
 

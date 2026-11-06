@@ -163,6 +163,10 @@ protected:
 	bool									mbStubMissing;
 	int										miStubOpcode;	//The stub's one byte stp (SetStubOpcode); -1: the 65C64's stp.
 	bool									mbRemoveUnused;
+	CArrayChars								maszForbidden;		//Objects nothing else may use (ForbidObject).
+	CChars									mszForbiddenReason;
+	CArraySize								maiForbiddenUsers;	//The sections already reported for using one.
+	size									muiUsingSection;	//The section MarkUsed is following the relocations of.
 
 	CAsm65Output							mcOutput;
 	CChars									mszMap;
@@ -181,6 +185,7 @@ public:
 	void				SetStubMissing(bool bStubMissing);
 	void				SetStubOpcode(uint8 uiOpcode);
 	void				SetRemoveUnused(bool bRemoveUnused);
+	void				ForbidObject(const char* szObjectName, const char* szReason);
 	void				SetLazy(uint32 uiCodeEnd, uint32 uiSectorSize, uint32 uiFirstSector);
 
 	bool				Link(void);
@@ -208,6 +213,8 @@ protected:
 	void				MarkUsed(void);
 	void				UseSection(size uiSection, CArraySize* paiWork);
 	void				UseTarget(size uiObject, SAsm65Relocation* psRelocation, CArraySize* paiWork);
+	bool				IsForbidden(size uiObject);
+	void				ForbiddenUse(size uiObject, SAsm65Relocation* psRelocation, const char* szName);
 	bool				IsPlaced(SAsm65LinkSection* psLinkSection);
 	bool				IsCore(SAsm65LinkSection* psLinkSection);
 	void				AddStubs(void);
