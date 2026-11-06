@@ -79,11 +79,13 @@
   <ItemGroup>
     <ClCompile Include="..\Libraries\UserLib\UserStart.asm" />
     <ClCompile Include="..\Libraries\UserLib\UserCalls.asm" />
+    <ClCompile Include="..\Libraries\UserLib\UserDevices.cpp" />
     <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm" />
     <ClCompile Include="ModPlay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Libraries\UserLib\HCP65User.h" />
+    <ClInclude Include="..\Libraries\UserLib\HCP65SoundBoard.h" />
     <ClInclude Include="ModPlaySamples.h" />
   </ItemGroup>
   <ItemGroup>

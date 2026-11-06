@@ -20,7 +20,7 @@
     <ClInclude Include="SoundBoard.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Kernal\KernalSoundBoard.h">
+    <ClInclude Include="..\..\Libraries\UserLib\HCP65SoundBoard.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Kernal\KernalDriver.h">

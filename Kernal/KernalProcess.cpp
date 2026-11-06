@@ -10,7 +10,7 @@
 #include "KernalProcess.h"
 #include "KernalInterrupts.h"
 #include "KernalDriver.h"
-#include "KernalSoundBoard.h"
+#include "KernalDeviceCalls.h"
 #include "KernalDebugPort.h"
 
 
@@ -19,7 +19,6 @@
 #define KERNAL_PROCESS_STATUS			0x30		//The process starts with 8 bit registers and interrupts on.
 #define KERNAL_MAX_PATH					128
 
-#define KERNAL_AUDIO_WAIT_TICKS			2			//The most an audio wait waits (7.8ms to 11.7ms) if the interrupt was missed.
 
 //Banks every process gets: 0 (its stack and direct page) and $FF (where Libc65 reads its memory size).  Without a
 //memory size its heap is banks $08-$0F.
@@ -45,6 +44,17 @@ static uint8*			gpuiKernalArguments;					//The call's arguments, on the process'
 static uint8* KernalRemapPage(uint8 uiProcess)
 {
 	return (uint8*)(KERNAL_REMAP_TABLE + ((uint32)uiProcess << 8));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The process running (or calling the kernal), 0 for none.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8 KernalCurrentProcess(void)
+{
+	return guiKernalProcess;
 }
 
 
@@ -196,7 +206,7 @@ static uint32 KernalArgumentLong(uint16 uiOffset)
 // long or not in its memory.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax)
+bool KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax)
 {
 	uint8*	puiChar;
 	uint16	i;
@@ -497,6 +507,7 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 		gpcKernalDebugPort->Tell(KERNAL_DEBUG_PORT_ENDED, uiProcess, *puiExitCode, szPath);
 	}
 
+	KernalCloseHandles(uiProcess);
 	KernalCloseDrivers(uiProcess);
 	KernalFreeProcess(uiProcess);
 	memcpy(&gsKernalCall, &sCaller, sizeof(SKernalCall));
@@ -649,57 +660,6 @@ static uint16 KernalCallFileRead(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The audio open call: the running process opens the first sound board.
-//
-//////////////////////////////////////////////////////////////////////////
-static uint16 KernalCallAudioOpen(void)
-{
-	CKernalDriver*	pcBoard;
-
-	pcBoard = KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_SOUND_BOARD_NAME, 0);
-	if (!pcBoard || (pcBoard->Open(KERNAL_SOUND_LEFT, guiKernalProcess) != KERNAL_DRIVER_SUCCESS))
-	{
-		return KERNAL_PROCESS_NOT_FOUND;
-	}
-	return KERNAL_PROCESS_NONE;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The sound board the running process has open (the audio calls'), or
-// NULL.
-//
-//////////////////////////////////////////////////////////////////////////
-static CKernalDriver* KernalAudioBoard(void)
-{
-	CKernalDriver*	pcBoard;
-
-	pcBoard = KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_SOUND_BOARD_NAME, 0);
-	return (pcBoard && (pcBoard->GetOwner() == guiKernalProcess)) ? pcBoard : NULL;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The audio write call: the offset, the left and right samples and how
-// many.  Copied to RAM A and RAM B, wrapping at their end.
-//
-//////////////////////////////////////////////////////////////////////////
-static void KernalCallAudioWrite(CKernalDriver* pcBoard)
-{
-	uint16	uiOffset;
-	uint16	uiCount;
-
-	uiOffset = KernalArgumentWord(0);
-	uiCount = KernalArgumentWord(10);
-	pcBoard->Write(KERNAL_SOUND_LEFT, uiOffset, KernalArgumentLong(2), uiCount);
-	pcBoard->Write(KERNAL_SOUND_RIGHT, uiOffset, KernalArgumentLong(6), uiCount);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // A COP from the process.  Its signature byte (the byte before the return
 // address it pushed on its stack) is the call.
 //
@@ -709,8 +669,6 @@ extern "C" void KernalCopCall(void)
 	uint8*			puiFrame;
 	uint32			uiReturn;
 	uint8			uiCall;
-	CKernalDriver*	pcBoard;
-	uint32			uiResult;
 
 	//The frame: P, PC low, PC high, then the program bank.
 	puiFrame = KernalUserAddress((uint32)gsKernalCall.uiUserS + 1);
@@ -749,41 +707,8 @@ extern "C" void KernalCopCall(void)
 		gsKernalCall.uiA = KernalCallFileRead();
 		break;
 
-	case KERNAL_CALL_AUDIO_OPEN:
-		gsKernalCall.uiA = KernalCallAudioOpen();
-		break;
-
-	case KERNAL_CALL_AUDIO_WRITE:
-		pcBoard = KernalAudioBoard();
-		if (pcBoard)
-		{
-			KernalCallAudioWrite(pcBoard);
-		}
-		break;
-
-	case KERNAL_CALL_AUDIO_SET:
-		pcBoard = KernalAudioBoard();
-		if (pcBoard)
-		{
-			pcBoard->Control(KERNAL_SOUND_LEFT, KERNAL_SOUND_SET_REGISTER + KernalArgumentWord(0), KernalArgumentWord(2), &uiResult);
-		}
-		break;
-
-	case KERNAL_CALL_AUDIO_WAIT:
-		pcBoard = KernalAudioBoard();
-		if (pcBoard)
-		{
-			pcBoard->Wait(KERNAL_SOUND_LEFT, KernalArgumentWord(0), KERNAL_AUDIO_WAIT_TICKS);
-		}
-		break;
-
-	case KERNAL_CALL_AUDIO_COUNTER:
-		gsKernalCall.uiA = 0;
-		pcBoard = KernalAudioBoard();
-		if (pcBoard && (pcBoard->Control(KERNAL_SOUND_LEFT, KERNAL_SOUND_GET_COUNTER, 0, &uiResult) == KERNAL_DRIVER_SUCCESS))
-		{
-			gsKernalCall.uiA = (uint16)uiResult;
-		}
+	case KERNAL_CALL_DEVICE:
+		gsKernalCall.uiA = KernalCallDevice(KernalArgumentLong(0));
 		break;
 
 	default:

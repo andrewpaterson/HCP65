@@ -21,12 +21,8 @@
 #define KERNAL_CALL_GET_ARGUMENT	3
 #define KERNAL_CALL_FILE_SIZE		4
 #define KERNAL_CALL_FILE_LOAD		5
-#define KERNAL_CALL_AUDIO_OPEN		6
-#define KERNAL_CALL_AUDIO_WRITE		7
-#define KERNAL_CALL_AUDIO_SET		8
-#define KERNAL_CALL_AUDIO_COUNTER	9
-#define KERNAL_CALL_AUDIO_WAIT		10			//A is the address the sound board's counter is waited for.
 #define KERNAL_CALL_FILE_READ		11			//Part of a file: the path, the offset, the destination and the size.
+#define KERNAL_CALL_DEVICE			12			//A device call's block (KernalDeviceCalls.h).  6 to 10 were the sound board's.
 
 //Call results (KERNAL_RESULT_* in HCP65User.h).
 #define KERNAL_PROCESS_NONE				0
@@ -61,9 +57,11 @@ extern "C" void		KernalCopCall(void);		//Called by Start.asm's COP handler.
 uint16	KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode);
 //The running process's memory, for drivers: a process address's physical address and how much of its bank is left,
 //and copies to and from it (false if the process hasn't all of the banks).
+uint8	KernalCurrentProcess(void);
 uint8*	KernalUserPointer(uint32 uiAddress, uint32* puiInBank);
 bool	KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 uiLength);
 bool	KernalCopyFromUser(uint8* puiDest, uint32 uiAddress, uint32 uiLength);
+bool	KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax);
 
 
 #endif // __KERNAL_PROCESS_H__

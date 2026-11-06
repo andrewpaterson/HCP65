@@ -1,10 +1,12 @@
 #ifndef __SOUND_BOARD_H__
 #define __SOUND_BOARD_H__
-#include "KernalSoundBoard.h"
+#include "KernalDriver.h"
+#include "UserLib/HCP65SoundBoard.h"
 
 
-//The HCP65 Sound Board (HCP65Lib/HCP65Audio.h): two 32KB sample RAMs played together, RAM A left and RAM B right.
-//Write copies samples into a RAM; Wait waits for the counter to reach the address uiValue (its interrupt).
+//The HCP65 Sound Board's driver: what a program asks of a board it opens (UserLib/HCP65SoundBoard.h).  Its units are
+//the two sample RAMs: Write copies samples into one; Control writes the registers and reads the counter; Wait waits
+//for the counter to reach the address uiValue (its interrupt).
 class CKernalSoundBoard : public CKernalDriver
 {
 protected:

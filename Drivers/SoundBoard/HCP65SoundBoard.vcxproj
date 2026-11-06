@@ -82,7 +82,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SoundBoard.h" />
-    <ClInclude Include="..\..\Kernal\KernalSoundBoard.h" />
+    <ClInclude Include="..\..\Libraries\UserLib\HCP65SoundBoard.h" />
     <ClInclude Include="..\..\Kernal\KernalDriver.h" />
   </ItemGroup>
   <ItemGroup>

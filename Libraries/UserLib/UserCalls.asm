@@ -162,95 +162,22 @@ _KernalFileRead:
 		cop 11
 		rtl
 
-		.section text.KernalAudioOpen
-		.global _KernalAudioOpen
-_KernalAudioOpen:
-		.width (A, X), 16
-		tsc
-		clc
-		adc 4
-		cop 6
-		rtl
-
-		.section text.KernalAudioWrite
-		.global _KernalAudioWrite.axy
-_KernalAudioWrite.axy:
-		.width (A, X), 16
-		pha
-		lda [S + 10]
-		pha
-		lda [S + 10]
-		pha
-		lda [S + 10]
-		pha
-		phy
-		phx
-		lda [S + 11]
-		pha
-		jsl _KernalAudioWrite
-		ply
-		ply
-		ply
-		ply
-		ply
-		ply
-		ply
-		rtl
-
-		.global _KernalAudioWrite
-_KernalAudioWrite:
-		.width (A, X), 16
-		tsc
-		clc
-		adc 4
-		cop 7
-		rtl
-
-		.section text.KernalAudioSetRegister
-		.global _KernalAudioSetRegister.ax
-_KernalAudioSetRegister.ax:
+		.section text.KernalDeviceCall
+		.global _KernalDeviceCall.ax
+_KernalDeviceCall.ax:
 		.width (A, X), 16
 		phx
 		pha
-		jsl _KernalAudioSetRegister
+		jsl _KernalDeviceCall
 		ply
 		ply
 		rtl
 
-		.global _KernalAudioSetRegister
-_KernalAudioSetRegister:
+		.global _KernalDeviceCall
+_KernalDeviceCall:
 		.width (A, X), 16
 		tsc
 		clc
 		adc 4
-		cop 8
-		rtl
-
-		.section text.KernalAudioGetCounter
-		.global _KernalAudioGetCounter
-_KernalAudioGetCounter:
-		.width (A, X), 16
-		tsc
-		clc
-		adc 4
-		cop 9
-		rtl
-
-
-		.section text.KernalAudioWait
-		.global _KernalAudioWait.a
-_KernalAudioWait.a:
-		.width (A, X), 16
-		pha
-		jsl _KernalAudioWait
-		ply
-		rtl
-
-		.global _KernalAudioWait
-_KernalAudioWait:
-		.width (A, X), 16
-		tsc
-		clc
-		adc 4
-		cop 10
+		cop 12
 		rtl

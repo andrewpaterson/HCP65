@@ -86,6 +86,7 @@
     <ClCompile Include="KernalProcess.cpp" />
     <ClCompile Include="KernalDebugPort.cpp" />
     <ClCompile Include="KernalDriverLoader.cpp" />
+    <ClCompile Include="KernalDeviceCalls.cpp" />
     <ClCompile Include="KernalExports.asm" />
     <ClCompile Include="KernalInterrupts.cpp" />
     <ClCompile Include="KernalInterrupts.asm" />
@@ -96,7 +97,7 @@
     <ClInclude Include="KernalDevices.h" />
     <ClInclude Include="KernalDriver.h" />
     <ClInclude Include="KernalDriverLoader.h" />
-    <ClInclude Include="KernalSoundBoard.h" />
+    <ClInclude Include="KernalDeviceCalls.h" />
     <ClInclude Include="KernalDebugPort.h" />
     <ClInclude Include="KernalInterrupts.h" />
     <ClInclude Include="KernalProcess.h" />

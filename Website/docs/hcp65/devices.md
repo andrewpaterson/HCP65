@@ -144,6 +144,22 @@ On the emulator, the kernel tells the debug port of each driver it loads (its fi
 its first board's socket) after filling in its addresses and before any of it runs.  While a
 debugger watches, that stops the run, so breakpoints can be bound in the driver first.
 
+### Using a board from a program
+
+A program uses a board through its driver with the device calls (`HCP65User.h`):
+
+- `KernalDeviceInfo(index, &info)` lists the boards in socket order: their names, revisions, how
+  many units their drivers have and whether a program has them open.
+- `KernalDeviceOpen(manufacturer, name, index, unit, &handle)` opens a unit of the index'th board
+  of that kind.  The program has the whole board until it closes its last handle on it, or exits;
+  meanwhile no other program can open it.
+- `KernalDeviceRead`, `KernalDeviceWrite`, `KernalDeviceControl` and `KernalDeviceWait` take the
+  handle.  What a unit, an offset, a control code or a wait value means is the driver's:
+  `HCP65SoundBoard.h` has the sound board's.
+- `KernalDeviceClose(handle)`.
+
+They are one kernel call (COP 12) with a block of arguments.
+
 ## Main memory
 
 Main memory is a 16MB space.  It is made of 2MB memory chips on memory boards, which plug into device

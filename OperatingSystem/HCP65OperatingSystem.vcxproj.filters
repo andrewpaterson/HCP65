@@ -15,6 +15,9 @@
     <ClCompile Include="..\Libraries\UserLib\UserCalls.asm">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserDevices.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm">
       <Filter>Source</Filter>
     </ClCompile>
@@ -24,6 +27,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Libraries\UserLib\HCP65User.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\UserLib\HCP65SoundBoard.h">
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,19 +8,51 @@
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
 #include "HCP65User.h"
+#include "HCP65SoundBoard.h"
 #include "ModPlaySamples.h"
 
 
-//The sound board's registers (HCP65Lib/HCP65Audio.h).
-#define AUDIO_FLAGS				0
-#define AUDIO_START_LOW			2
-#define AUDIO_START_HIGH		3
-#define AUDIO_END_LOW			4
-#define AUDIO_END_HIGH			5
-#define AUDIO_FLAG_ENABLE		0x40
-
-
 SModUnsigned8	gsModPlayBlock;		//A block as the sound board plays it (MODPLAY_BLOCK_FRAMES is MOD_MIX_BLOCK).
+uint16			guiModPlayLeft;		//The handles on the first sound board's units (KernalDeviceOpen).
+uint16			guiModPlayRight;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Writes one of the sound board's registers.
+//
+//////////////////////////////////////////////////////////////////////////
+void ModPlaySetRegister(uint16 uiRegister, uint16 uiValue)
+{
+	KernalDeviceControl(guiModPlayLeft, SOUND_BOARD_SET_REGISTER + uiRegister, uiValue, NULL);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The sound board's counter: the address of the samples it plays next.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 ModPlayCounter(void)
+{
+	uint32	uiCounter;
+
+	uiCounter = 0;
+	KernalDeviceControl(guiModPlayLeft, SOUND_BOARD_GET_COUNTER, 0, &uiCounter);
+	return (uint16)uiCounter;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Copies uiFrames of the block to the sound board's RAMs at uiWrite.
+//
+//////////////////////////////////////////////////////////////////////////
+void ModPlayWrite(uint16 uiWrite, uint16 uiFrames)
+{
+	KernalDeviceWrite(guiModPlayLeft, uiWrite, gsModPlayBlock.auiLeft, uiFrames);
+	KernalDeviceWrite(guiModPlayRight, uiWrite, gsModPlayBlock.auiRight, uiFrames);
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -38,7 +70,7 @@ uint16 ModPlayBlock(CModPlayer* pcPlayer, uint16 uiWrite, lsize uiFramesLeft)
 	uiFrames = pcPlayer->Render8(&gsModPlayBlock, uiFrames);
 	if (uiFrames > 0)
 	{
-		KernalAudioWrite(uiWrite, gsModPlayBlock.auiLeft, gsModPlayBlock.auiRight, (uint16)uiFrames);
+		ModPlayWrite(uiWrite, (uint16)uiFrames);
 	}
 	return (uint16)uiFrames;
 }
@@ -51,7 +83,7 @@ uint16 ModPlayBlock(CModPlayer* pcPlayer, uint16 uiWrite, lsize uiFramesLeft)
 //////////////////////////////////////////////////////////////////////////
 uint16 ModPlayQueued(uint16 uiWrite)
 {
-	return (uint16)((uiWrite - KernalAudioGetCounter()) & (MODPLAY_BUFFER_FRAMES - 1));
+	return (uint16)((uiWrite - ModPlayCounter()) & (MODPLAY_BUFFER_FRAMES - 1));
 }
 
 
@@ -59,7 +91,7 @@ uint16 ModPlayQueued(uint16 uiWrite)
 //
 // Plays the song through the sound board: renders MODPLAY_START_FRAMES,
 // starts it, then renders a block whenever there is room for one (it
-// keeps up to MODPLAY_MAX_QUEUED ahead, sleeping in KernalAudioWait until
+// keeps up to MODPLAY_MAX_QUEUED ahead, sleeping in KernalDeviceWait until
 // the board's interrupt says there is room), until the song ends.
 // The sound board plays its 32KB again and again, so after the song a
 // block of silence follows and it is stopped once it reaches it.
@@ -73,11 +105,11 @@ void ModPlaySong(CModPlayer* pcPlayer, lsize uiMaxFrames)
 	uint16	i;
 	bool	bStarted;
 
-	KernalAudioSetRegister(AUDIO_FLAGS, MODPLAY_RATE_SELECT);
-	KernalAudioSetRegister(AUDIO_START_LOW, 0);
-	KernalAudioSetRegister(AUDIO_START_HIGH, 0);
-	KernalAudioSetRegister(AUDIO_END_LOW, (MODPLAY_BUFFER_FRAMES - 1) & 0xFF);
-	KernalAudioSetRegister(AUDIO_END_HIGH, (MODPLAY_BUFFER_FRAMES - 1) >> 8);
+	ModPlaySetRegister(SOUND_BOARD_FLAGS, MODPLAY_RATE_SELECT);
+	ModPlaySetRegister(SOUND_BOARD_START_LOW, 0);
+	ModPlaySetRegister(SOUND_BOARD_START_HIGH, 0);
+	ModPlaySetRegister(SOUND_BOARD_END_LOW, (MODPLAY_BUFFER_FRAMES - 1) & 0xFF);
+	ModPlaySetRegister(SOUND_BOARD_END_HIGH, (MODPLAY_BUFFER_FRAMES - 1) >> 8);
 
 	uiWrite = 0;
 	uiPlayed = 0;
@@ -87,7 +119,7 @@ void ModPlaySong(CModPlayer* pcPlayer, lsize uiMaxFrames)
 		if (bStarted && (ModPlayQueued(uiWrite) > MODPLAY_MAX_QUEUED - MODPLAY_BLOCK_FRAMES))
 		{
 			//There's room for a block once the board has played up to this far behind the write.
-			KernalAudioWait((uint16)((uiWrite - (MODPLAY_MAX_QUEUED - MODPLAY_BLOCK_FRAMES)) & (MODPLAY_BUFFER_FRAMES - 1)));
+			KernalDeviceWait(guiModPlayLeft, (uiWrite - (MODPLAY_MAX_QUEUED - MODPLAY_BLOCK_FRAMES)) & (MODPLAY_BUFFER_FRAMES - 1), SOUND_BOARD_WAIT_TICKS);
 			continue;
 		}
 		uiWritten = ModPlayBlock(pcPlayer, uiWrite, uiMaxFrames - uiPlayed);
@@ -99,13 +131,13 @@ void ModPlaySong(CModPlayer* pcPlayer, lsize uiMaxFrames)
 		uiPlayed += uiWritten;
 		if (!bStarted && ((uiWrite >= MODPLAY_START_FRAMES) || (uiPlayed >= uiMaxFrames)))
 		{
-			KernalAudioSetRegister(AUDIO_FLAGS, AUDIO_FLAG_ENABLE | MODPLAY_RATE_SELECT);
+			ModPlaySetRegister(SOUND_BOARD_FLAGS, SOUND_BOARD_FLAG_ENABLE | MODPLAY_RATE_SELECT);
 			bStarted = true;
 		}
 	}
 	if (!bStarted)
 	{
-		KernalAudioSetRegister(AUDIO_FLAGS, AUDIO_FLAG_ENABLE | MODPLAY_RATE_SELECT);
+		ModPlaySetRegister(SOUND_BOARD_FLAGS, SOUND_BOARD_FLAG_ENABLE | MODPLAY_RATE_SELECT);
 	}
 
 	//Silence after the end, then wait for the last of the song to play.
@@ -114,12 +146,12 @@ void ModPlaySong(CModPlayer* pcPlayer, lsize uiMaxFrames)
 		gsModPlayBlock.auiLeft[i] = 0x80;
 		gsModPlayBlock.auiRight[i] = 0x80;
 	}
-	KernalAudioWrite(uiWrite, gsModPlayBlock.auiLeft, gsModPlayBlock.auiRight, MODPLAY_BLOCK_FRAMES);
+	ModPlayWrite(uiWrite, MODPLAY_BLOCK_FRAMES);
 	while (ModPlayQueued(uiWrite) != 0)
 	{
-		KernalAudioWait(uiWrite);
+		KernalDeviceWait(guiModPlayLeft, uiWrite, SOUND_BOARD_WAIT_TICKS);
 	}
-	KernalAudioSetRegister(AUDIO_FLAGS, MODPLAY_RATE_SELECT);
+	ModPlaySetRegister(SOUND_BOARD_FLAGS, MODPLAY_RATE_SELECT);
 }
 
 
@@ -157,7 +189,8 @@ int main(void)
 		free(pvFile);
 		return MODPLAY_EXIT_NO_FILE;
 	}
-	if (KernalAudioOpen() != KERNAL_RESULT_SUCCESS)
+	if ((KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0, SOUND_BOARD_LEFT, &guiModPlayLeft) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0, SOUND_BOARD_RIGHT, &guiModPlayRight) != KERNAL_DEVICE_SUCCESS))
 	{
 		free(pvFile);
 		return MODPLAY_EXIT_NO_SOUND_BOARD;
@@ -184,6 +217,8 @@ int main(void)
 		iResult = MODPLAY_EXIT_SUCCESS;
 	}
 	pcSong = NULL;
+	KernalDeviceClose(guiModPlayRight);
+	KernalDeviceClose(guiModPlayLeft);
 
 	ObjectsKill(false);
 	DataIOKill();
