@@ -58,6 +58,7 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 	szProject.Kill();
 
 	mcBuilder.SetLimit(mcImage.GetLimit());
+	mcBuilder.SetNoFloats(true);  //The kernal has no floats (HCP65Kernal.hcp65build's NoFloats).
 	bResult &= mcBuilder.Link();
 	mszErrors.Append(mcBuilder.GetErrors());
 	if (!bResult)
