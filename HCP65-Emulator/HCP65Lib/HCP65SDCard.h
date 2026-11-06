@@ -4,7 +4,9 @@
 #include "HCP65Device.h"
 
 
-#define HCP65_SD_ROM_SIZE				0x400
+#define HCP65_SD_NAME					"SD Card Board"
+#define HCP65_SD_DRIVER					"SDCARD.DRV"
+#define HCP65_SD_REGISTERS				0x400
 #define HCP65_SD_NUM_SOCKETS			4
 
 //Registers, from $400.  They repeat every 32 bytes; $410-$41F decode nothing.
@@ -90,7 +92,7 @@ struct SHCP65SDCardSocket
 class CHCP65SDCard : public CHCP65Device
 {
 protected:
-	uint8				mauiROM[HCP65_SD_ROM_SIZE];
+	CDeviceROM		mcROM;
 
 	//The board.
 	uint8				muiFlags;
@@ -114,7 +116,7 @@ protected:
 	uint32				muiSectorsWritten;
 
 public:
-	void	Init(const char* szIdentifier = "HCP65 SD Card Board");
+	void	Init(void);
 	void	Kill(void) override;
 
 	bool	InsertCard(const char* szImageFilename, bool bWriteBack, int iSocket = 0);

@@ -8,7 +8,7 @@
 #include "KernalInterrupts.h"
 
 
-SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 CKernalSDCard	gacKernalSDCards[KERNAL_SD_NUM_SOCKETS];
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
@@ -56,10 +56,21 @@ int main(void)
 	gcConstructors.Init();
 
 	KernalScanDevices();
+	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
+	{
+		if (gasKernalDevices[uiSlot].uiState == KERNAL_DEVICE_PRESENT)
+		{
+			gsKernalStatus.uiDevices |= (uint32)1 << uiSlot;
+		}
+		else if (gasKernalDevices[uiSlot].uiState != KERNAL_DEVICE_NONE)
+		{
+			gsKernalStatus.uiBadDevices |= (uint32)1 << uiSlot;
+		}
+	}
 	gsKernalStatus.uiState = KERNAL_STATE_DEVICES_SCANNED;
 	KernalInitInterrupts();
 
-	psSDCardBoard = KernalFindDevice(KERNAL_SD_CARD_NAME);
+	psSDCardBoard = KernalFindDevice(KERNAL_DEVICE_MANUFACTURER, KERNAL_SD_CARD_NAME);
 	if (!psSDCardBoard)
 	{
 		gsKernalStatus.uiState = KERNAL_STATE_NO_SD_CARD_BOARD;

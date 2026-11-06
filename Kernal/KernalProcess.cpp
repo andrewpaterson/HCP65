@@ -489,7 +489,7 @@ static uint8* KernalDebugPort(void)
 {
 	if (!gbKernalDebugPortLooked)
 	{
-		gpsKernalDebugPort = KernalFindDevice(KERNAL_DEBUG_PORT_NAME);
+		gpsKernalDebugPort = KernalFindDevice(KERNAL_DEVICE_MANUFACTURER, KERNAL_DEBUG_PORT_NAME);
 		gbKernalDebugPortLooked = true;
 	}
 	return gpsKernalDebugPort ? (uint8*)gpsKernalDebugPort->uiAddress : NULL;
@@ -736,7 +736,7 @@ static uint16 KernalCallAudioOpen(void)
 
 	if (!gpsKernalSoundBoard)
 	{
-		gpsKernalSoundBoard = KernalFindDevice(KERNAL_SOUND_BOARD_NAME);
+		gpsKernalSoundBoard = KernalFindDevice(KERNAL_DEVICE_MANUFACTURER, KERNAL_SOUND_BOARD_NAME);
 		if (!gpsKernalSoundBoard)
 		{
 			return KERNAL_PROCESS_NOT_FOUND;

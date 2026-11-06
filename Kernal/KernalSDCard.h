@@ -4,7 +4,7 @@
 #include "KernalDevices.h"
 
 
-#define KERNAL_SD_CARD_NAME			"HCP65 SD Card Board"
+#define KERNAL_SD_CARD_NAME			"SD Card Board"
 
 #define KERNAL_SD_SUCCESS			0
 #define KERNAL_SD_NO_CARD			1		//No response to CMD8.

@@ -4,7 +4,7 @@
 
 
 #define KERNAL_BOOT_FILE				"\\boot.exe"
-#define KERNAL_SOUND_BOARD_NAME			"HCP65 Sound Board"
+#define KERNAL_SOUND_BOARD_NAME			"Sound Board"
 #define KERNAL_SD_NUM_SOCKETS			4
 #define KERNAL_NO_BOOT_ARGUMENT			0xFFFF		//guiKernalBootArgument in the ROM: boot.exe's argument is 0.
 #define KERNAL_HEAP_START				0x440000	//Main memory on the 4MB card, after the math tables (banks $40-$43).
@@ -37,6 +37,8 @@ struct SKernalStatus
 	uint16	uiSDCards;		//Bit n set: the card in socket n came up.
 	uint16	uiSDSocket;		//The socket whose card's volume is mounted.
 	uint32	uiStrayInterrupts;	//Bit n set: device n interrupted with no handler, and was reset (KernalInterrupts.asm).
+	uint32	uiDevices;			//Bit n set: socket n holds a device whose ROM describes it (KERNAL_DEVICE_PRESENT).
+	uint32	uiBadDevices;		//Bit n set: socket n holds a board whose ROM isn't usable or that is in the wrong socket.
 };
 
 

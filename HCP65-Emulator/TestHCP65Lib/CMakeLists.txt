@@ -45,6 +45,7 @@ set(MICROPROCESSORLIB_DIR "${COMMON_DIR}/MicroprocessorLib")
 set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
 set(EMULATORDEBUGLIB_DIR "${COMMON_DIR}/EmulatorDebugLib")
 set(ASSEMBLER65LIB_DIR "${HCP65_LIBRARIES_DIR}/Assembler65Lib")
+set(DEVICEROMLIB_DIR "${HCP65_LIBRARIES_DIR}/DeviceRomLib")
 set(HCP65LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../HCP65Lib")
 set(TESTHCP65LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/TestHCP65Lib")
 
@@ -108,6 +109,8 @@ vcxproj_sources(THREADLIB_SOURCES "${THREADLIB_DIR}/ThreadLib.vcxproj")
 vcxproj_sources(EMULATORDEBUGLIB_SOURCES "${EMULATORDEBUGLIB_DIR}/EmulatorDebugLib.vcxproj")
 
 vcxproj_sources(ASSEMBLER65LIB_SOURCES "${ASSEMBLER65LIB_DIR}/Assembler65Lib.vcxproj")
+
+vcxproj_sources(DEVICEROMLIB_SOURCES "${DEVICEROMLIB_DIR}/DeviceRomLib.vcxproj")
 
 vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 
@@ -216,8 +219,11 @@ target_link_libraries(ThreadLib PUBLIC BaseLib)
 add_library(EmulatorDebugLib STATIC ${EMULATORDEBUGLIB_SOURCES})
 target_link_libraries(EmulatorDebugLib PUBLIC ThreadLib MicroprocessorLib StandardLib BaseLib)
 
+add_library(DeviceRomLib STATIC ${DEVICEROMLIB_SOURCES})
+target_link_libraries(DeviceRomLib PUBLIC BaseLib)
+
 add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
-target_link_libraries(HCP65Lib PUBLIC EmulatorDebugLib Assembler65Lib MicroprocessorLib StandardLib BaseLib)
+target_link_libraries(HCP65Lib PUBLIC DeviceRomLib EmulatorDebugLib Assembler65Lib MicroprocessorLib StandardLib BaseLib)
 
 add_executable(TestHCP65Lib ${TESTHCP65LIB_SOURCES})
 target_include_directories(TestHCP65Lib PRIVATE "${HCP65_ROOT}/HCP65-Emulator")

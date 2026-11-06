@@ -30,20 +30,27 @@ static const uint8 gauiHCP65SDCID[15] = { 0x03, 'H', 'C', 'H', 'C', 'P', '6', '5
 // The sockets start empty.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65SDCard::Init(const char* szIdentifier)
+void CHCP65SDCard::Init(void)
 {
-	size	uiLength;
 	int		i;
 
 	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
-	memset(mauiROM, 0xFF, HCP65_SD_ROM_SIZE);
-	uiLength = strlen(szIdentifier);
-	if (uiLength >= HCP65_SD_ROM_SIZE)
-	{
-		uiLength = HCP65_SD_ROM_SIZE - 1;
-	}
-	memcpy(mauiROM, szIdentifier, uiLength);
-	mauiROM[uiLength] = 0;
+	mcROM.Init(HCP65_SD_NAME, HCP65_DEVICE_MANUFACTURER, 0, DEVICE_BUS_32KB, DEVICE_MAIN_BUS_MASTER, HCP65_SD_DRIVER);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_ADDRESS_LOW, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_ADDRESS_HIGH, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_ADDRESS_BANK, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_GPIO, DEVICE_REGISTER_READ);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_GPIO, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_DATA_COUNT_LOW, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_DATA_COUNT_HIGH, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_CRC_COUNT_LOW, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_CRC_COUNT_HIGH, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_CLEAR_INTERRUPT, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_READ_START, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_FLAGS, DEVICE_REGISTER_READ);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_FLAGS, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_WRITE_DATA_LOW, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegister(HCP65_SD_REGISTERS + HCP65_SD_WRITE_DATA_HIGH, DEVICE_REGISTER_WRITE);
 
 	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
 	{
@@ -286,9 +293,9 @@ bool CHCP65SDCard::HasCard(void)
 //////////////////////////////////////////////////////////////////////////
 uint8 CHCP65SDCard::Read(uint32 uiOffset)
 {
-	if (uiOffset < HCP65_SD_ROM_SIZE)
+	if (uiOffset < DEVICE_ROM_SIZE)
 	{
-		return mauiROM[uiOffset];
+		return mcROM.Read(uiOffset);
 	}
 	if (uiOffset < 0x800)
 	{
@@ -304,7 +311,7 @@ uint8 CHCP65SDCard::Read(uint32 uiOffset)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::Write(uint32 uiOffset, uint8 uiValue)
 {
-	if ((uiOffset >= HCP65_SD_ROM_SIZE) && (uiOffset < 0x800))
+	if ((uiOffset >= DEVICE_ROM_SIZE) && (uiOffset < 0x800))
 	{
 		WriteRegister(uiOffset & 0x1F, uiValue);
 	}

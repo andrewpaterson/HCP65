@@ -5,14 +5,19 @@
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A small slot's device: its ROM holds its name.
+// A small slot's device.  The kernal drives it itself: its ROM names no
+// driver.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65DebugPort::Init(void)
 {
 	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
-	memset(mauiROM, 0xFF, HCP65_DEBUG_PORT_ROM_SIZE);
-	memcpy(mauiROM, HCP65_DEBUG_PORT_NAME, strlen(HCP65_DEBUG_PORT_NAME) + 1);
+	mcROM.Init(HCP65_DEBUG_PORT_NAME, HCP65_DEVICE_MANUFACTURER, 0, DEVICE_BUS_32KB, 0, "");
+	mcROM.AddRegister(HCP65_DEBUG_PORT_COMMAND, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegisters(HCP65_DEBUG_PORT_PROCESS, 3, DEVICE_REGISTER_READ);
+	mcROM.AddRegisters(HCP65_DEBUG_PORT_PROCESS, 3, DEVICE_REGISTER_WRITE);
+	mcROM.AddRegisters(HCP65_DEBUG_PORT_NAME_BUFFER, DEBUG_PROCESS_NAME_SIZE, DEVICE_REGISTER_READ);
+	mcROM.AddRegisters(HCP65_DEBUG_PORT_NAME_BUFFER, DEBUG_PROCESS_NAME_SIZE - 1, DEVICE_REGISTER_WRITE);
 	muiProcess = 0;
 	muiExitCode = 0;
 	memset(mszName, 0, sizeof(mszName));
@@ -41,9 +46,9 @@ void CHCP65DebugPort::Kill(void)
 //////////////////////////////////////////////////////////////////////////
 uint8 CHCP65DebugPort::Read(uint32 uiOffset)
 {
-	if (uiOffset < HCP65_DEBUG_PORT_ROM_SIZE)
+	if (uiOffset < DEVICE_ROM_SIZE)
 	{
-		return mauiROM[uiOffset];
+		return mcROM.Read(uiOffset);
 	}
 	switch (uiOffset)
 	{

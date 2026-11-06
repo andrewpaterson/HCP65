@@ -173,7 +173,7 @@ void TestHCP65AudioBoard(void)
 	cHCP65.Write(0x100005, 0x01);
 	AssertFalse(cAudio.IsHeldInReset());
 	AssertInt(0x01, cHCP65.Read(0x100005));
-	AssertInt('H', cHCP65.Read(0x180000));
+	AssertInt(0x1A, cHCP65.Read(0x180000));		//The device ROM's magic, $C0DAFE1A.
 	cHCP65.Write(0x180402, 0x10);
 	cHCP65.Write(0x180403, 0x00);
 	cHCP65.Write(0x180404, 0x13);
@@ -366,12 +366,83 @@ void TestHCP65MemoryFill(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A device ROM: the magic, the board's description, the register list in
+// order whatever order it was given in, erased flash after it and bytes
+// that sum to 0.  The sound board's, as the bus reads it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65DeviceROM(void)
+{
+	CDeviceROM		cROM;
+	CHCP65Audio		cAudio;
+	uint8*			puiROM;
+	uint8			uiSum;
+	uint32			i;
+	char			szName[DEVICE_ROM_NAME_LENGTH];
+
+	cROM.Init("Test Board", "Tester", 3, DEVICE_BUS_128KB, DEVICE_MAIN_BUS_MASTER | DEVICE_MAIN_BUS_WINDOW_B, "TEST.DRV");
+	AssertTrue(cROM.AddRegister(0x405, DEVICE_REGISTER_WRITE));
+	AssertTrue(cROM.AddRegister(0x400, DEVICE_REGISTER_WRITE));
+	AssertTrue(cROM.AddRegister(0x405, DEVICE_REGISTER_READ));
+	AssertFalse(cROM.AddRegister(0x400, DEVICE_REGISTER_WRITE));
+	AssertInt(3, cROM.NumRegisters());
+
+	puiROM = cROM.GetROM();
+	AssertInt(0x1A, puiROM[0]);
+	AssertInt(0xFE, puiROM[1]);
+	AssertInt(0xDA, puiROM[2]);
+	AssertInt(0xC0, puiROM[3]);
+	AssertInt(DEVICE_ROM_FORMAT, puiROM[DEVICE_ROM_FORMAT_OFFSET]);
+	AssertInt(3, puiROM[DEVICE_ROM_REVISION_OFFSET]);
+	AssertInt(DEVICE_BUS_128KB, puiROM[DEVICE_ROM_DEVICE_BUS_OFFSET]);
+	AssertInt(DEVICE_MAIN_BUS_MASTER | DEVICE_MAIN_BUS_WINDOW_B, puiROM[DEVICE_ROM_MAIN_BUS_OFFSET]);
+	AssertInt(0xFF, puiROM[0x008]);
+	AssertString("Test Board", (char*)&puiROM[DEVICE_ROM_NAME_OFFSET]);
+	AssertInt(0, puiROM[DEVICE_ROM_NAME_OFFSET + DEVICE_ROM_NAME_LENGTH - 1]);
+	AssertString("Tester", (char*)&puiROM[DEVICE_ROM_MAKER_OFFSET]);
+	AssertString("TEST.DRV", (char*)&puiROM[DEVICE_ROM_DRIVER_OFFSET]);
+	AssertInt(3, puiROM[DEVICE_ROM_COUNT_OFFSET]);
+	AssertInt(0, puiROM[DEVICE_ROM_COUNT_OFFSET + 1]);
+
+	static const uint8 auiRegisters[] = { 0x00, 0x04, 1,  0x05, 0x04, 0,  0x05, 0x04, 1 };
+	AssertTrue(memcmp(auiRegisters, &puiROM[DEVICE_ROM_REGISTERS_OFFSET], sizeof(auiRegisters)) == 0);
+	AssertInt(0xFF, puiROM[DEVICE_ROM_REGISTERS_OFFSET + sizeof(auiRegisters)]);
+
+	uiSum = 0;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		uiSum = (uint8)(uiSum + puiROM[i]);
+	}
+	AssertInt(0, uiSum);
+
+	cAudio.Init();
+	AssertInt(0x1A, cAudio.Read(0));
+	for (i = 0; i < DEVICE_ROM_NAME_LENGTH; i++)
+	{
+		szName[i] = (char)cAudio.Read(DEVICE_ROM_NAME_OFFSET + i);
+	}
+	AssertString("Sound Board", szName);
+	AssertInt(DEVICE_BUS_128KB, cAudio.Read(DEVICE_ROM_DEVICE_BUS_OFFSET));
+	AssertInt(11, cAudio.Read(DEVICE_ROM_COUNT_OFFSET));
+	uiSum = 0;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		uiSum = (uint8)(uiSum + cAudio.Read(i));
+	}
+	AssertInt(0, uiSum);
+	cAudio.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
 {
 	BeginTests();
 
+	TestHCP65DeviceROM();
 	TestHCP65BootAndUserMode();
 	TestHCP65AudioBoard();
 	TestHCP65AudioFromProgram();

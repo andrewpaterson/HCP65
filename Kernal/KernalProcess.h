@@ -4,7 +4,7 @@
 
 
 //The emulator's debug port (HCP65Lib/HCP65DebugPort.h): the kernal tells it of each process started and ended.
-#define KERNAL_DEBUG_PORT_NAME			"HCP65 Debug Port"
+#define KERNAL_DEBUG_PORT_NAME			"Debug Port"
 #define KERNAL_DEBUG_PORT_COMMAND		0x400
 #define KERNAL_DEBUG_PORT_PROCESS		0x401
 #define KERNAL_DEBUG_PORT_EXIT_LOW		0x402

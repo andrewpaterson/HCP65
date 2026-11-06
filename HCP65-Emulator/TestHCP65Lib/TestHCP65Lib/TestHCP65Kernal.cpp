@@ -73,11 +73,13 @@ struct STestKernalStatus
 	uint16	uiSDCards;
 	uint16	uiSDSocket;
 	uint32	uiStrayInterrupts;
+	uint32	uiDevices;
+	uint32	uiBadDevices;
 };
 
 
 //A board the kernal knows nothing of that starts interrupting once armed (and enabled): the kernal has no handler for it,
-//so it resets it, which quietens it for good.
+//so it resets it, which quietens it for good.  Its ROM is blank ($00), so the kernal's scan finds it unrecognised.
 class CTestStrayDevice : public CHCP65Device
 {
 protected:
@@ -86,7 +88,7 @@ protected:
 
 public:
 	void	Init(void)						{ CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE); mbArmed = false; mbQuiet = false; }
-	uint8	Read(uint32 uiOffset) override	{ return 0xFF; }
+	uint8	Read(uint32 uiOffset) override	{ return (uiOffset < DEVICE_ROM_SIZE) ? 0x00 : 0xFF; }
 	void	Write(uint32 uiOffset, uint8 uiValue) override {}
 	void	Reset(void) override			{ mbQuiet = mbArmed; }
 	bool	IsInterrupting(void) override	{ return mbArmed && !mbQuiet && !mbHeldInReset; }
@@ -118,6 +120,8 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 	psStatus->uiSDCards = (uint16)(p[28] | (p[29] << 8));
 	psStatus->uiSDSocket = (uint16)(p[30] | (p[31] << 8));
 	psStatus->uiStrayInterrupts = (uint32)p[32] | ((uint32)p[33] << 8) | ((uint32)p[34] << 16) | ((uint32)p[35] << 24);
+	psStatus->uiDevices = (uint32)p[36] | ((uint32)p[37] << 8) | ((uint32)p[38] << 16) | ((uint32)p[39] << 24);
+	psStatus->uiBadDevices = (uint32)p[40] | ((uint32)p[41] << 8) | ((uint32)p[42] << 16) | ((uint32)p[43] << 24);
 }
 
 
@@ -483,6 +487,10 @@ void TestHCP65KernalBoot(void)
 	AssertFalse(cHCP65.IsContention());
 	AssertInt(HCP65_DEBUG_FILL_BYTE, cHCP65.GetMainMemory()[0x300000]);
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
+
+	//The scan found the three boards by their device ROMs, and the stray device's blank ROM unrecognised.
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
+	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiBadDevices);
 	AssertTrue(cStray.IsQuiet());
 	AssertInt(uiSeconds, (uint32)sStatus.uiBootArgument);
 

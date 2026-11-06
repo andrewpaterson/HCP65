@@ -10,23 +10,18 @@
 
 //////////////////////////////////////////////////////////////////////////
 //
-// szIdentifier is put in the device ROM (the rest of it is erased flash).
+// Only the first of the four Stage B register groups is fitted.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65Audio::Init(const char* szIdentifier)
+void CHCP65Audio::Init(void)
 {
-	size	uiLength;
-
 	CHCP65Device::Init(HCP65_LARGE_SLOT_SIZE);
 
-	memset(mauiROM, 0xFF, HCP65_AUDIO_ROM_SIZE);
-	uiLength = strlen(szIdentifier);
-	if (uiLength >= HCP65_AUDIO_ROM_SIZE)
-	{
-		uiLength = HCP65_AUDIO_ROM_SIZE - 1;
-	}
-	memcpy(mauiROM, szIdentifier, uiLength);
-	mauiROM[uiLength] = 0;
+	mcROM.Init(HCP65_AUDIO_NAME, HCP65_DEVICE_MANUFACTURER, 0, DEVICE_BUS_128KB, 0, HCP65_AUDIO_DRIVER);
+	mcROM.AddRegister(HCP65_AUDIO_REGISTERS + HCP65_AUDIO_FLAGS, DEVICE_REGISTER_READ);
+	mcROM.AddRegister(HCP65_AUDIO_REGISTERS + HCP65_AUDIO_START_LOW, DEVICE_REGISTER_READ);
+	mcROM.AddRegister(HCP65_AUDIO_REGISTERS + HCP65_AUDIO_START_HIGH, DEVICE_REGISTER_READ);
+	mcROM.AddRegisters(HCP65_AUDIO_REGISTERS + HCP65_AUDIO_FLAGS, HCP65_AUDIO_INTERRUPT_HIGH + 1, DEVICE_REGISTER_WRITE);
 
 	mpuiRAMA = (uint8*)malloc(HCP65_AUDIO_RAM_SIZE);
 	mpuiRAMB = (uint8*)malloc(HCP65_AUDIO_RAM_SIZE);
@@ -93,7 +88,7 @@ uint8 CHCP65Audio::Read(uint32 uiOffset)
 	}
 	if (uiOffset < HCP65_AUDIO_REGISTERS)
 	{
-		return mauiROM[uiOffset];
+		return mcROM.Read(uiOffset);
 	}
 	if (uiOffset < 0x800)
 	{

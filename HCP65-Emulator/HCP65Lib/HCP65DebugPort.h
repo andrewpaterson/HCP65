@@ -5,8 +5,7 @@
 #include "HCP65Device.h"
 
 
-#define HCP65_DEBUG_PORT_NAME			"HCP65 Debug Port"
-#define HCP65_DEBUG_PORT_ROM_SIZE		0x400		//The device identifier, $0000 to $03FF.
+#define HCP65_DEBUG_PORT_NAME			"Debug Port"
 #define HCP65_DEBUG_PORT_COMMAND		0x400		//Write: HCP65_DEBUG_PORT_STARTED, HCP65_DEBUG_PORT_ENDED or HCP65_DEBUG_PORT_BANK.
 #define HCP65_DEBUG_PORT_PROCESS		0x401		//The process's ID (HCP65_DEBUG_PORT_BANK: the bank).
 #define HCP65_DEBUG_PORT_EXIT_LOW		0x402		//Its exit code, once it has ended.
@@ -37,7 +36,7 @@ typedef CArrayTemplate<SHCP65DebugPortEvent>	CArrayHCP65DebugPortEvents;
 class CHCP65DebugPort : public CHCP65Device
 {
 protected:
-	uint8						mauiROM[HCP65_DEBUG_PORT_ROM_SIZE];
+	CDeviceROM				mcROM;
 	uint8						muiProcess;
 	uint16						muiExitCode;
 	char						mszName[DEBUG_PROCESS_NAME_SIZE];

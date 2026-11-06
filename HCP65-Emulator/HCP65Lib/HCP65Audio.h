@@ -3,7 +3,8 @@
 #include "HCP65Device.h"
 
 
-#define HCP65_AUDIO_ROM_SIZE			0x400		//The device identifier, $00000 to $003FF.
+#define HCP65_AUDIO_NAME				"Sound Board"
+#define HCP65_AUDIO_DRIVER				"SOUND.DRV"
 #define HCP65_AUDIO_REGISTERS			0x400		//$00400 to $007FF, eight registers repeating every 32 bytes.
 #define HCP65_AUDIO_RAM_A				0x10000		//32KB of left samples.
 #define HCP65_AUDIO_RAM_B				0x18000		//32KB of right samples.
@@ -40,7 +41,7 @@
 class CHCP65Audio : public CHCP65Device
 {
 protected:
-	uint8		mauiROM[HCP65_AUDIO_ROM_SIZE];
+	CDeviceROM	mcROM;
 	uint8*		mpuiRAMA;
 	uint8*		mpuiRAMB;
 
@@ -61,7 +62,7 @@ protected:
 	uint64		muiDroppedFrames;
 
 public:
-	void	Init(const char* szIdentifier = "HCP65 Sound Board");
+	void	Init(void);
 	void	Kill(void) override;
 
 	uint8	Read(uint32 uiOffset) override;

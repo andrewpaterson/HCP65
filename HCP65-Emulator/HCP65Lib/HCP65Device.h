@@ -1,11 +1,14 @@
 #ifndef __HCP65_DEVICE_H__
 #define __HCP65_DEVICE_H__
 #include "BaseLib/PrimitiveTypes.h"
+#include "DeviceRomLib/DeviceROM.h"
 
 
 #define HCP65_NEVER				0xFFFFFFFFFFFFFFFFULL	//A NextEvent that will not happen.
 #define HCP65_SMALL_SLOT_SIZE	0x8000					//Devices 0 to 7.
 #define HCP65_LARGE_SLOT_SIZE	0x20000					//Devices 16 to 19.
+
+#define HCP65_DEVICE_MANUFACTURER	"HCP65"				//The HCP65's own boards' device ROMs.
 
 
 class CHCP65;

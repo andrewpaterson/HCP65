@@ -16,12 +16,12 @@ static void KernalSlotAddress(uint16 uiSlot, uint32* puiAddress, uint32* puiSize
 	if ((uiSlot >= 1) && (uiSlot <= 7))
 	{
 		*puiAddress = 0x100000 + ((uint32)uiSlot << 15);
-		*puiSize = 0x8000;
+		*puiSize = KERNAL_SMALL_SLOT_SIZE;
 	}
 	else if ((uiSlot >= 16) && (uiSlot <= 19))
 	{
 		*puiAddress = 0x180000 + ((uint32)(uiSlot - 16) << 17);
-		*puiSize = 0x20000;
+		*puiSize = KERNAL_LARGE_SLOT_SIZE;
 	}
 	else
 	{
@@ -33,60 +33,101 @@ static void KernalSlotAddress(uint16 uiSlot, uint32* puiAddress, uint32* puiSize
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Reads each socket's identifier: the zero terminated string at the start
-// of its ROM.  A socket is empty if its first byte reads $FF (nothing
-// drives the bus) or 0.
+// What the device ROM at the start of psDevice's slot says is there
+// (KERNAL_DEVICE_*).  The whole 1KB is summed for the checksum.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 KernalCheckDeviceROM(SKernalDevice* psDevice)
+{
+	SKernalDeviceROM*	psROM;
+	uint8*				puiROM;
+	uint16				i;
+	uint8				uiSum;
+
+	psROM = (SKernalDeviceROM*)psDevice->uiAddress;
+	if (psROM->uiMagic == KERNAL_DEVICE_ROM_EMPTY)
+	{
+		return KERNAL_DEVICE_NONE;
+	}
+	if ((psROM->uiMagic != DEVICE_ROM_MAGIC) || (psROM->uiFormat != DEVICE_ROM_FORMAT))
+	{
+		return KERNAL_DEVICE_UNRECOGNISED;
+	}
+
+	puiROM = (uint8*)psROM;
+	uiSum = 0;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		uiSum = (uint8)(uiSum + puiROM[i]);
+	}
+	if (uiSum != 0)
+	{
+		return KERNAL_DEVICE_UNRECOGNISED;
+	}
+
+	if ((psROM->szName[0] == 0) ||
+		(psROM->szName[DEVICE_ROM_NAME_LENGTH - 1] != 0) ||
+		(psROM->szManufacturer[DEVICE_ROM_MAKER_LENGTH - 1] != 0) ||
+		(psROM->szDriverFile[DEVICE_ROM_DRIVER_LENGTH - 1] != 0) ||
+		(psROM->uiNumRegisters > DEVICE_ROM_MAX_REGISTERS) ||
+		(psROM->uiDeviceBus > DEVICE_BUS_128KB))
+	{
+		return KERNAL_DEVICE_UNRECOGNISED;
+	}
+
+	if ((psROM->uiDeviceBus == DEVICE_BUS_128KB) && (psDevice->uiSize < KERNAL_LARGE_SLOT_SIZE))
+	{
+		return KERNAL_DEVICE_WRONG_SOCKET;
+	}
+	return KERNAL_DEVICE_PRESENT;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Reads each socket's device ROM.  Devices stay held in reset: only a
+// present device's driver enables it.
 //
 //////////////////////////////////////////////////////////////////////////
 void KernalScanDevices(void)
 {
 	SKernalDevice*		psDevice;
-	volatile uint8*		puiROM;
 	uint16				uiSlot;
-	uint16				i;
-	uint8				c;
 
 	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
 	{
 		psDevice = &gasKernalDevices[uiSlot];
 		KernalSlotAddress(uiSlot, &psDevice->uiAddress, &psDevice->uiSize);
-		psDevice->bPresent = false;
-		psDevice->szName[0] = 0;
-		if (psDevice->uiAddress == 0)
+		psDevice->uiState = KERNAL_DEVICE_NONE;
+		psDevice->psROM = NULL;
+		if (psDevice->uiAddress != 0)
 		{
-			continue;
-		}
-
-		puiROM = (volatile uint8*)psDevice->uiAddress;
-		for (i = 0; i < KERNAL_DEVICE_NAME_LENGTH - 1; i++)
-		{
-			c = puiROM[i];
-			if ((c == 0) || (c == 0xFF))
+			psDevice->uiState = KernalCheckDeviceROM(psDevice);
+			if (psDevice->uiState == KERNAL_DEVICE_PRESENT)
 			{
-				break;
+				psDevice->psROM = (SKernalDeviceROM*)psDevice->uiAddress;
 			}
-			psDevice->szName[i] = (char)c;
 		}
-		psDevice->szName[i] = 0;
-		psDevice->bPresent = i > 0;
 	}
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The first present device whose identifier is szName, or NULL.
+// The first present device made by szManufacturer called szName, or NULL.
 //
 //////////////////////////////////////////////////////////////////////////
-SKernalDevice* KernalFindDevice(const char* szName)
+SKernalDevice* KernalFindDevice(const char* szManufacturer, const char* szName)
 {
-	uint16	uiSlot;
+	SKernalDevice*	psDevice;
+	uint16			uiSlot;
 
 	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
 	{
-		if (gasKernalDevices[uiSlot].bPresent && (strcmp(gasKernalDevices[uiSlot].szName, szName) == 0))
+		psDevice = &gasKernalDevices[uiSlot];
+		if (psDevice->psROM && (strcmp(psDevice->psROM->szName, szName) == 0) && (strcmp(psDevice->psROM->szManufacturer, szManufacturer) == 0))
 		{
-			return &gasKernalDevices[uiSlot];
+			return psDevice;
 		}
 	}
 	return NULL;
