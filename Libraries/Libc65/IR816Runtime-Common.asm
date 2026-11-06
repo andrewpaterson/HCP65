@@ -1305,7 +1305,9 @@ R816_BcdSubtract_Done:
 ; the remainder (A) as the quotient's bits shift into its bottom.  d = 0 is q = $FFFF, r = n; d >= $8000 is q = 1 or 0
 ; (so the remainder never overflows A); n < d is q = 0.  When n's high byte is below d the quotient is a byte: the
 ; remainder starts as nH and nL is 8 steps (nL put in the top of D + 15); otherwise it is 16 steps.  The quotient is
-; left at D + 15 and X is 0 at the end, so the 32 bit divide can return through them.
+; left at D + 15 and X is 0 at the end, so the 32 bit divide can return through them.  R816_UDiv16 also leaves the
+; remainder at D + 5, where a urem of the same operands written straight after it takes it
+; (CIR816Backend::RemainderLeft).
 		.section text.R816_UDiv16
 		.global R816_UDiv16
 		.global R816_URem16
@@ -1313,6 +1315,7 @@ R816_BcdSubtract_Done:
 		.relax
 R816_UDiv16:
 		jsr R816_UDiv16_Divide
+		sta [D + 5]
 		lda [D + 15]
 		ldx 0
 		rtl
@@ -1512,6 +1515,8 @@ R816_UDiv16_Zero:
 ; start).  A dividend under 65536 with a wider divisor is a quotient of 0.  Otherwise (both wide) the quotient is
 ; under 65536: its high word is 0, the dividend's high word is the remainder to start, and 16 steps on the remainder
 ; at D + 5 and D + 7 take the dividend's low word, the quotient bit (C) rotated into it as its next bit comes out.
+; Every path leaves the remainder at D + 5 and D + 7 (the short one clears D + 7 before R816_UDiv16 writes D + 5), for
+; a urem straight after R816_UDiv32 (CIR816Backend::RemainderLeft).
 		.section text.R816_UDiv32
 		.global R816_UDiv32
 		.global R816_URem32
@@ -1521,6 +1526,7 @@ R816_UDiv32:
 		lda [D + 17]
 		ora [D + 21]
 		bne R816_UDiv32_Wide
+		stz [D + 7]
 		jml R816_UDiv16
 R816_UDiv32_Wide:
 		jsr R816_Div32_Divide
