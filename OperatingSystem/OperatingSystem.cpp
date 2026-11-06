@@ -14,7 +14,8 @@ uint32	guiProduct;
 //////////////////////////////////////////////////////////////////////////
 //
 // The test's boot.exe: loads the maths tables from the SD card into main
-// memory (it is built without them, MathTables="false", so it can),
+// memory (MULT, and INVERT's upper half; it is built without them,
+// MathTables="false", so it can),
 // multiplies and divides and gives the kernal a value, then runs
 // modplay.exe (built with the tables) with its own argument and exits
 // with modplay's exit code (or 100 and why it couldn't run).
@@ -30,7 +31,7 @@ int main(void)
 	{
 		return BOOT_NO_TABLES + uiResult;
 	}
-	uiResult = KernalFileLoad(KERNAL_MATH_INVERT_PATH, (void*)KERNAL_MATH_INVERT_ADDRESS, KERNAL_MATH_INVERT_SIZE);
+	uiResult = KernalFileRead(KERNAL_MATH_INVERT_PATH, KERNAL_MATH_INVERT_OFFSET, (void*)KERNAL_MATH_INVERT_ADDRESS, KERNAL_MATH_INVERT_SIZE);
 	if (uiResult != KERNAL_RESULT_SUCCESS)
 	{
 		return BOOT_NO_TABLES + uiResult;

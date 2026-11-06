@@ -4,8 +4,8 @@
 ; of d picking the bank), so a program links only the half it uses: MathInvertHigh (d >= $8000,
 ; the reciprocals of a normalised divisor's top 16 bits) is the soft float's divides'
 ; (softfloat816.asm).  The runtime's integer divides read neither (shift and subtract is faster:
-; IR816Runtime-Common.asm).  On the HCP65 the whole table is in main memory, MathInvertHigh
-; following MathInvert (Libraries/UserLib/UserMathTables.asm).
+; IR816Runtime-Common.asm).  On the HCP65 only MathInvertHigh is in main memory; the lower half
+; stays in INVERT.BIN on the SD card (Libraries/UserLib/UserMathTables.asm).
 	.section rodata.MathInvert
 	.align $10000
 	.global MathInvert

@@ -141,3 +141,11 @@ with MULT) and IR816Runtime-MathSafe.asm (multiplies without); see W65C816.txt.
   MathInvertHigh (d >= $8000), each on a bank: a program that links the tables links only
   the half it uses (the soft float uses MathInvertHigh), so a test program stays under its
   512KB limit.  UserMathTables.asm gives MathInvertHigh = $440000.
+- 2026-11-06, later (user): nothing reads INVERT's lower half (checked: the boot test passes
+  with INVERT.BIN all $CC), so boot.exe loads only the upper half, from $20000 in the file
+  (KernalFileRead, COP 11), to $420000.  The file on the card keeps all of INVERT.  The
+  tables are 4 banks again ($40-$43) and the kernal's heap starts at $440000.
+  UserMathTables.asm gives MathInvertHigh = $420000 and no MathInvert, so a program that
+  used the lower half wouldn't link.  A reciprocal divide for byte divisors was prototyped
+  and measured first: 16/8 with a 16 bit quotient 340 -> 293 cycles, but slower when the
+  quotient is a byte (276 -> 292 over all n), so not taken up.

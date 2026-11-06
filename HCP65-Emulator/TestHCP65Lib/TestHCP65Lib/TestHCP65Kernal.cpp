@@ -185,9 +185,8 @@ static bool TestKernalReadTable(const char* szHexFile, uint8* puiDest, uint32 ui
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The maths tables as one block, as boot.exe loads them to main memory at
-// $400000: MULT then INVERT (UserMathTables.asm), into puiDest
-// (HCP65_TABLES_END - HCP65_TABLES_START bytes).
+// The maths tables' files as one block, MULT then all of INVERT, into
+// puiDest (HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_SIZE bytes).
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalReadTables(uint8* puiDest)
@@ -234,7 +233,7 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 
-	puiTables = (uint8*)malloc(HCP65_TABLES_END - HCP65_TABLES_START);
+	puiTables = (uint8*)malloc(HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_SIZE);
 	bResult = TestKernalReadTables(puiTables);
 	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, HCP65_MATH_MULT_PATH, puiTables, HCP65_MATH_MULT_SIZE);
 	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, HCP65_MATH_INVERT_PATH, &puiTables[HCP65_MATH_MULT_SIZE], HCP65_MATH_INVERT_SIZE);
@@ -521,15 +520,17 @@ void TestHCP65KernalBoot(void)
 	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
 	AssertFalse(cAudio.IsEnabled());
 
-	//boot.exe loaded the maths tables from the SD card to main memory at $400000, and the kernal was copied from ROM
-	//banks 0-3 to MPU RAM.  The processes' pages of the remap table were cleared when they exited.
+	//boot.exe loaded MULT and INVERT's upper half (round(2^32 / $8000) first) from the SD card to main memory at
+	//$400000, and the kernal was copied from ROM banks 0-3 to MPU RAM.  The processes' pages of the remap table were
+	//cleared when they exited.
 	puiMain = cHCP65.GetMainMemory();
-	puiTables = (uint8*)malloc(HCP65_TABLES_END - HCP65_TABLES_START);
+	puiTables = (uint8*)malloc(HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_SIZE);
 	AssertTrue(TestKernalReadTables(puiTables));
-	AssertTrue(memcmp(puiTables, &puiMain[HCP65_TABLES_START], HCP65_TABLES_END - HCP65_TABLES_START) == 0);
+	AssertTrue(memcmp(puiTables, &puiMain[HCP65_TABLES_START], HCP65_MATH_MULT_SIZE) == 0);
+	AssertTrue(memcmp(&puiTables[HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_OFFSET], &puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE], HCP65_TABLES_END - HCP65_TABLES_START - HCP65_MATH_MULT_SIZE) == 0);
 	free(puiTables);
 	AssertInt(15, puiMain[HCP65_TABLES_START + ((3 << 8) | 5) * 2]);
-	AssertInt(0x55, puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 3 * 4]);
+	AssertInt(0x020000, puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE] | (puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 1] << 8) | (puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 2] << 16));
 	AssertTrue(memcmp(&puiROM[0x10000], &puiRAM[0x10000], 0x100) == 0);
 	for (i = 0; i < 0x400; i++)
 	{

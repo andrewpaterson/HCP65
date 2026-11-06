@@ -9,9 +9,10 @@
 #define HCP65_ROM_CODE_END			0x40000		//The kernal's code and data: ROM banks 0-3, copied to MPU RAM.
 #define HCP65_RAM_END				0x07FC00	//MPU RAM below the remap table: the kernal's code, data and bss.
 #define HCP65_TABLES_START			0x400000	//The maths tables in main memory (boot.exe loads them: UserMathTables.asm).
-#define HCP65_TABLES_END			0x460000
-#define HCP65_MATH_MULT_SIZE		0x20000		//MULT, then INVERT (HCP65User.h's KERNAL_MATH_...).
-#define HCP65_MATH_INVERT_SIZE		0x40000
+#define HCP65_TABLES_END			0x440000	//MULT, then INVERT's upper half (HCP65User.h's KERNAL_MATH_...).
+#define HCP65_MATH_MULT_SIZE		0x20000
+#define HCP65_MATH_INVERT_SIZE		0x40000		//INVERT.BIN on the card: all of it.
+#define HCP65_MATH_INVERT_OFFSET	0x20000		//The half boot.exe loads.
 #define HCP65_MATH_MULT_PATH		"\\OS\\Math\\MULT.BIN"
 #define HCP65_MATH_INVERT_PATH		"\\OS\\Math\\INVERT.BIN"
 
