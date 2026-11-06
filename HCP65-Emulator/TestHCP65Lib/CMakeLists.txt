@@ -14,7 +14,7 @@
 # Add -DBASELIB_ASAN=ON for AddressSanitizer and LeakSanitizer.
 #
 # Source lists are read from the .vcxproj files so Visual Studio stays the
-# source of truth.  HCP65Lib/Kernal is W65C816 code built by the tests, not
+# source of truth.  HCP65/Kernal is W65C816 code built by the tests, not
 # by this file.
 
 cmake_minimum_required(VERSION 3.16)

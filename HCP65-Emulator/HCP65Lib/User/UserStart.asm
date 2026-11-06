@@ -1,4 +1,4 @@
-; The start up of a program the HCP65 kernal runs (an executable: see HCP65Lib/Kernal/KernalProcess.cpp).
+; The start up of a program the HCP65 kernal runs (an executable: see Kernal/KernalProcess.cpp).
 ;
 ; The kernal maps the process's banks, puts the program's sections in them and RTIs to UserStart in user mode, with
 ; S at the top of the process's bank 0, 8 bit registers and interrupts off.  UserStart goes 16 bit, sets the stack and

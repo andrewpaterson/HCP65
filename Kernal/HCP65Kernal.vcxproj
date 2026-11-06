@@ -45,35 +45,35 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <NMakeIncludeSearchPath>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <NMakeIncludeSearchPath>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <NMakeIncludeSearchPath>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <NMakeIncludeSearchPath>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\CommonLibraries\Libraries;..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -87,7 +87,7 @@
     <ClCompile Include="KernalAudio.asm" />
     <ClCompile Include="KernalInterrupts.cpp" />
     <ClCompile Include="KernalInterrupts.asm" />
-    <ClCompile Include="..\..\..\Libraries\Assembler65Lib\Asm65Object.cpp" />
+    <ClCompile Include="..\Libraries\Assembler65Lib\Asm65Object.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kernal.h" />
@@ -97,7 +97,7 @@
     <ClInclude Include="KernalSDCard.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
+    <ProjectReference Include="..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
       <Project>{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}</Project>
     </ProjectReference>
   </ItemGroup>

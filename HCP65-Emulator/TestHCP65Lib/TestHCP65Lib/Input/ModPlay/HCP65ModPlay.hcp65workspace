@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace Configuration="Release|W65C816">
   <Solution File="HCP65ModPlay.sln" Startup="true"/>
-  <Solution File="..\..\..\..\HCP65Lib\Kernal\HCP65Kernal.sln"/>
+  <Solution File="..\..\..\..\..\Kernal\HCP65Kernal.sln"/>
 </Workspace>

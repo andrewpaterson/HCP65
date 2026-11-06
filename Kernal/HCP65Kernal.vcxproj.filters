@@ -39,7 +39,7 @@
     <ClCompile Include="KernalInterrupts.asm">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Libraries\Assembler65Lib\Asm65Object.cpp">
+    <ClCompile Include="..\Libraries\Assembler65Lib\Asm65Object.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

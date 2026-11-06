@@ -4,12 +4,12 @@
 		<Executable File="boot.exe" Entry="UserStart" Limit="0x200000">
 			<Symbol Name="UserMemorySize" Value="0x220000"/>
 		</Executable>
-		<Load File="..\..\..\..\HCP65Lib\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
+		<Load File="..\..\..\..\..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
 	</Configuration>
 	<Configuration Name="Release|W65C816" Toolchain="W65C816" Solution="Release|Win32" BreakpointSpace="User" Card="..\..\Output\SDCard.img" CardPath="\boot.exe">
 		<Executable File="boot.exe" Entry="UserStart" Limit="0x200000">
 			<Symbol Name="UserMemorySize" Value="0x220000"/>
 		</Executable>
-		<Load File="..\..\..\..\HCP65Lib\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
+		<Load File="..\..\..\..\..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
 	</Configuration>
 </BuildConfigurations>

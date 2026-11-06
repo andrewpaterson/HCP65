@@ -21,7 +21,7 @@
 //Relative to the test's directory (TestHCP65Lib/TestHCP65Lib), as Visual Studio runs it.
 #define TEST_HCP65_COMMON			".." _FS_ ".." _FS_ ".." _FS_ ".." _FS_ "commonlibraries" _FS_ "Libraries"
 #define TEST_HCP65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ "Libraries"
-#define TEST_HCP65_KERNAL			".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "Kernal"
+#define TEST_HCP65_KERNAL			".." _FS_ ".." _FS_ ".." _FS_ "Kernal"
 #define TEST_HCP65_INPUT			".." _FS_ ".." _FS_ "HCP65Emulator" _FS_ "Input"
 #define TEST_HCP65_BLANK_SD_CARD	TEST_HCP65_INPUT _FS_ "SDCard.img"	//Freshly formatted; never written.
 #define TEST_HCP65_OUTPUT			"Output"
