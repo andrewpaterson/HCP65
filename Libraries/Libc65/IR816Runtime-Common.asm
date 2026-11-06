@@ -1367,9 +1367,10 @@ R816_BcdSubtract_Done:
 ; R816_UDiv16 and R816_URem16: the 16 bit divide n / d by shift and subtract, n (D + 15) shifting out of its top into
 ; the remainder (A) as the quotient's bits shift into its bottom.  d = 0 is q = $FFFF, r = n; d >= $8000 is q = 1 or 0
 ; (so the remainder never overflows A); n < d is q = 0.  When n's high byte is below d the quotient is a byte: the
-; remainder starts as nH and nL is 8 steps (nL put in the top of D + 15); otherwise it is 16 steps.  The quotient is
-; left at D + 15 and X is 0 at the end, so the 32 bit divide can return through them.  R816_UDiv16 also leaves the
-; remainder at D + 5, where a urem of the same operands written straight after it takes it
+; remainder starts as nH and nL is 8 steps (nL put in the top of D + 15); otherwise it is 16 steps.  A d under 128 runs
+; the steps 8 bits wide (the remainder fits a byte; a byte rotates in 5 cycles, a word in 7), a byte of n at a time.
+; The quotient is left at D + 15 and X is 0 at the end, so the 32 bit divide can return through them.  R816_UDiv16 also
+; leaves the remainder at D + 5, where a urem of the same operands written straight after it takes it
 ; (CIR816Backend::RemainderLeft).
 		.section text.R816_UDiv16
 		.global R816_UDiv16
@@ -1390,6 +1391,8 @@ R816_UDiv16_Divide:
 		lda [D + 19]
 		beq R816_UDiv16_Zero
 		bmi R816_UDiv16_Big
+		cmp 0x80
+		bcc R816_UDiv16_Small
 		lda [D + 15]
 		cmp [D + 19]
 		bcc R816_UDiv16_Less
@@ -1405,51 +1408,43 @@ R816_UDiv16_Divide:
 		asl [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_0
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_0:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_1
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_1:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_2
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_2:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_3
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_3:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_4
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_4:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_5
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_5:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_6
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_6:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_B_7
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_B_7:
 		rol [D + 15]
 		rts
 R816_UDiv16_Word:
@@ -1457,100 +1452,182 @@ R816_UDiv16_Word:
 		asl [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_0
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_0:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_1
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_1:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_2
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_2:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_3
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_3:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_4
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_4:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_5
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_5:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_6
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_6:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_7
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_7:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_8
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_8:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_9
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_9:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_10
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_10:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_11
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_11:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_12
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_12:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_13
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_13:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_14
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_14:
 		rol [D + 15]
 		rol A
 		cmp [D + 19]
-		bcc R816_UDiv16_W_15
+		bcc C + 2
 		sbc [D + 19]
-R816_UDiv16_W_15:
 		rol [D + 15]
+		rts
+R816_UDiv16_Small:
+		lda [D + 15]
+		cmp [D + 19]
+		bcc R816_UDiv16_Less
+		sep m
+		lda [D + 16]
+		cmp [D + 19]
+		bcs R816_UDiv16_SmallWord
+		stz [D + 16]
+		bra R816_UDiv16_SmallLow
+R816_UDiv16_SmallWord:
+		lda 0
+		asl [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+R816_UDiv16_SmallLow:
+		asl [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rep m
+		and 0xFF
 		rts
 R816_UDiv16_Big:
 		lda [D + 15]
@@ -1696,14 +1773,17 @@ R816_SDiv32_RPositive:
 
 ; R816_UDiv32 and R816_URem32 (one body, R816_Div32_Divide, for both): the dividend is at D + 15 (and becomes the
 ; quotient) and the divisor at D + 19, and D + 5 is the remainder.  With both under 65536 it is the 16 bit one, whose
-; operands are already in place (their low words), jumped to (above); it returns the 32 bit result (X is 0).  A
-; divisor under 65536 keeps the remainder in A: 16 unrolled steps on the dividend's low word, after 16 on its high
-; word when that is not below the divisor (else the quotient's high word is 0 and the high word is the remainder to
-; start).  A dividend under 65536 with a wider divisor is a quotient of 0.  Otherwise (both wide) the quotient is
-; under 65536: its high word is 0, the dividend's high word is the remainder to start, and 16 steps on the remainder
-; at D + 5 and D + 7 take the dividend's low word, the quotient bit (C) rotated into it as its next bit comes out.
-; Every path leaves the remainder at D + 5 and D + 7 (the short one clears D + 7 before R816_UDiv16 writes D + 5), for
-; a urem straight after R816_UDiv32 (CIR816Backend::RemainderLeft).
+; operands are already in place (their low words), jumped to (above); it returns the 32 bit result (X is 0).  A divisor
+; under 65536 keeps the remainder in A: 16 (or 8) unrolled steps on the dividend's low word, after 16 on its high word
+; when that is not below the divisor (else the quotient's high word is 0 and the high word is the remainder to start).
+; Its steps are as R816_UDiv16's: 8 bits wide a byte at a time for a divisor under 128 (a top byte below it is the
+; remainder to start), without the overflow guard (bcs, sec) for one under $8000, with it otherwise.  A dividend under
+; 65536 with a wider divisor is a quotient of 0.  Otherwise (both wide) the quotient is under 65536: its high word is 0,
+; the dividend's high word is the remainder to start (or, when the dividend >> 8 is below the divisor, the dividend >> 8
+; with 8 steps for a byte's quotient), and unrolled steps on the remainder at D + 5 and D + 7 take the dividend's low
+; word, the quotient bit (C) rotated into it as its next bit comes out; a divisor of 2^31 or more (whose remainder can
+; overflow) loops with the guard.  Every path leaves the remainder at D + 5 and D + 7 (the short one clears D + 7 before
+; R816_UDiv16 writes D + 5), for a urem straight after R816_UDiv32 (CIR816Backend::RemainderLeft).
 		.section text.R816_UDiv32
 		.global R816_UDiv32
 		.global R816_URem32
@@ -1734,13 +1814,420 @@ R816_Div32_Divide:
 		stz [D + 7]
 		lda [D + 21]
 		bne R816_Div32_WideDivisor
+		lda [D + 19]
+		bmi R816_Div32_Slow
+		cmp 0x80
+		bcs R816_Div32_Fast
+		sep m
+		lda [D + 18]
+		cmp [D + 19]
+		bcs R816_Div32_Byte3
+		stz [D + 18]
+		bra R816_Div32_Byte2
+R816_Div32_Byte3:
+		lda 0
+		asl [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 18]
+R816_Div32_Byte2:
+		asl [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		asl [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 16]
+		asl [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rep m
+		and 0xFF
+		sta [D + 5]
+		rts
+R816_Div32_Fast:
 		lda [D + 17]
 		cmp [D + 19]
-		bcc R816_Div32_LowWord
+		bcc R816_Div32_FastLowWord
 		lda [D + 18]
 		and 0xFF
 		cmp [D + 19]
-		bcs R816_Div32_HighWord
+		bcs R816_Div32_FastHighWord
+		tax
+		lda [D + 16]
+		and 0xFF00
+		sta [D + 17]
+		txa
+		asl [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		bra R816_Div32_FastLow
+R816_Div32_FastHighWord:
+		lda 0
+		asl [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 17]
+		bra R816_Div32_FastLow
+R816_Div32_FastLowWord:
+		stz [D + 17]
+R816_Div32_FastLow:
+		asl [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		rol A
+		cmp [D + 19]
+		bcc C + 2
+		sbc [D + 19]
+		rol [D + 15]
+		sta [D + 5]
+		rts
+R816_Div32_Slow:
+		lda [D + 17]
+		cmp [D + 19]
+		bcc R816_Div32_SlowLowWord
+		lda [D + 18]
+		and 0xFF
+		cmp [D + 19]
+		bcs R816_Div32_SlowHighWord
 		tax
 		lda [D + 16]
 		and 0xFF00
@@ -1803,8 +2290,8 @@ R816_Div32_Divide:
 		sbc [D + 19]
 		sec
 		rol [D + 17]
-		bra R816_Div32_Low
-R816_Div32_HighWord:
+		bra R816_Div32_SlowLow
+R816_Div32_SlowHighWord:
 		lda 0
 		asl [D + 17]
 		rol A
@@ -1919,10 +2406,10 @@ R816_Div32_HighWord:
 		sbc [D + 19]
 		sec
 		rol [D + 17]
-		bra R816_Div32_Low
-R816_Div32_LowWord:
+		bra R816_Div32_SlowLow
+R816_Div32_SlowLowWord:
 		stz [D + 17]
-R816_Div32_Low:
+R816_Div32_SlowLow:
 		asl [D + 15]
 		rol A
 		bcs C + 4
@@ -2037,15 +2524,254 @@ R816_Div32_Low:
 		sec
 		rol [D + 15]
 		sta [D + 5]
-		bra R816_Div32_Done
+		rts
 R816_Div32_WideDivisor:
 		lda [D + 17]
 		bne R816_Div32_Long
 		lda [D + 15]
 		sta [D + 5]
 		stz [D + 15]
-		bra R816_Div32_Done
+		rts
 R816_Div32_Long:
+		lda [D + 21]
+		bmi R816_Div32_Loop
+		lda [D + 18]
+		and 0xFF
+		cmp [D + 21]
+		bcc R816_Div32_Short
+		bne R816_Div32_Full
+		lda [D + 16]
+		cmp [D + 19]
+		bcs R816_Div32_Full
+R816_Div32_Short:
+		lda [D + 16]
+		sta [D + 5]
+		lda [D + 18]
+		and 0xFF
+		sta [D + 7]
+		lda [D + 14]
+		and 0xFF00
+		sta [D + 15]
+		stz [D + 17]
+		asl [D + 15]
+		bra R816_Div32_Step8
+R816_Div32_Full:
+		lda [D + 17]
+		sta [D + 5]
+		stz [D + 17]
+		asl [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep0
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep0:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep1
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep1:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep2
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep2:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep3
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep3:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep4
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep4:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep5
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep5:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep6
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep6:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep7
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep7:
+		rol [D + 15]
+R816_Div32_Step8:
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep8
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep8:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep9
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep9:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep10
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep10:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep11
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep11:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep12
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep12:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep13
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep13:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep14
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep14:
+		rol [D + 15]
+		rol [D + 5]
+		rol [D + 7]
+		sec
+		lda [D + 5]
+		sbc [D + 19]
+		tay
+		lda [D + 7]
+		sbc [D + 21]
+		bcc R816_Div32_Keep15
+		sta [D + 7]
+		sty [D + 5]
+R816_Div32_Keep15:
+		rol [D + 15]
+		rts
+R816_Div32_Loop:
+		lda [D + 17]
 		sta [D + 5]
 		stz [D + 17]
 		ldx 16
@@ -2061,7 +2787,7 @@ R816_Div32_Bit:
 		lda [D + 7]
 		sbc [D + 21]
 		bcc R816_Div32_Next
-		bra R816_Div32_Keep
+		bra R816_Div32_Subtracted
 R816_Div32_Over:
 		sec
 		lda [D + 5]
@@ -2070,12 +2796,11 @@ R816_Div32_Over:
 		lda [D + 7]
 		sbc [D + 21]
 		sec
-R816_Div32_Keep:
+R816_Div32_Subtracted:
 		sta [D + 7]
 		sty [D + 5]
 R816_Div32_Next:
 		rol [D + 15]
 		dex
 		bne R816_Div32_Bit
-R816_Div32_Done:
 		rts
