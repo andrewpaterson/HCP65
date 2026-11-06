@@ -32124,6 +32124,30 @@
 				(justify left)
 			)
 		)
+		(property "ROM_Manufacturer" "HCP65"
+			(at 208.915 356.235 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Driver" "SOUND.DRV"
+			(at 208.915 356.235 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(property "Description" "32 pin PLCC socket\n(1 Mbit NOR Flash)"
 			(at 187.96 311.15 0)
 			(show_name no)
