@@ -17,12 +17,13 @@ x64/
 # Logs written by the emulator, the tester and the tests
 Log.txt
 
-# Files the emulator and the tests write
-/HCP65-Emulator/HCP65Emulator/Output/
-/HCP65-Emulator/TestHCP65Lib/TestHCP65Lib/Output/
+# What HCP65-IDE and hcp65build write beside a solution (Output\<toolchain>\<configuration> and Listing\...), and what
+# the emulator and the tests write
+Output/
+Listing/
+
+# Files the tests write
 /HCP65-Emulator/TestHCP65Lib/TestHCP65Lib/Post/
-/Tests/TestAssembler65Lib/TestAssembler65Lib/Output/
-/Tests/TestLibc65/TestLibc65/Output/
 /Tests/TestLibc65/TestLibc65/Post/
 
 # KiCad's own files: backups, caches, autosaves, locks and local view settings
