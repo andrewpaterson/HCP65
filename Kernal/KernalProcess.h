@@ -32,6 +32,7 @@
 #define KERNAL_PROCESS_NO_ENTRY			4
 #define KERNAL_PROCESS_EXITED			5
 #define KERNAL_PROCESS_NO_PROCESS		6
+#define KERNAL_PROCESS_BAD_ADDRESS		7
 
 
 //The user registers a COP saved and what the kernal call asks for; Start.asm uses its layout (all 16 bit words).

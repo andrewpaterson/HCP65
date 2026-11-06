@@ -6,6 +6,9 @@
 #include "BaseLib/ArrayUint8.h"
 #include "BaseLib/GlobalDataTypesIO.h"
 #include "BaseLib/IntelHex.h"
+#include "BaseLib/MemoryFile.h"
+#include "BaseLib/PointerFunctions.h"
+#include "Assembler65Lib/Asm65Object.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
@@ -57,6 +60,9 @@
 #define TEST_KERNAL_STATE_BOOT_FAILED		7
 #define TEST_KERNAL_STATE_BOOT_EXITED		8
 #define TEST_KERNAL_PROCESS_EXITED			5
+#define TEST_KERNAL_PROCESS_BAD_ADDRESS		7
+#define TEST_HCP65_MISPLACED_CARD		TEST_HCP65_OUTPUT _FS_ "Misplaced.img"	//The card with a misplaced modplay.exe.
+#define TEST_HCP65_MISPLACED_AT			0x080000	//In the small heap's banks.
 #define TEST_KERNAL_FAT32					3
 
 
@@ -427,6 +433,49 @@ static void TestKernalRenderSong(lsize uiFrames, CArrayUint8* pacFrames)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// An executable the kernal must refuse: its code (a few STPs) at uiAt, its
+// UserStart there, and no UserHeapSize, so it would have the small heap.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalMakeMisplacedExe(uint32 uiAt, CArrayUint8* pacDest)
+{
+	CAsm65Object		cObject;
+	SAsm65Section*		psSection;
+	SAsm65ObjectSymbol*	psSymbol;
+	CMemoryFile*		pcMemoryFile;
+	uint32				uiSection;
+	bool				bResult;
+
+	cObject.Init("Misplaced");
+	uiSection = cObject.AddSection("segment0", "", ASK65_Data);
+	psSection = cObject.GetSection(uiSection);
+	psSection->bAt = true;
+	psSection->uiAt = uiAt;
+	psSection->bKeep = true;
+	psSection->uiSize = 4;
+	psSection->cBytes.Resize(4);
+	memset(psSection->cBytes.GetData(), 0xDB, 4);
+	psSymbol = cObject.GetSymbol(cObject.PutSymbol(HCP65_EXE_ENTRY_SYMBOL));
+	psSymbol->iSection = -1;
+	psSymbol->iValue = uiAt;
+	psSymbol->eBinding = AB65_Global;
+
+	pcMemoryFile = MemoryFile();
+	pcMemoryFile->mbBasicFileMustFree = false;
+	bResult = cObject.Write(pcMemoryFile);
+	if (bResult)
+	{
+		pacDest->Resize((size)pcMemoryFile->GetBufferSize());
+		memcpy(pacDest->GetData(), pcMemoryFile->GetBufferPointer(), (size)pcMemoryFile->GetBufferSize());
+	}
+	SafeKill(pcMemoryFile);
+	cObject.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Builds the kernal ROM, boots it with the sound board and the SD Card
 // Board (holding Output/SDCard.img, a copy of the emulator's blank
 // Input/SDCard.img with the test's boot.exe, modplay.exe, Space Debris and
@@ -436,7 +485,9 @@ static void TestKernalRenderSong(lsize uiFrames, CArrayUint8* pacFrames)
 // played the first TEST_MODPLAY_SECONDS of the song through the sound
 // board as CModPlayer does on the host.  The ROM image is written to
 // Output/Kernal.rom; the emulator boots it and Output/SDCard.img (where
-// boot.exe's argument is zero: modplay.exe plays the whole song).
+// boot.exe's argument is zero: modplay.exe plays the whole song).  Then
+// boots a copy of the card whose modplay.exe is where its heap would be,
+// which the kernal refuses to load.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65KernalBoot(void)
@@ -456,6 +507,8 @@ void TestHCP65KernalBoot(void)
 	STestKernalStatus	sStatus;
 	CArrayUint8			acPlayed;
 	CArrayUint8			acExpected;
+	CArrayUint8			acMisplaced;
+	CFileUtil			cFileUtil;
 	uint8				auiFrames[0x1000 * 2];
 	uint32				uiStatus;
 	uint32				uiArgument;
@@ -726,6 +779,31 @@ void TestHCP65KernalBoot(void)
 	AssertTrue(cAudio.NumDroppedFrames() == 0);
 	acExpected.Kill();
 	acPlayed.Kill();
+
+	//Booted again with a card whose modplay.exe has its code in the small heap's banks and no UserHeapSize: the kernal
+	//refuses to load it (KERNAL_PROCESS_BAD_ADDRESS) and boot.exe exits with 100 and why.  The card is a copy.
+	acMisplaced.Init();
+	AssertTrue(TestKernalMakeMisplacedExe(TEST_HCP65_MISPLACED_AT, &acMisplaced));
+	AssertTrue(cFileUtil.Copy(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_MISPLACED_CARD));
+	AssertTrue(FatPutFileOnImage(TEST_HCP65_MISPLACED_CARD, "\\modplay.exe", acMisplaced.GetData(), acMisplaced.NumElements()));
+	acMisplaced.Kill();
+	cSDCard.RemoveCard(TEST_HCP65_CARD_SOCKET);
+	AssertTrue(cSDCard.InsertCard(TEST_HCP65_MISPLACED_CARD, false, TEST_HCP65_CARD_SOCKET));
+	cHCP65.Reset();
+	for (i = 0; i < TEST_HCP65_MAX_RUNS; i++)
+	{
+		cHCP65.Run(TEST_HCP65_RUN_CYCLES);
+		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
+		if (((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (sStatus.uiState <= TEST_KERNAL_STATE_BOOT_EXITED)) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
+	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
+	AssertInt(100 + TEST_KERNAL_PROCESS_BAD_ADDRESS, sStatus.uiExitCode);
+	cSDCard.RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cFileUtil.Delete(TEST_HCP65_MISPLACED_CARD);
 
 	cHCP65.Kill();
 	cPort.Kill();

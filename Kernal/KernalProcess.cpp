@@ -310,13 +310,63 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Whether uiSize bytes from uiAt are where a process's own code and data
+// may go: in bank 1 up to KERNAL_USER_HIGH_MEMORY (bank 0 is its direct
+// page and stack, and its heap is mapped from KERNAL_USER_HIGH_MEMORY),
+// and, for a process without a heap there (bHighHeap false), not in the
+// small heap's banks (gauiKernalLowHeapBanks).  The linker's -limit
+// should catch a program that grew too big; this stops one that wasn't
+// linked with it from being loaded over its heap.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool KernalIsProcessSection(uint32 uiAt, uint32 uiSize, bool bHighHeap)
+{
+	size	uiBank;
+	size	uiLastBank;
+	size	i;
+
+	if (uiSize == 0)
+	{
+		return true;
+	}
+	if ((uiAt >= KERNAL_USER_HIGH_MEMORY) || (uiSize > KERNAL_USER_HIGH_MEMORY - uiAt))
+	{
+		return false;
+	}
+	uiBank = (size)(uiAt >> 16);
+	uiLastBank = (size)((uiAt + uiSize - 1) >> 16);
+	if (uiBank == 0)
+	{
+		return false;
+	}
+	if (!bHighHeap)
+	{
+		for (; uiBank <= uiLastBank; uiBank++)
+		{
+			for (i = 0; i < sizeof(gauiKernalLowHeapBanks); i++)
+			{
+				if (uiBank == gauiKernalLowHeapBanks[i])
+				{
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Reads an executable from the volume into a new process's banks: a
 // CAsm65Object whose sections are all placed (at an address in the
 // process's own banks), with a UserStart symbol and optionally a
 // UserHeapSize: the heap the program needs, mapped from $200000
 // (KERNAL_USER_HIGH_MEMORY), whose end is the memory size Libc65 reads.
-// Without one it has the small heap below.  Puts the interrupt frame RTI
-// starts it with on its stack.
+// Without one it has the small heap below.  Every section must be where
+// the process's code and data may go (KernalIsProcessSection), or nothing
+// is mapped and it is KERNAL_PROCESS_BAD_ADDRESS.  Puts the interrupt
+// frame RTI starts it with on its stack.
 //
 //////////////////////////////////////////////////////////////////////////
 static uint16 KernalLoadExecutable(const char* szPath, uint8 uiProcess)
@@ -391,6 +441,20 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 		if (uiMemorySize != 0)
 		{
 			uiMemorySize += KERNAL_USER_HIGH_MEMORY;
+		}
+	}
+
+	//Every section must be placed, and where the process's code and data may go, before anything is mapped.
+	for (i = 0; i < pcObject->NumSections(); i++)
+	{
+		psSection = pcObject->GetSection(i);
+		if (!psSection->bAt)
+		{
+			return KERNAL_PROCESS_BAD_FILE;
+		}
+		if (!KernalIsProcessSection(psSection->uiAt, psSection->uiSize, uiMemorySize > KERNAL_USER_HIGH_MEMORY))
+		{
+			return KERNAL_PROCESS_BAD_ADDRESS;
 		}
 	}
 
