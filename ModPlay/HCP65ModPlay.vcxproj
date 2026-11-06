@@ -45,45 +45,45 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Libraries\UserLib;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\HCP65-Emulator\HCP65Lib\User\UserStart.asm" />
-    <ClCompile Include="..\HCP65-Emulator\HCP65Lib\User\UserCalls.asm" />
-    <ClCompile Include="..\HCP65-Emulator\HCP65Lib\User\UserMathTables.asm" />
+    <ClCompile Include="..\Libraries\UserLib\UserStart.asm" />
+    <ClCompile Include="..\Libraries\UserLib\UserCalls.asm" />
+    <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm" />
     <ClCompile Include="ModPlay.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\HCP65-Emulator\HCP65Lib\User\HCP65User.h" />
+    <ClInclude Include="..\Libraries\UserLib\HCP65User.h" />
     <ClInclude Include="ModPlaySamples.h" />
   </ItemGroup>
   <ItemGroup>

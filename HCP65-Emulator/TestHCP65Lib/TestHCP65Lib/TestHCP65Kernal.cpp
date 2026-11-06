@@ -27,7 +27,7 @@
 #define TEST_HCP65_OUTPUT			"Output"
 #define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots these two (HCP65Emulator.h).
 #define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
-#define TEST_HCP65_USER				".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "User"
+#define TEST_HCP65_USER				".." _FS_ ".." _FS_ ".." _FS_ "Libraries" _FS_ "UserLib"
 #define TEST_HCP65_BOOT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "OperatingSystem" _FS_ "HCP65OperatingSystem.vcxproj"
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"

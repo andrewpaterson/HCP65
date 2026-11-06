@@ -14,7 +14,7 @@
 
 
 //Builds a program for the HCP65 kernal to run from its Visual Studio project (as HCP65-IDE builds its solution): the
-//user start up (HCP65Lib/User/UserStart.asm) and the kernal calls, the program's units (compiled for the W65C816),
+//user start up (Libraries/UserLib/UserStart.asm) and the kernal calls, the program's units (compiled for the W65C816),
 //BaseLib and Libc65.  The executable is a CAsm65Object (as
 //CAsm65Object::Write writes it) with one section placed at each linked segment's address in the process's own banks,
 //no relocations, an absolute global UserStart, the entry point, and an absolute global UserMemorySize: what Libc65
