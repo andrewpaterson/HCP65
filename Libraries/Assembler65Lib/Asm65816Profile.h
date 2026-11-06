@@ -56,6 +56,15 @@ struct SAsm65816LineProfile
 };
 
 
+//What profiled runs measured of the calls of a function from one source line: how many there were and the cycles
+//inside them (with everything they called; a recursive call's are counted again in the call it is in).
+struct SAsm65816CallSiteProfile
+{
+	uint64	ulliCalls;
+	uint64	ulliCycles;
+};
+
+
 //The functions' profiles from runs of linked programs on CFast65C816 (added up over runs), and the cycles they ran
 //for, and with the program's line table the profile of each line of each function; read and written as text (Write).
 //The W65C816 back end gives a function a page aligned frame (a cycle less each direct page access) only when its
@@ -65,6 +74,7 @@ class CAsm65816Profile
 protected:
 	CMapStringTemplate<SAsm65816FunctionProfile>	mcFunctions;
 	CMapStringTemplate<SAsm65816LineProfile>		mcLines;		//By "label\tline\tfile".
+	CMapStringTemplate<SAsm65816CallSiteProfile>	mcCallSites;	//By "callee\tline\tfile" (the calling line's).
 	CMapStringTemplate<uint64>					mcLineEntries;	//By "line\tfile": the entries in all functions (LineEntries), made when first needed.
 	bool										mbLineEntries;
 	uint64										mulliCycles;
@@ -81,6 +91,7 @@ public:
 
 	SAsm65816FunctionProfile*	Get(const char* szLabel);
 	SAsm65816LineProfile*		GetLine(const char* szLabel, const char* szFile, uint32 uiLine);
+	SAsm65816CallSiteProfile*	GetCallSite(const char* szCallee, const char* szFile, uint32 uiLine);
 	uint64					LineEntries(const char* szFile, uint32 uiLine);
 	uint64					NumCycles(void);
 

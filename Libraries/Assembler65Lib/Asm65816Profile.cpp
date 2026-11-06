@@ -48,7 +48,58 @@ struct SAsm65816ProfileCall
 {
 	uint16	uiS;
 	uint32	uiFunction;
+	uint64	ulliStart;		//The cycles when it was entered.
+	uint32	uiCallerLine;	//The line (in the line table) it was called from, or ASM65816_PROFILE_NO_LINE.
 };
+
+
+//A run's calls of a function from a line (its call site), listed per function (Run).
+struct SAsm65816ProfileCaller
+{
+	uint32	uiLine;
+	int32	iNext;			//The function's next, or -1.
+	uint64	ulliCalls;
+	uint64	ulliCycles;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A call is over: its cycles go to its function's call site (the line it
+// was called from).
+//
+//////////////////////////////////////////////////////////////////////////
+static void Asm65816EndCall(CArrayTemplate<SAsm65816ProfileCaller>* pasCallers, CArrayTemplate<int32>* paiFirstCallers, SAsm65816ProfileCall* psCall, uint64 ulliNow)
+{
+	SAsm65816ProfileCaller*	psCaller;
+	int32					iCaller;
+	int32*					piFirst;
+
+	if (psCall->uiCallerLine == ASM65816_PROFILE_NO_LINE)
+	{
+		return;
+	}
+	piFirst = paiFirstCallers->Get(psCall->uiFunction);
+	for (iCaller = *piFirst; iCaller >= 0; iCaller = psCaller->iNext)
+	{
+		psCaller = pasCallers->Get((size)iCaller);
+		if (psCaller->uiLine == psCall->uiCallerLine)
+		{
+			break;
+		}
+	}
+	if (iCaller < 0)
+	{
+		psCaller = pasCallers->Add();
+		psCaller->uiLine = psCall->uiCallerLine;
+		psCaller->iNext = *piFirst;
+		psCaller->ulliCalls = 0;
+		psCaller->ulliCycles = 0;
+		*piFirst = (int32)(pasCallers->NumElements() - 1);
+	}
+	psCaller->ulliCalls++;
+	psCaller->ulliCycles += ulliNow - psCall->ulliStart;
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -59,6 +110,7 @@ void CAsm65816Profile::Init(void)
 {
 	mcFunctions.Init();
 	mcLines.Init();
+	mcCallSites.Init();
 	mcLineEntries.Init();
 	mbLineEntries = false;
 	mulliCycles = 0;
@@ -72,6 +124,7 @@ void CAsm65816Profile::Init(void)
 void CAsm65816Profile::Kill(void)
 {
 	mcLineEntries.Kill();
+	mcCallSites.Kill();
 	mcLines.Kill();
 	mcFunctions.Kill();
 }
@@ -131,6 +184,11 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 {
 	CArrayTemplate<SAsm65816ProfileFunction>	asFunctions;
 	CArrayTemplate<SAsm65816ProfileCall>		asCalls;
+	CArrayTemplate<SAsm65816ProfileCaller>	asCallers;		//This run's call sites...
+	CArrayTemplate<int32>					aiFirstCallers;	//...the first of each function's, or -1.
+	SAsm65816ProfileCaller*					psCaller;
+	SAsm65816CallSiteProfile*				psCallSite;
+	int32									iCaller;
 	SAsm65816ProfileFunction*					psFunction;
 	SAsm65816ProfileCall*						psCall;
 	SAsm65816FunctionProfile*					psProfile;
@@ -151,6 +209,7 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 	uint32									uiPreviousAddress;
 	uint64									uiSteps;
 	size									ui;
+	char									cKind;
 	CArrayChars								aszLabels;		//Per function in asFunctions.
 	uint32*									apuiBanks[ASM65816_PROFILE_BANKS];	//Per address in a bank with lines: its line, or ASM65816_PROFILE_NO_LINE.
 	CArrayTemplate<SAsm65816LineProfile>		asRun;			//Per line in pcLines, this run.
@@ -197,11 +256,12 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 		}
 	}
 
-	//A function's register argument entry (label.axy, after its stack argument stub) is called too.
+	//A function's register argument entry (label.axy, after its stack argument stub) is called too, and so is any other
+	//global label in it (an assembly section's other entries: Libc65's _memcpy and _memmove in MemMove816).
 	szLine = strstr(szMap, "\nSymbols\n");
 	for (szLine = szLine ? strchr(szLine + 1, '\n') : NULL; szLine; szLine = strchr(szLine + 1, '\n'))
 	{
-		if ((sscanf(szLine + 1, " 0x%x %*c %511s", &uiStart, szLabel) != 2) || (uiStart >= ASM65816_PROFILE_ADDRESSES) || auiStarts[uiStart])
+		if ((sscanf(szLine + 1, " 0x%x %c %511s", &uiStart, &cKind, szLabel) != 3) || (uiStart >= ASM65816_PROFILE_ADDRESSES) || auiStarts[uiStart])
 		{
 			continue;
 		}
@@ -214,6 +274,10 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 		if ((strncmp(szLabel, aszLabels.GetText(uiFunction), uiSize) == 0) && (szLabel[uiSize] == '.') && (strspn(szLabel + uiSize + 1, "axys") == strlen(szLabel + uiSize + 1)))
 		{
 			auiStarts[uiStart] = ASM65816_PROFILE_REGISTER_ENTRY;
+		}
+		else if (cKind == 'G')
+		{
+			auiStarts[uiStart] = 1;
 		}
 	}
 
@@ -245,6 +309,9 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 	auiDirectPageOwners = (uint32*)malloc(0x10000 * sizeof(uint32));
 	memset(auiDirectPageOwners, 0xFF, 0x10000 * sizeof(uint32));
 	asCalls.Init();
+	asCallers.Init();
+	aiFirstCallers.Init();
+	aiFirstCallers.GrowToAtLeastNumElements(asFunctions.NumElements() + 1, true, -1);
 	ulliCycles = pcFast->NumCycles();
 	uiPreviousOpcode = 0x22;
 	uiPreviousAddress = ASM65816_PROFILE_ADDRESSES;
@@ -261,6 +328,7 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 			uiS = pcFast->GetS();
 			while ((asCalls.NumElements() > 0) && (asCalls.Tail()->uiS <= uiS))
 			{
+				Asm65816EndCall(&asCallers, &aiFirstCallers, asCalls.Tail(), pcFast->NumCycles());
 				asCalls.RemoveTail();
 			}
 			uiFunction = Asm65816ProfileFind(&asFunctions, uiAddress);
@@ -277,6 +345,8 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 			psCall = asCalls.Add();
 			psCall->uiS = uiS;
 			psCall->uiFunction = uiFunction;
+			psCall->ulliStart = pcFast->NumCycles();
+			psCall->uiCallerLine = uiLastLine;
 		}
 		if (Asm65816HasDirectPageOperand(uiOpcode))
 		{
@@ -324,6 +394,7 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 			uiS = pcFast->GetS();
 			while ((asCalls.NumElements() > 0) && (asCalls.Tail()->uiS < uiS))
 			{
+				Asm65816EndCall(&asCallers, &aiFirstCallers, asCalls.Tail(), pcFast->NumCycles());
 				asCalls.RemoveTail();
 			}
 		}
@@ -380,6 +451,28 @@ uint64 CAsm65816Profile::Run(CAsm65Memory* pcMemory, CFast65C816* pcFast, const 
 		psLine->ulliRuntimeCycles += psTotal->ulliRuntimeCycles;
 	}
 	cRun.Kill();
+
+	//The call sites, by callee and the calling line.
+	for (ui = 0; pcLines && (ui < asFunctions.NumElements()); ui++)
+	{
+		for (iCaller = *aiFirstCallers.Get(ui); iCaller >= 0; iCaller = psCaller->iNext)
+		{
+			psCaller = asCallers.Get((size)iCaller);
+			psEntry = pcLines->GetLine(psCaller->uiLine);
+			LineKey(&szKey, aszLabels.GetText(ui), pcLines->GetFile(psEntry->uiFile), psEntry->uiLine);
+			psCallSite = mcCallSites.Get(szKey.Text());
+			if (!psCallSite)
+			{
+				psCallSite = mcCallSites.Put(szKey.Text());
+				memset(psCallSite, 0, sizeof(SAsm65816CallSiteProfile));
+			}
+			szKey.Kill();
+			psCallSite->ulliCalls += psCaller->ulliCalls;
+			psCallSite->ulliCycles += psCaller->ulliCycles;
+		}
+	}
+	asCallers.Kill();
+	aiFirstCallers.Kill();
 
 	for (ui = 0; ui < ASM65816_PROFILE_BANKS; ui++)
 	{
@@ -524,6 +617,24 @@ SAsm65816LineProfile* CAsm65816Profile::GetLine(const char* szLabel, const char*
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The calls of szCallee from a source line (with everything they called),
+// or NULL.
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65816CallSiteProfile* CAsm65816Profile::GetCallSite(const char* szCallee, const char* szFile, uint32 uiLine)
+{
+	SAsm65816CallSiteProfile*	psCallSite;
+	CChars						szKey;
+
+	LineKey(&szKey, szCallee, szFile, uiLine);
+	psCallSite = mcCallSites.Get(szKey.Text());
+	szKey.Kill();
+	return psCallSite;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Removes the function's lines (its code changed).
 //
 //////////////////////////////////////////////////////////////////////////
@@ -614,6 +725,8 @@ bool CAsm65816Profile::Read(const char* szFilename)
 	CChars					szFile;
 	CChars					szFunction;
 	SAsm65816FunctionProfile*	psProfile;
+	SAsm65816CallSiteProfile*	psCallSite;
+	CChars					szKey;
 	SAsm65816LineProfile*		psLine;
 
 	cFile.Init();
@@ -660,6 +773,23 @@ bool CAsm65816Profile::Read(const char* szFilename)
 			psLine->ulliRuntimeCycles += ulliRuntimeCycles;
 			szFile.Kill();
 		}
+		else if (sscanf(szLine, "callsite %u %llu %llu %511s %n", &uiLine, &ulliCalls, &ulliCycles, szLabel, &iFile) == 4)
+		{
+			szEnd = strchr(szLine, '\n');
+			szFile.Init();
+			szFile.Append(szLine + iFile, szEnd ? (size)(szEnd - (szLine + iFile)) : strlen(szLine + iFile));
+			LineKey(&szKey, szLabel, szFile.Text(), uiLine);
+			psCallSite = mcCallSites.Get(szKey.Text());
+			if (!psCallSite)
+			{
+				psCallSite = mcCallSites.Put(szKey.Text());
+				memset(psCallSite, 0, sizeof(SAsm65816CallSiteProfile));
+			}
+			psCallSite->ulliCalls += ulliCalls;
+			psCallSite->ulliCycles += ulliCycles;
+			szKey.Kill();
+			szFile.Kill();
+		}
 		else if (sscanf(szLine, "%511s %llu %llu %d", szLabel, &ulliDirectPage, &ulliCalls, &iRecursive) == 4)
 		{
 			//A profile from before line tables: "label directpage calls recursive".
@@ -693,6 +823,7 @@ bool CAsm65816Profile::Write(const char* szFilename)
 	SMapIterator			sIterator;
 	char*					szKey;
 	SAsm65816FunctionProfile*	psProfile;
+	SAsm65816CallSiteProfile*	psCallSite;
 	SAsm65816LineProfile*		psLine;
 	size					uiKeySize;
 	size					uiDataSize;
@@ -750,6 +881,30 @@ bool CAsm65816Profile::Write(const char* szFilename)
 			sz.AppendNewLine();
 		}
 	}
+
+	//The call sites: "callsite line calls cycles callee file".
+	aszKeys.ReInit();
+	for (bMore = mcCallSites.StartIteration(&sIterator, (void**)&szKey, &uiKeySize, (void**)&psCallSite, &uiDataSize); bMore; bMore = mcCallSites.Iterate(&sIterator, (void**)&szKey, &uiKeySize, (void**)&psCallSite, &uiDataSize))
+	{
+		aszKeys.Add(szKey);
+	}
+	aszKeys.QuickSort(true);
+	for (uiKey = 0; uiKey < aszKeys.NumElements(); uiKey++)
+	{
+		szKey = aszKeys.GetText(uiKey);
+		psCallSite = mcCallSites.Get(szKey);
+		szTab = strchr(szKey, '\t');
+		if (!szTab || !strchr(szTab + 1, '\t'))
+		{
+			continue;
+		}
+		snprintf(szNumbers, sizeof(szNumbers), "callsite %d %llu %llu ", atoi(szTab + 1), (unsigned long long)psCallSite->ulliCalls, (unsigned long long)psCallSite->ulliCycles);
+		sz.Append(szNumbers);
+		sz.Append(szKey, (size)(szTab - szKey));
+		sz.Append(' ');
+		sz.Append(strchr(szTab + 1, '\t') + 1);
+		sz.AppendNewLine();
+	}
 	cFile.Init(sz.Text());
 	bResult = cFile.Write(szFilename);
 	cFile.Kill();
@@ -799,6 +954,33 @@ struct SAsm65816ReportFunction
 	const char*				szLabel;
 	SAsm65816FunctionProfile*	psProfile;
 };
+
+
+struct SAsm65816ReportCallSite
+{
+	const char*					szKey;		//"callee\tline\tfile".
+	SAsm65816CallSiteProfile*	psCallSite;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The most cycles first.
+//
+//////////////////////////////////////////////////////////////////////////
+static int Asm65816CompareReportCallSites(const void* pv1, const void* pv2)
+{
+	SAsm65816ReportCallSite*	ps1;
+	SAsm65816ReportCallSite*	ps2;
+
+	ps1 = (SAsm65816ReportCallSite*)pv1;
+	ps2 = (SAsm65816ReportCallSite*)pv2;
+	if (ps1->psCallSite->ulliCycles != ps2->psCallSite->ulliCycles)
+	{
+		return (ps1->psCallSite->ulliCycles > ps2->psCallSite->ulliCycles) ? -1 : 1;
+	}
+	return 0;
+}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -886,6 +1068,9 @@ bool CAsm65816Profile::WriteReport(const char* szFilename, size uiMost)
 	CMapStringTemplate<CChars>				cFiles;
 	CArrayTemplate<SAsm65816ReportLine*>		apsLines;
 	CArrayTemplate<SAsm65816ReportFunction>	asFunctions;
+	CArrayTemplate<SAsm65816ReportCallSite>	asCallSites;
+	SAsm65816ReportCallSite*					psReportCallSite;
+	SAsm65816CallSiteProfile*					psCallSite;
 	SAsm65816ReportFunction*					psFunction;
 	SAsm65816ReportLine*						psReport;
 	SAsm65816LineProfile*						psLine;
@@ -986,6 +1171,38 @@ bool CAsm65816Profile::WriteReport(const char* szFilename, size uiMost)
 		sz.Append(psFunction->szLabel);
 		sz.AppendNewLine();
 	}
+
+	asCallSites.Init();
+	for (bMore = mcCallSites.StartIteration(&sIterator, (void**)&szKey, &uiKeySize, (void**)&psCallSite, &uiDataSize); bMore; bMore = mcCallSites.Iterate(&sIterator, (void**)&szKey, &uiKeySize, (void**)&psCallSite, &uiDataSize))
+	{
+		psReportCallSite = asCallSites.Add();
+		psReportCallSite->szKey = szKey;
+		psReportCallSite->psCallSite = psCallSite;
+	}
+	asCallSites.Sort(Asm65816CompareReportCallSites);
+	sz.Append("\nCall sites (cycles inside the calls, with all they called, % of all, calls, callee <- file(line): text)\n");
+	for (ui = 0; (ui < asCallSites.NumElements()) && (ui < uiMost); ui++)
+	{
+		psReportCallSite = asCallSites.Get(ui);
+		szTab = strchr(psReportCallSite->szKey, '\t');
+		if (!szTab || !strchr(szTab + 1, '\t'))
+		{
+			continue;
+		}
+		snprintf(szNumbers, sizeof(szNumbers), "%12llu %5.2f%% %10llu  ", (unsigned long long)psReportCallSite->psCallSite->ulliCycles, (mulliCycles > 0) ? (100.0 * (double)psReportCallSite->psCallSite->ulliCycles / (double)mulliCycles) : 0.0, (unsigned long long)psReportCallSite->psCallSite->ulliCalls);
+		sz.Append(szNumbers);
+		sz.Append(psReportCallSite->szKey, (size)(szTab - psReportCallSite->szKey));
+		sz.Append(" <- ");
+		szName = strrchr(strchr(szTab + 1, '\t') + 1, '/');
+		szName = szName ? szName : strrchr(strchr(szTab + 1, '\t') + 1, '\\');
+		sz.Append(szName ? szName + 1 : strchr(szTab + 1, '\t') + 1);
+		sz.Append('(');
+		sz.Append((int64)atoi(szTab + 1));
+		sz.Append("): ");
+		Asm65816SourceText(&cFiles, strchr(szTab + 1, '\t') + 1, (uint32)atoi(szTab + 1), &sz);
+		sz.AppendNewLine();
+	}
+	asCallSites.Kill();
 
 	cFile.Init(sz.Text());
 	bResult = cFile.Write(szFilename);
