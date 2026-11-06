@@ -509,7 +509,8 @@ void TestHCP65DeviceROMFromXML(void)
 	AssertTrue(bSame);
 	cSDCard.Kill();
 
-	AssertTrue(cFileUtil.TouchDir("Output"));
+	cFileUtil.TouchDir("Output");  //False when Output is already there.
+	AssertTrue(cFileUtil.IsDirectory("Output"));
 	pFile = fopen("Output" _FS_ "BadDeviceROM.xml", "wb");
 	AssertNotNull(pFile);
 	fputs("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<DeviceROM Name=\"Board\" Manufacturer=\"Maker\" DeviceBus=\"32KB\">\n\t<Register Offset=\"0x400\" Access=\"Read\"/>\n\t<Register Offset=\"0x400\" Access=\"ReadWrite\"/>\n</DeviceROM>\n", pFile);
