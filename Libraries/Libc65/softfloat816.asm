@@ -9,7 +9,7 @@
 ; the exponent of its significand's lowest bit and the significand.  Results are rounded by
 ; RoundPack, or by RoundDoubleAt and RoundFloat31 when the top bit's place is known.  Multiply and
 ; divide use Garth Wilson's tables (MathTbls): byte products from MathMult and the reciprocals of
-; 16 bit numbers from MathInvert, read through 24 bit pointers to a byte's row of products.
+; 16 bit numbers from MathInvertHigh, read through 24 bit pointers to a byte's row of products.
 ;
 ; The calling convention is the compiler's (IR816Backend.h): arguments are pushed last first (32
 ; bits as two words, 64 as four), A and X are 16 bits wide on the way in and out, a 32 bit result
@@ -4574,10 +4574,10 @@ DivideFloatInvert:
 		asl A
 		tax
 		bcs DivideFloatInvertHigh
-		lda [MathInvert + X]:24
+		lda [MathInvertHigh + X]:24
 		bra DivideFloatInverted
 DivideFloatInvertHigh:
-		lda [MathInvert + $10000 + X]:24
+		lda [MathInvertHigh + $10000 + X]:24
 DivideFloatInverted:
 		and $FF00
 		asl A
@@ -4904,7 +4904,7 @@ DivideFloatTakeBChecked:
 ; and B to 55 (seven bytes, its top 16 bits its bytes 5 and 6).  Each of seven steps takes q * B
 ; from the remainder R * 256 (A itself the first time), q = R * 256 / B estimated from its top
 ; bytes t2 and t1 and the reciprocal of B's top 16 bits, 1:r1:r0 = round(2^32 / those bits), from
-; Garth Wilson's table (MathInvert, a 128KB slice of INVERT):
+; Garth Wilson's table (MathInvertHigh, INVERT's upper half: those bits are $8000 to $FFFF):
 ;	q = t2 + ((t1 + t2 * r1 + 104) >> 8)
 ; 104 stands for the terms left out (t1 * r1 and t2 * r0 over 256, and the next byte).  Modelled
 ; on 140000 random steps it is right 80% of the time, otherwise one over (11%) or one under (9%):
@@ -5034,7 +5034,7 @@ DivideNormalisedB:
 		adc 0
 		sta [D + BPtr + 24 + 2]
 
-		; 1:r1:r0 for B's top 16 bits d: the long at MathInvert + (d - $8000) * 4, bit 14 of d
+		; 1:r1:r0 for B's top 16 bits d: the long at MathInvertHigh + (d - $8000) * 4, bit 14 of d
 		; picking the bank.  d = $8000's 2^17 is taken as $1FFFF.
 		lda [D + SigB + 5]
 		cmp $8000
@@ -5046,10 +5046,10 @@ DivideInvert:
 		asl A
 		tax
 		bcs DivideInvertHigh
-		lda [MathInvert + X]:24
+		lda [MathInvertHigh + X]:24
 		bra DivideInverted
 DivideInvertHigh:
-		lda [MathInvert + $10000 + X]:24
+		lda [MathInvertHigh + $10000 + X]:24
 DivideInverted:
 		sta [D + Temp]
 		and $FF00

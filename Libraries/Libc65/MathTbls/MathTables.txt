@@ -122,3 +122,22 @@ bytes (-0.83% TestBaseLib65 816).  Routines chosen from a back end UpperBound (-
 were removed for their complexity; R816_Mul32 checks b < 256 at run time instead
 (-0.26%).  TestBaseLib65 816 46.715G -> 44.887G (-3.91%) for all of the table, loop and
 convention work; TestCPP816 -7.48%.
+
+Tables out of ROM, the runtime split (2026-11-06)
+------------------------------------------------
+User: the HCP65's tables don't go in ROM.  boot.exe loads them from the SD card
+(\OS\Math\MULT.BIN and INVERT.BIN, binary) into main memory at $400000 (MULT) and
+$420000 (all of INVERT, 256KB), banks $40-$45, which the kernal maps into every process
+(KERNAL_NUM_TABLE_BANKS 6; its heap now starts at $460000).  The kernal and boot.exe are
+built without the tables, the others with them: a linker/builder option,
+CCPP65Builder::SetMathTables (.hcp65build MathTables="false").  The runtime's assembly is
+now Libc65's IR816Runtime-Common.asm (no table), IR816Runtime-MathTables.asm (multiplies
+with MULT) and IR816Runtime-MathSafe.asm (multiplies without); see W65C816.txt.
+- Divide reads no table any more: an unrolled shift and subtract beats the slice's
+  reciprocal everywhere (16/16 177 -> 110 cycles, 16/8 358 -> 274, 16/12 414 -> 210), and
+  the full table doesn't help with only byte products (above, and checked again).  INVERT
+  is the soft float's alone (its divides' estimates).
+- MathInvert.asm is all of INVERT as two sections, MathInvert (d < $8000) and
+  MathInvertHigh (d >= $8000), each on a bank: a program that links the tables links only
+  the half it uses (the soft float uses MathInvertHigh), so a test program stays under its
+  512KB limit.  UserMathTables.asm gives MathInvertHigh = $440000.
