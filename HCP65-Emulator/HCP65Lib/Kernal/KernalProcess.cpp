@@ -14,7 +14,6 @@
 #define KERNAL_PROCESS_MEMORY_SYMBOL	"UserMemorySize"
 #define KERNAL_PROCESS_STATUS			0x34		//The process starts with 8 bit registers and interrupts off.
 #define KERNAL_MAX_PATH					128
-#define KERNAL_COPY_CHUNK				0x1000		//A file is read to a process through a buffer this big.
 
 //Sound board (HCP65Lib/HCP65Audio.h): its registers and its two sample RAMs, offsets in its slot.
 #define KERNAL_AUDIO_REGISTERS			0x400
@@ -116,6 +115,38 @@ static bool KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 ui
 		uiLength -= uiInBank;
 	}
 	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Reads uiLength bytes of pcFile into the running process's memory at
+// uiAddress, straight into its banks (they are main memory, where the SD
+// Card Board's DMA puts sectors), a bank's worth at a time.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 KernalReadToUser(CFatFile* pcFile, uint32 uiAddress, uint32 uiLength)
+{
+	uint8*	puiDest;
+	uint32	uiInBank;
+	lsize	uiRead;
+
+	while (uiLength > 0)
+	{
+		puiDest = KernalUserPointer(uiAddress, &uiInBank);
+		if (!puiDest)
+		{
+			return KERNAL_PROCESS_NO_MEMORY;
+		}
+		uiInBank = (uiInBank < uiLength) ? uiInBank : uiLength;
+		if ((pcFile->Read(puiDest, uiInBank, &uiRead) != FAT_SUCCESS) || (uiRead != uiInBank))
+		{
+			return KERNAL_PROCESS_BAD_FILE;
+		}
+		uiAddress += uiInBank;
+		uiLength -= uiInBank;
+	}
+	return KERNAL_PROCESS_NONE;
 }
 
 
@@ -330,13 +361,8 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 	SAsm65ObjectSymbol*	psSymbol;
 	uint8*				puiPage;
 	uint8*				puiStack;
-	uint8*				puiBuffer;
 	uint32				uiEntry;
 	uint32				uiMemorySize;
-	uint32				uiAddress;
-	uint32				uiLeft;
-	uint32				uiChunk;
-	lsize				uiRead;
 	int32				iSymbol;
 	size				i;
 
@@ -396,27 +422,16 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 		return KERNAL_PROCESS_NO_MEMORY;
 	}
 
-	//The sections' bytes, from the file to the process's banks through a buffer.
-	puiBuffer = (uint8*)malloc(KERNAL_COPY_CHUNK);
-	if (!puiBuffer)
-	{
-		return KERNAL_PROCESS_NO_MEMORY;
-	}
+	//The sections' bytes, from the file straight into the process's banks.
 	for (i = 0; (i < pcObject->NumSections()) && bLoaded; i++)
 	{
 		psSection = pcObject->GetSection(i);
-		uiAddress = psSection->uiAt;
-		uiLeft = psSection->uiNumBytes;
-		bLoaded = (uiLeft == 0) || (pcFile->Seek((uint32)psSection->iBytesPosition, FAT_SEEK_START) == FAT_SUCCESS);
-		while ((uiLeft > 0) && bLoaded)
+		if (psSection->uiNumBytes > 0)
 		{
-			uiChunk = (uiLeft < KERNAL_COPY_CHUNK) ? uiLeft : KERNAL_COPY_CHUNK;
-			bLoaded = (pcFile->Read(puiBuffer, uiChunk, &uiRead) == FAT_SUCCESS) && (uiRead == uiChunk) && KernalCopyToUser(uiAddress, puiBuffer, uiChunk);
-			uiAddress += uiChunk;
-			uiLeft -= uiChunk;
+			bLoaded = (pcFile->Seek((uint32)psSection->iBytesPosition, FAT_SEEK_START) == FAT_SUCCESS) &&
+					  (KernalReadToUser(pcFile, psSection->uiAt, psSection->uiNumBytes) == KERNAL_PROCESS_NONE);
 		}
 	}
-	free(puiBuffer);
 	if (!bLoaded)
 	{
 		return KERNAL_PROCESS_BAD_FILE;
@@ -597,9 +612,6 @@ static uint16 KernalCallFileLoad(void)
 	uint32		uiDest;
 	uint32		uiMax;
 	uint32		uiSize;
-	uint32		uiChunk;
-	lsize		uiRead;
-	uint8*		puiBuffer;
 	uint16		uiResult;
 
 	if (!KernalUserString(KernalArgumentLong(0), szPath, KERNAL_MAX_PATH))
@@ -614,31 +626,13 @@ static uint16 KernalCallFileLoad(void)
 	{
 		return KERNAL_PROCESS_NOT_FOUND;
 	}
-	puiBuffer = (uint8*)malloc(KERNAL_COPY_CHUNK);
-	if (!puiBuffer)
-	{
-		cFile.Close();
-		return KERNAL_PROCESS_NO_MEMORY;
-	}
-
 	uiSize = cFile.Size();
 	uiResult = (uiSize <= uiMax) ? KERNAL_PROCESS_NONE : KERNAL_PROCESS_NO_MEMORY;
 	uiSize = (uiSize < uiMax) ? uiSize : uiMax;
-	while ((uiSize > 0) && (uiResult == KERNAL_PROCESS_NONE))
+	if (uiResult == KERNAL_PROCESS_NONE)
 	{
-		uiChunk = (uiSize < KERNAL_COPY_CHUNK) ? uiSize : KERNAL_COPY_CHUNK;
-		if ((cFile.Read(puiBuffer, uiChunk, &uiRead) != FAT_SUCCESS) || (uiRead != uiChunk))
-		{
-			uiResult = KERNAL_PROCESS_BAD_FILE;
-		}
-		else if (!KernalCopyToUser(uiDest, puiBuffer, uiChunk))
-		{
-			uiResult = KERNAL_PROCESS_NO_MEMORY;
-		}
-		uiDest += uiChunk;
-		uiSize -= uiChunk;
+		uiResult = KernalReadToUser(&cFile, uiDest, uiSize);
 	}
-	free(puiBuffer);
 	cFile.Close();
 	return uiResult;
 }

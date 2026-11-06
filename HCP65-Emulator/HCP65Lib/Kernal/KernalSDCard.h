@@ -16,24 +16,26 @@
 #define KERNAL_SD_OUT_OF_RANGE		7
 
 
-//An SD card on the HCP65 SD Card Board, used as a drive for the FAT32 volume.  Commands are bit banged through the
-//board's GPIO register; a sector is read by the board straight into a bounce buffer in main memory (the board only
-//reaches main memory) and copied from there; a sector is written as the 521 byte DAT stream (start nybble, data, the
-//four lines' CRC16s, end nybble) through Write Data.  Card socket 0, 4 bit bus, block addressing (SDHC/SDXC).
+//An SD card in one of the HCP65 SD Card Board's four sockets, used as a drive for a FAT volume.  Each access selects
+//its socket first (Flags D0-D1).  Commands are bit banged through the board's GPIO register; sectors are read by the
+//board's DMA straight into main memory (CMD18 for more than one), or into a bounce buffer in main memory and copied
+//from there when the destination is MPU RAM (the board only reaches main memory); a sector is written as the 521 byte
+//DAT stream (start nybble, data, the four lines' CRC16s, end nybble) through Write Data.  4 bit bus, block addressing
+//(SDHC/SDXC).
 class CKernalSDCard : public CFileDrive
 {
 protected:
 	volatile uint8*	mpuiRegisters;
 	uint8			muiFlags;
 	uint16			muiRCA;
-	uint8*			mpuiBounce;		//512 bytes in main memory.
+	uint8*			mpuiBounce;		//512 bytes in main memory, once the card is ready.
 	uint8			mauiResponse[17];
 	uint16			muiError;
 	bool			mbIdentification;	//Until CMD3 the clock must stay under 400kHz: the C++ bit banging (a SetGPIO call per edge) is
 										//used, not KernalSDCard.asm's, which clocks at about a MHz at 25MHz.
 
 public:
-	uint16	Init(SKernalDevice* psDevice);
+	uint16	Init(SKernalDevice* psDevice, uint8 uiSocket);
 	void	Kill(void) override;
 
 	bool	Read(uint64 uiSector, void* pvData) override;
@@ -45,6 +47,7 @@ public:
 	uint16	GetError(void);
 
 protected:
+	void	Select(void);
 	void	SetGPIO(uint8 uiValue);
 	void	Clocks(uint16 uiClocks);
 	void	SendCommand(uint8 uiIndex, uint32 uiArgument);
@@ -52,7 +55,7 @@ protected:
 	bool	Command(uint8 uiIndex, uint32 uiArgument, uint16 uiResponseBits);
 	bool	CommandR1(uint8 uiIndex, uint32 uiArgument);
 	uint32	ResponseContent(void);
-	bool	ReadSector(uint32 uiSector, void* pvData);
+	bool	ReadSectors(uint32 uiSector, uint32 uiNumSectors, uint8* puiData);
 	bool	WriteSector(uint32 uiSector, void* pvData);
 };
 

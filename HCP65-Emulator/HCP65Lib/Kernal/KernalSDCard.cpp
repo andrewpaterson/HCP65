@@ -23,10 +23,12 @@
 #define SD_DRIVE_CLK			0x10
 #define SD_DRIVE_CMD			0x20
 
+#define SD_FLAG_CARD			0x03		//The socket.
 #define SD_FLAG_ENABLE			0x40
 #define SD_FLAG_INTERRUPT		0x80
 
 #define SD_SECTOR_SIZE			512
+#define SD_MAIN_MEMORY			0x200000	//Kernel mode addresses from here on are main memory, where the board's DMA reaches.
 #define SD_CRC_BYTES			8			//The four lines' CRC16s, two nybbles a byte.
 #define SD_RESPONSE_WAIT		64			//Clocks to wait for a response's start bit (Ncr).
 #define SD_READ_WAIT			60000		//Polls of the flags for a block read.
@@ -94,7 +96,7 @@ uint8 KernalCRC7(uint8* puiData, uint16 uiLength)
 // KERNAL_SD_SUCCESS or why it failed.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSDCard::Init(SKernalDevice* psDevice)
+uint16 CKernalSDCard::Init(SKernalDevice* psDevice, uint8 uiSocket)
 {
 	uint16	i;
 	uint32	uiSize;
@@ -102,15 +104,16 @@ uint16 CKernalSDCard::Init(SKernalDevice* psDevice)
 	CFileDrive::Init(SD_SECTOR_SIZE);
 	mpuiRegisters = (volatile uint8*)(psDevice->uiAddress + SD_REGISTERS);
 	gpuiKernalSDGPIO = &mpuiRegisters[SD_GPIO];
-	mpuiBounce = (uint8*)malloc(SD_SECTOR_SIZE);
+	mpuiBounce = NULL;
 	muiRCA = 0;
+	muiMaxSector = 0;
 	muiError = KERNAL_SD_SUCCESS;
 	mbIdentification = true;
 
 	//GPIO first: its latch isn't reset, and enabling the board turns its drivers on.
 	SetGPIO(SD_CLK | SD_CMD | SD_DRIVE_CLK | SD_DRIVE_CMD);
-	muiFlags = SD_FLAG_ENABLE;
-	mpuiRegisters[SD_FLAGS] = muiFlags;
+	muiFlags = (uint8)(SD_FLAG_ENABLE | (uiSocket & SD_FLAG_CARD));
+	Select();
 	Clocks(80);
 
 	SendCommand(0, 0);
@@ -158,7 +161,22 @@ uint16 CKernalSDCard::Init(SKernalDevice* psDevice)
 	{
 		return muiError;
 	}
+
+	//Only for sectors read to (or written from) memory the board can't reach.
+	mpuiBounce = (uint8*)malloc(SD_SECTOR_SIZE);
 	return KERNAL_SD_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The board's bus switch connects this card's socket (the board is shared
+// by the cards in its four sockets).
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalSDCard::Select(void)
+{
+	mpuiRegisters[SD_FLAGS] = muiFlags;
 }
 
 
@@ -169,8 +187,11 @@ uint16 CKernalSDCard::Init(SKernalDevice* psDevice)
 void CKernalSDCard::Kill(void)
 {
 	mpuiRegisters[SD_FLAGS] = 0;
-	free(mpuiBounce);
-	mpuiBounce = NULL;
+	if (mpuiBounce)
+	{
+		free(mpuiBounce);
+		mpuiBounce = NULL;
+	}
 }
 
 
@@ -354,16 +375,34 @@ uint32 CKernalSDCard::ResponseContent(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// CMD17, then CLK let go and Read Start: the board clocks the block into
-// the bounce buffer and raises its interrupt flag.
+// CMD17 (one sector) or CMD18 (several, stopped with CMD12), then for each
+// sector CLK let go and Read Start: the board clocks the block into main
+// memory and raises its interrupt flag.  The board stops SD CLK after each
+// block, so the card waits for the next Read Start.  Sectors go straight
+// to puiData when it is main memory, else through the bounce buffer.  The
+// board's address counts on through the blocks.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CKernalSDCard::ReadSector(uint32 uiSector, void* pvData)
+bool CKernalSDCard::ReadSectors(uint32 uiSector, uint32 uiNumSectors, uint8* puiData)
 {
 	uint32	uiAddress;
+	uint32	uiBlock;
 	uint16	i;
+	bool	bDirect;
+	bool	bResult;
 
-	uiAddress = (uint32)mpuiBounce;
+	if (uiNumSectors == 0)
+	{
+		return true;
+	}
+	bDirect = ((uint32)puiData >= SD_MAIN_MEMORY);
+	if (!bDirect && !mpuiBounce)
+	{
+		muiError = KERNAL_SD_NO_CARD;
+		return false;
+	}
+
+	uiAddress = bDirect ? (uint32)puiData : (uint32)mpuiBounce;
 	mpuiRegisters[SD_ADDRESS_LOW] = (uint8)uiAddress;
 	mpuiRegisters[SD_ADDRESS_HIGH] = (uint8)(uiAddress >> 8);
 	mpuiRegisters[SD_ADDRESS_BANK] = (uint8)(uiAddress >> 16);
@@ -373,29 +412,52 @@ bool CKernalSDCard::ReadSector(uint32 uiSector, void* pvData)
 	mpuiRegisters[SD_CRC_COUNT_HIGH] = 0;
 	mpuiRegisters[SD_FLAGS] = (uint8)(muiFlags | SD_FLAG_INTERRUPT);
 
-	if (!CommandR1(17, uiSector))
+	if (!CommandR1((uiNumSectors == 1) ? 17 : 18, uiSector))
 	{
 		mpuiRegisters[SD_FLAGS] = muiFlags;
 		return false;
 	}
-	SetGPIO(SD_CMD | SD_DRIVE_CMD);
-	mpuiRegisters[SD_READ_START] = 0;
-	for (i = 0; i < SD_READ_WAIT; i++)
+
+	bResult = true;
+	for (uiBlock = 0; uiBlock < uiNumSectors; uiBlock++)
 	{
-		if (mpuiRegisters[SD_FLAGS] & SD_FLAG_INTERRUPT)
+		if (!bDirect && (uiBlock > 0))
 		{
+			uiAddress = (uint32)mpuiBounce;
+			mpuiRegisters[SD_ADDRESS_LOW] = (uint8)uiAddress;
+			mpuiRegisters[SD_ADDRESS_HIGH] = (uint8)(uiAddress >> 8);
+			mpuiRegisters[SD_ADDRESS_BANK] = (uint8)(uiAddress >> 16);
+		}
+		SetGPIO(SD_CMD | SD_DRIVE_CMD);
+		mpuiRegisters[SD_CLEAR_INTERRUPT] = 0;
+		mpuiRegisters[SD_READ_START] = 0;
+		for (i = 0; i < SD_READ_WAIT; i++)
+		{
+			if (mpuiRegisters[SD_FLAGS] & SD_FLAG_INTERRUPT)
+			{
+				break;
+			}
+		}
+		if (i == SD_READ_WAIT)
+		{
+			muiError = KERNAL_SD_READ_TIMEOUT;
+			bResult = false;
 			break;
+		}
+		if (!bDirect)
+		{
+			memcpy(&puiData[uiBlock * SD_SECTOR_SIZE], mpuiBounce, SD_SECTOR_SIZE);
 		}
 	}
 	mpuiRegisters[SD_FLAGS] = muiFlags;
 	SetGPIO(SD_CLK | SD_CMD | SD_DRIVE_CLK | SD_DRIVE_CMD);
-	if (i == SD_READ_WAIT)
+
+	if (uiNumSectors > 1)
 	{
-		muiError = KERNAL_SD_READ_TIMEOUT;
-		return false;
+		//CMD12 stops the card sending blocks.
+		bResult = CommandR1(12, 0) && bResult;
 	}
-	memcpy(pvData, mpuiBounce, SD_SECTOR_SIZE);
-	return true;
+	return bResult;
 }
 
 
@@ -516,7 +578,8 @@ bool CKernalSDCard::Read(uint64 uiSector, void* pvData)
 		muiError = KERNAL_SD_OUT_OF_RANGE;
 		return false;
 	}
-	return ReadSector((uint32)uiSector, pvData);
+	Select();
+	return ReadSectors((uint32)uiSector, 1, (uint8*)pvData);
 }
 
 
@@ -526,16 +589,13 @@ bool CKernalSDCard::Read(uint64 uiSector, void* pvData)
 //////////////////////////////////////////////////////////////////////////
 bool CKernalSDCard::Read(uint64 uiSector, uint32 uiNumSectors, void* pvData)
 {
-	uint32	i;
-
-	for (i = 0; i < uiNumSectors; i++)
+	if ((uiSector >= muiMaxSector) || (uiNumSectors > muiMaxSector - uiSector))
 	{
-		if (!Read(uiSector + i, (uint8*)pvData + (lsize)i * SD_SECTOR_SIZE))
-		{
-			return false;
-		}
+		muiError = KERNAL_SD_OUT_OF_RANGE;
+		return false;
 	}
-	return true;
+	Select();
+	return ReadSectors((uint32)uiSector, uiNumSectors, (uint8*)pvData);
 }
 
 
@@ -550,6 +610,7 @@ bool CKernalSDCard::Write(uint64 uiSector, void* pvData)
 		muiError = KERNAL_SD_OUT_OF_RANGE;
 		return false;
 	}
+	Select();
 	return WriteSector((uint32)uiSector, pvData);
 }
 

@@ -7,8 +7,8 @@
 #include "Kernal.h"
 
 
-SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-CKernalSDCard	gcKernalSDCard;
+SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+CKernalSDCard	gacKernalSDCards[KERNAL_SD_NUM_SOCKETS];
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
 
@@ -45,6 +45,9 @@ int main(void)
 	SKernalDevice*	psSDCardBoard;
 	EFatCode		eResult;
 	uint16			uiSlot;
+	uint8			uiSocket;
+	uint16			uiError;
+	CKernalSDCard*	pcCard;
 
 	//The allocators a chunk file (an executable) names are looked up here.  Only the system allocator (malloc): BaseLib's
 	//global memory would be too big for the ROM.
@@ -63,22 +66,51 @@ int main(void)
 	uiSlot = (uint16)(psSDCardBoard - gasKernalDevices);
 	KernalEnableDevice(uiSlot);
 
-	gsKernalStatus.uiSDError = gcKernalSDCard.Init(psSDCardBoard);
-	if (gsKernalStatus.uiSDError != KERNAL_SD_SUCCESS)
+	//Each socket's card is brought up; the first with a volume that mounts is used.
+	gsKernalStatus.uiSDCards = 0;
+	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
+	{
+		uiError = gacKernalSDCards[uiSocket].Init(psSDCardBoard, uiSocket);
+		if (uiError == KERNAL_SD_SUCCESS)
+		{
+			gsKernalStatus.uiSDCards |= (uint16)(1 << uiSocket);
+		}
+		else if (uiSocket == 0)
+		{
+			gsKernalStatus.uiSDError = uiError;
+		}
+	}
+	if (gsKernalStatus.uiSDCards == 0)
 	{
 		gsKernalStatus.uiState = KERNAL_STATE_SD_CARD_FAILED;
 		return 1;
 	}
-	gsKernalStatus.uiNumSectors = (uint32)(gcKernalSDCard.GetTotalSectors() + 1);
+	gsKernalStatus.uiSDError = KERNAL_SD_SUCCESS;
 
-	eResult = gcKernalVolume.Mount(&gcKernalSDCard);
+	eResult = FAT_INVALID_FAT_VOLUME;
+	pcCard = NULL;
+	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
+	{
+		if (gsKernalStatus.uiSDCards & (1 << uiSocket))
+		{
+			pcCard = &gacKernalSDCards[uiSocket];
+			eResult = gcKernalVolume.Mount(pcCard);
+			if (eResult == FAT_SUCCESS)
+			{
+				break;
+			}
+			gcKernalVolume.Unmount();
+		}
+	}
 	gsKernalStatus.uiFatCode = (uint16)eResult;
 	if (eResult != FAT_SUCCESS)
 	{
-		gsKernalStatus.uiSDError = gcKernalSDCard.GetError();
+		gsKernalStatus.uiSDError = pcCard->GetError();
 		gsKernalStatus.uiState = KERNAL_STATE_MOUNT_FAILED;
 		return 1;
 	}
+	gsKernalStatus.uiSDSocket = uiSocket;
+	gsKernalStatus.uiNumSectors = (uint32)(pcCard->GetTotalSectors() + 1);
 	gsKernalStatus.uiFileSystem = (uint16)gcKernalVolume.GetFileSystemType();
 	gsKernalStatus.uiNumClusters = gcKernalVolume.GetNumClusters();
 	gsKernalStatus.uiFreeClusters = gcKernalVolume.GetTotalFreeClusters();

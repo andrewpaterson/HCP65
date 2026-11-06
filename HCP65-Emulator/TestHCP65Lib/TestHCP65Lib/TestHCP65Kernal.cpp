@@ -39,6 +39,8 @@
 #define TEST_HCP65_MAX_RUNS			2000
 #define TEST_MODPLAY_SECONDS		1			//boot.exe's argument, patched into the test's copy of the ROM.
 #define TEST_HCP65_SD_SOCKET		2			//Socket 1 is the main memory channel.
+#define TEST_HCP65_CARD_SOCKET		2			//The SD Card Board's socket with the volume; socket 0 has a card without one.
+#define TEST_HCP65_BLANK_CARD_SIZE	0x100000
 #define TEST_HCP65_AUDIO_SOCKET		16
 #define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
 
@@ -65,7 +67,10 @@ struct STestKernalStatus
 	uint16	uiExitCode;
 	uint16	uiUserValue;
 	uint16	uiBootArgument;
+	uint16	uiSDCards;
+	uint16	uiSDSocket;
 };
+
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -88,6 +93,8 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 	psStatus->uiExitCode = (uint16)(p[22] | (p[23] << 8));
 	psStatus->uiUserValue = (uint16)(p[24] | (p[25] << 8));
 	psStatus->uiBootArgument = (uint16)(p[26] | (p[27] << 8));
+	psStatus->uiSDCards = (uint16)(p[28] | (p[29] << 8));
+	psStatus->uiSDSocket = (uint16)(p[30] | (p[31] << 8));
 }
 
 
@@ -238,6 +245,7 @@ void TestHCP65KernalBoot(void)
 	CHCP65				cHCP65;
 	CHCP65Audio			cAudio;
 	CHCP65SDCard		cSDCard;
+	uint8*				puiBlankCard;
 	CHCP65DebugPort		cPort;
 	EDebugProcessEvent	eEvent;
 	SDebugProcess		sProcess;
@@ -311,7 +319,11 @@ void TestHCP65KernalBoot(void)
 	cAudio.Init();
 	cSDCard.Init();
 	cPort.Init();
-	AssertTrue(cSDCard.InsertCard(TEST_HCP65_SD_CARD_IMAGE, false));
+	//The kernal brings up each socket's card and mounts the first volume it finds: socket 0's card has none.
+	puiBlankCard = (uint8*)calloc(1, TEST_HCP65_BLANK_CARD_SIZE);
+	AssertTrue(cSDCard.InsertCard(puiBlankCard, TEST_HCP65_BLANK_CARD_SIZE, 0));
+	free(puiBlankCard);
+	AssertTrue(cSDCard.InsertCard(TEST_HCP65_SD_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO_SOCKET, &cAudio));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
@@ -350,7 +362,9 @@ void TestHCP65KernalBoot(void)
 	AssertInt(0, sStatus.uiSDError);
 	AssertInt(0, sStatus.uiFatCode);
 	AssertInt(TEST_KERNAL_FAT32, sStatus.uiFileSystem);
-	AssertInt(cSDCard.NumSectors(), sStatus.uiNumSectors);
+	AssertInt(cSDCard.NumSectors(TEST_HCP65_CARD_SOCKET), sStatus.uiNumSectors);
+	AssertInt((1 << 0) | (1 << TEST_HCP65_CARD_SOCKET), sStatus.uiSDCards);
+	AssertInt(TEST_HCP65_CARD_SOCKET, sStatus.uiSDSocket);
 	AssertTrue(sStatus.uiNumClusters >= 65525);
 	AssertTrue(sStatus.uiFreeClusters <= sStatus.uiNumClusters);
 	AssertTrue(cSDCard.NumSectorsRead() > 0);
