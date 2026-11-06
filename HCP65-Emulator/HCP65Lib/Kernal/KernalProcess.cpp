@@ -48,6 +48,7 @@ static uint8		guiKernalProcess;							//The process running (or calling), 0 for 
 static uint16		gauiKernalArguments[256];					//Each process ID's argument.
 static uint8		gauiKernalBankOwners[KERNAL_LAST_PROCESS_BANK + 1];	//The process ID a physical bank is given to.
 static SKernalDevice*	gpsKernalDebugPort;			//The debug port, if there is one.
+static uint8*			KernalDebugPort(void);
 static bool				gbKernalDebugPortLooked;	//It has been looked for.
 static SKernalDevice*	gpsKernalSoundBoard;
 static uint8*			gpuiKernalArguments;					//The call's arguments, on the process's stack in its bank 0.
@@ -237,6 +238,27 @@ static bool KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Tells the debug port, if there is one, that the main memory bank
+// uiPhysical was given to a process: the emulator fills it in its fill
+// mode.  The kernal doesn't clear the banks it gives (a program's start up
+// clears its bss).
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalDebugBank(uint8 uiPhysical)
+{
+	uint8*	puiPort;
+
+	puiPort = KernalDebugPort();
+	if (puiPort)
+	{
+		puiPort[KERNAL_DEBUG_PORT_PROCESS] = uiPhysical;
+		puiPort[KERNAL_DEBUG_PORT_COMMAND] = KERNAL_DEBUG_PORT_BANK;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Gives the process's bank uiBank a cleared physical bank, if it hasn't
 // one.  False if there are none left.
 //
@@ -257,7 +279,7 @@ static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 		{
 			gauiKernalBankOwners[uiPhysical] = uiProcess;
 			puiPage[uiBank] = (uint8)uiPhysical;
-			memset((uint8*)((uint32)uiPhysical << 16), 0, 0x10000);
+			KernalDebugBank((uint8)uiPhysical);
 			return true;
 		}
 	}
@@ -460,6 +482,22 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The debug port's registers (an emulator's), or NULL without one.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint8* KernalDebugPort(void)
+{
+	if (!gbKernalDebugPortLooked)
+	{
+		gpsKernalDebugPort = KernalFindDevice(KERNAL_DEBUG_PORT_NAME);
+		gbKernalDebugPortLooked = true;
+	}
+	return gpsKernalDebugPort ? (uint8*)gpsKernalDebugPort->uiAddress : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Tells the debug port (an emulator's: it is how a debugger follows the
 // processes) that uiProcess, running szPath, has started
 // (KERNAL_DEBUG_PORT_STARTED) or ended with uiExitCode
@@ -471,17 +509,12 @@ static void KernalDebugTell(uint8 uiCommand, uint8 uiProcess, uint16 uiExitCode,
 	uint8*	puiPort;
 	uint16	i;
 
-	if (!gbKernalDebugPortLooked)
-	{
-		gpsKernalDebugPort = KernalFindDevice(KERNAL_DEBUG_PORT_NAME);
-		gbKernalDebugPortLooked = true;
-	}
-	if (!gpsKernalDebugPort)
+	puiPort = KernalDebugPort();
+	if (!puiPort)
 	{
 		return;
 	}
 
-	puiPort = (uint8*)gpsKernalDebugPort->uiAddress;
 	puiPort[KERNAL_DEBUG_PORT_PROCESS] = uiProcess;
 	puiPort[KERNAL_DEBUG_PORT_EXIT_LOW] = (uint8)uiExitCode;
 	puiPort[KERNAL_DEBUG_PORT_EXIT_HIGH] = (uint8)(uiExitCode >> 8);

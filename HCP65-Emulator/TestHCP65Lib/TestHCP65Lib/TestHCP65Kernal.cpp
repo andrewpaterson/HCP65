@@ -353,6 +353,10 @@ void TestHCP65KernalBoot(void)
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_STRAY_SOCKET, &cStray));
 	cPort.Watch(true);
 	AssertTrue(cHCP65.LoadROM(puiROM, HCP65_ROM_SIZE));
+
+	//Fill mode: memory nothing wrote reads $CC (the kernal doesn't clear the banks it gives processes), so a program
+	//that relied on zeroed memory would fail here.
+	cHCP65.SetMemoryFill(true);
 	cHCP65.Reset();
 
 	//The sound board's frames are taken as they are played: it keeps no more than 64K of them.
@@ -381,7 +385,8 @@ void TestHCP65KernalBoot(void)
 			printf("run %d: state %d (boot %d, exit %d, argument %d), process $%02X, depth %d, kernel %d, PC $%06X, sound %s, counter $%04X, frames %d\n", i, sStatus.uiState, sStatus.uiBootResult, sStatus.uiExitCode, sStatus.uiBootArgument, cHCP65.GetProcessID(), cHCP65.GetInterruptDepth(), cHCP65.IsKernelMode(), cHCP65.GetMPU()->GetProgramAddress(), cAudio.IsEnabled() ? "on" : "off", cAudio.GetCounter(), (int)(acPlayed.NumElements() / 2));
 			fflush(stdout);
 		}
-		if ((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) || ((sStatus.uiState > TEST_KERNAL_STATE_DEVICES_SCANNED) && (sStatus.uiState < TEST_KERNAL_STATE_MOUNTED)) || cHCP65.IsStopped())
+		//Until the start up has copied the kernal's data its status is whatever MPU RAM held ($CC in fill mode).
+		if (((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (sStatus.uiState <= TEST_KERNAL_STATE_BOOT_EXITED)) || ((sStatus.uiState > TEST_KERNAL_STATE_DEVICES_SCANNED) && (sStatus.uiState < TEST_KERNAL_STATE_MOUNTED)) || cHCP65.IsStopped())
 		{
 			break;
 		}
@@ -404,6 +409,7 @@ void TestHCP65KernalBoot(void)
 
 	//The kernal never used main memory while the SD Card Board's DMA had it, and reset the stray device.
 	AssertFalse(cHCP65.IsContention());
+	AssertInt(HCP65_DEBUG_FILL_BYTE, cHCP65.GetMainMemory()[0x300000]);
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
 	AssertTrue(cStray.IsQuiet());
 	AssertInt(uiSeconds, (uint32)sStatus.uiBootArgument);

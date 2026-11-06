@@ -13,6 +13,7 @@
 #define KERNAL_DEBUG_PORT_NAME_SIZE		64
 #define KERNAL_DEBUG_PORT_STARTED		1
 #define KERNAL_DEBUG_PORT_ENDED			2
+#define KERNAL_DEBUG_PORT_BANK			3
 
 
 #define KERNAL_FIRST_PROCESS_ID		0xFF		//boot.exe's.  A process run by another gets the next ID down.
