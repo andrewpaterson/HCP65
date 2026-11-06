@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "BaseLib/FileUtil.h"
 #include "BaseLib/PointerFunctions.h"
 #include "HCP65.h"
 #include "HCP65SDCard.h"
@@ -109,32 +110,21 @@ void CHCP65SDCard::Reset(void)
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65SDCard::InsertCard(const char* szImageFilename, bool bWriteBack)
 {
-	FILE*	pcFile;
-	long	iSize;
+	CFileUtil	cFileUtil;
+	size		uiSize;
 
 	RemoveCard();
-	pcFile = fopen(szImageFilename, "rb");
-	if (!pcFile)
+	mpuiImage = (uint8*)cFileUtil.ReadAll(szImageFilename, &uiSize);
+	if (!mpuiImage)
 	{
 		return false;
 	}
-	fseek(pcFile, 0, SEEK_END);
-	iSize = ftell(pcFile);
-	fseek(pcFile, 0, SEEK_SET);
-	if ((iSize <= 0) || (iSize % HCP65_SD_SECTOR_SIZE != 0))
+	if ((uiSize == 0) || (uiSize % HCP65_SD_SECTOR_SIZE != 0))
 	{
-		fclose(pcFile);
-		return false;
-	}
-	mpuiImage = (uint8*)malloc((size_t)iSize);
-	if (fread(mpuiImage, 1, (size_t)iSize, pcFile) != (size_t)iSize)
-	{
-		fclose(pcFile);
 		SafeFree(mpuiImage);
 		return false;
 	}
-	fclose(pcFile);
-	muiNumSectors = (uint32)(iSize / HCP65_SD_SECTOR_SIZE);
+	muiNumSectors = (uint32)(uiSize / HCP65_SD_SECTOR_SIZE);
 	mbWriteBack = bWriteBack;
 	mszFilename.Kill();
 	mszFilename.Init(szImageFilename);

@@ -197,6 +197,16 @@ CBreakpoints* CHCP65DebugTarget::GetProcessBreakpoints(size uiSpace, uint32 uiPr
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+// Kernel mode is space 1 (its index plus one) and every process's; user
+// mode is space 2, in the process the kernal says is running.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CHCP65DebugTarget::GetCurrentSpace(void)		{ return mpcHCP65->IsKernelMode() ? 1 : 2; }
+uint32 CHCP65DebugTarget::GetCurrentProcess(void)	{ return mpcHCP65->IsKernelMode() ? DEBUG_PROCESS_ANY : mpcHCP65->GetProcessID(); }
+
+
 void CHCP65DebugTarget::ClearBreakpoints(void)					{ mpcHCP65->ClearBreakpoints(); }
 void CHCP65DebugTarget::EnableAllBreakpoints(bool bEnabled)		{ mpcHCP65->EnableAllBreakpoints(bEnabled); }
 

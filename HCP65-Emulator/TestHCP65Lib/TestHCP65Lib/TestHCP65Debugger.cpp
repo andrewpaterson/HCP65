@@ -99,11 +99,13 @@ static void TestHCP65DebugWaitForAnyStop(CDebugServer* pcServer, CDebugClient* p
 //
 // The MPU looks at its mode's breakpoints, and in user mode the running
 // process's too, once it has any; a process's go when they are cleared.
+// The debug target says which space (and process) it is in.
 //
 //////////////////////////////////////////////////////////////////////////
 static void TestHCP65DebugProcessBreakpoints(void)
 {
 	CHCP65				cHCP65;
+	CHCP65DebugTarget	cTarget;
 	CBreakpoints*		pcThree;
 	static const uint8	auiNative[] = { 0x18, 0xFB, 0xDB };		//clc  xce  stp
 
@@ -112,9 +114,12 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	cHCP65.GetMPUROM()[0xFFFC] = 0x00;
 	cHCP65.GetMPUROM()[0xFFFD] = 0x80;
 	cHCP65.Reset();
+	cTarget.Init(&cHCP65, NULL);
 
 	//Kernel mode (reset): the kernel's, and no process's.
 	AssertTrue(cHCP65.IsKernelMode());
+	AssertInt(1, cTarget.GetCurrentSpace());
+	AssertIntHex(DEBUG_PROCESS_ANY, cTarget.GetCurrentProcess());
 	AssertTrue(cHCP65.GetMPU()->GetUsedBreakpoints() == cHCP65.GetModeBreakpoints(true));
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == NULL);
 	pcThree = cHCP65.GetProcessBreakpoints(3);
@@ -129,6 +134,8 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	AssertFalse(cHCP65.IsKernelMode());
 	AssertTrue(cHCP65.GetMPU()->GetUsedBreakpoints() == cHCP65.GetModeBreakpoints(false));
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == pcThree);
+	AssertInt(2, cTarget.GetCurrentSpace());
+	AssertInt(3, cTarget.GetCurrentProcess());
 	cHCP65.SetProcessID(4);
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == NULL);
 	cHCP65.SetProcessID(3);
@@ -140,6 +147,7 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	AssertSize(0, cHCP65.GetProcessBreakpoints(3)->NumBreakpoints());
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == cHCP65.GetProcessBreakpoints(3));
 
+	cTarget.Kill();
 	cHCP65.Kill();
 }
 
@@ -342,6 +350,8 @@ void TestHCP65Debugger(void)
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8010);
 	AssertLongLongIntHex(11, cClient.GetRegisterValue(D816R_X));
+	AssertInt(uiKernel, cClient.GetStopSpace());
+	AssertIntHex(DEBUG_PROCESS_ANY, cClient.GetStopProcess());
 	AssertTrue(cHCP65.GetModeBreakpoints(true)->Contains(0x8010));
 	AssertFalse(cHCP65.GetModeBreakpoints(false)->Contains(0x8010));
 	AssertTrue(cClient.RemoveBreakpoint(0x8010, uiKernel));

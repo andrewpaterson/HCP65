@@ -53,6 +53,8 @@ public:
 	bool			GetProcess(size uiIndex, SDebugProcess* psDest) override;
 	void			WatchProcesses(bool bWatch) override;
 	bool			TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest) override;
+	uint32			GetCurrentSpace(void) override;
+	uint32			GetCurrentProcess(void) override;
 	bool			IsAtBreakpoint(void) override;
 	bool			IsStopped(void) override;
 
