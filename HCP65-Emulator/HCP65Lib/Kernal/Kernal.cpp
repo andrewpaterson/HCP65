@@ -5,9 +5,10 @@
 #include "KernalSDCard.h"
 #include "KernalProcess.h"
 #include "Kernal.h"
+#include "KernalInterrupts.h"
 
 
-SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 CKernalSDCard	gacKernalSDCards[KERNAL_SD_NUM_SOCKETS];
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
@@ -56,6 +57,7 @@ int main(void)
 
 	KernalScanDevices();
 	gsKernalStatus.uiState = KERNAL_STATE_DEVICES_SCANNED;
+	KernalInitInterrupts();
 
 	psSDCardBoard = KernalFindDevice(KERNAL_SD_CARD_NAME);
 	if (!psSDCardBoard)
@@ -70,7 +72,7 @@ int main(void)
 	gsKernalStatus.uiSDCards = 0;
 	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
 	{
-		uiError = gacKernalSDCards[uiSocket].Init(psSDCardBoard, uiSocket);
+		uiError = gacKernalSDCards[uiSocket].Init(psSDCardBoard, uiSlot, uiSocket);
 		if (uiError == KERNAL_SD_SUCCESS)
 		{
 			gsKernalStatus.uiSDCards |= (uint16)(1 << uiSocket);

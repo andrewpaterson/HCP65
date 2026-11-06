@@ -37,6 +37,7 @@
 #define KERNAL_CALL_AUDIO_WRITE		7
 #define KERNAL_CALL_AUDIO_SET		8
 #define KERNAL_CALL_AUDIO_COUNTER	9
+#define KERNAL_CALL_AUDIO_WAIT		10			//A is the address the sound board's counter is waited for.
 
 //Call results (KERNAL_RESULT_* in HCP65User.h).
 #define KERNAL_PROCESS_NONE				0

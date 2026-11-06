@@ -35,7 +35,7 @@ protected:
 										//used, not KernalSDCard.asm's, which clocks at about a MHz at 25MHz.
 
 public:
-	uint16	Init(SKernalDevice* psDevice, uint8 uiSocket);
+	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot, uint8 uiSocket);
 	void	Kill(void) override;
 
 	bool	Read(uint64 uiSector, void* pvData) override;

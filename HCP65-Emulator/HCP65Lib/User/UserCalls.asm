@@ -194,3 +194,22 @@ _KernalAudioGetCounter:
 		adc 4
 		cop 9
 		rtl
+
+
+		.section text.KernalAudioWait
+		.global _KernalAudioWait.a
+_KernalAudioWait.a:
+		.width (A, X), 16
+		pha
+		jsl _KernalAudioWait
+		ply
+		rtl
+
+		.global _KernalAudioWait
+_KernalAudioWait:
+		.width (A, X), 16
+		tsc
+		clc
+		adc 4
+		cop 10
+		rtl

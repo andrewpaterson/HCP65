@@ -85,11 +85,14 @@
     <ClCompile Include="KernalSDCard.asm" />
     <ClCompile Include="KernalProcess.cpp" />
     <ClCompile Include="KernalAudio.asm" />
+    <ClCompile Include="KernalInterrupts.cpp" />
+    <ClCompile Include="KernalInterrupts.asm" />
     <ClCompile Include="..\..\..\Libraries\Assembler65Lib\Asm65Object.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Kernal.h" />
     <ClInclude Include="KernalDevices.h" />
+    <ClInclude Include="KernalInterrupts.h" />
     <ClInclude Include="KernalProcess.h" />
     <ClInclude Include="KernalSDCard.h" />
   </ItemGroup>

@@ -46,5 +46,9 @@ extern "C" void		KernalAudioSetRegister(uint16 uiRegister, uint16 uiValue);
 //The sound board's counter: the address of the samples it plays next.
 extern "C" uint16	KernalAudioGetCounter(void);
 
+//Waits for the sound board's counter to reach uiAddress (0 to $7FFF), sleeping until its interrupt.  It may return
+//sooner (after about 10ms, if the counter had already passed it): look at the counter again.
+extern "C" void		KernalAudioWait(uint16 uiAddress);
+
 
 #endif // __HCP65_USER_H__

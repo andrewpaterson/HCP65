@@ -21,6 +21,9 @@
 KERNAL_STACK_TOP	= 0xBFFF		; The kernal's stack.
 KERNAL_ROM_OFFSET	= 0x80000		; Where an address's ROM byte is once ROM and RAM have swapped.
 KERNAL_REMAP_TABLE	= 0x07FC00		; Process $FC's page of the remap table.
+KERNAL_INTERRUPT_DEPTH	= 0x100009	; The processor board's interrupt depth register.
+KERNAL_NMI_STATE	= 0x100007		; D0: the timer's NMI (written 1: cleared).
+KERNAL_NMI_TIMER	= 0x01
 
 
 		.section rodata.NativeVectors, at 0xFFE4, keep
@@ -216,13 +219,98 @@ __Exit:
 		jml KernalIdle
 
 
-		; Interrupts are not handled yet: they return at once.  (An interrupt taken in user mode pushed its frame on
+		; BRK and ABORT are not handled yet: they return at once.  (An interrupt taken in user mode pushed its frame on
 		; the process's stack before the vector pull raised the interrupt depth, and RTI drops the depth again before
 		; it pulls, so the frame comes back from the same stack.)
 KernalBrk:
 KernalAbort:
-KernalNmi:
+		rti
+
+
+		; An IRQ (KernalInterrupts.asm dispatches it).  From user mode (the interrupt depth is 1: this vector pull
+		; counted it up from 0) the frame is on the process's stack and S still points there, in MPU RAM now: the
+		; registers are saved without the stack, as KernalCop does, and the dispatch runs on the kernal's stack below
+		; where KernalEnterUser left it.  From kernel mode (a wait let it in) they go on the kernal's stack.
 KernalIrq:
+		rep (m, x)
+		sta [_gauiKernalIrqSave + 0]:24
+		sep m
+		lda [KERNAL_INTERRUPT_DEPTH]:24
+		rep m
+		and 0xFF
+		cmp 1
+		beq KernalIrqFromUser
+		lda [_gauiKernalIrqSave + 0]:24
+		pha
+		phx
+		phy
+		phd
+		phb
+		lda 0
+		tcd
+		phk
+		plb
+		jsl _KernalIrqDispatch
+		.width (A, X), 16
+		plb
+		pld
+		ply
+		plx
+		pla
+		rti
+KernalIrqFromUser:
+		.width (A, X), 16
+		txa
+		sta [_gauiKernalIrqSave + 2]:24
+		tya
+		sta [_gauiKernalIrqSave + 4]:24
+		tsc
+		sta [_gauiKernalIrqSave + 6]:24
+		tdc
+		sta [_gauiKernalIrqSave + 8]:24
+		lda [_gsKernalCall + 12]:24
+		tcs
+		phb
+		lda 0
+		tcd
+		phk
+		plb
+		jsl _KernalIrqDispatch
+		.width (A, X), 16
+		plb
+		lda [_gauiKernalIrqSave + 8]:24
+		tcd
+		lda [_gauiKernalIrqSave + 6]:24
+		tcs
+		lda [_gauiKernalIrqSave + 4]:24
+		tay
+		lda [_gauiKernalIrqSave + 2]:24
+		tax
+		lda [_gauiKernalIrqSave + 0]:24
+		rti
+
+
+		; An NMI: the timer's tick is counted (guiKernalTicks) and cleared.  Nothing goes on the stack but the frame
+		; (an NMI can come at any time, even while an IRQ or COP is changing stacks), and only A is used.
+KernalNmi:
+		rep m
+		sta [_guiKernalNmiSave]:24
+		sep m
+		lda [KERNAL_NMI_STATE]:24
+		and KERNAL_NMI_TIMER
+		beq KernalNmiDone
+		sta [KERNAL_NMI_STATE]:24
+		rep m
+		lda [_guiKernalTicks]:24
+		inc A
+		sta [_guiKernalTicks]:24
+		bne KernalNmiDone
+		lda [_guiKernalTicks + 2]:24
+		inc A
+		sta [_guiKernalTicks + 2]:24
+KernalNmiDone:
+		rep m
+		lda [_guiKernalNmiSave]:24
 		rti
 
 

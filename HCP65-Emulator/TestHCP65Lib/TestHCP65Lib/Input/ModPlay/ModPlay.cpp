@@ -59,7 +59,8 @@ uint16 ModPlayQueued(uint16 uiWrite)
 //
 // Plays the song through the sound board: renders MODPLAY_START_FRAMES,
 // starts it, then renders a block whenever there is room for one (it
-// keeps up to MODPLAY_MAX_QUEUED ahead), until the song ends.
+// keeps up to MODPLAY_MAX_QUEUED ahead, sleeping in KernalAudioWait until
+// the board's interrupt says there is room), until the song ends.
 // The sound board plays its 32KB again and again, so after the song a
 // block of silence follows and it is stopped once it reaches it.
 //
@@ -85,6 +86,8 @@ void ModPlaySong(CModPlayer* pcPlayer, lsize uiMaxFrames)
 	{
 		if (bStarted && (ModPlayQueued(uiWrite) > MODPLAY_MAX_QUEUED - MODPLAY_BLOCK_FRAMES))
 		{
+			//There's room for a block once the board has played up to this far behind the write.
+			KernalAudioWait((uint16)((uiWrite - (MODPLAY_MAX_QUEUED - MODPLAY_BLOCK_FRAMES)) & (MODPLAY_BUFFER_FRAMES - 1)));
 			continue;
 		}
 		uiWritten = ModPlayBlock(pcPlayer, uiWrite, uiMaxFrames - uiPlayed);
@@ -114,6 +117,7 @@ void ModPlaySong(CModPlayer* pcPlayer, lsize uiMaxFrames)
 	KernalAudioWrite(uiWrite, gsModPlayBlock.auiLeft, gsModPlayBlock.auiRight, MODPLAY_BLOCK_FRAMES);
 	while (ModPlayQueued(uiWrite) != 0)
 	{
+		KernalAudioWait(uiWrite);
 	}
 	KernalAudioSetRegister(AUDIO_FLAGS, MODPLAY_RATE_SELECT);
 }

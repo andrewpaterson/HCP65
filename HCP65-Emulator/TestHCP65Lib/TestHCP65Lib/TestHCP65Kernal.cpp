@@ -41,6 +41,7 @@
 #define TEST_HCP65_SD_SOCKET		2			//Socket 1 is the main memory channel.
 #define TEST_HCP65_CARD_SOCKET		2			//The SD Card Board's socket with the volume; socket 0 has a card without one.
 #define TEST_HCP65_BLANK_CARD_SIZE	0x100000
+#define TEST_HCP65_STRAY_SOCKET		3			//A device with no driver that interrupts.
 #define TEST_HCP65_AUDIO_SOCKET		16
 #define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
 
@@ -69,8 +70,27 @@ struct STestKernalStatus
 	uint16	uiBootArgument;
 	uint16	uiSDCards;
 	uint16	uiSDSocket;
+	uint32	uiStrayInterrupts;
 };
 
+
+//A board the kernal knows nothing of that starts interrupting once armed (and enabled): the kernal has no handler for it,
+//so it resets it, which quietens it for good.
+class CTestStrayDevice : public CHCP65Device
+{
+protected:
+	bool	mbArmed;
+	bool	mbQuiet;
+
+public:
+	void	Init(void)						{ CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE); mbArmed = false; mbQuiet = false; }
+	uint8	Read(uint32 uiOffset) override	{ return 0xFF; }
+	void	Write(uint32 uiOffset, uint8 uiValue) override {}
+	void	Reset(void) override			{ mbQuiet = mbArmed; }
+	bool	IsInterrupting(void) override	{ return mbArmed && !mbQuiet && !mbHeldInReset; }
+	void	Arm(void)						{ mbArmed = true; }
+	bool	IsQuiet(void)					{ return mbQuiet; }
+};
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -95,6 +115,7 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 	psStatus->uiBootArgument = (uint16)(p[26] | (p[27] << 8));
 	psStatus->uiSDCards = (uint16)(p[28] | (p[29] << 8));
 	psStatus->uiSDSocket = (uint16)(p[30] | (p[31] << 8));
+	psStatus->uiStrayInterrupts = (uint32)p[32] | ((uint32)p[33] << 8) | ((uint32)p[34] << 16) | ((uint32)p[35] << 24);
 }
 
 
@@ -246,6 +267,7 @@ void TestHCP65KernalBoot(void)
 	CHCP65Audio			cAudio;
 	CHCP65SDCard		cSDCard;
 	uint8*				puiBlankCard;
+	CTestStrayDevice	cStray;
 	CHCP65DebugPort		cPort;
 	EDebugProcessEvent	eEvent;
 	SDebugProcess		sProcess;
@@ -327,6 +349,8 @@ void TestHCP65KernalBoot(void)
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO_SOCKET, &cAudio));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
+	cStray.Init();
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_STRAY_SOCKET, &cStray));
 	cPort.Watch(true);
 	AssertTrue(cHCP65.LoadROM(puiROM, HCP65_ROM_SIZE));
 	cHCP65.Reset();
@@ -344,6 +368,14 @@ void TestHCP65KernalBoot(void)
 		}
 		while (uiFrames > 0);
 		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
+
+		//Once modplay plays (a process with interrupts on), the stray device is enabled and starts interrupting.
+		if (cAudio.IsEnabled() && !cHCP65.IsKernelMode() && (cHCP65.GetDeviceEnables() & (1u << TEST_HCP65_STRAY_SOCKET)) == 0)
+		{
+			cStray.Arm();
+			cHCP65.SetDeviceEnables(cHCP65.GetDeviceEnables() | (1u << TEST_HCP65_STRAY_SOCKET));
+			cHCP65.UpdateInterrupts();
+		}
 		if (getenv("TEST_HCP65_VERBOSE"))
 		{
 			printf("run %d: state %d (boot %d, exit %d, argument %d), process $%02X, depth %d, kernel %d, PC $%06X, sound %s, counter $%04X, frames %d\n", i, sStatus.uiState, sStatus.uiBootResult, sStatus.uiExitCode, sStatus.uiBootArgument, cHCP65.GetProcessID(), cHCP65.GetInterruptDepth(), cHCP65.IsKernelMode(), cHCP65.GetMPU()->GetProgramAddress(), cAudio.IsEnabled() ? "on" : "off", cAudio.GetCounter(), (int)(acPlayed.NumElements() / 2));
@@ -369,6 +401,11 @@ void TestHCP65KernalBoot(void)
 	AssertTrue(sStatus.uiFreeClusters <= sStatus.uiNumClusters);
 	AssertTrue(cSDCard.NumSectorsRead() > 0);
 	AssertInt(0, cSDCard.NumSectorsWritten());
+
+	//The kernal never used main memory while the SD Card Board's DMA had it, and reset the stray device.
+	AssertFalse(cHCP65.IsContention());
+	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
+	AssertTrue(cStray.IsQuiet());
 	AssertInt(uiSeconds, (uint32)sStatus.uiBootArgument);
 
 	//boot.exe ran in user mode (process $FF), multiplied and divided with the tables, gave the kernal 300 * 200 / 3
@@ -400,8 +437,9 @@ void TestHCP65KernalBoot(void)
 	AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
 	AssertSize(0, cPort.NumProcesses());
 
-	//The SD Card Board was enabled at boot, the sound board by modplay.exe, which left it disabled.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET), cHCP65.GetDeviceEnables());
+	//The SD Card Board was enabled at boot, the sound board by modplay.exe, which left it disabled, and the stray device
+	//by the test (the kernal's reset of it put its enable back).
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
 	AssertFalse(cAudio.IsEnabled());
 
 	//The math tables were copied from ROM banks 4-7 to main memory at $400000, and the kernal from ROM banks 0-3 to
@@ -450,6 +488,7 @@ void TestHCP65KernalBoot(void)
 
 	cHCP65.Kill();
 	cPort.Kill();
+	cStray.Kill();
 	cSDCard.Kill();
 	cAudio.Kill();
 	cBuilder.Kill();

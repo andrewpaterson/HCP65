@@ -1,7 +1,12 @@
 The kernal's IRQ dispatch - plan
 ================================
 
-Started 2026-11-05.  Nothing here is built yet.  Today KernalIrq (Start.asm) is a bare rti, main runs with
+Started 2026-11-05.  Built 2026-11-06 (steps 1-7 below): Start.asm's KernalIrq and KernalNmi, KernalInterrupts.asm (the
+dispatch, KernalRunPendingInterrupts, KernalWaitForInterrupt), KernalInterrupts.cpp/.h (the handler table, registration,
+ticks), the SD Card Board and sound board on it, processes with interrupts on, the emulator's contention model.  What
+follows is the plan as written, with the user's answers; the code's comments describe what was built.
+
+Before 2026-11-06:  Today KernalIrq (Start.asm) is a bare rti, main runs with
 interrupts disabled, processes start with I set (KERNAL_PROCESS_STATUS = $34), and drivers poll: the SD Card Board's
 block read polls Flags D7 (KernalSDCard.cpp ReadSector), and modplay polls the sound board's counter (COP 9).
 
@@ -152,8 +157,9 @@ Questions for the user
 ----------------------
 
 Answered 2026-11-05: 1 = (b) with trusted handlers and a main-bus-busy flag set by the SD driver; 2 = yes; 4 =
-assembly.  3 = the device is reset (not held).  Still open: 5 (explained to the user: (a) the handler refills the board
-from the process's ring buffer, (b) the handler only signals and modplay waits in a kernal call; (b) recommended).
+assembly.  3 = the device is reset (not held).  5 was still open when the user asked for the dispatch to be built
+(2026-11-06): built as (b), the recommendation: the sound board's handler only signals, and modplay sleeps in a new kernal
+call, KernalAudioWait (COP 10), with a two tick timeout in case the counter had passed the address already.
 
 1. During an SD DMA, other interrupts:
    (a) stay masked: the read waits with I set and wai, the SD board's IRQ only wakes the CPU, the driver reads Flags

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "KernalSDCard.h"
+#include "KernalInterrupts.h"
 
 
 #define SD_REGISTERS			0x400
@@ -31,7 +32,7 @@
 #define SD_MAIN_MEMORY			0x200000	//Kernel mode addresses from here on are main memory, where the board's DMA reaches.
 #define SD_CRC_BYTES			8			//The four lines' CRC16s, two nybbles a byte.
 #define SD_RESPONSE_WAIT		64			//Clocks to wait for a response's start bit (Ncr).
-#define SD_READ_WAIT			60000		//Polls of the flags for a block read.
+#define SD_READ_TICKS			3			//A block read that hasn't interrupted within 7.8ms to 11.7ms has failed.
 #define SD_ACMD41_TRIES			1000
 
 #define SD_R1_ERRORS			0xFDF90008	//Every R1 error bit.
@@ -45,6 +46,27 @@ extern "C" void		KernalSDSendBits(const uint8* puiBytes, uint16 uiBytes);
 extern "C" void		KernalSDReceiveBits(uint8* puiBytes, uint16 uiBits);
 extern "C" uint16	KernalSDWaitStart(uint16 uiClocks);
 extern "C" void		KernalSDClocks(uint16 uiClocks);
+
+static volatile uint8	gbKernalSDBlockDone;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The board's interrupt: a block read's DMA is done.  Trusted (it touches
+// only the board's registers and MPU RAM): it quietens the board first
+// (interrupt enable off, the interrupt cleared), then lets main memory go.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalSDInterrupt(void* pvContext)
+{
+	volatile uint8*	puiRegisters;
+
+	puiRegisters = (volatile uint8*)pvContext;
+	puiRegisters[SD_FLAGS] = (uint8)(puiRegisters[SD_FLAGS] & ~SD_FLAG_INTERRUPT);
+	puiRegisters[SD_CLEAR_INTERRUPT] = 0;
+	gbKernalSDBlockDone = 1;
+	gbKernalMainBusBusy = 0;
+}
 
 
 //x^7 + x^3 + 1, a byte at a time: the CRC is kept shifted up a bit (in D7-D1, D0 zero), and the next is
@@ -96,7 +118,7 @@ uint8 KernalCRC7(uint8* puiData, uint16 uiLength)
 // KERNAL_SD_SUCCESS or why it failed.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSDCard::Init(SKernalDevice* psDevice, uint8 uiSocket)
+uint16 CKernalSDCard::Init(SKernalDevice* psDevice, uint16 uiSlot, uint8 uiSocket)
 {
 	uint16	i;
 	uint32	uiSize;
@@ -104,6 +126,7 @@ uint16 CKernalSDCard::Init(SKernalDevice* psDevice, uint8 uiSocket)
 	CFileDrive::Init(SD_SECTOR_SIZE);
 	mpuiRegisters = (volatile uint8*)(psDevice->uiAddress + SD_REGISTERS);
 	gpuiKernalSDGPIO = &mpuiRegisters[SD_GPIO];
+	KernalSetInterruptHandler(uiSlot, KernalSDInterrupt, (void*)mpuiRegisters, &mpuiRegisters[SD_FLAGS], true);
 	mpuiBounce = NULL;
 	muiRCA = 0;
 	muiMaxSector = 0;
@@ -377,17 +400,20 @@ uint32 CKernalSDCard::ResponseContent(void)
 //
 // CMD17 (one sector) or CMD18 (several, stopped with CMD12), then for each
 // sector CLK let go and Read Start: the board clocks the block into main
-// memory and raises its interrupt flag.  The board stops SD CLK after each
-// block, so the card waits for the next Read Start.  Sectors go straight
-// to puiData when it is main memory, else through the bounce buffer.  The
-// board's address counts on through the blocks.
+// memory and interrupts (KernalSDInterrupt).  The board stops SD CLK after
+// each block, so the card waits for the next Read Start.  Sectors go
+// straight to puiData when it is main memory, else through the bounce
+// buffer.  The board's address counts on through the blocks.  While a
+// block's DMA has the main memory bus nothing here touches main memory;
+// interrupt handlers that would are deferred (gbKernalMainBusBusy) and run
+// once the read is done.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CKernalSDCard::ReadSectors(uint32 uiSector, uint32 uiNumSectors, uint8* puiData)
 {
 	uint32	uiAddress;
 	uint32	uiBlock;
-	uint16	i;
+	uint32	uiStart;
 	bool	bDirect;
 	bool	bResult;
 
@@ -430,15 +456,17 @@ bool CKernalSDCard::ReadSectors(uint32 uiSector, uint32 uiNumSectors, uint8* pui
 		}
 		SetGPIO(SD_CMD | SD_DRIVE_CMD);
 		mpuiRegisters[SD_CLEAR_INTERRUPT] = 0;
+		mpuiRegisters[SD_FLAGS] = (uint8)(muiFlags | SD_FLAG_INTERRUPT);
+		gbKernalSDBlockDone = 0;
+		gbKernalMainBusBusy = 1;
 		mpuiRegisters[SD_READ_START] = 0;
-		for (i = 0; i < SD_READ_WAIT; i++)
+		uiStart = KernalTicks();
+		while (!gbKernalSDBlockDone && ((KernalTicks() - uiStart) <= SD_READ_TICKS))
 		{
-			if (mpuiRegisters[SD_FLAGS] & SD_FLAG_INTERRUPT)
-			{
-				break;
-			}
+			KernalWaitForInterrupt();
 		}
-		if (i == SD_READ_WAIT)
+		gbKernalMainBusBusy = 0;
+		if (!gbKernalSDBlockDone)
 		{
 			muiError = KERNAL_SD_READ_TIMEOUT;
 			bResult = false;
@@ -451,6 +479,7 @@ bool CKernalSDCard::ReadSectors(uint32 uiSector, uint32 uiNumSectors, uint8* pui
 	}
 	mpuiRegisters[SD_FLAGS] = muiFlags;
 	SetGPIO(SD_CLK | SD_CMD | SD_DRIVE_CLK | SD_DRIVE_CMD);
+	KernalRunPendingInterrupts();
 
 	if (uiNumSectors > 1)
 	{

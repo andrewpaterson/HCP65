@@ -36,6 +36,7 @@ struct SKernalStatus
 	uint16	uiBootArgument;	//boot.exe's argument (KernalGetArgument), from guiKernalBootArgument.
 	uint16	uiSDCards;		//Bit n set: the card in socket n came up.
 	uint16	uiSDSocket;		//The socket whose card's volume is mounted.
+	uint32	uiStrayInterrupts;	//Bit n set: device n interrupted with no handler, and was reset (KernalInterrupts.asm).
 };
 
 

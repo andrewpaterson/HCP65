@@ -8,11 +8,12 @@
 #include "KernalDevices.h"
 #include "Kernal.h"
 #include "KernalProcess.h"
+#include "KernalInterrupts.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
 #define KERNAL_PROCESS_MEMORY_SYMBOL	"UserMemorySize"
-#define KERNAL_PROCESS_STATUS			0x34		//The process starts with 8 bit registers and interrupts off.
+#define KERNAL_PROCESS_STATUS			0x30		//The process starts with 8 bit registers and interrupts on.
 #define KERNAL_MAX_PATH					128
 
 //Sound board (HCP65Lib/HCP65Audio.h): its registers and its two sample RAMs, offsets in its slot.
@@ -20,6 +21,12 @@
 #define KERNAL_AUDIO_RAM_A				0x10000
 #define KERNAL_AUDIO_RAM_B				0x18000
 #define KERNAL_AUDIO_RAM_SIZE			0x8000
+#define KERNAL_AUDIO_FLAGS				0
+#define KERNAL_AUDIO_CLEAR_INTERRUPT	1
+#define KERNAL_AUDIO_INTERRUPT_LOW		6
+#define KERNAL_AUDIO_INTERRUPT_HIGH		7
+#define KERNAL_AUDIO_FLAG_INTERRUPT		0x80
+#define KERNAL_AUDIO_WAIT_TICKS			2			//The most an audio wait waits (7.8ms to 11.7ms) if the interrupt was missed.
 
 //Banks every process gets: 0 (its stack and direct page) and $FF (where Libc65 reads its memory size).  Without a
 //memory size its heap is banks $08-$0F.
@@ -27,6 +34,8 @@ static const uint8 gauiKernalProcessBanks[] = { 0x00, 0xFF };
 static const uint8 gauiKernalLowHeapBanks[] = { 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
 
 
+static void KernalAudioInterrupt(void* pvContext);
+static volatile uint8	gbKernalAudioInterrupt;
 extern CFatVolume	gcKernalVolume;
 
 //The sound board driver (KernalAudio.asm).
@@ -646,6 +655,9 @@ static uint16 KernalCallFileLoad(void)
 //////////////////////////////////////////////////////////////////////////
 static uint16 KernalCallAudioOpen(void)
 {
+	uint16			uiSlot;
+	volatile uint8*	puiRegisters;
+
 	if (!gpsKernalSoundBoard)
 	{
 		gpsKernalSoundBoard = KernalFindDevice(KERNAL_SOUND_BOARD_NAME);
@@ -653,9 +665,64 @@ static uint16 KernalCallAudioOpen(void)
 		{
 			return KERNAL_PROCESS_NOT_FOUND;
 		}
-		KernalEnableDevice((uint16)(gpsKernalSoundBoard - gasKernalDevices));
+		uiSlot = (uint16)(gpsKernalSoundBoard - gasKernalDevices);
+		KernalEnableDevice(uiSlot);
+		puiRegisters = (volatile uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS);
+		KernalSetInterruptHandler(uiSlot, KernalAudioInterrupt, (void*)puiRegisters, &puiRegisters[KERNAL_AUDIO_FLAGS], true);
 	}
 	return KERNAL_PROCESS_NONE;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The sound board's interrupt (trusted: only its registers and MPU RAM):
+// its counter reached the Interrupt address.  Interrupt enable off, the
+// interrupt cleared, and the waiting audio wait call told.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalAudioInterrupt(void* pvContext)
+{
+	volatile uint8*	puiRegisters;
+
+	puiRegisters = (volatile uint8*)pvContext;
+	puiRegisters[KERNAL_AUDIO_FLAGS] = (uint8)(puiRegisters[KERNAL_AUDIO_FLAGS] & ~KERNAL_AUDIO_FLAG_INTERRUPT);
+	puiRegisters[KERNAL_AUDIO_CLEAR_INTERRUPT] = 0;
+	gbKernalAudioInterrupt = 1;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The audio wait call: the address (0 to $7FFF) the sound board's counter
+// is waited for.  Returns when the board interrupts there, or after
+// KERNAL_AUDIO_WAIT_TICKS (the counter may have passed it already): the
+// caller looks at the counter again.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalCallAudioWait(void)
+{
+	volatile uint8*	puiRegisters;
+	uint16			uiAddress;
+	uint32			uiStart;
+
+	if (!gpsKernalSoundBoard)
+	{
+		return;
+	}
+	puiRegisters = (volatile uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS);
+	uiAddress = KernalArgumentWord(0);
+	gbKernalAudioInterrupt = 0;
+	puiRegisters[KERNAL_AUDIO_INTERRUPT_LOW] = (uint8)uiAddress;
+	puiRegisters[KERNAL_AUDIO_INTERRUPT_HIGH] = (uint8)(uiAddress >> 8);
+	puiRegisters[KERNAL_AUDIO_FLAGS] = (uint8)(puiRegisters[KERNAL_AUDIO_FLAGS] | KERNAL_AUDIO_FLAG_INTERRUPT);
+
+	uiStart = KernalTicks();
+	while (!gbKernalAudioInterrupt && ((KernalTicks() - uiStart) <= KERNAL_AUDIO_WAIT_TICKS))
+	{
+		KernalWaitForInterrupt();
+	}
+	puiRegisters[KERNAL_AUDIO_FLAGS] = (uint8)(puiRegisters[KERNAL_AUDIO_FLAGS] & ~KERNAL_AUDIO_FLAG_INTERRUPT);
 }
 
 
@@ -783,6 +850,10 @@ extern "C" void KernalCopCall(void)
 		{
 			KernalAudioSetRegister((uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS), KernalArgumentWord(0), KernalArgumentWord(2));
 		}
+		break;
+
+	case KERNAL_CALL_AUDIO_WAIT:
+		KernalCallAudioWait();
 		break;
 
 	case KERNAL_CALL_AUDIO_COUNTER:
