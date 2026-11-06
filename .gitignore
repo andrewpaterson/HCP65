@@ -22,6 +22,10 @@ Log.txt
 Output/
 Listing/
 
+# hcp65build -show-plain's plain command line and its lists of each project's sources
+*.plain
+*.units
+
 # Files the tests write
 /HCP65-Emulator/TestHCP65Lib/TestHCP65Lib/Post/
 /Tests/TestLibc65/TestLibc65/Post/
