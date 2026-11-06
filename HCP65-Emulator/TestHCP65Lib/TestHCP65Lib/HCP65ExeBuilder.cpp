@@ -93,7 +93,7 @@ bool CHCP65ExeBuilder::MakeExecutable(void)
 {
 	mcExecutable.Kill();
 	mcExecutable.Init("", HCP65_EXE_ENTRY_SYMBOL, HCP65_EXE_CODE_LIMIT);
-	mcExecutable.AddSymbol(HCP65_EXE_MEMORY_SIZE_SYMBOL, HCP65_EXE_HIGH_MEMORY + muiHeapSize);
+	mcExecutable.AddSymbol(HCP65_EXE_HEAP_SIZE_SYMBOL, muiHeapSize);
 	return mcExecutable.Make(mcBuilder.GetOutput(), mcBuilder.GetLinker(), &mszErrors);
 }
 

@@ -15,7 +15,7 @@
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
-#define KERNAL_PROCESS_MEMORY_SYMBOL	"UserMemorySize"
+#define KERNAL_PROCESS_HEAP_SYMBOL		"UserHeapSize"
 #define KERNAL_PROCESS_STATUS			0x30		//The process starts with 8 bit registers and interrupts on.
 #define KERNAL_MAX_PATH					128
 
@@ -313,9 +313,10 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 // Reads an executable from the volume into a new process's banks: a
 // CAsm65Object whose sections are all placed (at an address in the
 // process's own banks), with a UserStart symbol and optionally a
-// UserMemorySize (the memory size Libc65 reads: its heap's banks from
-// $200000 are mapped).  Puts the interrupt frame RTI starts it with on its
-// stack.
+// UserHeapSize: the heap the program needs, mapped from $200000
+// (KERNAL_USER_HIGH_MEMORY), whose end is the memory size Libc65 reads.
+// Without one it has the small heap below.  Puts the interrupt frame RTI
+// starts it with on its stack.
 //
 //////////////////////////////////////////////////////////////////////////
 static uint16 KernalLoadExecutable(const char* szPath, uint8 uiProcess)
@@ -383,10 +384,14 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 	psSymbol = pcObject->GetSymbol((size)iSymbol);
 	uiEntry = (uint32)psSymbol->iValue;
 	uiMemorySize = 0;
-	iSymbol = pcObject->FindSymbol(KERNAL_PROCESS_MEMORY_SYMBOL);
+	iSymbol = pcObject->FindSymbol(KERNAL_PROCESS_HEAP_SYMBOL);
 	if (iSymbol >= 0)
 	{
 		uiMemorySize = (uint32)pcObject->GetSymbol((size)iSymbol)->iValue;
+		if (uiMemorySize != 0)
+		{
+			uiMemorySize += KERNAL_USER_HIGH_MEMORY;
+		}
 	}
 
 	//The process's page in the remap table: the banks every process has, its heap, the tables at their own address,

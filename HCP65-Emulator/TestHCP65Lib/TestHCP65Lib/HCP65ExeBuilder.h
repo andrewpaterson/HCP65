@@ -7,9 +7,8 @@
 
 
 #define HCP65_EXE_ENTRY_SYMBOL		"UserStart"
-#define HCP65_EXE_MEMORY_SIZE_SYMBOL	"UserMemorySize"
+#define HCP65_EXE_HEAP_SIZE_SYMBOL	"UserHeapSize"
 #define HCP65_EXE_CODE_LIMIT		0x200000		//Code and data are in banks 1 to $1F.
-#define HCP65_EXE_HIGH_MEMORY		0x200000		//Libc65's heap is from here when the memory size is more.
 #define HCP65_EXE_DEFAULT_HEAP		0x20000
 
 
@@ -17,9 +16,8 @@
 //user start up (Libraries/UserLib/UserStart.asm) and the kernal calls, the program's units (compiled for the W65C816),
 //BaseLib and Libc65.  The executable is a CAsm65Object (as
 //CAsm65Object::Write writes it) with one section placed at each linked segment's address in the process's own banks,
-//no relocations, an absolute global UserStart, the entry point, and an absolute global UserMemorySize: what Libc65
-//reads as the memory size (at $FF0300), $200000 plus the heap's size, so its heap is from $200000 (the kernal maps
-//those banks).  The format is a CAsm65Executable's, as an HCP65 configuration of HCP65-IDE describes it.
+//no relocations, an absolute global UserStart, the entry point, and an absolute global UserHeapSize: the heap the
+//program needs, which the kernal maps where Libc65's heap is (and tells Libc65 where it ends).  The format is a CAsm65Executable's, as an HCP65 configuration of HCP65-IDE describes it.
 class CHCP65ExeBuilder
 {
 protected:

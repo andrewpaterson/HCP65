@@ -12,7 +12,7 @@
 #define KERNAL_TABLES_BANK			0x40		//The maths tables boot.exe loads (UserMathTables.asm: MathMult 128KB, then
 #define KERNAL_NUM_TABLE_BANKS		4			//INVERT's upper half 128KB), mapped into every process at their own address.
 #define KERNAL_USER_MEMORY_SIZE		0xFF0300	//Where Libc65 reads the memory size (a process address).
-#define KERNAL_USER_HIGH_MEMORY		0x200000	//Libc65's heap starts here when the memory size is more.
+#define KERNAL_USER_HIGH_MEMORY		0x200000	//A program's heap (its UserHeapSize) starts here.
 
 //COP n: A is the address of the call's arguments on the process's stack (UserCalls.asm and HCP65User.h).
 #define KERNAL_CALL_EXIT			0			//A is the exit code.  Doesn't return.

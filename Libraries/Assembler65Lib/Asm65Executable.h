@@ -36,12 +36,12 @@ typedef CArrayTemplate<int64>	CArrayAsm65ExecutableValues;
 //A linked program as a file a loader places: a CAsm65Object (as CAsm65Object::Write writes it) with one section at
 //each linked segment's address, none relocated, a bss section of no bytes (__bss_start to __bss_end) that the loader
 //clears, and absolute globals: the entry point (the linked address of the Entry symbol, under that name) and the
-//symbols given here with their values, which a loader or the program reads (an HCP65 program's UserMemorySize).  The
+//symbols given here with their values, which a loader or the program reads (an HCP65 program's UserHeapSize).  The
 //limit is the highest address the linker may place anything at (CCPP65Builder::SetLimit, zero for none).  A build
 //configuration describes one as
 //
 //	<Executable File="boot.exe" Entry="UserStart" Limit="0x200000">
-//		<Symbol Name="UserMemorySize" Value="0x220000"/>
+//		<Symbol Name="UserHeapSize" Value="0x20000"/>
 //	</Executable>
 //
 //with numbers in hexadecimal (0x) or decimal.

@@ -2,13 +2,13 @@
 <BuildConfigurations>
 	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" BreakpointSpace="User" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img" CardPath="\modplay.exe">
 		<Executable File="modplay.exe" Entry="UserStart" Limit="0x200000">
-			<Symbol Name="UserMemorySize" Value="0x380000"/>
+			<Symbol Name="UserHeapSize" Value="0x180000"/>
 		</Executable>
 		<Load File="..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
 	</Configuration>
 	<Configuration Name="Release|W65C816" Toolchain="W65C816" Solution="Release|Win32" BreakpointSpace="User" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img" CardPath="\modplay.exe">
 		<Executable File="modplay.exe" Entry="UserStart" Limit="0x200000">
-			<Symbol Name="UserMemorySize" Value="0x380000"/>
+			<Symbol Name="UserHeapSize" Value="0x180000"/>
 		</Executable>
 		<Load File="..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
 	</Configuration>
