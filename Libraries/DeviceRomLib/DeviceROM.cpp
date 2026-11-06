@@ -1,4 +1,8 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include "BaseLib/Chars.h"
+#include "BaseLib/MarkupTag.h"
 #include "DeviceROM.h"
 
 
@@ -166,3 +170,234 @@ void CDeviceROM::SetChecksum(void)
 	mauiROM[DEVICE_ROM_CHECKSUM_OFFSET] = (uint8)(0 - uiSum);
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Sets pszError to "<message><detail> (<tag> line <n>)" and returns false.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool DeviceROMError(CChars* pszError, CMarkupTag* pcTag, const char* szMessage, const char* szDetail)
+{
+	char	szLine[96];
+
+	pszError->Set(szMessage);
+	if (szDetail)
+	{
+		pszError->Append(szDetail);
+	}
+	snprintf(szLine, sizeof(szLine), " (<%s> line %lld)", pcTag->GetName(), (long long)pcTag->GetLine() + 1);
+	pszError->Append(szLine);
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The number in pcTag's szName attribute (decimal or 0x hexadecimal), up
+// to uiMax; uiDefault if the attribute isn't there.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool DeviceROMNumber(CMarkupTag* pcTag, const char* szName, uint32 uiMax, uint32 uiDefault, uint32* puiValue, CChars* pszError)
+{
+	char*		szValue;
+	char*		szEnd;
+	long long	lli;
+
+	szValue = pcTag->GetStringAttribute(szName);
+	if (szValue == NULL)
+	{
+		*puiValue = uiDefault;
+		return true;
+	}
+	lli = strtoll(szValue, &szEnd, 0);
+	if ((*szValue == '\0') || (*szEnd != '\0') || (lli < 0) || (lli > (long long)uiMax))
+	{
+		return DeviceROMError(pszError, pcTag, "Bad number in ", szName);
+	}
+	*puiValue = (uint32)lli;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A string attribute that fits a field of uiLength bytes with its zero;
+// "" if it isn't there and isn't required.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool DeviceROMString(CMarkupTag* pcTag, const char* szName, uint32 uiLength, bool bRequired, const char** pszValue, CChars* pszError)
+{
+	char*	szValue;
+
+	szValue = pcTag->GetStringAttribute(szName);
+	if ((szValue == NULL) || (szValue[0] == '\0'))
+	{
+		if (bRequired)
+		{
+			return DeviceROMError(pszError, pcTag, "Missing ", szName);
+		}
+		*pszValue = "";
+		return true;
+	}
+	if (strlen(szValue) > uiLength - 1)
+	{
+		return DeviceROMError(pszError, pcTag, "Too long: ", szName);
+	}
+	*pszValue = szValue;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The DEVICE_MAIN_BUS_* flags named in szMainBus, separated by spaces.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool DeviceROMMainBus(CMarkupTag* pcTag, const char* szMainBus, uint8* puiMainBus, CChars* pszError)
+{
+	char		szWord[16];
+	const char*	sz;
+	size		uiLength;
+
+	*puiMainBus = 0;
+	sz = szMainBus;
+	for (;;)
+	{
+		while (*sz == ' ')
+		{
+			sz++;
+		}
+		if (*sz == '\0')
+		{
+			return true;
+		}
+		uiLength = 0;
+		while ((sz[uiLength] != '\0') && (sz[uiLength] != ' '))
+		{
+			uiLength++;
+		}
+		if (uiLength >= sizeof(szWord))
+		{
+			return DeviceROMError(pszError, pcTag, "Unknown MainBus: ", szMainBus);
+		}
+		memcpy(szWord, sz, uiLength);
+		szWord[uiLength] = '\0';
+		sz += uiLength;
+
+		if (strcmp(szWord, "Master") == 0)
+		{
+			*puiMainBus |= DEVICE_MAIN_BUS_MASTER;
+		}
+		else if (strcmp(szWord, "WindowA") == 0)
+		{
+			*puiMainBus |= DEVICE_MAIN_BUS_WINDOW_A;
+		}
+		else if (strcmp(szWord, "WindowB") == 0)
+		{
+			*puiMainBus |= DEVICE_MAIN_BUS_WINDOW_B;
+		}
+		else
+		{
+			return DeviceROMError(pszError, pcTag, "Unknown MainBus: ", szWord);
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The ROM from a <DeviceROM> description (see DeviceROM.h).  False, with
+// pszError saying why, if the description is wrong.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CDeviceROM::LoadXML(CMarkupTag* pcTag, CChars* pszError)
+{
+	const char*		szName;
+	const char*		szManufacturer;
+	const char*		szDriver;
+	const char*		szMainBus;
+	char*			szDeviceBus;
+	char*			szAccess;
+	uint32			uiRevision;
+	uint8			uiDeviceBus;
+	uint8			uiMainBus;
+	uint32			uiSlotEnd;
+	CMarkupTag*		pcRegister;
+	STagIterator	sIterator;
+	uint32			uiOffset;
+	uint32			uiCount;
+	uint32			i;
+	bool			bRead;
+	bool			bWrite;
+
+	if (strcmp(pcTag->GetName(), DEVICE_ROM_XML_TAG) != 0)
+	{
+		return DeviceROMError(pszError, pcTag, "Expected <" DEVICE_ROM_XML_TAG ">", NULL);
+	}
+	if (!DeviceROMString(pcTag, "Name", DEVICE_ROM_NAME_LENGTH, true, &szName, pszError) ||
+		!DeviceROMString(pcTag, "Manufacturer", DEVICE_ROM_MAKER_LENGTH, true, &szManufacturer, pszError) ||
+		!DeviceROMString(pcTag, "Driver", DEVICE_ROM_DRIVER_LENGTH, false, &szDriver, pszError) ||
+		!DeviceROMString(pcTag, "MainBus", 0x100, false, &szMainBus, pszError) ||
+		!DeviceROMNumber(pcTag, "Revision", 0xFF, 0, &uiRevision, pszError) ||
+		!DeviceROMMainBus(pcTag, szMainBus, &uiMainBus, pszError))
+	{
+		return false;
+	}
+
+	szDeviceBus = pcTag->GetStringAttribute("DeviceBus");
+	if (szDeviceBus && (strcmp(szDeviceBus, "32KB") == 0))
+	{
+		uiDeviceBus = DEVICE_BUS_32KB;
+		uiSlotEnd = 0x8000;
+	}
+	else if (szDeviceBus && (strcmp(szDeviceBus, "128KB") == 0))
+	{
+		uiDeviceBus = DEVICE_BUS_128KB;
+		uiSlotEnd = 0x10000;	//A register's offset is a word.
+	}
+	else
+	{
+		return DeviceROMError(pszError, pcTag, "DeviceBus must be 32KB or 128KB", NULL);
+	}
+
+	Init(szName, szManufacturer, (uint8)uiRevision, uiDeviceBus, uiMainBus, szDriver);
+
+	for (pcRegister = pcTag->GetTag(&sIterator); pcRegister; pcRegister = pcTag->GetNextTag(&sIterator))
+	{
+		if (strcmp(pcRegister->GetName(), DEVICE_ROM_XML_REGISTER_TAG) != 0)
+		{
+			return DeviceROMError(pszError, pcRegister, "Expected <" DEVICE_ROM_XML_REGISTER_TAG ">", NULL);
+		}
+		if (!pcRegister->GetStringAttribute("Offset"))
+		{
+			return DeviceROMError(pszError, pcRegister, "Missing Offset", NULL);
+		}
+		if (!DeviceROMNumber(pcRegister, "Offset", 0xFFFF, 0, &uiOffset, pszError) ||
+			!DeviceROMNumber(pcRegister, "Count", 0xFFFF, 1, &uiCount, pszError))
+		{
+			return false;
+		}
+		if ((uiOffset < DEVICE_ROM_SIZE) || (uiCount == 0) || (uiOffset + uiCount > uiSlotEnd))
+		{
+			return DeviceROMError(pszError, pcRegister, "Registers must be after the ROM and inside the slot", NULL);
+		}
+
+		szAccess = pcRegister->GetStringAttribute("Access");
+		bRead = szAccess && ((strcmp(szAccess, "Read") == 0) || (strcmp(szAccess, "ReadWrite") == 0));
+		bWrite = szAccess && ((strcmp(szAccess, "Write") == 0) || (strcmp(szAccess, "ReadWrite") == 0));
+		if (!bRead && !bWrite)
+		{
+			return DeviceROMError(pszError, pcRegister, "Access must be Read, Write or ReadWrite", NULL);
+		}
+
+		for (i = 0; i < uiCount; i++)
+		{
+			if ((bRead && !AddRegister((uint16)(uiOffset + i), DEVICE_REGISTER_READ)) ||
+				(bWrite && !AddRegister((uint16)(uiOffset + i), DEVICE_REGISTER_WRITE)))
+			{
+				return DeviceROMError(pszError, pcRegister, (NumRegisters() >= DEVICE_ROM_MAX_REGISTERS) ? "Too many registers" : "Register listed twice", NULL);
+			}
+		}
+	}
+	return true;
+}

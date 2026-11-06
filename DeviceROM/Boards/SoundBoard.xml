@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The HCP65 Sound Board (Audio Board sheets).  Its registers repeat every 32 bytes from $400; each is listed once. -->
+<DeviceROM Name="Sound Board" Manufacturer="HCP65" Revision="0" DeviceBus="128KB" Driver="SOUND.DRV">
+	<Register Name="Flags" Offset="0x400" Access="ReadWrite"/>
+	<Register Name="Clear Interrupt" Offset="0x401" Access="Write"/>
+	<Register Name="Start Low (read: Counter Low)" Offset="0x402" Access="ReadWrite"/>
+	<Register Name="Start High (read: Counter High)" Offset="0x403" Access="ReadWrite"/>
+	<Register Name="End Low" Offset="0x404" Access="Write"/>
+	<Register Name="End High" Offset="0x405" Access="Write"/>
+	<Register Name="Interrupt Low" Offset="0x406" Access="Write"/>
+	<Register Name="Interrupt High" Offset="0x407" Access="Write"/>
+</DeviceROM>

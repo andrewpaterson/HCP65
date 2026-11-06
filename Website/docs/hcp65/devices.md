@@ -84,6 +84,22 @@ in any of these cases:
 - its magic, format or checksum is wrong, or a string isn't terminated;
 - it needs a 128KB socket but is in a 32KB one.
 
+A board's ROM image is made by the device ROM tool, `DeviceROM <board.xml> [<image.bin>]`, from an XML
+description of the board (the HCP65's boards' descriptions are in `DeviceROM/Boards`):
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<DeviceROM Name="SD Card Board" Manufacturer="HCP65" Revision="0" DeviceBus="32KB" MainBus="Master" Driver="SDCARD.DRV">
+	<Register Name="DMA Address Low" Offset="0x400" Access="Write"/>
+	<Register Name="Flags" Offset="0x40C" Access="ReadWrite"/>
+</DeviceROM>
+```
+
+`DeviceBus` is `32KB` or `128KB`.  `MainBus` lists any of `Master`, `WindowA` and `WindowB`; leave it out
+if the board doesn't use the main bus.  `Driver` and `Revision` (0) can be left out.  `Access` is
+`Read`, `Write` or `ReadWrite`.  `Count` lists that many registers one after another from `Offset`.  A
+register's `Name` is only for the reader.
+
 The HCP65's own boards have the manufacturer `HCP65`:
 
 | Device name | Socket | Main bus | Driver file |

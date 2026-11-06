@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The HCP65 SD Card Board (SD Card sheets).  Its registers repeat every 32 bytes from $400; each is listed once. -->
+<DeviceROM Name="SD Card Board" Manufacturer="HCP65" Revision="0" DeviceBus="32KB" MainBus="Master" Driver="SDCARD.DRV">
+	<Register Name="DMA Address Low" Offset="0x400" Access="Write"/>
+	<Register Name="DMA Address High" Offset="0x401" Access="Write"/>
+	<Register Name="DMA Address Bank" Offset="0x402" Access="Write"/>
+	<Register Name="GPIO" Offset="0x404" Access="ReadWrite"/>
+	<Register Name="Data Count Low" Offset="0x406" Access="Write"/>
+	<Register Name="Data Count High" Offset="0x407" Access="Write"/>
+	<Register Name="CRC Count Low" Offset="0x408" Access="Write"/>
+	<Register Name="CRC Count High" Offset="0x409" Access="Write"/>
+	<Register Name="Clear Interrupt" Offset="0x40A" Access="Write"/>
+	<Register Name="Read Start" Offset="0x40B" Access="Write"/>
+	<Register Name="Flags" Offset="0x40C" Access="ReadWrite"/>
+	<Register Name="Write Data Low" Offset="0x40E" Access="Write"/>
+	<Register Name="Write Data High" Offset="0x40F" Access="Write"/>
+</DeviceROM>

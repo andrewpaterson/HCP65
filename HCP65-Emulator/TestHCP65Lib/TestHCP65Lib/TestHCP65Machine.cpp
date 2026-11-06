@@ -1,10 +1,16 @@
+#include <stdio.h>
 #include <string.h>
+#include "BaseLib/Chars.h"
+#include "BaseLib/DataMemory.h"
+#include "BaseLib/XMLFile.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
+#include "HCP65Lib/HCP65SDCard.h"
 #include "TestLib/Assert.h"
 
 
 #define TEST_HCP65_CLOCK_RATE	10000000
+#define TEST_HCP65_BOARDS		".." _FS_ ".." _FS_ ".." _FS_ "DeviceROM" _FS_ "Boards"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -436,6 +442,83 @@ void TestHCP65DeviceROM(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Reads szFile's <DeviceROM> into pcROM.  pszError says why it couldn't.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestHCP65LoadDeviceROM(const char* szDirectory, const char* szFile, CDeviceROM* pcROM, CChars* pszError)
+{
+	CXMLFile	cFile;
+	bool		bResult;
+
+	cFile.Init();
+	bResult = cFile.Read(szFile, szDirectory) && cFile.mcMarkup.mpcDoc && cFile.mcMarkup.mpcDoc->GetRootTag();
+	if (bResult)
+	{
+		bResult = pcROM->LoadXML(cFile.mcMarkup.mpcDoc->GetRootTag(), pszError);
+	}
+	else
+	{
+		pszError->Set("Can't read the file");
+	}
+	cFile.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The device ROM tool's descriptions of the HCP65's boards (DeviceROM\
+// Boards) make exactly the ROMs the emulator's boards have.  A wrong
+// description says what is wrong with it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65DeviceROMFromXML(void)
+{
+	CDeviceROM		cROM;
+	CHCP65Audio		cAudio;
+	CHCP65SDCard	cSDCard;
+	CChars			szError;
+	FILE*			pFile;
+	uint32			i;
+	bool			bSame;
+
+	DataMemoryInit();
+	szError.Init();
+
+	cAudio.Init();
+	AssertTrue(TestHCP65LoadDeviceROM(TEST_HCP65_BOARDS, "SoundBoard.xml", &cROM, &szError));
+	bSame = true;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		bSame &= cROM.Read(i) == cAudio.Read(i);
+	}
+	AssertTrue(bSame);
+	cAudio.Kill();
+
+	cSDCard.Init();
+	AssertTrue(TestHCP65LoadDeviceROM(TEST_HCP65_BOARDS, "SDCardBoard.xml", &cROM, &szError));
+	bSame = true;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		bSame &= cROM.Read(i) == cSDCard.Read(i);
+	}
+	AssertTrue(bSame);
+	cSDCard.Kill();
+
+	pFile = fopen("Output" _FS_ "BadDeviceROM.xml", "wb");
+	AssertNotNull(pFile);
+	fputs("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<DeviceROM Name=\"Board\" Manufacturer=\"Maker\" DeviceBus=\"32KB\">\n\t<Register Offset=\"0x400\" Access=\"Read\"/>\n\t<Register Offset=\"0x400\" Access=\"ReadWrite\"/>\n</DeviceROM>\n", pFile);
+	fclose(pFile);
+	AssertFalse(TestHCP65LoadDeviceROM("Output", "BadDeviceROM.xml", &cROM, &szError));
+	AssertString("Register listed twice (<Register> line 4)", szError.Text());
+
+	szError.Kill();
+	DataMemoryKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -443,6 +526,7 @@ void TestHCP65Machine(void)
 	BeginTests();
 
 	TestHCP65DeviceROM();
+	TestHCP65DeviceROMFromXML();
 	TestHCP65BootAndUserMode();
 	TestHCP65AudioBoard();
 	TestHCP65AudioFromProgram();

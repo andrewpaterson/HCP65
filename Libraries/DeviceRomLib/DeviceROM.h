@@ -3,6 +3,9 @@
 #include "BaseLib/PrimitiveTypes.h"
 
 
+class CMarkupTag;
+class CChars;
+
 
 //The device ROM: the first 1KB of an HCP65 device's slot describes the board (HCP65 Website docs/hcp65/devices.md, Device
 //ROM).  The kernal reads the same layout (Kernal/KernalDevices.h).  Words are little endian.
@@ -37,6 +40,20 @@
 #define DEVICE_REGISTER_WRITE			1			//A register that is read and written is listed twice.
 
 
+//A board's description in XML (LoadXML), from which the device ROM tool makes its image:
+//
+//	<DeviceROM Name="Sound Board" Manufacturer="HCP65" Revision="0" DeviceBus="128KB" MainBus="" Driver="SOUND.DRV">
+//		<Register Name="Flags" Offset="0x400" Access="ReadWrite"/>
+//		<Register Name="Name Buffer" Offset="0x500" Count="64" Access="Read"/>
+//	</DeviceROM>
+//
+//Revision defaults to 0, MainBus to "" (doesn't use it) and Driver to "" (none).  MainBus lists any of Master, WindowA
+//and WindowB, separated by spaces.  Access is Read, Write or ReadWrite (listed twice).  Count registers follow one
+//another from Offset (default 1).  A register's Name is only for the reader.  Numbers are decimal or 0x hexadecimal.
+#define DEVICE_ROM_XML_TAG				"DeviceROM"
+#define DEVICE_ROM_XML_REGISTER_TAG		"Register"
+
+
 //A device's ROM as it is laid out in its flash: what the board is, what it needs of the buses and its registers.  The
 //unused bytes are erased flash ($FF).  The register list is kept sorted by offset, a read before a write.
 class CDeviceROM
@@ -48,6 +65,7 @@ public:
 	void	Init(const char* szName, const char* szManufacturer, uint8 uiRevision, uint8 uiDeviceBus, uint8 uiMainBus, const char* szDriverFile);
 	bool	AddRegister(uint16 uiOffset, uint8 uiDirection);
 	void	AddRegisters(uint16 uiOffset, uint16 uiCount, uint8 uiDirection);
+	bool	LoadXML(CMarkupTag* pcTag, CChars* pszError);
 
 	uint8	Read(uint32 uiOffset);
 	uint16	NumRegisters(void);
