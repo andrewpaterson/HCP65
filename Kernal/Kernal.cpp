@@ -1,3 +1,4 @@
+#include <string.h>
 #include "BaseLib/FatVolume.h"
 #include "BaseLib/TrueMallocator.h"
 #include "BaseLib/GlobalMemory.h"
@@ -6,10 +7,16 @@
 #include "KernalProcess.h"
 #include "Kernal.h"
 #include "KernalInterrupts.h"
+#include "KernalDriver.h"
+#include "KernalSoundBoard.h"
+#include "KernalDebugPort.h"
 
 
 SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-CKernalSDCard	gacKernalSDCards[KERNAL_SD_NUM_SOCKETS];
+//The drivers in the ROM, for the HCP65's own boards: one board of each (a second has no driver).
+CKernalSDCardBoard	gcKernalSDCardBoard;
+CKernalSoundBoard	gcKernalSoundBoard;
+CKernalDebugPort	gcKernalDebugPort;
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
 
@@ -35,6 +42,57 @@ extern "C" void KernalInitHeap(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The ROM's driver for szName (an HCP65 board), NULL if there is none.
+//
+//////////////////////////////////////////////////////////////////////////
+static CKernalDriver* KernalBuiltInDriver(const char* szName)
+{
+	if (strcmp(szName, KERNAL_SD_CARD_NAME) == 0)
+	{
+		return &gcKernalSDCardBoard;
+	}
+	if (strcmp(szName, KERNAL_SOUND_BOARD_NAME) == 0)
+	{
+		return &gcKernalSoundBoard;
+	}
+	if (strcmp(szName, KERNAL_DEBUG_PORT_NAME) == 0)
+	{
+		return &gcKernalDebugPort;
+	}
+	return NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Starts the ROM's driver of each present HCP65 board that has one, the
+// first board of each kind.  The rest stay in reset.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalStartBuiltInDrivers(void)
+{
+	SKernalDeviceROM*	psROM;
+	CKernalDriver*		pcDriver;
+	uint16				uiSlot;
+
+	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
+	{
+		psROM = gasKernalDevices[uiSlot].psROM;
+		if (psROM && (strcmp(psROM->szManufacturer, KERNAL_DEVICE_MANUFACTURER) == 0))
+		{
+			pcDriver = KernalBuiltInDriver(psROM->szName);
+			if (pcDriver && !KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, psROM->szName, 0))
+			{
+				KernalStartDriver(pcDriver, uiSlot);
+			}
+		}
+	}
+	gpcKernalDebugPort = (CKernalDebugPort*)KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_DEBUG_PORT_NAME, 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Called by the start up once MPU RAM holds the kernal and its globals are
 // initialised.  Running in kernel mode, native, with interrupts disabled.
 // Finds the devices, brings up the SD card, mounts its FAT32 volume and
@@ -43,12 +101,11 @@ extern "C" void KernalInitHeap(void)
 //////////////////////////////////////////////////////////////////////////
 int main(void)
 {
-	SKernalDevice*	psSDCardBoard;
-	EFatCode		eResult;
-	uint16			uiSlot;
-	uint8			uiSocket;
-	uint16			uiError;
-	CKernalSDCard*	pcCard;
+	CKernalSDCardBoard*	pcSDCardBoard;
+	EFatCode			eResult;
+	uint16				uiSlot;
+	uint8				uiSocket;
+	CKernalSDCard*		pcCard;
 
 	//The allocators a chunk file (an executable) names are looked up here.  Only the system allocator (malloc): BaseLib's
 	//global memory would be too big for the ROM.
@@ -69,32 +126,19 @@ int main(void)
 	}
 	gsKernalStatus.uiState = KERNAL_STATE_DEVICES_SCANNED;
 	KernalInitInterrupts();
+	KernalStartBuiltInDrivers();
 
-	psSDCardBoard = KernalFindDevice(KERNAL_DEVICE_MANUFACTURER, KERNAL_SD_CARD_NAME);
-	if (!psSDCardBoard)
+	//The SD Card Board's driver brought up each socket's card; the first with a volume that mounts is used.
+	pcSDCardBoard = (CKernalSDCardBoard*)KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_SD_CARD_NAME, 0);
+	if (!pcSDCardBoard)
 	{
 		gsKernalStatus.uiState = KERNAL_STATE_NO_SD_CARD_BOARD;
 		return 1;
 	}
-	uiSlot = (uint16)(psSDCardBoard - gasKernalDevices);
-	KernalEnableDevice(uiSlot);
-
-	//Each socket's card is brought up; the first with a volume that mounts is used.
-	gsKernalStatus.uiSDCards = 0;
-	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
-	{
-		uiError = gacKernalSDCards[uiSocket].Init(psSDCardBoard, uiSlot, uiSocket);
-		if (uiError == KERNAL_SD_SUCCESS)
-		{
-			gsKernalStatus.uiSDCards |= (uint16)(1 << uiSocket);
-		}
-		else if (uiSocket == 0)
-		{
-			gsKernalStatus.uiSDError = uiError;
-		}
-	}
+	gsKernalStatus.uiSDCards = pcSDCardBoard->GetReadyCards();
 	if (gsKernalStatus.uiSDCards == 0)
 	{
+		gsKernalStatus.uiSDError = pcSDCardBoard->GetCard(0)->GetError();
 		gsKernalStatus.uiState = KERNAL_STATE_SD_CARD_FAILED;
 		return 1;
 	}
@@ -106,7 +150,7 @@ int main(void)
 	{
 		if (gsKernalStatus.uiSDCards & (1 << uiSocket))
 		{
-			pcCard = &gacKernalSDCards[uiSocket];
+			pcCard = pcSDCardBoard->GetCard(uiSocket);
 			eResult = gcKernalVolume.Mount(pcCard);
 			if (eResult == FAT_SUCCESS)
 			{

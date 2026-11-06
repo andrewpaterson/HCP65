@@ -4,7 +4,6 @@
 #include "KernalInterrupts.h"
 
 
-#define SD_REGISTERS			0x400
 #define SD_ADDRESS_LOW			0x00
 #define SD_ADDRESS_HIGH			0x01
 #define SD_ADDRESS_BANK			0x02
@@ -52,21 +51,84 @@ static volatile uint8	gbKernalSDBlockDone;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The board's interrupt: a block read's DMA is done.  Trusted (it touches
-// only the board's registers and MPU RAM): it quietens the board first
-// (interrupt enable off, the interrupt cleared), then lets main memory go.
+// Brings up the card in each socket.  The board is driven even if none
+// came up.
 //
 //////////////////////////////////////////////////////////////////////////
-static void KernalSDInterrupt(void* pvContext)
+uint16 CKernalSDCardBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 {
-	volatile uint8*	puiRegisters;
+	uint16	uiResult;
+	uint8	uiSocket;
 
-	puiRegisters = (volatile uint8*)pvContext;
-	puiRegisters[SD_FLAGS] = (uint8)(puiRegisters[SD_FLAGS] & ~SD_FLAG_INTERRUPT);
-	puiRegisters[SD_CLEAR_INTERRUPT] = 0;
+	uiResult = CKernalDriver::Init(psDevice, uiSlot);
+	SetInterrupt(&mpuiRegisters[SD_FLAGS], true);
+	muiReadyCards = 0;
+	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
+	{
+		if (macCards[uiSocket].Init(mpuiRegisters, uiSocket) == KERNAL_SD_SUCCESS)
+		{
+			muiReadyCards |= (uint16)(1 << uiSocket);
+		}
+	}
+	return uiResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalSDCardBoard::Kill(void)
+{
+	uint8	uiSocket;
+
+	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
+	{
+		macCards[uiSocket].Kill();
+	}
+	CKernalDriver::Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalSDCardBoard::NumUnits(void)
+{
+	return KERNAL_SD_NUM_SOCKETS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A block read's DMA is done.  Trusted (it touches only the board's
+// registers and MPU RAM): it quietens the board first (interrupt enable
+// off, the interrupt cleared), then lets main memory go.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalSDCardBoard::Interrupt(void)
+{
+	mpuiRegisters[SD_FLAGS] = (uint8)(mpuiRegisters[SD_FLAGS] & ~SD_FLAG_INTERRUPT);
+	mpuiRegisters[SD_CLEAR_INTERRUPT] = 0;
 	gbKernalSDBlockDone = 1;
 	gbKernalMainBusBusy = 0;
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The kernal's own (its volume).
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalSDCardBoard::Open(uint16 uiUnit, uint8 uiProcess)
+{
+	return KERNAL_DRIVER_NOT_SUPPORTED;
+}
+
+
+CKernalSDCard* CKernalSDCardBoard::GetCard(uint16 uiSocket) { return &macCards[uiSocket]; }
+uint16 CKernalSDCardBoard::GetReadyCards(void) { return muiReadyCards; }
 
 
 //x^7 + x^3 + 1, a byte at a time: the CRC is kept shifted up a bit (in D7-D1, D0 zero), and the next is
@@ -113,20 +175,19 @@ uint8 KernalCRC7(uint8* puiData, uint16 uiLength)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Brings the card in socket 0 up: 80 clocks, CMD0, CMD8, ACMD41 until
+// Brings the card in uiSocket up: 80 clocks, CMD0, CMD8, ACMD41 until
 // ready, CMD2, CMD3, CMD9 (its size), CMD7 and ACMD6 (4 bit bus).  Returns
 // KERNAL_SD_SUCCESS or why it failed.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSDCard::Init(SKernalDevice* psDevice, uint16 uiSlot, uint8 uiSocket)
+uint16 CKernalSDCard::Init(volatile uint8* puiRegisters, uint8 uiSocket)
 {
 	uint16	i;
 	uint32	uiSize;
 
 	CFileDrive::Init(SD_SECTOR_SIZE);
-	mpuiRegisters = (volatile uint8*)(psDevice->uiAddress + SD_REGISTERS);
+	mpuiRegisters = puiRegisters;
 	gpuiKernalSDGPIO = &mpuiRegisters[SD_GPIO];
-	KernalSetInterruptHandler(uiSlot, KernalSDInterrupt, (void*)mpuiRegisters, &mpuiRegisters[SD_FLAGS], true);
 	mpuiBounce = NULL;
 	muiRCA = 0;
 	muiMaxSector = 0;

@@ -523,9 +523,9 @@ void TestHCP65KernalBoot(void)
 	AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
 	AssertSize(0, cPort.NumProcesses());
 
-	//The SD Card Board was enabled at boot, the sound board by modplay.exe, which left it disabled, and the stray device
-	//by the test (the kernal's reset of it put its enable back).
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
+	//The ROM's drivers took the SD Card Board, the sound board and the debug port out of reset at boot (modplay.exe left
+	//the sound board disabled), and the test the stray device (the kernal's reset of it put its enable back).
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
 	AssertFalse(cAudio.IsEnabled());
 
 	//boot.exe loaded MULT and INVERT's upper half (round(2^32 / $8000) first) from the SD card to main memory at

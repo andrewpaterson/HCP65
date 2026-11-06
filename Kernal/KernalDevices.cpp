@@ -157,6 +157,27 @@ void KernalWriteRegister(uint8 uiRegister, uint8 uiValue)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The processor board's register and bit that hold the device in uiSlot
+// in reset (0) or let it run (1).
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalDeviceEnableBit(uint16 uiSlot, uint8* puiRegister, uint8* puiBit)
+{
+	if (uiSlot >= 16)
+	{
+		*puiRegister = 5;
+		*puiBit = (uint8)(1 << (uiSlot - 16));
+	}
+	else
+	{
+		*puiRegister = 3;
+		*puiBit = (uint8)(1 << uiSlot);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Lets the device in uiSlot run (the processor board holds every device in
 // reset until it is enabled).
 //
@@ -166,15 +187,21 @@ void KernalEnableDevice(uint16 uiSlot)
 	uint8	uiRegister;
 	uint8	uiBit;
 
-	if (uiSlot >= 16)
-	{
-		uiRegister = 5;
-		uiBit = (uint8)(1 << (uiSlot - 16));
-	}
-	else
-	{
-		uiRegister = 3;
-		uiBit = (uint8)(1 << uiSlot);
-	}
+	KernalDeviceEnableBit(uiSlot, &uiRegister, &uiBit);
 	KernalWriteRegister(uiRegister, (uint8)(KernalReadRegister(uiRegister) | uiBit));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Holds the device in uiSlot in reset again.
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalDisableDevice(uint16 uiSlot)
+{
+	uint8	uiRegister;
+	uint8	uiBit;
+
+	KernalDeviceEnableBit(uiSlot, &uiRegister, &uiBit);
+	KernalWriteRegister(uiRegister, (uint8)(KernalReadRegister(uiRegister) & ~uiBit));
 }

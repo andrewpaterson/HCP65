@@ -80,9 +80,12 @@
     <ClCompile Include="Start.asm" />
     <ClCompile Include="Kernal.cpp" />
     <ClCompile Include="KernalDevices.cpp" />
+    <ClCompile Include="KernalDriver.cpp" />
     <ClCompile Include="KernalSDCard.cpp" />
     <ClCompile Include="KernalSDCard.asm" />
     <ClCompile Include="KernalProcess.cpp" />
+    <ClCompile Include="KernalSoundBoard.cpp" />
+    <ClCompile Include="KernalDebugPort.cpp" />
     <ClCompile Include="KernalAudio.asm" />
     <ClCompile Include="KernalInterrupts.cpp" />
     <ClCompile Include="KernalInterrupts.asm" />
@@ -91,6 +94,9 @@
   <ItemGroup>
     <ClInclude Include="Kernal.h" />
     <ClInclude Include="KernalDevices.h" />
+    <ClInclude Include="KernalDriver.h" />
+    <ClInclude Include="KernalSoundBoard.h" />
+    <ClInclude Include="KernalDebugPort.h" />
     <ClInclude Include="KernalInterrupts.h" />
     <ClInclude Include="KernalProcess.h" />
     <ClInclude Include="KernalSDCard.h" />

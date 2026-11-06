@@ -57,6 +57,7 @@ SKernalDevice*	KernalFindDevice(const char* szManufacturer, const char* szName);
 uint8			KernalReadRegister(uint8 uiRegister);
 void			KernalWriteRegister(uint8 uiRegister, uint8 uiValue);
 void			KernalEnableDevice(uint16 uiSlot);
+void			KernalDisableDevice(uint16 uiSlot);
 
 
 #endif // __KERNAL_DEVICES_H__

@@ -18,6 +18,9 @@
     <ClCompile Include="KernalDevices.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KernalDriver.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="KernalSDCard.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -25,6 +28,12 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="KernalProcess.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalSoundBoard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalDebugPort.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="KernalAudio.asm">
@@ -45,6 +54,15 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalDevices.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalDriver.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalSoundBoard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalDebugPort.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalInterrupts.h">

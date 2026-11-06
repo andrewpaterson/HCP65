@@ -9,6 +9,9 @@
 #include "Kernal.h"
 #include "KernalProcess.h"
 #include "KernalInterrupts.h"
+#include "KernalDriver.h"
+#include "KernalSoundBoard.h"
+#include "KernalDebugPort.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
@@ -16,16 +19,6 @@
 #define KERNAL_PROCESS_STATUS			0x30		//The process starts with 8 bit registers and interrupts on.
 #define KERNAL_MAX_PATH					128
 
-//Sound board (HCP65Lib/HCP65Audio.h): its registers and its two sample RAMs, offsets in its slot.
-#define KERNAL_AUDIO_REGISTERS			0x400
-#define KERNAL_AUDIO_RAM_A				0x10000
-#define KERNAL_AUDIO_RAM_B				0x18000
-#define KERNAL_AUDIO_RAM_SIZE			0x8000
-#define KERNAL_AUDIO_FLAGS				0
-#define KERNAL_AUDIO_CLEAR_INTERRUPT	1
-#define KERNAL_AUDIO_INTERRUPT_LOW		6
-#define KERNAL_AUDIO_INTERRUPT_HIGH		7
-#define KERNAL_AUDIO_FLAG_INTERRUPT		0x80
 #define KERNAL_AUDIO_WAIT_TICKS			2			//The most an audio wait waits (7.8ms to 11.7ms) if the interrupt was missed.
 
 //Banks every process gets: 0 (its stack and direct page) and $FF (where Libc65 reads its memory size).  Without a
@@ -34,23 +27,12 @@ static const uint8 gauiKernalProcessBanks[] = { 0x00, 0xFF };
 static const uint8 gauiKernalLowHeapBanks[] = { 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
 
 
-static void KernalAudioInterrupt(void* pvContext);
-static volatile uint8	gbKernalAudioInterrupt;
 extern CFatVolume	gcKernalVolume;
-
-//The sound board driver (KernalAudio.asm).
-extern "C" void		KernalAudioCopy(uint8* puiDest, uint8* puiSource, uint16 uiCount);
-extern "C" void		KernalAudioSetRegister(uint8* puiRegisters, uint16 uiRegister, uint16 uiValue);
-extern "C" uint16	KernalAudioGetCounter(uint8* puiRegisters);
 
 SKernalCall			gsKernalCall;
 static uint8		guiKernalProcess;							//The process running (or calling), 0 for none.
 static uint16		gauiKernalArguments[256];					//Each process ID's argument.
 static uint8		gauiKernalBankOwners[KERNAL_LAST_PROCESS_BANK + 1];	//The process ID a physical bank is given to.
-static SKernalDevice*	gpsKernalDebugPort;			//The debug port, if there is one.
-static uint8*			KernalDebugPort(void);
-static bool				gbKernalDebugPortLooked;	//It has been looked for.
-static SKernalDevice*	gpsKernalSoundBoard;
 static uint8*			gpuiKernalArguments;					//The call's arguments, on the process's stack in its bank 0.
 
 
@@ -73,7 +55,7 @@ static uint8* KernalRemapPage(uint8 uiProcess)
 // such bank.
 //
 //////////////////////////////////////////////////////////////////////////
-static uint8* KernalUserPointer(uint32 uiAddress, uint32* puiInBank)
+uint8* KernalUserPointer(uint32 uiAddress, uint32* puiInBank)
 {
 	uint8	uiBank;
 
@@ -238,27 +220,6 @@ static bool KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Tells the debug port, if there is one, that the main memory bank
-// uiPhysical was given to a process: the emulator fills it in its fill
-// mode.  The kernal doesn't clear the banks it gives (a program's start up
-// clears its bss).
-//
-//////////////////////////////////////////////////////////////////////////
-static void KernalDebugBank(uint8 uiPhysical)
-{
-	uint8*	puiPort;
-
-	puiPort = KernalDebugPort();
-	if (puiPort)
-	{
-		puiPort[KERNAL_DEBUG_PORT_PROCESS] = uiPhysical;
-		puiPort[KERNAL_DEBUG_PORT_COMMAND] = KERNAL_DEBUG_PORT_BANK;
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // Gives the process's bank uiBank a cleared physical bank, if it hasn't
 // one.  False if there are none left.
 //
@@ -279,7 +240,10 @@ static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 		{
 			gauiKernalBankOwners[uiPhysical] = uiProcess;
 			puiPage[uiBank] = (uint8)uiPhysical;
-			KernalDebugBank((uint8)uiPhysical);
+			if (gpcKernalDebugPort)
+			{
+				gpcKernalDebugPort->GiveBank((uint8)uiPhysical);
+			}
 			return true;
 		}
 	}
@@ -482,53 +446,6 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The debug port's registers (an emulator's), or NULL without one.
-//
-//////////////////////////////////////////////////////////////////////////
-static uint8* KernalDebugPort(void)
-{
-	if (!gbKernalDebugPortLooked)
-	{
-		gpsKernalDebugPort = KernalFindDevice(KERNAL_DEVICE_MANUFACTURER, KERNAL_DEBUG_PORT_NAME);
-		gbKernalDebugPortLooked = true;
-	}
-	return gpsKernalDebugPort ? (uint8*)gpsKernalDebugPort->uiAddress : NULL;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Tells the debug port (an emulator's: it is how a debugger follows the
-// processes) that uiProcess, running szPath, has started
-// (KERNAL_DEBUG_PORT_STARTED) or ended with uiExitCode
-// (KERNAL_DEBUG_PORT_ENDED).  Without one it tells nothing.
-//
-//////////////////////////////////////////////////////////////////////////
-static void KernalDebugTell(uint8 uiCommand, uint8 uiProcess, uint16 uiExitCode, const char* szPath)
-{
-	uint8*	puiPort;
-	uint16	i;
-
-	puiPort = KernalDebugPort();
-	if (!puiPort)
-	{
-		return;
-	}
-
-	puiPort[KERNAL_DEBUG_PORT_PROCESS] = uiProcess;
-	puiPort[KERNAL_DEBUG_PORT_EXIT_LOW] = (uint8)uiExitCode;
-	puiPort[KERNAL_DEBUG_PORT_EXIT_HIGH] = (uint8)(uiExitCode >> 8);
-	for (i = 0; (i < KERNAL_DEBUG_PORT_NAME_SIZE - 1) && (szPath[i] != '\0'); i++)
-	{
-		puiPort[KERNAL_DEBUG_PORT_NAME_BUFFER + i] = (uint8)szPath[i];
-	}
-	puiPort[KERNAL_DEBUG_PORT_NAME_BUFFER + i] = 0;
-	puiPort[KERNAL_DEBUG_PORT_COMMAND] = uiCommand;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // Runs an executable (see KernalLoadExecutable) as a new process in user
 // mode until it exits.  boot.exe is process $FF; a process run by another
 // (during the other's execute call) gets the next ID down and its own
@@ -568,12 +485,19 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 	gsKernalCall.uiUserS = KERNAL_USER_STACK_TOP - 4;
 	gauiKernalArguments[uiProcess] = uiArgument;
 
-	KernalDebugTell(KERNAL_DEBUG_PORT_STARTED, uiProcess, 0, szPath);
+	if (gpcKernalDebugPort)
+	{
+		gpcKernalDebugPort->Tell(KERNAL_DEBUG_PORT_STARTED, uiProcess, 0, szPath);
+	}
 	KernalWriteRegister(8, uiProcess);
 	KernalEnterUser();
 	*puiExitCode = gsKernalCall.uiExitCode;
-	KernalDebugTell(KERNAL_DEBUG_PORT_ENDED, uiProcess, *puiExitCode, szPath);
+	if (gpcKernalDebugPort)
+	{
+		gpcKernalDebugPort->Tell(KERNAL_DEBUG_PORT_ENDED, uiProcess, *puiExitCode, szPath);
+	}
 
+	KernalCloseDrivers(uiProcess);
 	KernalFreeProcess(uiProcess);
 	memcpy(&gsKernalCall, &sCaller, sizeof(SKernalCall));
 	guiKernalProcess = uiCaller;
@@ -725,26 +649,17 @@ static uint16 KernalCallFileRead(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The audio open call: finds the sound board and takes it out of reset.
-// It starts disabled.
+// The audio open call: the running process opens the first sound board.
 //
 //////////////////////////////////////////////////////////////////////////
 static uint16 KernalCallAudioOpen(void)
 {
-	uint16			uiSlot;
-	volatile uint8*	puiRegisters;
+	CKernalDriver*	pcBoard;
 
-	if (!gpsKernalSoundBoard)
+	pcBoard = KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_SOUND_BOARD_NAME, 0);
+	if (!pcBoard || (pcBoard->Open(KERNAL_SOUND_LEFT, guiKernalProcess) != KERNAL_DRIVER_SUCCESS))
 	{
-		gpsKernalSoundBoard = KernalFindDevice(KERNAL_DEVICE_MANUFACTURER, KERNAL_SOUND_BOARD_NAME);
-		if (!gpsKernalSoundBoard)
-		{
-			return KERNAL_PROCESS_NOT_FOUND;
-		}
-		uiSlot = (uint16)(gpsKernalSoundBoard - gasKernalDevices);
-		KernalEnableDevice(uiSlot);
-		puiRegisters = (volatile uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS);
-		KernalSetInterruptHandler(uiSlot, KernalAudioInterrupt, (void*)puiRegisters, &puiRegisters[KERNAL_AUDIO_FLAGS], true);
+		return KERNAL_PROCESS_NOT_FOUND;
 	}
 	return KERNAL_PROCESS_NONE;
 }
@@ -752,81 +667,16 @@ static uint16 KernalCallAudioOpen(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The sound board's interrupt (trusted: only its registers and MPU RAM):
-// its counter reached the Interrupt address.  Interrupt enable off, the
-// interrupt cleared, and the waiting audio wait call told.
+// The sound board the running process has open (the audio calls'), or
+// NULL.
 //
 //////////////////////////////////////////////////////////////////////////
-static void KernalAudioInterrupt(void* pvContext)
+static CKernalDriver* KernalAudioBoard(void)
 {
-	volatile uint8*	puiRegisters;
+	CKernalDriver*	pcBoard;
 
-	puiRegisters = (volatile uint8*)pvContext;
-	puiRegisters[KERNAL_AUDIO_FLAGS] = (uint8)(puiRegisters[KERNAL_AUDIO_FLAGS] & ~KERNAL_AUDIO_FLAG_INTERRUPT);
-	puiRegisters[KERNAL_AUDIO_CLEAR_INTERRUPT] = 0;
-	gbKernalAudioInterrupt = 1;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The audio wait call: the address (0 to $7FFF) the sound board's counter
-// is waited for.  Returns when the board interrupts there, or after
-// KERNAL_AUDIO_WAIT_TICKS (the counter may have passed it already): the
-// caller looks at the counter again.
-//
-//////////////////////////////////////////////////////////////////////////
-static void KernalCallAudioWait(void)
-{
-	volatile uint8*	puiRegisters;
-	uint16			uiAddress;
-	uint32			uiStart;
-
-	if (!gpsKernalSoundBoard)
-	{
-		return;
-	}
-	puiRegisters = (volatile uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS);
-	uiAddress = KernalArgumentWord(0);
-	gbKernalAudioInterrupt = 0;
-	puiRegisters[KERNAL_AUDIO_INTERRUPT_LOW] = (uint8)uiAddress;
-	puiRegisters[KERNAL_AUDIO_INTERRUPT_HIGH] = (uint8)(uiAddress >> 8);
-	puiRegisters[KERNAL_AUDIO_FLAGS] = (uint8)(puiRegisters[KERNAL_AUDIO_FLAGS] | KERNAL_AUDIO_FLAG_INTERRUPT);
-
-	uiStart = KernalTicks();
-	while (!gbKernalAudioInterrupt && ((KernalTicks() - uiStart) <= KERNAL_AUDIO_WAIT_TICKS))
-	{
-		KernalWaitForInterrupt();
-	}
-	puiRegisters[KERNAL_AUDIO_FLAGS] = (uint8)(puiRegisters[KERNAL_AUDIO_FLAGS] & ~KERNAL_AUDIO_FLAG_INTERRUPT);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Copies uiLength samples from the running process's memory at uiAddress
-// to the sound board (KernalAudioCopy), a run in one of its banks at a
-// time.
-//
-//////////////////////////////////////////////////////////////////////////
-static void KernalCopyToAudio(uint8* puiDest, uint32 uiAddress, uint16 uiLength)
-{
-	uint8*	puiSource;
-	uint32	uiInBank;
-
-	while (uiLength > 0)
-	{
-		puiSource = KernalUserPointer(uiAddress, &uiInBank);
-		if (!puiSource)
-		{
-			return;
-		}
-		uiInBank = (uiInBank < uiLength) ? uiInBank : uiLength;
-		KernalAudioCopy(puiDest, puiSource, (uint16)uiInBank);
-		uiAddress += uiInBank;
-		puiDest += uiInBank;
-		uiLength = (uint16)(uiLength - uiInBank);
-	}
+	pcBoard = KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_SOUND_BOARD_NAME, 0);
+	return (pcBoard && (pcBoard->GetOwner() == guiKernalProcess)) ? pcBoard : NULL;
 }
 
 
@@ -836,35 +686,15 @@ static void KernalCopyToAudio(uint8* puiDest, uint32 uiAddress, uint16 uiLength)
 // many.  Copied to RAM A and RAM B, wrapping at their end.
 //
 //////////////////////////////////////////////////////////////////////////
-static void KernalCallAudioWrite(void)
+static void KernalCallAudioWrite(CKernalDriver* pcBoard)
 {
-	uint8*	puiBoard;
-	uint32	uiLeft;
-	uint32	uiRight;
 	uint16	uiOffset;
 	uint16	uiCount;
-	uint16	uiPart;
 
-	if (!gpsKernalSoundBoard)
-	{
-		return;
-	}
-	puiBoard = (uint8*)gpsKernalSoundBoard->uiAddress;
-	uiOffset = (uint16)(KernalArgumentWord(0) & (KERNAL_AUDIO_RAM_SIZE - 1));
-	uiLeft = KernalArgumentLong(2);
-	uiRight = KernalArgumentLong(6);
+	uiOffset = KernalArgumentWord(0);
 	uiCount = KernalArgumentWord(10);
-	while (uiCount > 0)
-	{
-		uiPart = (uint16)(KERNAL_AUDIO_RAM_SIZE - uiOffset);
-		uiPart = (uiPart < uiCount) ? uiPart : uiCount;
-		KernalCopyToAudio(&puiBoard[KERNAL_AUDIO_RAM_A + uiOffset], uiLeft, uiPart);
-		KernalCopyToAudio(&puiBoard[KERNAL_AUDIO_RAM_B + uiOffset], uiRight, uiPart);
-		uiLeft += uiPart;
-		uiRight += uiPart;
-		uiCount -= uiPart;
-		uiOffset = 0;
-	}
+	pcBoard->Write(KERNAL_SOUND_LEFT, uiOffset, KernalArgumentLong(2), uiCount);
+	pcBoard->Write(KERNAL_SOUND_RIGHT, uiOffset, KernalArgumentLong(6), uiCount);
 }
 
 
@@ -879,6 +709,8 @@ extern "C" void KernalCopCall(void)
 	uint8*			puiFrame;
 	uint32			uiReturn;
 	uint8			uiCall;
+	CKernalDriver*	pcBoard;
+	uint32			uiResult;
 
 	//The frame: P, PC low, PC high, then the program bank.
 	puiFrame = KernalUserAddress((uint32)gsKernalCall.uiUserS + 1);
@@ -922,25 +754,35 @@ extern "C" void KernalCopCall(void)
 		break;
 
 	case KERNAL_CALL_AUDIO_WRITE:
-		KernalCallAudioWrite();
+		pcBoard = KernalAudioBoard();
+		if (pcBoard)
+		{
+			KernalCallAudioWrite(pcBoard);
+		}
 		break;
 
 	case KERNAL_CALL_AUDIO_SET:
-		if (gpsKernalSoundBoard)
+		pcBoard = KernalAudioBoard();
+		if (pcBoard)
 		{
-			KernalAudioSetRegister((uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS), KernalArgumentWord(0), KernalArgumentWord(2));
+			pcBoard->Control(KERNAL_SOUND_LEFT, KERNAL_SOUND_SET_REGISTER + KernalArgumentWord(0), KernalArgumentWord(2), &uiResult);
 		}
 		break;
 
 	case KERNAL_CALL_AUDIO_WAIT:
-		KernalCallAudioWait();
+		pcBoard = KernalAudioBoard();
+		if (pcBoard)
+		{
+			pcBoard->Wait(KERNAL_SOUND_LEFT, KernalArgumentWord(0), KERNAL_AUDIO_WAIT_TICKS);
+		}
 		break;
 
 	case KERNAL_CALL_AUDIO_COUNTER:
 		gsKernalCall.uiA = 0;
-		if (gpsKernalSoundBoard)
+		pcBoard = KernalAudioBoard();
+		if (pcBoard && (pcBoard->Control(KERNAL_SOUND_LEFT, KERNAL_SOUND_GET_COUNTER, 0, &uiResult) == KERNAL_DRIVER_SUCCESS))
 		{
-			gsKernalCall.uiA = KernalAudioGetCounter((uint8*)(gpsKernalSoundBoard->uiAddress + KERNAL_AUDIO_REGISTERS));
+			gsKernalCall.uiA = (uint16)uiResult;
 		}
 		break;
 

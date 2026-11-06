@@ -1,9 +1,10 @@
 #ifndef __KERNAL_SD_CARD_H__
 #define __KERNAL_SD_CARD_H__
 #include "BaseLib/FileDrive.h"
-#include "KernalDevices.h"
+#include "KernalDriver.h"
 
 
+#define KERNAL_SD_NUM_SOCKETS		4
 #define KERNAL_SD_CARD_NAME			"SD Card Board"
 
 #define KERNAL_SD_SUCCESS			0
@@ -35,7 +36,7 @@ protected:
 										//used, not KernalSDCard.asm's, which clocks at about a MHz at 25MHz.
 
 public:
-	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot, uint8 uiSocket);
+	uint16	Init(volatile uint8* puiRegisters, uint8 uiSocket);
 	void	Kill(void) override;
 
 	bool	Read(uint64 uiSector, void* pvData) override;
@@ -57,6 +58,27 @@ protected:
 	uint32	ResponseContent(void);
 	bool	ReadSectors(uint32 uiSector, uint32 uiNumSectors, uint8* puiData);
 	bool	WriteSector(uint32 uiSector, void* pvData);
+};
+
+
+//The HCP65 SD Card Board's driver: the board's interrupt and its four card sockets (units 0 to 3), each card a drive.
+//Only the kernal uses it (its volume): processes can't open it.
+class CKernalSDCardBoard : public CKernalDriver
+{
+protected:
+	CKernalSDCard	macCards[KERNAL_SD_NUM_SOCKETS];
+	uint16			muiReadyCards;		//Bit n set: the card in socket n came up.
+
+public:
+	uint16			Init(SKernalDevice* psDevice, uint16 uiSlot) override;
+	void			Kill(void) override;
+
+	uint16			NumUnits(void) override;
+	void			Interrupt(void) override;
+	uint16			Open(uint16 uiUnit, uint8 uiProcess) override;
+
+	CKernalSDCard*	GetCard(uint16 uiSocket);
+	uint16			GetReadyCards(void);
 };
 
 
