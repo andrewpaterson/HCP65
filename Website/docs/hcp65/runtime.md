@@ -66,6 +66,7 @@ back.
 | `R816_Mul64` | The low 64 bits of a product, from one `R816_UMulWide32` and up to two `R816_Mul32` (skipped when a high half is 0). |
 | `R816_Shl32`, `R816_LShr32`, `R816_AShr32`, and the 64 bit ones | Shifts by a count known only at run time: whole words first, then a byte, then the remaining 1 to 7 bits. |
 | `R816_BcdAdd`, `R816_BcdSubtract` | Decimal mode add or subtract of word arrays with carry, for `CNumber`. |
+| `R816_Clz16`, `R816_Clz32`, `R816_Ctz16`, `R816_Ctz32` | `__builtin_clz` and `__builtin_ctz` of 16 and 32 bit values (the width for 0): the word and byte the count starts in found by tests, then the byte's count read from a 256 byte table (`R816_Clz8`, `R816_Ctz8`).  About 30 cycles plus the call. |
 
 ## IR816Runtime-MathTables.asm
 
