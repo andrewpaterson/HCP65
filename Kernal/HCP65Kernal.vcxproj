@@ -79,7 +79,6 @@
   <ItemGroup>
     <ClCompile Include="Start.asm" />
     <ClCompile Include="Kernal.cpp" />
-    <ClCompile Include="MathTables.asm" />
     <ClCompile Include="KernalDevices.cpp" />
     <ClCompile Include="KernalSDCard.cpp" />
     <ClCompile Include="KernalSDCard.asm" />

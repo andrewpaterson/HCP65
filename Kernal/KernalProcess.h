@@ -21,9 +21,9 @@
 #define KERNAL_REMAP_TABLE			0x070000	//MPU RAM: a 256 byte page of physical banks per process ID.
 #define KERNAL_USER_STACK_TOP		0xEFFF		//In the process's bank 0.
 #define KERNAL_FIRST_PROCESS_BANK	0x50		//Physical main memory banks given to processes: the 4MB card's banks
-#define KERNAL_LAST_PROCESS_BANK	0x7F		//after the tables ($40-$43) and the kernal's heap ($44-$4F).
-#define KERNAL_TABLES_BANK			0x40
-#define KERNAL_NUM_TABLE_BANKS		4
+#define KERNAL_LAST_PROCESS_BANK	0x7F		//after the tables ($40-$45) and the kernal's heap ($46-$4F).
+#define KERNAL_TABLES_BANK			0x40		//The maths tables boot.exe loads (UserMathTables.asm: MathMult 128KB, then
+#define KERNAL_NUM_TABLE_BANKS		6			//MathInvert 256KB), mapped into every process at their own address.
 #define KERNAL_USER_MEMORY_SIZE		0xFF0300	//Where Libc65 reads the memory size (a process address).
 #define KERNAL_USER_HIGH_MEMORY		0x200000	//Libc65's heap starts here when the memory size is more.
 

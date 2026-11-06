@@ -16,6 +16,15 @@
 
 #define KERNAL_FILE_NOT_FOUND		0xFFFFFFFF
 
+//Garth Wilson's maths tables, in main memory where every process has them (UserMathTables.asm).  boot.exe loads them
+//from the SD card before it runs anything built with them (a program without MathTables="false").
+#define KERNAL_MATH_MULT_PATH		"\\OS\\Math\\MULT.BIN"
+#define KERNAL_MATH_MULT_ADDRESS	0x400000
+#define KERNAL_MATH_MULT_SIZE		0x20000
+#define KERNAL_MATH_INVERT_PATH		"\\OS\\Math\\INVERT.BIN"
+#define KERNAL_MATH_INVERT_ADDRESS	0x420000
+#define KERNAL_MATH_INVERT_SIZE		0x40000
+
 
 //Gives the kernal a value it keeps in its status (for tests).
 extern "C" void		KernalPutValue(uint16 uiValue);

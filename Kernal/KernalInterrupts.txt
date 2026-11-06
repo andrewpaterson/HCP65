@@ -42,9 +42,10 @@ Constraints
    touch main memory at all, or Main Memory Full Abort latches Contention: main memory is shut off until reset and
    NMI1 fires.  Main memory holds:
    - every process's memory, its stack and its interrupt frames;
-   - the kernal's heap ($440000-$4FFFFF), so the SD bounce buffer and anything malloc'ed;
-   - the MULT and INVERT tables ($400000-$43FFFF), which the compiler's multiply and divide runtime
-     (R816_Mul16/32, R816_UDiv16, ...) reads.  So any C++ that multiplies or divides touches main memory.
+   - the kernal's heap ($460000-$4FFFFF), so the SD bounce buffer and anything malloc'ed;
+   - the MULT and INVERT tables ($400000-$45FFFF, loaded by boot.exe), which a program built with them reads
+     for its multiplies (R816_Mul16/32 ...) and soft float.  The kernal is built without them
+     (MathTables="false", 2026-11-06), so its own multiplies and divides don't touch main memory.
    So a DMA can only run while the CPU is in kernel mode in MPU RAM and ROM, and no process can run during it.  An IRQ
    taken during a DMA must not run code that reaches main memory.
 2. No compiler support for interrupt handlers (__attribute__((interrupt)) is only planned in

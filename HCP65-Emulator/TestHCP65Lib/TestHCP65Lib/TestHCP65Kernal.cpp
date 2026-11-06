@@ -5,6 +5,7 @@
 #include "BaseLib/FatImageFile.h"
 #include "BaseLib/ArrayUint8.h"
 #include "BaseLib/GlobalDataTypesIO.h"
+#include "BaseLib/IntelHex.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
@@ -31,6 +32,7 @@
 #define TEST_HCP65_BOOT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "OperatingSystem" _FS_ "HCP65OperatingSystem.vcxproj"
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
+#define TEST_HCP65_MATH_TABLES		TEST_HCP65_LIBRARIES _FS_ "Libc65" _FS_ "MathTbls"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -122,16 +124,18 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 //////////////////////////////////////////////////////////////////////////
 //
 // Builds an executable from its project, szProjectFile (as HCP65-IDE
-// builds it), and puts it on the SD card image as szName.
+// builds it; bMathTables as its MathTables), and puts it on the SD card
+// image as szName.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalPutExe(const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize)
+static bool TestKernalPutExe(const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize, bool bMathTables)
 {
 	CHCP65ExeBuilder	cExe;
 	bool				bBuilt;
 
 	cExe.Init();
 	cExe.SetHeapSize(uiHeapSize);
+	cExe.SetMathTables(bMathTables);
 	bBuilt = cExe.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_USER, szProjectFile, aszLibraries);
 	AssertString("", cExe.GetErrors());
 	AssertTrue(bBuilt);
@@ -152,14 +156,62 @@ static bool TestKernalPutExe(const char* szName, const char* szProjectFile, cons
 
 //////////////////////////////////////////////////////////////////////////
 //
+// uiLength bytes of the Intel HEX file szHexFile (in MathTbls) from its
+// lowest address, in puiDest.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalReadTable(const char* szHexFile, uint8* puiDest, uint32 uiLength)
+{
+	CIntelHex	cHex;
+	CChars		szPath;
+	bool		bResult;
+
+	szPath.Init(TEST_HCP65_MATH_TABLES _FS_);
+	szPath.Append(szHexFile);
+	cHex.Init();
+	bResult = cHex.Read(szPath.Text());
+	AssertString("", cHex.GetError());
+	AssertTrue(bResult);
+	if (bResult)
+	{
+		AssertInt(uiLength, (uint32)(cHex.GetEndAddress() - cHex.GetLowAddress()));
+		cHex.Fill(cHex.GetLowAddress(), uiLength, 0xFF, puiDest);
+	}
+	cHex.Kill();
+	szPath.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The maths tables as one block, as boot.exe loads them to main memory at
+// $400000: MULT then INVERT (UserMathTables.asm), into puiDest
+// (HCP65_TABLES_END - HCP65_TABLES_START bytes).
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalReadTables(uint8* puiDest)
+{
+	bool	bResult;
+
+	bResult = TestKernalReadTable("MULT.HEX", puiDest, HCP65_MATH_MULT_SIZE);
+	bResult &= TestKernalReadTable("INVERT.HEX", &puiDest[HCP65_MATH_MULT_SIZE], HCP65_MATH_INVERT_SIZE);
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Copies the blank SD card image to Output and puts boot.exe (HCP65/OperatingSystem),
-// modplay.exe (HCP65/ModPlay) and the song it plays on the copy.
+// modplay.exe (HCP65/ModPlay), the song it plays and the maths tables
+// (\OS\Math\MULT.BIN and INVERT.BIN, from MathTbls' HEX files) on the copy.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalPutFiles(void)
 {
 	static const char*	aszModPlayLibraries[] = { "StandardLib", "SupportLib", NULL };
 	CFileUtil			cFileUtil;
+	uint8*				puiTables;
 	bool				bResult;
 
 	//TouchDir returns false when Output is already there (every run after the first).
@@ -172,11 +224,23 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 
-	if (!TestKernalPutExe("\\boot.exe", TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP))
+	//boot.exe loads the maths tables, so it is built without them; modplay.exe uses them.
+	if (!TestKernalPutExe("\\boot.exe", TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
-	if (!TestKernalPutExe("\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE))
+	if (!TestKernalPutExe("\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE, true))
+	{
+		return false;
+	}
+
+	puiTables = (uint8*)malloc(HCP65_TABLES_END - HCP65_TABLES_START);
+	bResult = TestKernalReadTables(puiTables);
+	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, HCP65_MATH_MULT_PATH, puiTables, HCP65_MATH_MULT_SIZE);
+	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, HCP65_MATH_INVERT_PATH, &puiTables[HCP65_MATH_MULT_SIZE], HCP65_MATH_INVERT_SIZE);
+	free(puiTables);
+	AssertTrue(bResult);
+	if (!bResult)
 	{
 		return false;
 	}
@@ -250,10 +314,10 @@ static void TestKernalRenderSong(lsize uiFrames, CArrayUint8* pacFrames)
 //
 // Builds the kernal ROM, boots it with the sound board and the SD Card
 // Board (holding Output/SDCard.img, a copy of the emulator's blank
-// Input/SDCard.img with the test's boot.exe, modplay.exe and Space Debris
-// on it, not written back) and checks that it found both,
-// copied the math tables to main memory, mounted the FAT32 volume and ran
-// boot.exe in user mode, which ran modplay.exe as a second process: it
+// Input/SDCard.img with the test's boot.exe, modplay.exe, Space Debris and
+// the maths tables on it, not written back) and checks that it found both,
+// mounted the FAT32 volume and ran boot.exe in user mode, which loaded the
+// maths tables to main memory and ran modplay.exe as a second process: it
 // played the first TEST_MODPLAY_SECONDS of the song through the sound
 // board as CModPlayer does on the host.  The ROM image is written to
 // Output/Kernal.rom; the emulator boots it and Output/SDCard.img (where
@@ -286,6 +350,8 @@ void TestHCP65KernalBoot(void)
 	uint8*				puiMain;
 	uint8*				puiROM;
 	uint8*				puiPlayed;
+	uint8*				puiTables;
+	CChars				szMissing;
 	int					i;
 	bool				bBuilt;
 	bool				bSilence;
@@ -308,6 +374,13 @@ void TestHCP65KernalBoot(void)
 	}
 	AssertTrue(cBuilder.GetCodeEnd() > 0x10000);
 	AssertTrue(cBuilder.GetCodeEnd() <= HCP65_ROM_CODE_END);
+
+	//Nothing is stubbed: the kernal is built without the maths tables (they aren't in memory until boot.exe loads
+	//them), so nothing it links may read MathMult or MathInvert.
+	szMissing.Init();
+	cBuilder.GetBuilder()->GetMissingNames(&szMissing);
+	AssertString("", szMissing.Text());
+	szMissing.Kill();
 	AssertTrue(cBuilder.GetSymbol("_gsKernalStatus", &uiStatus));
 	AssertTrue(cBuilder.Write(TEST_HCP65_KERNAL_ROM));
 
@@ -448,11 +521,15 @@ void TestHCP65KernalBoot(void)
 	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
 	AssertFalse(cAudio.IsEnabled());
 
-	//The math tables were copied from ROM banks 4-7 to main memory at $400000, and the kernal from ROM banks 0-3 to
-	//MPU RAM.  The processes' pages of the remap table were cleared when they exited.
+	//boot.exe loaded the maths tables from the SD card to main memory at $400000, and the kernal was copied from ROM
+	//banks 0-3 to MPU RAM.  The processes' pages of the remap table were cleared when they exited.
 	puiMain = cHCP65.GetMainMemory();
-	AssertTrue(memcmp(&puiROM[HCP65_ROM_CODE_END], &puiMain[HCP65_TABLES_START], HCP65_TABLES_END - HCP65_TABLES_START) == 0);
+	puiTables = (uint8*)malloc(HCP65_TABLES_END - HCP65_TABLES_START);
+	AssertTrue(TestKernalReadTables(puiTables));
+	AssertTrue(memcmp(puiTables, &puiMain[HCP65_TABLES_START], HCP65_TABLES_END - HCP65_TABLES_START) == 0);
+	free(puiTables);
 	AssertInt(15, puiMain[HCP65_TABLES_START + ((3 << 8) | 5) * 2]);
+	AssertInt(0x55, puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 3 * 4]);
 	AssertTrue(memcmp(&puiROM[0x10000], &puiRAM[0x10000], 0x100) == 0);
 	for (i = 0; i < 0x400; i++)
 	{

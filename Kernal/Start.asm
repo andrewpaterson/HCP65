@@ -6,11 +6,10 @@
 ;
 ;   1. In emulation mode, copies the 4 byte jml at StartSwapped into RAM where StartSwapped will be once RAM is at 0.
 ;   2. Goes native.  The next instruction is fetched from RAM: that jml, which goes on in ROM at StartFromROM + $80000.
-;   3. Copies ROM banks 0-3 (the kernal's code and data) to RAM with mvn, and ROM banks 4-7 (the math tables, see
-;      MathTables.asm) to main memory at $400000, then clears the top 1KB of RAM bank 7: the user mode remap table
-;      (process IDs $FC-$FF).  The rest of RAM banks 4-7 is free.
-;      (On the real machine the main memory channel must map the 4MB memory card to 4MB-8MB before the tables are
-;      copied; not done yet.)
+;   3. Copies ROM banks 0-3 (the kernal's code and data) to RAM with mvn, then clears the top 1KB of RAM bank 7: the
+;      user mode remap table (process IDs $FC-$FF).  The rest of RAM banks 4-7 is free.  The maths tables aren't in
+;      ROM: the kernal is built without them (MathTables="false") and boot.exe loads them from the SD card into main
+;      memory at $400000 (\OS\Math), where every process has them.
 ;   4. Goes on in RAM at StartInRAM: sets the stack and the direct page, clears bss, sets up the heap, calls the init
 ;      table's routines (each global's R_Initialise, in link order) and main, then waits for interrupts.
 ;
@@ -76,7 +75,7 @@ StartSwapped:
 		jml StartFromROM + KERNAL_ROM_OFFSET
 
 		; Running from ROM at $08xxxx.  Each mvn copies 64KB and leaves C = $FFFF and X = Y = 0 for the next: the
-		; kernal to MPU RAM banks 0-3, then the tables to main memory banks $40-$43.
+		; kernal to MPU RAM banks 0-3.
 StartFromROM:
 		rep (m, x)
 		lda 0xFFFF
@@ -86,10 +85,6 @@ StartFromROM:
 		mvn 0x09, 0x01
 		mvn 0x0A, 0x02
 		mvn 0x0B, 0x03
-		mvn 0x0C, 0x40
-		mvn 0x0D, 0x41
-		mvn 0x0E, 0x42
-		mvn 0x0F, 0x43
 
 		; Clear the remap table: a zero word, then copy it up through the table.
 		.width (A, X), 16

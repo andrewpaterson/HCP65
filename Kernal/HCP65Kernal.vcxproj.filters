@@ -15,9 +15,6 @@
     <ClCompile Include="Kernal.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="MathTables.asm">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="KernalDevices.cpp">
       <Filter>Source</Filter>
     </ClCompile>

@@ -8,14 +8,18 @@
 #define HCP65_ROM_SIZE				0x80000		//512KB of flash.
 #define HCP65_ROM_CODE_END			0x40000		//The kernal's code and data: ROM banks 0-3, copied to MPU RAM.
 #define HCP65_RAM_END				0x07FC00	//MPU RAM below the remap table: the kernal's code, data and bss.
-#define HCP65_TABLES_START			0x400000	//The math tables in main memory: ROM banks 4-7 copied there.
-#define HCP65_TABLES_END			0x440000
+#define HCP65_TABLES_START			0x400000	//The maths tables in main memory (boot.exe loads them: UserMathTables.asm).
+#define HCP65_TABLES_END			0x460000
+#define HCP65_MATH_MULT_SIZE		0x20000		//MULT, then INVERT (HCP65User.h's KERNAL_MATH_...).
+#define HCP65_MATH_INVERT_SIZE		0x40000
+#define HCP65_MATH_MULT_PATH		"\\OS\\Math\\MULT.BIN"
+#define HCP65_MATH_INVERT_PATH		"\\OS\\Math\\INVERT.BIN"
 
 
-//Builds the HCP65 kernal's ROM image from its source in HCP65/Kernal: the start up (Start.asm), the kernal's C++
-//(compiled for the W65C816) with BaseLib and Libc65, and the math tables (MathTables.asm).  The image is 512KB of
-//ROM, $FF where nothing is (erased flash): banks 0-3 hold what is linked at $000000-$03FFFF (the vectors and the
-//kernal), banks 4-7 what is linked at $400000-$43FFFF (the tables).  See Start.asm for how it starts.  The units are
+//Builds the HCP65 kernal's ROM image from its source in HCP65/Kernal: the start up (Start.asm) and the kernal's C++
+//(compiled for the W65C816) with BaseLib and Libc65, without the maths tables (CCPP65Builder::SetMathTables(false):
+//boot.exe loads them).  The image is 512KB of ROM, $FF where nothing is (erased flash): banks 0-3 hold what is linked
+//at $000000-$03FFFF (the vectors and the kernal); banks 4-7 are free.  See Start.asm for how it starts.  The units are
 //HCP65Kernal.vcxproj's, as HCP65-IDE builds HCP65Kernal.sln (its HCP65Kernal.hcp65build has the same layout).
 class CHCP65KernalBuilder
 {

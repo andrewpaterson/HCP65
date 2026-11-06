@@ -2,6 +2,7 @@
 
 
 #define BOOT_PROGRAM	"\\modplay.exe"
+#define BOOT_NO_TABLES	200		//The exit code when the maths tables couldn't be loaded, plus why.
 
 
 //In globals so the compiler can't work the answers out itself.
@@ -12,16 +13,28 @@ uint32	guiProduct;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The test's boot.exe: runs in user mode, multiplies and divides (with the
-// math tables the kernal maps in at $400000) and gives the kernal a value,
-// then runs modplay.exe with its own argument and exits with modplay's
-// exit code (or 100 and why it couldn't run).
+// The test's boot.exe: loads the maths tables from the SD card into main
+// memory (it is built without them, MathTables="false", so it can),
+// multiplies and divides and gives the kernal a value, then runs
+// modplay.exe (built with the tables) with its own argument and exits
+// with modplay's exit code (or 100 and why it couldn't run).
 //
 //////////////////////////////////////////////////////////////////////////
 int main(void)
 {
 	uint16	uiResult;
 	uint16	uiExitCode;
+
+	uiResult = KernalFileLoad(KERNAL_MATH_MULT_PATH, (void*)KERNAL_MATH_MULT_ADDRESS, KERNAL_MATH_MULT_SIZE);
+	if (uiResult != KERNAL_RESULT_SUCCESS)
+	{
+		return BOOT_NO_TABLES + uiResult;
+	}
+	uiResult = KernalFileLoad(KERNAL_MATH_INVERT_PATH, (void*)KERNAL_MATH_INVERT_ADDRESS, KERNAL_MATH_INVERT_SIZE);
+	if (uiResult != KERNAL_RESULT_SUCCESS)
+	{
+		return BOOT_NO_TABLES + uiResult;
+	}
 
 	guiProduct = (uint32)guiA * guiB;
 	KernalPutValue((uint16)(guiProduct / 3));

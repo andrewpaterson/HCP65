@@ -15,11 +15,10 @@ void CHCP65KernalBuilder::Init(void)
 {
 	mcBuilder.Init();
 
-	//Banks 0-3 hold what is linked at $000000-$03FFFF, banks 4-7 the tables.  Code and data flow from bank 1; bss
-	//after them may go up to the remap table, but what is in the image must stay below the tables' ROM banks.
+	//Banks 0-3 hold what is linked at $000000-$03FFFF.  Code and data flow from bank 1; bss after them may go up to
+	//the remap table, but what is in the image must stay in the four banks the start up copies.
 	mcImage.Init("Kernal.rom", HCP65_ROM_SIZE, 0xFF, HCP65_RAM_END, 0);
 	mcImage.AddRegion(0, HCP65_ROM_CODE_END, 0);
-	mcImage.AddRegion(HCP65_TABLES_START, HCP65_TABLES_END, HCP65_ROM_CODE_END);
 	muiCodeEnd = 0;
 	mszErrors.Init();
 }
@@ -54,6 +53,7 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 	//for the executable format among them), then BaseLib and Libc65's runtime.
 	szProject.Init(szKernal);
 	cFileUtil.AppendToPath(&szProject, "HCP65Kernal.vcxproj");
+	mcBuilder.SetMathTables(false);  //The tables aren't in memory until boot.exe loads them (MathTables="false").
 	bResult = HCP65AddProgram(&mcBuilder, szCommonLibraries, szHCP65Libraries, szProject.Text(), NULL, NULL);
 	szProject.Kill();
 
