@@ -112,9 +112,14 @@ void CAsm65Linker::Init(void)
 	muiLimit = 0;
 	muiBankSize = 0;
 	mbStubMissing = false;
+	mbRelocatable = false;
+	masFixups.Init();
+	miTargetImport = -1;
+	mbTargetMoves = false;
 	miStubOpcode = -1;
 	mbRemoveUnused = false;
 	maszForbidden.Init();
+	maszKept.Init();
 	mszForbiddenReason.Init();
 	maiForbiddenUsers.Init();
 	muiUsingSection = 0;
@@ -140,7 +145,9 @@ void CAsm65Linker::Kill(void)
 
 	maiForbiddenUsers.Kill();
 	mszForbiddenReason.Kill();
+	maszKept.Kill();
 	maszForbidden.Kill();
+	masFixups.Kill();
 
 	mcLazyImage.Kill();
 	mcLazy.Kill();
@@ -247,6 +254,52 @@ void CAsm65Linker::SetBankSize(uint32 uiBankSize)
 void CAsm65Linker::SetStubMissing(bool bStubMissing)
 {
 	mbStubMissing = bStubMissing;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The section that defines szName is used even if nothing in the link
+// refers to it (see SetRemoveUnused): an entry its loader calls.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Linker::KeepSymbol(const char* szName)
+{
+	maszKept.Add(szName);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Names that nothing defines are imports (never stubbed, whatever
+// SetStubMissing says) and the fields that change when the link is moved
+// are kept as fixups (SAsm65Fixup), for a loader that puts the link at
+// another address.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Linker::SetRelocatable(bool bRelocatable)
+{
+	mbRelocatable = bRelocatable;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsm65Linker::NumFixups(void)
+{
+	return masFixups.NumElements();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65Fixup* CAsm65Linker::GetFixup(size uiIndex)
+{
+	return masFixups.Get(uiIndex);
 }
 
 
@@ -590,7 +643,7 @@ void CAsm65Linker::FindMissing(CMapStringTemplate<SAsm65LinkReference>* pcRefere
 			continue;
 		}
 		maszMissing.Add(szName);
-		if (!mbStubMissing)
+		if (!mbStubMissing && !mbRelocatable)
 		{
 			mcErrors.Add(masObjects.Get(psReference->uiObject)->pcObject->GetName(), 0, 0, "Undefined symbol", szName);
 		}
@@ -686,6 +739,8 @@ void CAsm65Linker::MarkUsed(void)
 	CArraySize			aiWork;
 	SAsm65LinkObject*	psObject;
 	SAsm65Section*		psSection;
+	SAsm65LinkSymbol*	psGlobal;
+	SAsm65ObjectSymbol*	psSymbol;
 	SAsm65LinkSection*	psLinkSection;
 	size				uiSection;
 	size				uiObject;
@@ -712,6 +767,18 @@ void CAsm65Linker::MarkUsed(void)
 			if (psSection->bKeep || (((psSection->eKind == ASK65_Init) || (psSection->eKind == ASK65_Fini)) && (psSection->iAssociated < 0)))
 			{
 				UseSection(SectionIndex(i, j), &aiWork);
+			}
+		}
+	}
+	for (i = 0; i < maszKept.NumElements(); i++)
+	{
+		psGlobal = GetGlobal(maszKept.GetText(i));
+		if (psGlobal && (psGlobal->iObject >= 0))
+		{
+			psSymbol = masObjects.Get((size)psGlobal->iObject)->pcObject->GetSymbol(psGlobal->uiSymbol);
+			if (psSymbol->iSection >= 0)
+			{
+				UseSection(SectionIndex((size)psGlobal->iObject, (size)psSymbol->iSection), &aiWork);
 			}
 		}
 	}
@@ -908,7 +975,7 @@ void CAsm65Linker::AddStubs(void)
 	SAsm65ObjectSymbol*	psSymbol;
 	size				i;
 
-	if (!mbStubMissing || (maszMissing.NumElements() == 0))
+	if (!mbStubMissing || mbRelocatable || (maszMissing.NumElements() == 0))
 	{
 		return;
 	}
@@ -1266,6 +1333,8 @@ bool CAsm65Linker::TargetPlace(size uiObject, SAsm65Relocation* psRelocation, in
 	pcObject = masObjects.Get(uiObject)->pcObject;
 	*piSection = -1;
 	*piValue = psRelocation->iAddend;
+	miTargetImport = -1;
+	mbTargetMoves = false;
 	if (psRelocation->iTargetSection != ASM65_TARGET_SYMBOL)
 	{
 		if (!GetLinkSection(uiObject, psRelocation->iTargetSection)->bKept)
@@ -1274,6 +1343,7 @@ bool CAsm65Linker::TargetPlace(size uiObject, SAsm65Relocation* psRelocation, in
 			return false;
 		}
 		*piSection = (int64)SectionIndex(uiObject, psRelocation->iTargetSection);
+		mbTargetMoves = true;
 		return true;
 	}
 
@@ -1287,14 +1357,25 @@ bool CAsm65Linker::TargetPlace(size uiObject, SAsm65Relocation* psRelocation, in
 			//The linker's own symbols are values in the core, defined once the core is laid out.
 			if ((psSymbol->eBinding == AB65_Weak) || IsLinkerSymbol(psSymbol->szName.Text()))
 			{
+				mbTargetMoves = IsLinkerSymbol(psSymbol->szName.Text());
 				return true;
+			}
+			if (mbRelocatable)
+			{
+				miTargetImport = FindImport(psSymbol->szName.Text());
+				if (miTargetImport >= 0)
+				{
+					return true;
+				}
 			}
 			Error(pcObject, psRelocation, "Undefined symbol", psSymbol->szName.Text());
 			return false;
 		}
 		if (psGlobal->iObject < 0)
 		{
+			//The linker's own symbols are addresses in the link.
 			*piValue += psGlobal->iValue;
+			mbTargetMoves = true;
 			return true;
 		}
 		uiDefiner = (size)psGlobal->iObject;
@@ -1310,8 +1391,50 @@ bool CAsm65Linker::TargetPlace(size uiObject, SAsm65Relocation* psRelocation, in
 			return false;
 		}
 		*piSection = (int64)SectionIndex(uiDefiner, psSymbol->iSection);
+		mbTargetMoves = true;
 	}
 	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The import szName's index (in GetMissing), -1 if it isn't one.
+//
+//////////////////////////////////////////////////////////////////////////
+int32 CAsm65Linker::FindImport(const char* szName)
+{
+	size	i;
+
+	for (i = 0; i < maszMissing.NumElements(); i++)
+	{
+		if (strcmp(maszMissing.GetText(i), szName) == 0)
+		{
+			return (int32)i;
+		}
+	}
+	return -1;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A relocatable link's field at uiAddress, from psRelocation, whose target
+// (plus its addend) TargetPlace found to be iValue.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Linker::AddFixup(uint32 uiAddress, SAsm65Relocation* psRelocation, int64 iValue)
+{
+	SAsm65Fixup*	psFixup;
+
+	psFixup = masFixups.Add();
+	psFixup->uiAddress = uiAddress;
+	psFixup->iImport = miTargetImport;
+	psFixup->iValue = iValue;
+	psFixup->uiBytes = psRelocation->uiBytes;
+	psFixup->bSigned = psRelocation->bSigned;
+	psFixup->bRelative = psRelocation->bRelative;
+	psFixup->uiForm = psRelocation->uiForm;
 }
 
 
@@ -1472,6 +1595,19 @@ void CAsm65Linker::Relocate(void)
 			if (!Target(i, psRelocation, &iValue))
 			{
 				continue;
+			}
+			if (mbRelocatable && ((miTargetImport >= 0) || (mbTargetMoves && !psRelocation->bRelative)))
+			{
+				AddFixup(psLinkSection->uiAddress + psRelocation->uiOffset, psRelocation, iValue);
+				if (miTargetImport >= 0)
+				{
+					//The loader writes it.
+					for (k = 0; k < psRelocation->uiBytes; k++)
+					{
+						pcBytes->SetValue(psRelocation->uiOffset + k, 0);
+					}
+					continue;
+				}
 			}
 			if (psRelocation->bRelative)
 			{

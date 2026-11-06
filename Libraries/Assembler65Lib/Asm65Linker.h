@@ -113,6 +113,26 @@ struct SAsm65LinkReference
 };
 
 
+//A field a relocatable link (SetRelocatable) leaves for its loader to write, at uiAddress as linked: the target plus
+//the addend, in the form, size and sign of the relocation it came from.  The target is a place in the link (iImport
+//-1: iValue is its linked address, which the loader moves by as much as it moves the link) or an import (iImport, a
+//name nothing in the link defines, which the loader finds: iValue is the addend).  A relative field whose target is
+//in the link needs no fixup: it is the same wherever the link is put.
+struct SAsm65Fixup
+{
+	uint32	uiAddress;
+	int32	iImport;
+	int64	iValue;
+	uint8	uiBytes;
+	bool	bSigned;
+	bool	bRelative;
+	uint8	uiForm;
+};
+
+
+typedef CArrayTemplate<SAsm65Fixup>	CArrayAsm65Fixups;
+
+
 //Links objects (and the library members they need) into bytes at absolute addresses.
 //Sections are placed by kind: text, rodata, init, fini, data then bss.  Text starts at
 //$10000 and each kind follows the one before unless SetAddress fixes it.  The linker
@@ -121,6 +141,8 @@ struct SAsm65LinkReference
 //others flow around it.  With SetBankSize (the W65C816's $10000) a section no bigger
 //than a bank is never placed across the end of one, and only sections with an address
 //are in bank 0 (it is the stack and the direct page, plus the vectors and their stubs).
+//A relocatable link (SetRelocatable) can be put anywhere by its loader: names nothing defines are its imports
+//(GetMissing) instead of errors, and the fields that change when it moves are its fixups.
 class CAsm65Linker
 {
 protected:
@@ -161,9 +183,14 @@ protected:
 	uint32									muiLimit;
 	uint32									muiBankSize;
 	bool									mbStubMissing;
+	bool									mbRelocatable;
+	CArrayAsm65Fixups						masFixups;
+	int32									miTargetImport;		//What TargetPlace found: an import (-1 if not) or a place in the link.
+	bool									mbTargetMoves;
 	int										miStubOpcode;	//The stub's one byte stp (SetStubOpcode); -1: the 65C64's stp.
 	bool									mbRemoveUnused;
 	CArrayChars								maszForbidden;		//Objects nothing else may use (ForbidObject).
+	CArrayChars								maszKept;			//Symbols whose sections are always used (KeepSymbol).
 	CChars									mszForbiddenReason;
 	CArraySize								maiForbiddenUsers;	//The sections already reported for using one.
 	size									muiUsingSection;	//The section MarkUsed is following the relocations of.
@@ -184,8 +211,10 @@ public:
 	void				SetBankSize(uint32 uiBankSize);
 	void				SetStubMissing(bool bStubMissing);
 	void				SetStubOpcode(uint8 uiOpcode);
+	void				SetRelocatable(bool bRelocatable);
 	void				SetRemoveUnused(bool bRemoveUnused);
 	void				ForbidObject(const char* szObjectName, const char* szReason);
+	void				KeepSymbol(const char* szName);
 	void				SetLazy(uint32 uiCodeEnd, uint32 uiSectorSize, uint32 uiFirstSector);
 
 	bool				Link(void);
@@ -198,6 +227,8 @@ public:
 	bool				GetSymbol(const char* szName, int64* piValue);
 	size				NumMissing(void);
 	char*				GetMissing(size uiIndex);
+	size				NumFixups(void);
+	SAsm65Fixup*		GetFixup(size uiIndex);
 	size				NumUnits(void);
 	CArrayUint8*		GetLazyImage(void);
 
@@ -227,6 +258,8 @@ protected:
 	bool				TargetPlace(size uiObject, SAsm65Relocation* psRelocation, int64* piSection, int64* piValue);
 	bool				Target(size uiObject, SAsm65Relocation* psRelocation, int64* piValue);
 	void				Relocate(void);
+	int32				FindImport(const char* szName);
+	void				AddFixup(uint32 uiAddress, SAsm65Relocation* psRelocation, int64 iValue);
 	void				WriteMap(void);
 	void				BuildLineTable(void);
 	void				AppendMapSections(const char* szTitle, bool bRemoved);

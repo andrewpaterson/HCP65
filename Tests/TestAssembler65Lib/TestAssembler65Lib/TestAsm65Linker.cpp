@@ -1,6 +1,7 @@
 #include "BaseLib/MemoryFile.h"
 #include "BaseLib/PointerFunctions.h"
 #include "TestLib/Assert.h"
+#include "Assembler65Lib/Asm65Module.h"
 #include "TestAsm65C64Context.h"
 
 
@@ -816,6 +817,166 @@ void TestAsm65LinkerLineTable(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The fixup at uiAddress, NULL if there is none.
+//
+//////////////////////////////////////////////////////////////////////////
+static SAsm65Fixup* LinkedFixup(SLinkTest* psTest, uint32 uiAddress)
+{
+	size	i;
+
+	for (i = 0; i < psTest->cLinker.NumFixups(); i++)
+	{
+		if (psTest->cLinker.GetFixup(i)->uiAddress == uiAddress)
+		{
+			return psTest->cLinker.GetFixup(i);
+		}
+	}
+	return NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A relocatable link (a kernal driver's): a name nothing defines is an
+// import, not an error or a stub; the fields that change when the link is
+// moved are fixups (its own addresses, and the imports with their
+// addends); a relative branch inside it isn't one.  KeepSymbol keeps the
+// entry nothing calls.  The module made from it has one section of the
+// link's size, its bytes up to the bss, the entry and the init table as
+// offsets, the imports as undefined symbols and a relocation per fixup.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerRelocatable(void)
+{
+	SLinkTest			sTest;
+	SAsm65Fixup*		psFixup;
+	CAsm65Module		cModule;
+	CAsm65Object		cObject;
+	CMemoryFile*		pcFile;
+	CChars				szErrors;
+	SAsm65Section*		psSection;
+	SAsm65Relocation*	psRelocation;
+	int64				iEntry;
+	int64				iData;
+	int32				iSymbol;
+	size				i;
+	size				uiImports;
+
+	LinkTestInit(&sTest);
+	LinkTestObject(&sTest,
+		"	.section text.Entry\n"
+		"	.global Entry\n"
+		"Entry:\n"
+		"	jsr Kernal\n"
+		"	add A, [gData]\n"
+		"	bra Done\n"
+		"Done:\n"
+		"	ret\n"
+		"	.section text.Unused\n"
+		"Unused:\n"
+		"	jsr Other\n"
+		"	ret\n"
+		"	.section data.gData\n"
+		"	.global gData\n"
+		"gData:\n"
+		"	.long Entry\n"
+		"	.long Kernal + 8\n"
+		"	.section bss.gBss\n"
+		"gBss:\n"
+		"	.space 16\n"
+		"	.section text.UsesBss\n"
+		"UsesBss:\n"
+		"	add A, [gBss]\n"
+		"	ret\n"
+		"	.section init.UsesBss\n"
+		"	.long UsesBss\n");
+	sTest.cLinker.SetRemoveUnused(true);
+	sTest.cLinker.SetRelocatable(true);
+	sTest.cLinker.SetStubMissing(true);
+	sTest.cLinker.KeepSymbol("Entry");
+	AssertTrue(sTest.cLinker.Link());
+	AssertString("", sTest.cLinker.GetErrors());
+
+	//Only Kernal is an import: Other is only used by removed code.  Nothing was stubbed.
+	AssertSize(1, sTest.cLinker.NumMissing());
+	AssertString("Kernal", sTest.cLinker.GetMissing(0));
+	iEntry = LinkedSymbol(&sTest, "Entry");
+	iData = LinkedSymbol(&sTest, "gData");
+	AssertLong(ASM65_DEFAULT_TEXT_ADDRESS, iEntry);
+
+	psFixup = LinkedFixup(&sTest, (uint32)iData);
+	AssertNotNull(psFixup);
+	AssertInt(-1, psFixup->iImport);
+	AssertLong(iEntry, psFixup->iValue);
+	psFixup = LinkedFixup(&sTest, (uint32)iData + 4);
+	AssertNotNull(psFixup);
+	AssertInt(0, psFixup->iImport);
+	AssertLong(8, psFixup->iValue);
+	AssertFalse(psFixup->bRelative);
+	uiImports = 0;
+	for (i = 0; i < sTest.cLinker.NumFixups(); i++)
+	{
+		psFixup = sTest.cLinker.GetFixup(i);
+		if (psFixup->iImport >= 0)
+		{
+			uiImports++;
+		}
+		else
+		{
+			AssertFalse(psFixup->bRelative);
+		}
+	}
+	AssertSize(2, uiImports);
+
+	szErrors.Init();
+	cModule.Init("Entry");
+	AssertTrue(cModule.Make(sTest.cLinker.GetOutput(), &sTest.cLinker, &szErrors));
+	AssertString("", szErrors.Text());
+
+	pcFile = MemoryFile(cModule.GetBytes(), (filePos)cModule.GetSize());  //Read frees it.
+	cObject.Init("");
+	AssertTrue(cObject.Read(pcFile));
+	AssertSize(1, cObject.NumSections());
+	psSection = cObject.GetSection(0);
+	AssertString(ASM65_MODULE_SECTION, psSection->szName.Text());
+	AssertInt((uint32)(LinkedSymbol(&sTest, "__end") - iEntry), psSection->uiSize);
+	AssertInt((uint32)(LinkedSymbol(&sTest, "__bss_start") - iEntry), (uint32)psSection->cBytes.NumElements());
+	iSymbol = cObject.FindSymbol("Entry");
+	AssertTrue(iSymbol >= 0);
+	AssertLong(0, cObject.GetSymbol((size)iSymbol)->iValue);
+	iSymbol = cObject.FindSymbol(ASM65_MODULE_INIT_END);
+	AssertTrue(iSymbol >= 0);
+	AssertLong(LinkedSymbol(&sTest, "__init_end") - iEntry, cObject.GetSymbol((size)iSymbol)->iValue);
+	iSymbol = cObject.FindSymbol("Kernal");
+	AssertTrue(iSymbol >= 0);
+	AssertInt(ASM65_SECTION_UNDEFINED, cObject.GetSymbol((size)iSymbol)->iSection);
+
+	AssertSize(sTest.cLinker.NumFixups(), cObject.NumRelocations());
+	for (i = 0; i < cObject.NumRelocations(); i++)
+	{
+		psRelocation = cObject.GetRelocation(i);
+		if (psRelocation->uiOffset == (uint32)(iData + 4 - iEntry))
+		{
+			AssertInt(ASM65_TARGET_SYMBOL, psRelocation->iTargetSection);
+			AssertInt((uint32)iSymbol, psRelocation->uiTargetSymbol);
+			AssertLong(8, psRelocation->iAddend);
+		}
+		else if (psRelocation->uiOffset == (uint32)(iData - iEntry))
+		{
+			AssertInt(0, psRelocation->iTargetSection);
+			AssertLong(0, psRelocation->iAddend);
+		}
+	}
+
+	cObject.Kill();
+	cModule.Kill();
+	szErrors.Kill();
+	LinkTestKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65Linker(void)
@@ -834,6 +995,7 @@ void TestAsm65Linker(void)
 	TestAsm65LinkerRemoveUnusedLibrary();
 	TestAsm65LinkerPrograms();
 	TestAsm65LinkerLineTable();
+	TestAsm65LinkerRelocatable();
 
 	TestStatistics();
 }
