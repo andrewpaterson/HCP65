@@ -37,6 +37,8 @@ struct SKernalStatus
 	uint32	uiStrayInterrupts;	//Bit n set: device n interrupted with no handler, and was reset (KernalInterrupts.asm).
 	uint32	uiDevices;			//Bit n set: socket n holds a device whose ROM describes it (KERNAL_DEVICE_PRESENT).
 	uint32	uiBadDevices;		//Bit n set: socket n holds a board whose ROM isn't usable or that is in the wrong socket.
+	uint32	uiLoadedDrivers;	//Bit n set: socket n's board's driver was loaded from the SD card (KernalDriverLoader.h).
+	uint16	uiDriverError;		//Why the last driver that didn't load didn't (KERNAL_LOAD_*), 0 if they all did.
 };
 
 

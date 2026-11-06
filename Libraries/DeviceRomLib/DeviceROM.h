@@ -22,7 +22,7 @@ class CChars;
 #define DEVICE_ROM_MAKER_OFFSET			0x050
 #define DEVICE_ROM_MAKER_LENGTH			64
 #define DEVICE_ROM_DRIVER_OFFSET		0x090
-#define DEVICE_ROM_DRIVER_LENGTH		32			//The driver's file in \DRIVERS\ on the SD card, "" for none.
+#define DEVICE_ROM_DRIVER_LENGTH		32			//The driver's file in \OS\Drivers\ on the SD card, "" for none.
 #define DEVICE_ROM_COUNT_OFFSET			0x0B0		//2 bytes: the number of registers listed.
 #define DEVICE_ROM_REGISTERS_OFFSET		0x0B2		//3 bytes each: the offset in the slot (2 bytes) then DEVICE_REGISTER_*.
 #define DEVICE_ROM_REGISTER_SIZE		3

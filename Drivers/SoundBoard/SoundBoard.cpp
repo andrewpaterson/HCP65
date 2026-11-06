@@ -1,6 +1,6 @@
 #include "KernalInterrupts.h"
 #include "KernalProcess.h"
-#include "KernalSoundBoard.h"
+#include "SoundBoard.h"
 
 
 //Offsets in the slot, and the registers (HCP65Lib/HCP65Audio.h).
@@ -13,7 +13,7 @@
 #define SOUND_FLAG_INTERRUPT		0x80
 
 
-//The board's assembly (KernalAudio.asm).
+//The board's assembly (SoundBoardAudio.asm).
 extern "C" void		KernalAudioCopy(uint8* puiDest, uint8* puiSource, uint16 uiCount);
 extern "C" void		KernalAudioSetRegister(uint8* puiRegisters, uint16 uiRegister, uint16 uiValue);
 extern "C" uint16	KernalAudioGetCounter(uint8* puiRegisters);
@@ -162,4 +162,20 @@ void CKernalSoundBoard::CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 ui
 		puiDest += uiInBank;
 		uiLength = (uint16)(uiLength - uiInBank);
 	}
+}
+
+
+//The driver of the first sound board.
+static CKernalSoundBoard	gcSoundBoard;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The kernal's loader calls it once the driver is in place and its globals
+// are constructed: the driver it starts for the board.
+//
+//////////////////////////////////////////////////////////////////////////
+extern "C" CKernalDriver* KernalCreateDriver(void)
+{
+	return &gcSoundBoard;
 }

@@ -8,14 +8,13 @@
 #include "Kernal.h"
 #include "KernalInterrupts.h"
 #include "KernalDriver.h"
-#include "KernalSoundBoard.h"
 #include "KernalDebugPort.h"
+#include "KernalDriverLoader.h"
 
 
-SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 //The drivers in the ROM, for the HCP65's own boards: one board of each (a second has no driver).
 CKernalSDCardBoard	gcKernalSDCardBoard;
-CKernalSoundBoard	gcKernalSoundBoard;
 CKernalDebugPort	gcKernalDebugPort;
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
@@ -51,10 +50,6 @@ static CKernalDriver* KernalBuiltInDriver(const char* szName)
 	{
 		return &gcKernalSDCardBoard;
 	}
-	if (strcmp(szName, KERNAL_SOUND_BOARD_NAME) == 0)
-	{
-		return &gcKernalSoundBoard;
-	}
 	if (strcmp(szName, KERNAL_DEBUG_PORT_NAME) == 0)
 	{
 		return &gcKernalDebugPort;
@@ -88,6 +83,37 @@ static void KernalStartBuiltInDrivers(void)
 		}
 	}
 	gpcKernalDebugPort = (CKernalDebugPort*)KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_DEBUG_PORT_NAME, 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Loads the driver of each present board that has none, if its device ROM
+// names one, from the SD card's \OS\Drivers.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalLoadDrivers(void)
+{
+	SKernalDeviceROM*	psROM;
+	uint16				uiSlot;
+	uint16				uiResult;
+
+	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
+	{
+		psROM = gasKernalDevices[uiSlot].psROM;
+		if (psROM && (psROM->szDriverFile[0] != '\0') && !KernalGetDriver(uiSlot))
+		{
+			uiResult = KernalLoadDriver(uiSlot);
+			if (uiResult == KERNAL_LOAD_SUCCESS)
+			{
+				gsKernalStatus.uiLoadedDrivers |= (uint32)1 << uiSlot;
+			}
+			else
+			{
+				gsKernalStatus.uiDriverError = uiResult;
+			}
+		}
+	}
 }
 
 
@@ -172,6 +198,8 @@ int main(void)
 	gsKernalStatus.uiNumClusters = gcKernalVolume.GetNumClusters();
 	gsKernalStatus.uiFreeClusters = gcKernalVolume.GetTotalFreeClusters();
 	gsKernalStatus.uiState = KERNAL_STATE_MOUNTED;
+
+	KernalLoadDrivers();
 
 	gsKernalStatus.uiBootArgument = (guiKernalBootArgument == KERNAL_NO_BOOT_ARGUMENT) ? 0 : guiKernalBootArgument;
 	gsKernalStatus.uiBootResult = KernalRunExecutable(KERNAL_BOOT_FILE, gsKernalStatus.uiBootArgument, &gsKernalStatus.uiExitCode);

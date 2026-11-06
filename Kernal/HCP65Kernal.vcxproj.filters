@@ -30,13 +30,13 @@
     <ClCompile Include="KernalProcess.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="KernalSoundBoard.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="KernalDebugPort.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="KernalAudio.asm">
+    <ClCompile Include="KernalDriverLoader.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalExports.asm">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="KernalInterrupts.cpp">
@@ -57,6 +57,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalDriver.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalDriverLoader.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalSoundBoard.h">

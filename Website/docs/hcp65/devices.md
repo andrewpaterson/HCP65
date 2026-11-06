@@ -67,7 +67,7 @@ Words are little endian.
 | `$008` | 8 | Reserved (`$FF`) |
 | `$010` | 64 | Device name |
 | `$050` | 64 | Manufacturer |
-| `$090` | 32 | Driver file, in `\DRIVERS\` on the SD card; empty if the board has none |
+| `$090` | 32 | Driver file, in `\OS\Drivers\` on the SD card; empty if the board has none |
 | `$0B0` | 2 | Number of registers listed |
 | `$0B2` | 3 each | Registers: the offset in the slot (a word), then `0` read or `1` write |
 | … | | Unused (`$FF`) |
@@ -124,6 +124,19 @@ The HCP65's own boards have the manufacturer `HCP65`:
 | `SD Card Board` | 32KB | Drives it (DMA) | `SDCARD.DRV` |
 | `Sound Board` | 128KB | Doesn't use it | `SOUND.DRV` |
 | `Debug Port` (the emulator's) | 32KB | Doesn't use it | none: the kernel drives it itself |
+
+### Drivers
+
+The kernel has the SD Card Board's and the debug port's drivers in its ROM: it needs the SD card to
+load anything else.  Once it has mounted the SD card, it loads the driver of each other board from
+`\OS\Drivers\`, the file its device ROM names (the sound board's is `SOUND.DRV`).
+
+A driver is a relocatable W65C816 module, built from its project in `HCP65/Drivers`.  The kernel
+puts it in free MPU RAM after its own code and data, within one bank, and fills in the addresses
+in it.  A driver calls the kernel by name: the kernel's *exports* (`Kernal/KernalExports.asm`) are
+the names a driver may use, and a driver that uses any other name isn't loaded.  The kernel then
+runs the driver's constructors and calls its `KernalCreateDriver`, which returns the driver
+(a `CKernalDriver`) the kernel starts for the board.
 
 ## Main memory
 

@@ -16,6 +16,7 @@
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
 #include "HCP65ExeBuilder.h"
+#include "HCP65DriverBuilder.h"
 #include "../../../ModPlay/ModPlaySamples.h"
 
 
@@ -30,6 +31,8 @@
 #define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
 #define TEST_HCP65_USER				".." _FS_ ".." _FS_ ".." _FS_ "Libraries" _FS_ "UserLib"
 #define TEST_HCP65_BOOT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "OperatingSystem" _FS_ "HCP65OperatingSystem.vcxproj"
+#define TEST_HCP65_SOUND_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "SoundBoard" _FS_ "HCP65SoundBoard.vcxproj"
+#define TEST_HCP65_SOUND_DRIVER_PATH	"\\OS\\Drivers\\SOUND.DRV"
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
 #define TEST_HCP65_MATH_TABLES		TEST_HCP65_LIBRARIES _FS_ "Libc65" _FS_ "MathTbls"
@@ -75,6 +78,8 @@ struct STestKernalStatus
 	uint32	uiStrayInterrupts;
 	uint32	uiDevices;
 	uint32	uiBadDevices;
+	uint32	uiLoadedDrivers;
+	uint16	uiDriverError;
 };
 
 
@@ -122,6 +127,8 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 	psStatus->uiStrayInterrupts = (uint32)p[32] | ((uint32)p[33] << 8) | ((uint32)p[34] << 16) | ((uint32)p[35] << 24);
 	psStatus->uiDevices = (uint32)p[36] | ((uint32)p[37] << 8) | ((uint32)p[38] << 16) | ((uint32)p[39] << 24);
 	psStatus->uiBadDevices = (uint32)p[40] | ((uint32)p[41] << 8) | ((uint32)p[42] << 16) | ((uint32)p[43] << 24);
+	psStatus->uiLoadedDrivers = (uint32)p[44] | ((uint32)p[45] << 8) | ((uint32)p[46] << 16) | ((uint32)p[47] << 24);
+	psStatus->uiDriverError = (uint16)(p[48] | (p[49] << 8));
 }
 
 
@@ -154,6 +161,52 @@ static bool TestKernalPutExe(const char* szName, const char* szProjectFile, cons
 		AssertTrue(bBuilt);
 	}
 	cExe.Kill();
+	return bBuilt;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Builds a driver from its project, szProjectFile, and puts it on the SD
+// card image as szName.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalPutDriver(const char* szName, const char* szProjectFile)
+{
+	CHCP65DriverBuilder	cDriver;
+	bool				bBuilt;
+	size				i;
+	FILE*				pFile;
+
+	cDriver.Init();
+	bBuilt = cDriver.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_KERNAL, szProjectFile);
+	AssertString("", cDriver.GetErrors());
+	AssertTrue(bBuilt);
+	if (bBuilt)
+	{
+		AssertTrue(cDriver.GetModuleSize() > 0);
+		if (getenv("TEST_HCP65_VERBOSE"))
+		{
+			printf("%s: %d bytes, imports", szName, (int)cDriver.GetModuleSize());
+			for (i = 0; i < cDriver.GetLinker()->NumMissing(); i++)
+			{
+				printf(" %s", cDriver.GetLinker()->GetMissing(i));
+			}
+			printf("\n");
+		}
+		if (getenv("TEST_HCP65_MAP"))
+		{
+			pFile = fopen(TEST_HCP65_OUTPUT _FS_ "Driver.map", "w");
+			if (pFile)
+			{
+				fputs(cDriver.GetLinker()->GetMap(), pFile);
+				fclose(pFile);
+			}
+		}
+		bBuilt = FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, szName, cDriver.GetModule(), cDriver.GetModuleSize());
+		AssertTrue(bBuilt);
+	}
+	cDriver.Kill();
 	return bBuilt;
 }
 
@@ -206,7 +259,8 @@ static bool TestKernalReadTables(uint8* puiDest)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output and puts boot.exe (HCP65/OperatingSystem),
-// modplay.exe (HCP65/ModPlay), the song it plays and the maths tables
+// modplay.exe (HCP65/ModPlay), the sound board's driver (HCP65/Drivers/
+// SoundBoard, \OS\Drivers\SOUND.DRV), the song it plays and the maths tables
 // (\OS\Math\MULT.BIN and INVERT.BIN, from MathTbls' HEX files) on the copy.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -233,6 +287,10 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 	if (!TestKernalPutExe("\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE, true))
+	{
+		return false;
+	}
+	if (!TestKernalPutDriver(TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER))
 	{
 		return false;
 	}
@@ -360,6 +418,7 @@ void TestHCP65KernalBoot(void)
 	bool				bSilence;
 	CAsm65LineTable*	pcLines;
 	SAsm65LineEntry*	psLine;
+	FILE*				pFile;
 
 	if (!TestKernalPutFiles())
 	{
@@ -377,6 +436,16 @@ void TestHCP65KernalBoot(void)
 	}
 	AssertTrue(cBuilder.GetCodeEnd() > 0x10000);
 	AssertTrue(cBuilder.GetCodeEnd() <= HCP65_ROM_CODE_END);
+	if (getenv("TEST_HCP65_MAP"))
+	{
+		//The kernal's link map, to find what is at an address.
+		pFile = fopen(TEST_HCP65_OUTPUT _FS_ "Kernal.map", "w");
+		if (pFile)
+		{
+			fputs(cBuilder.GetBuilder()->GetLinker()->GetMap(), pFile);
+			fclose(pFile);
+		}
+	}
 
 	//Nothing is stubbed: the kernal is built without the maths tables (they aren't in memory until boot.exe loads
 	//them), so nothing it links may read MathMult or MathInvert.
@@ -449,8 +518,10 @@ void TestHCP65KernalBoot(void)
 		while (uiFrames > 0);
 		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
 
-		//Once modplay plays (a process with interrupts on), the stray device is enabled and starts interrupting.
-		if (cAudio.IsEnabled() && !cHCP65.IsKernelMode() && (cHCP65.GetDeviceEnables() & (1u << TEST_HCP65_STRAY_SOCKET)) == 0)
+		//Once modplay plays (a process with interrupts on), the stray device is enabled and starts interrupting.  Modplay
+		//spends nearly all its time in the kernal waiting for the sound board, so this doesn't wait for a run to end in
+		//user mode: the dispatch resets the stray device whichever mode the interrupt finds the processor in.
+		if (cAudio.IsEnabled() && (cHCP65.GetProcessID() == 0xFE) && (cHCP65.GetDeviceEnables() & (1u << TEST_HCP65_STRAY_SOCKET)) == 0)
 		{
 			cStray.Arm();
 			cHCP65.SetDeviceEnables(cHCP65.GetDeviceEnables() | (1u << TEST_HCP65_STRAY_SOCKET));
@@ -491,6 +562,11 @@ void TestHCP65KernalBoot(void)
 	//The scan found the three boards by their device ROMs, and the stray device's blank ROM unrecognised.
 	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiBadDevices);
+
+	//The sound board's driver was loaded from \OS\Drivers\SOUND.DRV (the SD Card Board's and the debug port's are in the
+	//ROM), and modplay.exe played through it.
+	AssertInt(0, sStatus.uiDriverError);
+	AssertInt(1 << TEST_HCP65_AUDIO_SOCKET, sStatus.uiLoadedDrivers);
 	AssertTrue(cStray.IsQuiet());
 	AssertInt(uiSeconds, (uint32)sStatus.uiBootArgument);
 
