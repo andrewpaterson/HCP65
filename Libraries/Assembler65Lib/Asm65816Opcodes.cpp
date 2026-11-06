@@ -172,20 +172,23 @@ bool Asm65816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget)
 	uint32	uiBank;
 	uint32	uiAbsolute;
 
+	//Only the instruction's own bytes are read: a two byte branch has no puiBytes[2].
 	uiBank = uiAddress & 0xFF0000;
-	uiAbsolute = (uint32)puiBytes[1] | ((uint32)puiBytes[2] << 8);
 	switch (puiBytes[0])
 	{
 	case 0x10: case 0x30: case 0x50: case 0x70: case 0x90: case 0xB0: case 0xD0: case 0xF0: case 0x80:
 		*puiTarget = uiBank | ((uiAddress + 2 + (uint32)(int32)(int8)puiBytes[1]) & 0xFFFF);
 		return true;
 	case 0x82:
+		uiAbsolute = (uint32)puiBytes[1] | ((uint32)puiBytes[2] << 8);
 		*puiTarget = uiBank | ((uiAddress + 3 + (uint32)(int32)(int16)uiAbsolute) & 0xFFFF);
 		return true;
 	case 0x4C: case 0x20:
+		uiAbsolute = (uint32)puiBytes[1] | ((uint32)puiBytes[2] << 8);
 		*puiTarget = uiBank | uiAbsolute;
 		return true;
 	case 0x5C: case 0x22:
+		uiAbsolute = (uint32)puiBytes[1] | ((uint32)puiBytes[2] << 8);
 		*puiTarget = uiAbsolute | ((uint32)puiBytes[3] << 16);
 		return true;
 	default:
