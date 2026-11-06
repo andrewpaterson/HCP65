@@ -27,12 +27,13 @@ static const uint8 gauiHCP65SDCID[15] = { 0x03, 'H', 'C', 'H', 'C', 'P', '6', '5
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The card slot starts empty.
+// The sockets start empty.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::Init(const char* szIdentifier)
 {
 	size	uiLength;
+	int		i;
 
 	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
 	memset(mauiROM, 0xFF, HCP65_SD_ROM_SIZE);
@@ -44,10 +45,15 @@ void CHCP65SDCard::Init(const char* szIdentifier)
 	memcpy(mauiROM, szIdentifier, uiLength);
 	mauiROM[uiLength] = 0;
 
-	mpuiImage = NULL;
-	muiNumSectors = 0;
-	mbWriteBack = false;
-	mszFilename.Init();
+	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
+	{
+		masSockets[i].puiImage = NULL;
+		masSockets[i].uiNumSectors = 0;
+		masSockets[i].bWriteBack = false;
+		masSockets[i].szFilename.Init();
+	}
+	mpsCard = &masSockets[0];
+	mpsReading = NULL;
 	muiGPIO = 0;
 	muiAddress = 0;
 	muiDataCount = 0;
@@ -64,90 +70,129 @@ void CHCP65SDCard::Init(const char* szIdentifier)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::Kill(void)
 {
-	RemoveCard();
-	mszFilename.Kill();
+	int		i;
+
+	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
+	{
+		RemoveCard(i);
+		masSockets[i].szFilename.Kill();
+	}
 	CHCP65Device::Kill();
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The board is disabled; the card goes back to idle (a reset of the system
-// doesn't power cycle the card, but the card is only used after CMD0).
-// The GPIO latch and the address and count latches are not reset.
+// The board is disabled with socket 0 selected; the cards go back to idle
+// (a reset of the system doesn't power cycle them, but a card is only used
+// after CMD0).  The GPIO latch and the address and count latches are not
+// reset.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::Reset(void)
 {
+	int		i;
+
 	muiFlags = 0;
 	mbEnabled = false;
 	mbInterrupt = false;
 	mbReading = false;
+	mpsReading = NULL;
 	muiReadDone = 0;
 	muiNumWriteNybbles = 0;
 	mbPreviousCLK = true;
-
-	meState = HSDCS_Idle;
-	mbApplicationCommand = false;
-	muiRCA = 0;
-	muiStatus = 0;
-	mbWideBus = false;
-	muiCommandBits = 0;
-	muiResponseBits = 0;
-	muiResponseSent = 0;
-	muiResponseDelay = 0;
-	mbReadPending = false;
-	mbWritePending = false;
-	muiNumDAT0Bits = 0;
-	muiDAT0Sent = 0;
+	mpsCard = &masSockets[0];
+	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
+	{
+		ResetCard(&masSockets[i]);
+	}
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Reads a whole image file into memory; bWriteBack writes it back on Flush.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65SDCard::InsertCard(const char* szImageFilename, bool bWriteBack)
+void CHCP65SDCard::ResetCard(SHCP65SDCardSocket* psCard)
 {
-	CFileUtil	cFileUtil;
-	size		uiSize;
+	psCard->eState = HSDCS_Idle;
+	psCard->bApplicationCommand = false;
+	psCard->uiRCA = 0;
+	psCard->uiStatus = 0;
+	psCard->bWideBus = false;
+	psCard->uiCommandBits = 0;
+	psCard->uiResponseBits = 0;
+	psCard->uiResponseSent = 0;
+	psCard->uiResponseDelay = 0;
+	psCard->uiReadSector = 0;
+	psCard->bReadPending = false;
+	psCard->bReadMultiple = false;
+	psCard->uiWriteSector = 0;
+	psCard->bWritePending = false;
+	psCard->uiNumDAT0Bits = 0;
+	psCard->uiDAT0Sent = 0;
+}
 
-	RemoveCard();
-	mpuiImage = (uint8*)cFileUtil.ReadAll(szImageFilename, &uiSize);
-	if (!mpuiImage)
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Reads a whole image file into memory as the card in iSocket (0 to 3);
+// bWriteBack writes it back on Flush.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65SDCard::InsertCard(const char* szImageFilename, bool bWriteBack, int iSocket)
+{
+	CFileUtil			cFileUtil;
+	size				uiSize;
+	SHCP65SDCardSocket*	psCard;
+
+	if ((iSocket < 0) || (iSocket >= HCP65_SD_NUM_SOCKETS))
+	{
+		return false;
+	}
+	RemoveCard(iSocket);
+	psCard = &masSockets[iSocket];
+	psCard->puiImage = (uint8*)cFileUtil.ReadAll(szImageFilename, &uiSize);
+	if (!psCard->puiImage)
 	{
 		return false;
 	}
 	if ((uiSize == 0) || (uiSize % HCP65_SD_SECTOR_SIZE != 0))
 	{
-		SafeFree(mpuiImage);
+		SafeFree(psCard->puiImage);
 		return false;
 	}
-	muiNumSectors = (uint32)(uiSize / HCP65_SD_SECTOR_SIZE);
-	mbWriteBack = bWriteBack;
-	mszFilename.Kill();
-	mszFilename.Init(szImageFilename);
+	psCard->uiNumSectors = (uint32)(uiSize / HCP65_SD_SECTOR_SIZE);
+	psCard->bWriteBack = bWriteBack;
+	psCard->szFilename.Kill();
+	psCard->szFilename.Init(szImageFilename);
 	return true;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A copy of uiSize bytes of puiImage.
+// A copy of uiSize bytes of puiImage as the card in iSocket.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65SDCard::InsertCard(uint8* puiImage, uint32 uiSize)
+bool CHCP65SDCard::InsertCard(uint8* puiImage, uint32 uiSize, int iSocket)
 {
-	RemoveCard();
+	SHCP65SDCardSocket*	psCard;
+
+	if ((iSocket < 0) || (iSocket >= HCP65_SD_NUM_SOCKETS))
+	{
+		return false;
+	}
+	RemoveCard(iSocket);
 	if ((uiSize == 0) || (uiSize % HCP65_SD_SECTOR_SIZE != 0))
 	{
 		return false;
 	}
-	mpuiImage = (uint8*)malloc(uiSize);
-	memcpy(mpuiImage, puiImage, uiSize);
-	muiNumSectors = uiSize / HCP65_SD_SECTOR_SIZE;
-	mbWriteBack = false;
+	psCard = &masSockets[iSocket];
+	psCard->puiImage = (uint8*)malloc(uiSize);
+	memcpy(psCard->puiImage, puiImage, uiSize);
+	psCard->uiNumSectors = uiSize / HCP65_SD_SECTOR_SIZE;
+	psCard->bWriteBack = false;
 	return true;
 }
 
@@ -156,38 +201,68 @@ bool CHCP65SDCard::InsertCard(uint8* puiImage, uint32 uiSize)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65SDCard::RemoveCard(void)
+void CHCP65SDCard::RemoveCard(int iSocket)
 {
-	Flush();
-	SafeFree(mpuiImage);
-	muiNumSectors = 0;
-	mbWriteBack = false;
-	meState = HSDCS_Idle;
+	SHCP65SDCardSocket*	psCard;
+
+	if ((iSocket < 0) || (iSocket >= HCP65_SD_NUM_SOCKETS))
+	{
+		return;
+	}
+	psCard = &masSockets[iSocket];
+	if (mpsReading == psCard)
+	{
+		mbReading = false;
+		mpsReading = NULL;
+	}
+	FlushCard(psCard);
+	SafeFree(psCard->puiImage);
+	psCard->uiNumSectors = 0;
+	psCard->bWriteBack = false;
+	ResetCard(psCard);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Writes the image back to its file if it was inserted with bWriteBack.
+// Writes each image back to its file if it was inserted with bWriteBack.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65SDCard::Flush(void)
+{
+	bool	bResult;
+	int		i;
+
+	bResult = true;
+	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
+	{
+		bResult &= FlushCard(&masSockets[i]);
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65SDCard::FlushCard(SHCP65SDCardSocket* psCard)
 {
 	FILE*	pcFile;
 	size_t	uiSize;
 	bool	bResult;
 
-	if (!mpuiImage || !mbWriteBack || mszFilename.Empty())
+	if (!psCard->puiImage || !psCard->bWriteBack || psCard->szFilename.Empty())
 	{
 		return true;
 	}
-	pcFile = fopen(mszFilename.Text(), "r+b");
+	pcFile = fopen(psCard->szFilename.Text(), "r+b");
 	if (!pcFile)
 	{
 		return false;
 	}
-	uiSize = (size_t)muiNumSectors * HCP65_SD_SECTOR_SIZE;
-	bResult = fwrite(mpuiImage, 1, uiSize, pcFile) == uiSize;
+	uiSize = (size_t)psCard->uiNumSectors * HCP65_SD_SECTOR_SIZE;
+	bResult = fwrite(psCard->puiImage, 1, uiSize, pcFile) == uiSize;
 	fclose(pcFile);
 	return bResult;
 }
@@ -195,12 +270,13 @@ bool CHCP65SDCard::Flush(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Only socket 0 can hold a card.
+// Whether the bus reaches a card: the board is enabled and the selected
+// socket has one.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65SDCard::HasCard(void)
 {
-	return mbEnabled && ((muiFlags & HCP65_SD_FLAG_CARD) == 0) && (mpuiImage != NULL);
+	return mbEnabled && (mpsCard->puiImage != NULL);
 }
 
 
@@ -252,18 +328,18 @@ uint8 CHCP65SDCard::CardDrivenLines(void)
 	{
 		return uiLines;
 	}
-	if ((muiResponseBits != 0) && (muiResponseDelay == 0) && (muiResponseSent < muiResponseBits))
+	if ((mpsCard->uiResponseBits != 0) && (mpsCard->uiResponseDelay == 0) && (mpsCard->uiResponseSent < mpsCard->uiResponseBits))
 	{
-		uiByte = mauiResponse[muiResponseSent / 8];
-		uiBit = (uint8)((uiByte >> (7 - (muiResponseSent % 8))) & 1);
+		uiByte = mpsCard->auiResponse[mpsCard->uiResponseSent / 8];
+		uiBit = (uint8)((uiByte >> (7 - (mpsCard->uiResponseSent % 8))) & 1);
 		if (!uiBit)
 		{
 			uiLines &= ~HCP65_SD_GPIO_CMD;
 		}
 	}
-	if (muiDAT0Sent < muiNumDAT0Bits)
+	if (mpsCard->uiDAT0Sent < mpsCard->uiNumDAT0Bits)
 	{
-		if (!muiDAT0Bits[muiDAT0Sent])
+		if (!mpsCard->auiDAT0Bits[mpsCard->uiDAT0Sent])
 		{
 			uiLines &= ~HCP65_SD_GPIO_DAT0;
 		}
@@ -371,6 +447,7 @@ void CHCP65SDCard::WriteFlags(uint8 uiValue)
 
 	bPreviousCLK = (ReadRegister(HCP65_SD_GPIO) & HCP65_SD_GPIO_CLK) != 0;
 	muiFlags = (uint8)(uiValue & ~HCP65_SD_FLAG_ENABLE);
+	mpsCard = &masSockets[muiFlags & HCP65_SD_FLAG_CARD];
 	mbEnabled = ((uiValue & HCP65_SD_FLAG_ENABLE) != 0) && !mbHeldInReset;
 	if (!mbEnabled)
 	{
@@ -423,7 +500,7 @@ void CHCP65SDCard::RisingEdge(void)
 {
 	bool	bCMD;
 
-	if ((muiResponseBits != 0) && (muiResponseSent < muiResponseBits))
+	if ((mpsCard->uiResponseBits != 0) && (mpsCard->uiResponseSent < mpsCard->uiResponseBits))
 	{
 		//Busy sending; the card doesn't listen while it responds.
 		return;
@@ -440,20 +517,20 @@ void CHCP65SDCard::RisingEdge(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::FallingEdge(void)
 {
-	if (muiResponseBits != 0)
+	if (mpsCard->uiResponseBits != 0)
 	{
-		if (muiResponseDelay > 0)
+		if (mpsCard->uiResponseDelay > 0)
 		{
-			muiResponseDelay--;
+			mpsCard->uiResponseDelay--;
 		}
-		else if (muiResponseSent < muiResponseBits)
+		else if (mpsCard->uiResponseSent < mpsCard->uiResponseBits)
 		{
-			muiResponseSent++;
+			mpsCard->uiResponseSent++;
 		}
 	}
-	if (muiDAT0Sent < muiNumDAT0Bits)
+	if (mpsCard->uiDAT0Sent < mpsCard->uiNumDAT0Bits)
 	{
-		muiDAT0Sent++;
+		mpsCard->uiDAT0Sent++;
 	}
 }
 
@@ -470,40 +547,40 @@ void CHCP65SDCard::ReceiveCommandBit(bool bBit)
 	uint8	uiIndex;
 	uint32	uiArgument;
 
-	if ((muiCommandBits == 0) && bBit)
+	if ((mpsCard->uiCommandBits == 0) && bBit)
 	{
 		return;
 	}
-	if (muiCommandBits % 8 == 0)
+	if (mpsCard->uiCommandBits % 8 == 0)
 	{
-		muiCommand[muiCommandBits / 8] = 0;
+		mpsCard->auiCommand[mpsCard->uiCommandBits / 8] = 0;
 	}
 	if (bBit)
 	{
-		muiCommand[muiCommandBits / 8] |= (uint8)(0x80 >> (muiCommandBits % 8));
+		mpsCard->auiCommand[mpsCard->uiCommandBits / 8] |= (uint8)(0x80 >> (mpsCard->uiCommandBits % 8));
 	}
-	muiCommandBits++;
-	if (muiCommandBits < 48)
+	mpsCard->uiCommandBits++;
+	if (mpsCard->uiCommandBits < 48)
 	{
 		return;
 	}
-	muiCommandBits = 0;
+	mpsCard->uiCommandBits = 0;
 
-	if (((muiCommand[0] & 0xC0) != 0x40) || ((muiCommand[5] & 1) != 1))
+	if (((mpsCard->auiCommand[0] & 0xC0) != 0x40) || ((mpsCard->auiCommand[5] & 1) != 1))
 	{
 		return;
 	}
-	if ((muiCommand[5] >> 1) != CRC7(muiCommand, 5))
+	if ((mpsCard->auiCommand[5] >> 1) != CRC7(mpsCard->auiCommand, 5))
 	{
-		muiStatus |= HCP65_SD_COM_CRC_ERROR;
+		mpsCard->uiStatus |= HCP65_SD_COM_CRC_ERROR;
 		return;
 	}
 
-	uiIndex = (uint8)(muiCommand[0] & 0x3F);
-	uiArgument = ((uint32)muiCommand[1] << 24) | ((uint32)muiCommand[2] << 16) | ((uint32)muiCommand[3] << 8) | muiCommand[4];
-	if (mbApplicationCommand)
+	uiIndex = (uint8)(mpsCard->auiCommand[0] & 0x3F);
+	uiArgument = ((uint32)mpsCard->auiCommand[1] << 24) | ((uint32)mpsCard->auiCommand[2] << 16) | ((uint32)mpsCard->auiCommand[3] << 8) | mpsCard->auiCommand[4];
+	if (mpsCard->bApplicationCommand)
 	{
-		mbApplicationCommand = false;
+		mpsCard->bApplicationCommand = false;
 		ApplicationCommand(uiIndex, uiArgument);
 	}
 	else
@@ -526,17 +603,18 @@ void CHCP65SDCard::Command(uint8 uiIndex, uint32 uiArgument)
 	switch (uiIndex)
 	{
 	case 0:
-		meState = HSDCS_Idle;
-		muiRCA = 0;
-		mbWideBus = false;
-		mbReadPending = false;
-		mbWritePending = false;
-		muiNumDAT0Bits = 0;
+		mpsCard->eState = HSDCS_Idle;
+		mpsCard->uiRCA = 0;
+		mpsCard->bWideBus = false;
+		mpsCard->bReadPending = false;
+		mpsCard->bReadMultiple = false;
+		mpsCard->bWritePending = false;
+		mpsCard->uiNumDAT0Bits = 0;
 		return;
 
 	case 8:
 		//Interface condition: echo the voltage and check pattern.
-		if (meState == HSDCS_Idle)
+		if (mpsCard->eState == HSDCS_Idle)
 		{
 			Respond48(8, uiArgument & 0xFFF, true);
 		}
@@ -544,34 +622,34 @@ void CHCP65SDCard::Command(uint8 uiIndex, uint32 uiArgument)
 
 	case 55:
 		RespondR1(55);
-		mbApplicationCommand = true;
+		mpsCard->bApplicationCommand = true;
 		return;
 
 	case 2:
-		if (meState == HSDCS_Ready)
+		if (mpsCard->eState == HSDCS_Ready)
 		{
 			memcpy(auiCID, gauiHCP65SDCID, 15);
 			auiCID[15] = (uint8)((CRC7(auiCID, 15) << 1) | 1);
 			RespondR2(auiCID);
-			meState = HSDCS_Identification;
+			mpsCard->eState = HSDCS_Identification;
 		}
 		return;
 
 	case 3:
-		if ((meState == HSDCS_Identification) || (meState == HSDCS_StandBy))
+		if ((mpsCard->eState == HSDCS_Identification) || (mpsCard->eState == HSDCS_StandBy))
 		{
-			muiRCA = HCP65_SD_RCA;
-			meState = HSDCS_StandBy;
-			Respond48(3, ((uint32)muiRCA << 16) | ((StateBits() >> 0) & 0x1FFF), true);
+			mpsCard->uiRCA = HCP65_SD_RCA;
+			mpsCard->eState = HSDCS_StandBy;
+			Respond48(3, ((uint32)mpsCard->uiRCA << 16) | ((StateBits() >> 0) & 0x1FFF), true);
 		}
 		return;
 
 	case 9:
-		if ((meState == HSDCS_StandBy) && ((uiArgument >> 16) == muiRCA))
+		if ((mpsCard->eState == HSDCS_StandBy) && ((uiArgument >> 16) == mpsCard->uiRCA))
 		{
 			//CSD version 2: C_SIZE is the capacity in 512KB units, less one.
 			memset(auiCSD, 0, sizeof(auiCSD));
-			uiSize = (muiNumSectors / 1024) - 1;
+			uiSize = (mpsCard->uiNumSectors / 1024) - 1;
 			auiCSD[0] = 0x40;
 			auiCSD[1] = 0x0E;
 			auiCSD[3] = 0x32;
@@ -590,72 +668,75 @@ void CHCP65SDCard::Command(uint8 uiIndex, uint32 uiArgument)
 		return;
 
 	case 7:
-		if ((uiArgument >> 16) == muiRCA)
+		if ((uiArgument >> 16) == mpsCard->uiRCA)
 		{
 			RespondR1(7);
-			meState = HSDCS_Transfer;
+			mpsCard->eState = HSDCS_Transfer;
 		}
 		else
 		{
-			meState = HSDCS_StandBy;
+			mpsCard->eState = HSDCS_StandBy;
 		}
 		return;
 
 	case 13:
-		if ((uiArgument >> 16) == muiRCA)
+		if ((uiArgument >> 16) == mpsCard->uiRCA)
 		{
 			RespondR1(13);
 		}
 		return;
 
 	case 16:
-		if (meState == HSDCS_Transfer)
+		if (mpsCard->eState == HSDCS_Transfer)
 		{
 			RespondR1(16);
 		}
 		return;
 
 	case 12:
-		if ((meState == HSDCS_SendingData) || (meState == HSDCS_ReceivingData))
+		if ((mpsCard->eState == HSDCS_SendingData) || (mpsCard->eState == HSDCS_ReceivingData))
 		{
-			mbReadPending = false;
-			mbWritePending = false;
-			meState = HSDCS_Transfer;
+			mpsCard->bReadPending = false;
+			mpsCard->bReadMultiple = false;
+			mpsCard->bWritePending = false;
+			mpsCard->eState = HSDCS_Transfer;
 		}
 		RespondR1(12);
 		return;
 
 	case 17:
+	case 18:
 	case 24:
-		if (meState != HSDCS_Transfer)
+		if (mpsCard->eState != HSDCS_Transfer)
 		{
-			muiStatus |= HCP65_SD_ILLEGAL_COMMAND;
+			mpsCard->uiStatus |= HCP65_SD_ILLEGAL_COMMAND;
 			return;
 		}
-		if (uiArgument >= muiNumSectors)
+		if (uiArgument >= mpsCard->uiNumSectors)
 		{
-			muiStatus |= HCP65_SD_OUT_OF_RANGE;
+			mpsCard->uiStatus |= HCP65_SD_OUT_OF_RANGE;
 			RespondR1(uiIndex);
 			return;
 		}
 		RespondR1(uiIndex);
-		if (uiIndex == 17)
+		if ((uiIndex == 17) || (uiIndex == 18))
 		{
-			muiReadSector = uiArgument;
-			mbReadPending = true;
-			meState = HSDCS_SendingData;
+			mpsCard->uiReadSector = uiArgument;
+			mpsCard->bReadPending = true;
+			mpsCard->bReadMultiple = uiIndex == 18;
+			mpsCard->eState = HSDCS_SendingData;
 		}
 		else
 		{
-			muiWriteSector = uiArgument;
-			mbWritePending = true;
+			mpsCard->uiWriteSector = uiArgument;
+			mpsCard->bWritePending = true;
 			muiNumWriteNybbles = 0;
-			meState = HSDCS_ReceivingData;
+			mpsCard->eState = HSDCS_ReceivingData;
 		}
 		return;
 	}
 
-	muiStatus |= HCP65_SD_ILLEGAL_COMMAND;
+	mpsCard->uiStatus |= HCP65_SD_ILLEGAL_COMMAND;
 }
 
 
@@ -671,21 +752,21 @@ void CHCP65SDCard::ApplicationCommand(uint8 uiIndex, uint32 uiArgument)
 	case 41:
 		//The first ACMD41 finds the card still busy initialising; after that it's ready.  The OCR: bit 31 ready,
 		//bit 30 high capacity, 2.7V to 3.6V.  R3 has no CRC.
-		if (meState == HSDCS_Idle)
+		if (mpsCard->eState == HSDCS_Idle)
 		{
 			Respond48(0x3F, 0x40FF8000, false);
-			meState = HSDCS_Ready;
+			mpsCard->eState = HSDCS_Ready;
 		}
-		else if (meState == HSDCS_Ready)
+		else if (mpsCard->eState == HSDCS_Ready)
 		{
 			Respond48(0x3F, 0xC0FF8000, false);
 		}
 		return;
 
 	case 6:
-		if (meState == HSDCS_Transfer)
+		if (mpsCard->eState == HSDCS_Transfer)
 		{
-			mbWideBus = (uiArgument & 3) == 2;
+			mpsCard->bWideBus = (uiArgument & 3) == 2;
 			RespondR1(6);
 		}
 		return;
@@ -703,7 +784,7 @@ uint32 CHCP65SDCard::StateBits(void)
 {
 	uint32	uiState;
 
-	switch (meState)
+	switch (mpsCard->eState)
 	{
 	case HSDCS_Idle:			uiState = 0;	break;
 	case HSDCS_Ready:			uiState = 1;	break;
@@ -713,7 +794,7 @@ uint32 CHCP65SDCard::StateBits(void)
 	case HSDCS_SendingData:		uiState = 5;	break;
 	default:					uiState = 6;	break;
 	}
-	return (uiState << 9) | HCP65_SD_READY_FOR_DATA | (mbApplicationCommand ? HCP65_SD_APP_CMD : 0);
+	return (uiState << 9) | HCP65_SD_READY_FOR_DATA | (mpsCard->bApplicationCommand ? HCP65_SD_APP_CMD : 0);
 }
 
 
@@ -726,13 +807,13 @@ void CHCP65SDCard::RespondR1(uint8 uiIndex)
 {
 	if (uiIndex == 55)
 	{
-		Respond48(uiIndex, muiStatus | StateBits() | HCP65_SD_APP_CMD, true);
+		Respond48(uiIndex, mpsCard->uiStatus | StateBits() | HCP65_SD_APP_CMD, true);
 	}
 	else
 	{
-		Respond48(uiIndex, muiStatus | StateBits(), true);
+		Respond48(uiIndex, mpsCard->uiStatus | StateBits(), true);
 	}
-	muiStatus &= ~HCP65_SD_CLEARED_ON_READ;
+	mpsCard->uiStatus &= ~HCP65_SD_CLEARED_ON_READ;
 }
 
 
@@ -744,15 +825,15 @@ void CHCP65SDCard::RespondR1(uint8 uiIndex)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::Respond48(uint8 uiIndex, uint32 uiContent, bool bCRC)
 {
-	mauiResponse[0] = (uint8)(uiIndex & 0x3F);
-	mauiResponse[1] = (uint8)(uiContent >> 24);
-	mauiResponse[2] = (uint8)(uiContent >> 16);
-	mauiResponse[3] = (uint8)(uiContent >> 8);
-	mauiResponse[4] = (uint8)uiContent;
-	mauiResponse[5] = bCRC ? (uint8)((CRC7(mauiResponse, 5) << 1) | 1) : 0xFF;
-	muiResponseBits = 48;
-	muiResponseSent = 0;
-	muiResponseDelay = HCP65_SD_RESPONSE_DELAY;
+	mpsCard->auiResponse[0] = (uint8)(uiIndex & 0x3F);
+	mpsCard->auiResponse[1] = (uint8)(uiContent >> 24);
+	mpsCard->auiResponse[2] = (uint8)(uiContent >> 16);
+	mpsCard->auiResponse[3] = (uint8)(uiContent >> 8);
+	mpsCard->auiResponse[4] = (uint8)uiContent;
+	mpsCard->auiResponse[5] = bCRC ? (uint8)((CRC7(mpsCard->auiResponse, 5) << 1) | 1) : 0xFF;
+	mpsCard->uiResponseBits = 48;
+	mpsCard->uiResponseSent = 0;
+	mpsCard->uiResponseDelay = HCP65_SD_RESPONSE_DELAY;
 }
 
 
@@ -764,11 +845,11 @@ void CHCP65SDCard::Respond48(uint8 uiIndex, uint32 uiContent, bool bCRC)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::RespondR2(uint8* puiRegister)
 {
-	mauiResponse[0] = 0x3F;
-	memcpy(&mauiResponse[1], puiRegister, 16);
-	muiResponseBits = 136;
-	muiResponseSent = 0;
-	muiResponseDelay = HCP65_SD_RESPONSE_DELAY;
+	mpsCard->auiResponse[0] = 0x3F;
+	memcpy(&mpsCard->auiResponse[1], puiRegister, 16);
+	mpsCard->uiResponseBits = 136;
+	mpsCard->uiResponseSent = 0;
+	mpsCard->uiResponseDelay = HCP65_SD_RESPONSE_DELAY;
 }
 
 
@@ -789,7 +870,8 @@ void CHCP65SDCard::StartRead(void)
 		return;
 	}
 	mbReading = true;
-	if (HasCard() && mbReadPending)
+	mpsReading = mpsCard;
+	if (HasCard() && mpsCard->bReadPending)
 	{
 		uiClocks = HCP65_SD_ACCESS_CLOCKS + 1 + 2 * ((uint64)muiDataCount + muiCRCCount) + 1;
 		muiReadDone = mpcHCP65->NumCycles() + uiClocks;
@@ -817,10 +899,17 @@ void CHCP65SDCard::FinishRead(void)
 	uint8	auiBits[1024];
 	uint16	uiCRC;
 	uint8	uiByte;
+	SHCP65SDCardSocket*	psCard;
 
 	mbReading = false;
+	psCard = mpsReading;
+	mpsReading = NULL;
+	if (!psCard || !psCard->puiImage)
+	{
+		return;
+	}
 	puiMain = mpcHCP65->GetMainMemory();
-	puiSector = &mpuiImage[(size_t)muiReadSector * HCP65_SD_SECTOR_SIZE];
+	puiSector = &psCard->puiImage[(size_t)psCard->uiReadSector * HCP65_SD_SECTOR_SIZE];
 
 	//The CRC bytes as the card sends them: CRC16 of each DAT line, the lines' bits interleaved in nybbles.
 	memset(auiCRC, 0, sizeof(auiCRC));
@@ -859,8 +948,15 @@ void CHCP65SDCard::FinishRead(void)
 	}
 	muiAddress = (muiAddress + muiDataCount) & 0xFFFFFF;
 	muiSectorsRead++;
-	mbReadPending = false;
-	meState = HSDCS_Transfer;
+
+	//CMD18 goes on to the next sector (until CMD12, or the card's end); CMD17's one block is done.
+	psCard->uiReadSector++;
+	if (!psCard->bReadMultiple || (psCard->uiReadSector >= psCard->uiNumSectors))
+	{
+		psCard->bReadPending = false;
+		psCard->bReadMultiple = false;
+		psCard->eState = HSDCS_Transfer;
+	}
 	if (muiFlags & HCP65_SD_FLAG_INTERRUPT)
 	{
 		mbInterrupt = true;
@@ -875,7 +971,7 @@ void CHCP65SDCard::FinishRead(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65SDCard::WriteStream(uint8 uiValue)
 {
-	if (!HasCard() || !mbWritePending)
+	if (!HasCard() || !mpsCard->bWritePending)
 	{
 		return;
 	}
@@ -929,7 +1025,7 @@ void CHCP65SDCard::FinishWrite(void)
 
 	if (bGood)
 	{
-		puiSector = &mpuiImage[(size_t)muiWriteSector * HCP65_SD_SECTOR_SIZE];
+		puiSector = &mpsCard->puiImage[(size_t)mpsCard->uiWriteSector * HCP65_SD_SECTOR_SIZE];
 		for (i = 0; i < HCP65_SD_SECTOR_SIZE; i++)
 		{
 			puiSector[i] = (uint8)((muiWriteNybbles[1 + i * 2] << 4) | muiWriteNybbles[2 + i * 2]);
@@ -938,22 +1034,22 @@ void CHCP65SDCard::FinishWrite(void)
 	}
 
 	//Two clocks high (Ncrc), then the status token.
-	muiNumDAT0Bits = 0;
-	muiDAT0Bits[muiNumDAT0Bits++] = 1;
-	muiDAT0Bits[muiNumDAT0Bits++] = 1;
-	muiDAT0Bits[muiNumDAT0Bits++] = 0;
-	muiDAT0Bits[muiNumDAT0Bits++] = bGood ? 0 : 1;
-	muiDAT0Bits[muiNumDAT0Bits++] = bGood ? 1 : 0;
-	muiDAT0Bits[muiNumDAT0Bits++] = bGood ? 0 : 1;
-	muiDAT0Bits[muiNumDAT0Bits++] = 1;
+	mpsCard->uiNumDAT0Bits = 0;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = 1;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = 1;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = 0;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = bGood ? 0 : 1;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = bGood ? 1 : 0;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = bGood ? 0 : 1;
+	mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = 1;
 	for (i = 0; i < 4; i++)
 	{
-		muiDAT0Bits[muiNumDAT0Bits++] = 0;
+		mpsCard->auiDAT0Bits[mpsCard->uiNumDAT0Bits++] = 0;
 	}
-	muiDAT0Sent = 0;
+	mpsCard->uiDAT0Sent = 0;
 	muiNumWriteNybbles = 0;
-	mbWritePending = false;
-	meState = HSDCS_Transfer;
+	mpsCard->bWritePending = false;
+	mpsCard->eState = HSDCS_Transfer;
 }
 
 
@@ -1053,9 +1149,9 @@ uint16 CHCP65SDCard::CRC16(uint8* puiBits, uint32 uiLength)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65SDCard::GetImage(void)
+uint8* CHCP65SDCard::GetImage(int iSocket)
 {
-	return mpuiImage;
+	return ((iSocket >= 0) && (iSocket < HCP65_SD_NUM_SOCKETS)) ? masSockets[iSocket].puiImage : NULL;
 }
 
 
@@ -1063,9 +1159,9 @@ uint8* CHCP65SDCard::GetImage(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65SDCard::NumSectors(void)
+uint32 CHCP65SDCard::NumSectors(int iSocket)
 {
-	return muiNumSectors;
+	return ((iSocket >= 0) && (iSocket < HCP65_SD_NUM_SOCKETS)) ? masSockets[iSocket].uiNumSectors : 0;
 }
 
 

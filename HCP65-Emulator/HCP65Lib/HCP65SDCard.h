@@ -44,8 +44,37 @@ enum EHCP65SDCardState
 };
 
 
-//The HCP65 SD Card Board (SD Card sheets), with an SD card (SDHC, block addressed) whose contents are an image file
-//in memory.  It is a 32KB device.
+//A card in a socket: its image and its state.  The bus (CLK, CMD, DAT) only reaches the selected socket's card.
+struct SHCP65SDCardSocket
+{
+	uint8*				puiImage;
+	uint32				uiNumSectors;
+	bool				bWriteBack;
+	CChars				szFilename;
+	EHCP65SDCardState	eState;
+	bool				bApplicationCommand;
+	uint16				uiRCA;
+	uint32				uiStatus;			//The card status (R1's 32 bits).
+	bool				bWideBus;
+	uint8				auiCommand[6];
+	uint8				uiCommandBits;
+	uint8				auiResponse[17];
+	uint8				uiResponseBits;		//Bits in auiResponse to send, including the start bit and end bit.
+	uint8				uiResponseSent;
+	uint8				uiResponseDelay;	//Clocks of CMD high before the response's start bit.
+	uint32				uiReadSector;		//The sector the next block read sends.
+	bool				bReadPending;
+	bool				bReadMultiple;		//CMD18: blocks are sent until CMD12.
+	uint32				uiWriteSector;
+	bool				bWritePending;
+	uint8				auiDAT0Bits[16];	//What the card drives on DAT0 after a write, one bit per falling edge.
+	uint8				uiNumDAT0Bits;
+	uint8				uiDAT0Sent;
+};
+
+
+//The HCP65 SD Card Board (SD Card sheets), with up to four SD cards (SDHC, block addressed) in its sockets, each an
+//image file in memory.  Flags D0-D1 selects the socket the bus reaches.  It is a 32KB device.
 //
 //The board as it is meant to work (the schematics have faults, see the SD Card sheets' notes):
 //  - Commands are bit banged through the GPIO register: SD CLK, CMD, DAT0 and DAT3.  The card samples CMD on SD CLK's
@@ -77,29 +106,10 @@ protected:
 	uint16				muiNumWriteNybbles;
 	bool				mbPreviousCLK;
 
-	//The card in socket 0 (the other sockets are empty).
-	uint8*				mpuiImage;
-	uint32				muiNumSectors;
-	bool				mbWriteBack;
-	CChars				mszFilename;
-	EHCP65SDCardState	meState;
-	bool				mbApplicationCommand;
-	uint16				muiRCA;
-	uint32				muiStatus;			//The card status (R1's 32 bits).
-	bool				mbWideBus;
-	uint8				muiCommand[6];
-	uint8				muiCommandBits;
-	uint8				mauiResponse[17];
-	uint8				muiResponseBits;	//Bits in mauiResponse to send, including the start bit and end bit.
-	uint8				muiResponseSent;
-	uint8				muiResponseDelay;	//Clocks of CMD high before the response's start bit.
-	uint32				muiReadSector;		//The sector the last read command asked for.
-	bool				mbReadPending;
-	uint32				muiWriteSector;
-	bool				mbWritePending;
-	uint8				muiDAT0Bits[16];	//What the card drives on DAT0 after a write, one bit per falling edge.
-	uint8				muiNumDAT0Bits;
-	uint8				muiDAT0Sent;
+	//The cards in the four sockets (Flags D0-D1 selects one: the bus switch connects only it).
+	SHCP65SDCardSocket	masSockets[HCP65_SD_NUM_SOCKETS];
+	SHCP65SDCardSocket*	mpsCard;			//The selected socket's.
+	SHCP65SDCardSocket*	mpsReading;			//The card the board's read is from (while mbReading).
 	uint32				muiSectorsRead;
 	uint32				muiSectorsWritten;
 
@@ -107,9 +117,9 @@ public:
 	void	Init(const char* szIdentifier = "HCP65 SD Card Board");
 	void	Kill(void) override;
 
-	bool	InsertCard(const char* szImageFilename, bool bWriteBack);
-	bool	InsertCard(uint8* puiImage, uint32 uiSize);
-	void	RemoveCard(void);
+	bool	InsertCard(const char* szImageFilename, bool bWriteBack, int iSocket = 0);
+	bool	InsertCard(uint8* puiImage, uint32 uiSize, int iSocket = 0);
+	void	RemoveCard(int iSocket = 0);
 	bool	Flush(void);
 
 	uint8	Read(uint32 uiOffset) override;
@@ -120,8 +130,8 @@ public:
 	uint64	NextEvent(void) override;
 	bool	IsInterrupting(void) override;
 
-	uint8*	GetImage(void);
-	uint32	NumSectors(void);
+	uint8*	GetImage(int iSocket = 0);
+	uint32	NumSectors(int iSocket = 0);
 	uint32	NumSectorsRead(void);
 	uint32	NumSectorsWritten(void);
 
@@ -132,6 +142,8 @@ protected:
 	uint8	ReadRegister(uint32 uiRegister);
 	void	WriteRegister(uint32 uiRegister, uint8 uiValue);
 	void	WriteFlags(uint8 uiValue);
+	void	ResetCard(SHCP65SDCardSocket* psCard);
+	bool	FlushCard(SHCP65SDCardSocket* psCard);
 	void	WriteGPIO(uint8 uiValue);
 	bool	HasCard(void);
 	uint8	CardDrivenLines(void);
