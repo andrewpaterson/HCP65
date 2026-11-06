@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- boot.exe, the program the HCP65 kernal runs from the SD card.  It is built by HCP65-IDE's W65C816
-       configurations (HCP65Boot.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
+       configurations (HCP65OperatingSystem.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
        files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -23,7 +23,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8E2A4C17-3B9D-4F61-A7C5-2D0E9F1B6A38}</ProjectGuid>
-    <RootNamespace>HCP65Boot</RootNamespace>
+    <RootNamespace>HCP65OperatingSystem</RootNamespace>
     <Keyword>MakeFileProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -45,48 +45,48 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <NMakeIncludeSearchPath>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries</NMakeIncludeSearchPath>
+    <NMakeIncludeSearchPath>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\..\..\HCP65Lib\User;..\..\..\..\..\..\CommonLibraries\Libraries;..\..\..\..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\HCP65-Emulator\HCP65Lib\User;..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\HCP65Lib\User\UserStart.asm" />
-    <ClCompile Include="..\..\..\..\HCP65Lib\User\UserCalls.asm" />
-    <ClCompile Include="..\..\..\..\HCP65Lib\User\UserMathTables.asm" />
-    <ClCompile Include="Boot.cpp" />
+    <ClCompile Include="..\HCP65-Emulator\HCP65Lib\User\UserStart.asm" />
+    <ClCompile Include="..\HCP65-Emulator\HCP65Lib\User\UserCalls.asm" />
+    <ClCompile Include="..\HCP65-Emulator\HCP65Lib\User\UserMathTables.asm" />
+    <ClCompile Include="OperatingSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\HCP65Lib\User\HCP65User.h" />
+    <ClInclude Include="..\HCP65-Emulator\HCP65Lib\User\HCP65User.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
+    <ProjectReference Include="..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
       <Project>{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}</Project>
     </ProjectReference>
   </ItemGroup>

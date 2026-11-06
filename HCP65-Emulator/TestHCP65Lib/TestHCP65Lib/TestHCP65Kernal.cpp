@@ -28,7 +28,7 @@
 #define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots these two (HCP65Emulator.h).
 #define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
 #define TEST_HCP65_USER				".." _FS_ ".." _FS_ "HCP65Lib" _FS_ "User"
-#define TEST_HCP65_BOOT_PROGRAM		"Input" _FS_ "Boot" _FS_ "HCP65Boot.vcxproj"
+#define TEST_HCP65_BOOT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "OperatingSystem" _FS_ "HCP65OperatingSystem.vcxproj"
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
 
@@ -152,7 +152,7 @@ static bool TestKernalPutExe(const char* szName, const char* szProjectFile, cons
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Copies the blank SD card image to Output and puts boot.exe (Input/Boot),
+// Copies the blank SD card image to Output and puts boot.exe (HCP65/OperatingSystem),
 // modplay.exe (HCP65/ModPlay) and the song it plays on the copy.
 //
 //////////////////////////////////////////////////////////////////////////
