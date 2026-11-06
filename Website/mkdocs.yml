@@ -61,3 +61,4 @@ nav:
       - Memory Map: hcp65/memory-map.md
       - On-board Registers: hcp65/registers.md
       - Devices and Main Memory: hcp65/devices.md
+      - W65C816 Runtime: hcp65/runtime.md
