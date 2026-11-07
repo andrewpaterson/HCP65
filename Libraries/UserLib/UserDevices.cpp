@@ -65,15 +65,21 @@ extern "C" uint16 KernalDeviceClose(uint16 uiHandle)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-extern "C" uint16 KernalDeviceRead(uint16 uiHandle, uint32 uiOffset, void* pvDest, uint32 uiLength)
+extern "C" uint16 KernalDeviceRead(uint16 uiHandle, uint32 uiOffset, void* pvDest, uint32 uiLength, uint32* puiDone)
 {
 	SKernalDeviceCall	sCall;
+	uint16				uiResult;
 
 	UserDeviceCall(&sCall, KERNAL_DEVICE_CALL_READ, uiHandle);
 	sCall.uiValue = uiOffset;
 	sCall.uiAddress = (uint32)pvDest;
 	sCall.uiLength = uiLength;
-	return KernalDeviceCall(&sCall);
+	uiResult = KernalDeviceCall(&sCall);
+	if (puiDone)
+	{
+		*puiDone = sCall.uiResult;
+	}
+	return uiResult;
 }
 
 
@@ -81,15 +87,21 @@ extern "C" uint16 KernalDeviceRead(uint16 uiHandle, uint32 uiOffset, void* pvDes
 //
 //
 //////////////////////////////////////////////////////////////////////////
-extern "C" uint16 KernalDeviceWrite(uint16 uiHandle, uint32 uiOffset, const void* pvSource, uint32 uiLength)
+extern "C" uint16 KernalDeviceWrite(uint16 uiHandle, uint32 uiOffset, const void* pvSource, uint32 uiLength, uint32* puiDone)
 {
 	SKernalDeviceCall	sCall;
+	uint16				uiResult;
 
 	UserDeviceCall(&sCall, KERNAL_DEVICE_CALL_WRITE, uiHandle);
 	sCall.uiValue = uiOffset;
 	sCall.uiAddress = (uint32)pvSource;
 	sCall.uiLength = uiLength;
-	return KernalDeviceCall(&sCall);
+	uiResult = KernalDeviceCall(&sCall);
+	if (puiDone)
+	{
+		*puiDone = sCall.uiResult;
+	}
+	return uiResult;
 }
 
 

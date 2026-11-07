@@ -50,8 +50,8 @@ uint16 ModPlayCounter(void)
 //////////////////////////////////////////////////////////////////////////
 void ModPlayWrite(uint16 uiWrite, uint16 uiFrames)
 {
-	KernalDeviceWrite(guiModPlayLeft, uiWrite, gsModPlayBlock.auiLeft, uiFrames);
-	KernalDeviceWrite(guiModPlayRight, uiWrite, gsModPlayBlock.auiRight, uiFrames);
+	KernalDeviceWrite(guiModPlayLeft, uiWrite, gsModPlayBlock.auiLeft, uiFrames, NULL);
+	KernalDeviceWrite(guiModPlayRight, uiWrite, gsModPlayBlock.auiRight, uiFrames, NULL);
 }
 
 

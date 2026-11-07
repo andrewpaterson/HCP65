@@ -28,6 +28,7 @@ uint16 BootCheckDevices(void)
 	uint16				uiIndex;
 	uint16				uiHandle;
 	uint16				uiSoundBoards;
+	uint32				uiDone;
 
 	//The boards end, and one of them is a sound board with its driver's two units.
 	uiSoundBoards = 0;
@@ -85,7 +86,8 @@ uint16 BootCheckDevices(void)
 	{
 		return 8;
 	}
-	if (KernalDeviceRead(uiHandle, 0, &sInfo, 1) != KERNAL_DEVICE_NOT_SUPPORTED)
+	uiDone = 1;
+	if ((KernalDeviceRead(uiHandle, 0, &sInfo, 1, &uiDone) != KERNAL_DEVICE_NOT_SUPPORTED) || (uiDone != 0))
 	{
 		return 9;
 	}

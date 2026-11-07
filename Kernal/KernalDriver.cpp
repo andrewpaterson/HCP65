@@ -105,7 +105,7 @@ void CKernalDriver::Close(uint8 uiProcess)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalDriver::Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength)
+uint16 CKernalDriver::Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
 	return KERNAL_DRIVER_NOT_SUPPORTED;
 }
@@ -115,7 +115,7 @@ uint16 CKernalDriver::Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress,
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalDriver::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength)
+uint16 CKernalDriver::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
 	return KERNAL_DRIVER_NOT_SUPPORTED;
 }

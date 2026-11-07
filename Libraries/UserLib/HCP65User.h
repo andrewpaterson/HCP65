@@ -89,9 +89,10 @@ extern "C" uint16	KernalDeviceOpen(const char* szManufacturer, const char* szNam
 //Closes the handle.  The board is let go when the program's last handle on it is closed.
 extern "C" uint16	KernalDeviceClose(uint16 uiHandle);
 
-//Moves uiLength bytes between the program's memory and the unit at uiOffset.
-extern "C" uint16	KernalDeviceRead(uint16 uiHandle, uint32 uiOffset, void* pvDest, uint32 uiLength);
-extern "C" uint16	KernalDeviceWrite(uint16 uiHandle, uint32 uiOffset, const void* pvSource, uint32 uiLength);
+//Moves up to uiLength bytes between the program's memory and the unit at uiOffset.  *puiDone (if not NULL) is how
+//many it moved: a unit that streams (a UART) moves what it has, which may be none.
+extern "C" uint16	KernalDeviceRead(uint16 uiHandle, uint32 uiOffset, void* pvDest, uint32 uiLength, uint32* puiDone);
+extern "C" uint16	KernalDeviceWrite(uint16 uiHandle, uint32 uiOffset, const void* pvSource, uint32 uiLength, uint32* puiDone);
 
 //The driver's control uiCode with uiValue; *puiResult (if not NULL) is what it gives back.
 extern "C" uint16	KernalDeviceControl(uint16 uiHandle, uint16 uiCode, uint32 uiValue, uint32* puiResult);
@@ -119,7 +120,7 @@ struct SKernalDeviceCall
 	uint32	uiValue;		//+8   Read and Write: the offset.  Control and Wait: the value.
 	uint32	uiAddress;		//+12  Read, Write and Info: the program's memory.  Open: the manufacturer.
 	uint32	uiLength;		//+16  Read and Write: the length.  Open: the name.
-	uint32	uiResult;		//+20  Control: what it gives back.  Open: the handle.
+	uint32	uiResult;		//+20  Control: what it gives back.  Open: the handle.  Read and Write: the bytes moved.
 };
 
 extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);

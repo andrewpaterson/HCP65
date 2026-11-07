@@ -58,13 +58,15 @@ void CKernalSoundBoard::Interrupt(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // uiLength samples from the running process's memory at uiUserAddress to
-// the unit's RAM at uiOffset, wrapping at its end.
+// the unit's RAM at uiOffset, wrapping at its end.  KERNAL_DRIVER_BAD_ARGUMENT
+// if the process's memory ran out first.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSoundBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength)
+uint16 CKernalSoundBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
 	uint8*	puiRAM;
 	uint16	uiPart;
+	uint16	uiCopied;
 
 	if (uiUnit >= NumUnits())
 	{
@@ -76,7 +78,12 @@ uint16 CKernalSoundBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAdd
 	{
 		uiPart = (uint16)(SOUND_BOARD_RAM_SIZE - uiOffset);
 		uiPart = (uiPart < uiLength) ? uiPart : (uint16)uiLength;
-		CopyFromUser(&puiRAM[uiOffset], uiUserAddress, uiPart);
+		uiCopied = CopyFromUser(&puiRAM[uiOffset], uiUserAddress, uiPart);
+		*puiDone += uiCopied;
+		if (uiCopied != uiPart)
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
 		uiUserAddress += uiPart;
 		uiLength -= uiPart;
 		uiOffset = 0;
@@ -137,26 +144,31 @@ uint16 CKernalSoundBoard::Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks)
 //
 // Copies uiLength samples from the running process's memory at uiAddress
 // to the board (KernalAudioCopy), a run in one of its banks at a time.
+// Returns how many it copied: fewer if the process's memory ran out.
 //
 //////////////////////////////////////////////////////////////////////////
-void CKernalSoundBoard::CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 uiLength)
+uint16 CKernalSoundBoard::CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 uiLength)
 {
 	uint8*	puiSource;
 	uint32	uiInBank;
+	uint16	uiCopied;
 
+	uiCopied = 0;
 	while (uiLength > 0)
 	{
 		puiSource = KernalUserPointer(uiAddress, &uiInBank);
 		if (!puiSource)
 		{
-			return;
+			return uiCopied;
 		}
 		uiInBank = (uiInBank < uiLength) ? uiInBank : uiLength;
 		KernalAudioCopy(puiDest, puiSource, (uint16)uiInBank);
 		uiAddress += uiInBank;
 		puiDest += uiInBank;
+		uiCopied = (uint16)(uiCopied + uiInBank);
 		uiLength = (uint16)(uiLength - uiInBank);
 	}
+	return uiCopied;
 }
 
 

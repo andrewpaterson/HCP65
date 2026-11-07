@@ -211,10 +211,16 @@ uint16 KernalCallDevice(uint32 uiAddress)
 	switch (sCall.uiCall)
 	{
 	case KERNAL_DEVICE_CALL_READ:
-		return pcDriver->Read(uiUnit, sCall.uiValue, sCall.uiAddress, sCall.uiLength);
+		sCall.uiResult = 0;
+		uiResult = pcDriver->Read(uiUnit, sCall.uiValue, sCall.uiAddress, sCall.uiLength, &sCall.uiResult);
+		KernalCopyToUser(uiAddress + KERNAL_DEVICE_CALL_RESULT, (uint8*)&sCall.uiResult, sizeof(uint32));
+		return uiResult;
 
 	case KERNAL_DEVICE_CALL_WRITE:
-		return pcDriver->Write(uiUnit, sCall.uiValue, sCall.uiAddress, sCall.uiLength);
+		sCall.uiResult = 0;
+		uiResult = pcDriver->Write(uiUnit, sCall.uiValue, sCall.uiAddress, sCall.uiLength, &sCall.uiResult);
+		KernalCopyToUser(uiAddress + KERNAL_DEVICE_CALL_RESULT, (uint8*)&sCall.uiResult, sizeof(uint32));
+		return uiResult;
 
 	case KERNAL_DEVICE_CALL_CONTROL:
 		sCall.uiResult = 0;

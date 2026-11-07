@@ -18,12 +18,12 @@ public:
 	uint16	NumUnits(void) override;
 	void	Interrupt(void) override;
 
-	uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength) override;
+	uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone) override;
 	uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult) override;
 	uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks) override;
 
 protected:
-	void	CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 uiLength);
+	uint16	CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 uiLength);
 };
 
 

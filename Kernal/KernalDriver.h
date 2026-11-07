@@ -26,9 +26,9 @@
 //
 //Open, Close, Read, Write, Control and Wait are what a process asks of the board through a handle.  A process opens
 //the whole board: while it has it open no other process can.  The others refuse (KERNAL_DRIVER_NOT_SUPPORTED) unless
-//the driver does them.  Read and Write move uiLength bytes between the running process's memory at uiUserAddress
-//and the unit at uiOffset; Control's codes are the driver's own; Wait waits up to uiTicks (KERNAL_TICKS_PER_SECOND)
-//for what uiValue says.
+//the driver does them.  Read and Write move up to uiLength bytes between the running process's memory at
+//uiUserAddress and the unit at uiOffset, and set *puiDone to how many they moved; Control's codes are the driver's
+//own; Wait waits up to uiTicks (KERNAL_TICKS_PER_SECOND) for what uiValue says.
 class CKernalDriver
 {
 protected:
@@ -46,8 +46,8 @@ public:
 
 	virtual uint16	Open(uint16 uiUnit, uint8 uiProcess);
 	virtual void	Close(uint8 uiProcess);
-	virtual uint16	Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength);
-	virtual uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength);
+	virtual uint16	Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
+	virtual uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	virtual uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult);
 	virtual uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks);
 
