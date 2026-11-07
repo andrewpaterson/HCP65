@@ -7,7 +7,10 @@
 #define HCP65_UART_NAME				"UART Board"
 #define HCP65_UART_DRIVER			"UART.DRV"
 #define HCP65_UART_REGISTERS		0x400		//$400 to $7FF: UART2's eight registers then UART1's, repeating every 16 bytes.
+#define HCP65_UART_REGISTERS_END	0x800
 #define HCP65_UART_UART1			0x08		//A3 high: UART1 (the TTL module); low: UART2 (the RS232 module).
+#define HCP65_UART_REGISTER			0x07		//A0-A2.
+#define HCP65_UART_NUM_REGISTERS	8
 #define HCP65_UART_CLOCK_RATE		1843200		//Each module's oscillator, in Hz: a divisor of 1 is 115200 baud.
 #define HCP65_UART_FIFO_SIZE		16
 
@@ -197,6 +200,7 @@ public:
 	CHCP65UART*	GetRS232(void);
 
 protected:
+	CHCP65UART*	GetUART(uint32 uiOffset);
 	uint64	UARTTick(uint64 uiCycle);
 	uint64	CycleOfUARTTick(uint64 uiTick);
 };

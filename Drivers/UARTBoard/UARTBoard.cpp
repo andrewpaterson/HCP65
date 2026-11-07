@@ -218,7 +218,7 @@ uint16 CKernalUARTPort::Read(uint32 uiUserAddress, uint32 uiLength, uint32* puiD
 		{
 			break;
 		}
-		uiToEnd = (uint16)(256 - muiRxTail);
+		uiToEnd = (uint16)(UART_RING_SIZE - muiRxTail);
 		uiPart = (uiPart < uiToEnd) ? uiPart : uiToEnd;
 		uiPart = (uiPart < uiLength) ? uiPart : (uint16)uiLength;
 		if (!KernalCopyToUser(uiUserAddress, &mauiRx[muiRxTail], uiPart))
@@ -263,7 +263,7 @@ uint16 CKernalUARTPort::Write(uint32 uiUserAddress, uint32 uiLength, uint32* pui
 			}
 			continue;
 		}
-		uiToEnd = (uint16)(256 - muiTxHead);
+		uiToEnd = (uint16)(UART_RING_SIZE - muiTxHead);
 		uiPart = (uiPart < uiToEnd) ? uiPart : uiToEnd;
 		uiPart = (uiPart < uiLength) ? uiPart : (uint16)uiLength;
 		if (!KernalCopyFromUser(&mauiTx[muiTxHead], uiUserAddress, uiPart))

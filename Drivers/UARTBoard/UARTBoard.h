@@ -58,10 +58,12 @@
 #define UART_TTL_LINES				UART_LINE_CTS									//The TTL module's DSR and DCD are unconnected.
 #define UART_RS232_LINES			(UART_LINE_CTS | UART_LINE_DSR | UART_LINE_DCD)	//Its RI is tied on.
 
+#define UART_RING_SIZE				256		//A ring holds one less (UART_BOARD_BUFFER_SIZE); its uint8 indexes wrap on their own.
+
 
 //One of the board's UARTs.  Its received bytes and those to send are in rings in MPU RAM, which the interrupt fills
-//and empties: 256 bytes each, one kept empty, indexed by uint8s that wrap on their own.  The device calls run with
-//I set, so the interrupt only runs while one waits (KernalWaitForInterrupt) and the rings need no locking.
+//and empties: UART_RING_SIZE bytes each, one kept empty, indexed by uint8s that wrap on their own.  The device calls
+//run with I set, so the interrupt only runs while one waits (KernalWaitForInterrupt) and the rings need no locking.
 class CKernalUARTPort
 {
 protected:
@@ -76,8 +78,8 @@ protected:
 	volatile uint8	muiRxTail;
 	volatile uint8	muiTxHead;
 	volatile uint8	muiTxTail;
-	uint8			mauiRx[256];
-	uint8			mauiTx[256];
+	uint8			mauiRx[UART_RING_SIZE];
+	uint8			mauiTx[UART_RING_SIZE];
 
 public:
 	void	Init(volatile uint8* puiRegisters, uint8 uiLines);

@@ -730,7 +730,7 @@ void CHCP65UARTBoard::Init(void)
 	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
 
 	mcROM.Init(HCP65_UART_NAME, HCP65_DEVICE_MANUFACTURER, 0, DEVICE_BUS_32KB, 0, HCP65_UART_DRIVER);
-	for (i = 0; i < 2 * 8; i++)
+	for (i = 0; i < 2 * HCP65_UART_NUM_REGISTERS; i++)
 	{
 		mcROM.AddRegister((uint16)(HCP65_UART_REGISTERS + i), DEVICE_REGISTER_READ);
 		mcROM.AddRegister((uint16)(HCP65_UART_REGISTERS + i), DEVICE_REGISTER_WRITE);
@@ -764,9 +764,9 @@ uint8 CHCP65UARTBoard::Read(uint32 uiOffset)
 	{
 		return mcROM.Read(uiOffset);
 	}
-	if (uiOffset < 2 * HCP65_UART_REGISTERS)
+	if (uiOffset < HCP65_UART_REGISTERS_END)
 	{
-		return (uiOffset & HCP65_UART_UART1) ? mcUART1.Read((uint8)(uiOffset & 7)) : mcUART2.Read((uint8)(uiOffset & 7));
+		return GetUART(uiOffset)->Read((uint8)(uiOffset & HCP65_UART_REGISTER));
 	}
 	return 0xFF;
 }
@@ -780,18 +780,11 @@ uint8 CHCP65UARTBoard::Read(uint32 uiOffset)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65UARTBoard::Write(uint32 uiOffset, uint8 uiValue)
 {
-	if (mbHeldInReset || (uiOffset < HCP65_UART_REGISTERS) || (uiOffset >= 2 * HCP65_UART_REGISTERS))
+	if (mbHeldInReset || (uiOffset < HCP65_UART_REGISTERS) || (uiOffset >= HCP65_UART_REGISTERS_END))
 	{
 		return;
 	}
-	if (uiOffset & HCP65_UART_UART1)
-	{
-		mcUART1.Write((uint8)(uiOffset & 7), uiValue);
-	}
-	else
-	{
-		mcUART2.Write((uint8)(uiOffset & 7), uiValue);
-	}
+	GetUART(uiOffset)->Write((uint8)(uiOffset & HCP65_UART_REGISTER), uiValue);
 }
 
 
@@ -875,5 +868,6 @@ uint64 CHCP65UARTBoard::CycleOfUARTTick(uint64 uiTick)
 }
 
 
+CHCP65UART* CHCP65UARTBoard::GetUART(uint32 uiOffset) { return (uiOffset & HCP65_UART_UART1) ? &mcUART1 : &mcUART2; }
 CHCP65UART* CHCP65UARTBoard::GetTTL(void) { return &mcUART1; }
 CHCP65UART* CHCP65UARTBoard::GetRS232(void) { return &mcUART2; }
