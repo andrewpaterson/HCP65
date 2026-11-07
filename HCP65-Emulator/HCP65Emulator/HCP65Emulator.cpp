@@ -14,7 +14,6 @@
 #include "WindowLib/ClearCanvasDraw.h"
 #include "WindowLib/GridContainer.h"
 #include "WindowLib/Canvas.h"
-#include "WindowLib/JewelColours.h"
 #include "WindowLib/ComponentInput.h"
 #include "WindowLib/JewelTheme.h"
 #include "WindowLib/MenuBar.h"
@@ -162,6 +161,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CCanvas>			pScreen;
 	Ptr<CGridContainer>		pMain;
 	Ptr<CWindowTheme>		pTheme;
+	Ptr<CClearCanvasDraw>	pBackground;
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
 	const char*				szCard;
@@ -219,7 +219,8 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	if (mbValid)
 	{
 		pSoundVoice = OMalloc<CHCP65SoundVoice>(&mcAudio);
-		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+		pBackground = OMalloc<CClearCanvasDraw>(0);  //Coloured once there is a theme.
+		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		mpWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
 		mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
 
@@ -231,14 +232,15 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	if (mbValid)
 	{
 		pFontColours = OMalloc<CFontColours>(pWhite);
-		pTheme = CJewelTheme::CreateDarkTheme(mpWindow, pFontColours->GetFont(JEWEL_TEXT));
+		pTheme = CJewelTheme::CreateDarkTheme(mpWindow, pFontColours);
+		pBackground->SetColour(pTheme->GetColour(TC_Panel));
 
 		//The menu bar along the top over the HCP65's screen, which is only a blank canvas so far.
 		mpMenuBar = OMalloc<CMenuBar>(mpWindow, pTheme);
 		mpMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pFileMenu = OMalloc<CMenuContainer>(mpWindow, pTheme);
 		mpMenuBar->AddMenu("File", pFileMenu);
-		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(JEWEL_EDITOR));
+		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(pTheme->GetColour(TC_Editor)));
 		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);

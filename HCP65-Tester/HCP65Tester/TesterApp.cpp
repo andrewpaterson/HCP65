@@ -1,6 +1,6 @@
 #include "StandardLib/Objects.h"
 #include "WindowLib/ClearCanvasDraw.h"
-#include "WindowLib/JewelColours.h"
+#include "WindowLib/JewelTheme.h"
 #include "TesterWindowTick.h"
 #include "TesterApp.h"
 
@@ -25,7 +25,12 @@ void CTesterApp::Init(void)
 //////////////////////////////////////////////////////////////////////////
 bool CTesterApp::Setup(CNativeWindowFactory* pcNativeFactory)
 {
-	mpWindow = OMalloc<CWindow>("HCP65 Board Tester", pcNativeFactory, OMalloc<CTesterWindowTick>(), OMalloc<CClearCanvasDraw>(JEWEL_PANEL), CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+	Ptr<CClearCanvasDraw>	pBackground;
+
+	//The window is in the theme's panel colour; it has no widgets yet.
+	pBackground = OMalloc<CClearCanvasDraw>(0);
+	mpWindow = OMalloc<CWindow>("HCP65 Board Tester", pcNativeFactory, OMalloc<CTesterWindowTick>(), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+	pBackground->SetColour(CJewelTheme::CreateDarkTheme(mpWindow, Ptr<CFont>())->GetColour(TC_Panel));
 	mpWindow->SetWindowSize(1280, 800);
 	return true;
 }
