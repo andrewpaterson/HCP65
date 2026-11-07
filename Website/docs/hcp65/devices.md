@@ -117,12 +117,17 @@ the current directory unless it is named) and makes the image from it.  From the
   ~Device ROM): `ROM_Manufacturer` and `ROM_Driver`.  `ROM_Name` and `ROM_Revision` override the
   title block.
 
+A board whose registers aren't decoded by a *Device Decode Stage B* needs its description written by
+hand: the UART Board's two UARTs are selected by gates on its *UART Signals* board
+(`DeviceROM/Boards/UARTBoard.xml`).
+
 The HCP65's own boards have the manufacturer `HCP65`:
 
 | Device name | Socket | Main bus | Driver file |
 |---|---|---|---|
 | `SD Card Board` | 32KB | Drives it (DMA) | `SDCARD.DRV` |
 | `Sound Board` | 128KB | Doesn't use it | `SOUND.DRV` |
+| `UART Board` | 32KB | Doesn't use it | `UART.DRV` |
 | `Debug Port` (the emulator's) | 32KB | Doesn't use it | none: the kernel drives it itself |
 
 ### Drivers
@@ -137,8 +142,8 @@ in it.  A driver calls the kernel by name: the kernel's *exports* (`Kernal/Kerna
 the names a driver may use, and a driver that uses any other name isn't loaded.  The kernel then
 runs the driver's constructors and calls its `KernalCreateDriver(index)`, which returns the driver
 (a `CKernalDriver`) the kernel starts for the board.  A driver file is loaded once however many
-boards use it: each board gets the next index (the sound board's driver drives up to four).  The ROM
-drives up to two SD Card Boards.
+boards use it: each board gets the next index (the sound board's driver drives up to four, the UART
+Board's up to two).  The ROM drives up to two SD Card Boards.
 
 On the emulator, the kernel tells the debug port of each driver it loads (its file, where it is and
 its first board's socket) after filling in its addresses and before any of it runs.  While a
@@ -151,11 +156,15 @@ A program uses a board through its driver with the device calls (`HCP65User.h`):
 - `KernalDeviceInfo(index, &info)` lists the boards in socket order: their names, revisions, how
   many units their drivers have and whether a program has them open.
 - `KernalDeviceOpen(manufacturer, name, index, unit, &handle)` opens a unit of the index'th board
-  of that kind.  The program has the whole board until it closes its last handle on it, or exits;
-  meanwhile no other program can open it.
+  of that kind.  A unit is the program's until it closes its last handle on it, or exits.  Most
+  drivers give the program the whole board while it has any unit open, so no other program can
+  open one; a driver whose units are separate gives each unit its own program (the UART Board's two
+  ports).
 - `KernalDeviceRead`, `KernalDeviceWrite`, `KernalDeviceControl` and `KernalDeviceWait` take the
-  handle.  What a unit, an offset, a control code or a wait value means is the driver's:
-  `HCP65SoundBoard.h` has the sound board's.
+  handle.  Read and write say how many bytes they moved: a unit that is a stream (a UART port) reads
+  what has arrived, which may be nothing.  What a unit, an offset, a control code or a wait value
+  means is the driver's: `HCP65SoundBoard.h` has the sound board's and `HCP65UARTBoard.h` the UART
+  Board's.
 - `KernalDeviceClose(handle)`.
 
 They are one kernel call (COP 12) with a block of arguments.
