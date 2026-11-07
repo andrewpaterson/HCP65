@@ -16,6 +16,7 @@
 #include "HCP65Lib/HCP65DebugPort.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
+#include "HCP65Lib/HCP65UARTBoard.h"
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
 #include "HCP65ExeBuilder.h"
@@ -39,6 +40,10 @@
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
 #define TEST_HCP65_MATH_TABLES		TEST_HCP65_LIBRARIES _FS_ "Libc65" _FS_ "MathTbls"
+#define TEST_HCP65_UART_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "UARTCard.img"	//HCP65UARTTest.hcp65build's card.
+#define TEST_HCP65_UART_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "UARTTest" _FS_ "HCP65UARTTest.vcxproj"
+#define TEST_HCP65_UART_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "UARTBoard" _FS_ "HCP65UARTBoard.vcxproj"
+#define TEST_HCP65_UART_DRIVER_PATH	"\\OS\\Drivers\\UART.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -53,6 +58,15 @@
 #define TEST_HCP65_AUDIO_SOCKET		16
 #define TEST_HCP65_AUDIO2_SOCKET	17			//A second sound board, which the same driver drives.
 #define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
+#define TEST_HCP65_UART_SOCKET		4
+
+//UARTTest.cpp's: what it sends and what the far end sends it.
+#define TEST_UART_SENT				1000
+#define TEST_UART_RECEIVED			2000
+#define TEST_UART_ECHOES			50
+#define TEST_UART_CLOCK_RATE		HCP65_DEFAULT_CLOCK_RATE	//The real board's: the driver must keep up at 115200 baud.
+#define TEST_UART_RUN_CYCLES		250000						//10ms.
+#define TEST_UART_MAX_RUNS			3000
 
 //The kernal's states (Kernal/Kernal.h, which is W65C816 code).
 #define TEST_KERNAL_STATE_DEVICES_SCANNED	2
@@ -320,7 +334,8 @@ static bool TestKernalReadTables(uint8* puiDest)
 //
 // Copies the blank SD card image to Output and puts boot.exe (HCP65/OperatingSystem),
 // modplay.exe (HCP65/ModPlay), the sound board's driver (HCP65/Drivers/
-// SoundBoard, \OS\Drivers\SOUND.DRV), the song it plays and the maths tables
+// SoundBoard, \OS\Drivers\SOUND.DRV), the UART Board's (for the
+// emulator, which has one), the song modplay plays and the maths tables
 // (\OS\Math\MULT.BIN and INVERT.BIN, from MathTbls' HEX files) on the copy.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -351,6 +366,10 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 	if (!TestKernalPutDriver(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER))
+	{
+		return false;
+	}
+	if (!TestKernalPutDriver(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER))
 	{
 		return false;
 	}
@@ -831,6 +850,255 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Copies the blank SD card image to Output/UARTCard.img and puts the UART
+// Board's test program (HCP65/UARTTest) on it as \boot.exe and its driver
+// (HCP65/Drivers/UARTBoard) as \OS\Drivers\UART.DRV.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalPutUARTFiles(void)
+{
+	CFileUtil	cFileUtil;
+	bool		bResult;
+
+	cFileUtil.TouchDir(TEST_HCP65_OUTPUT);
+	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, TEST_HCP65_UART_CARD_IMAGE);
+	AssertTrue(bResult);
+	if (!bResult)
+	{
+		return false;
+	}
+	if (!TestKernalPutExe(TEST_HCP65_UART_CARD_IMAGE, "\\boot.exe", TEST_HCP65_UART_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	{
+		return false;
+	}
+	return TestKernalPutDriver(TEST_HCP65_UART_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// UARTTest.cpp's patterns: uiLength bytes from uiFirst, uiStep more each.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestKernalUARTPattern(uint8* puiDest, uint32 uiLength, uint8 uiFirst, uint8 uiStep)
+{
+	uint32	i;
+
+	for (i = 0; i < uiLength; i++)
+	{
+		puiDest[i] = uiFirst;
+		uiFirst = (uint8)(uiFirst + uiStep);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
+// (holding Output/UARTCard.img) and the UART Board, whose two ports'
+// far ends the test plays.  UARTTest.cpp, as boot.exe, checks the driver
+// and exits 0 if it all did what it should:
+//  - Both ports open, the board shows open, and the driver refuses what it
+//    doesn't take.  Nothing has arrived, so a read takes nothing.
+//  - The TTL port in loopback gets back what it sends.
+//  - With the RS232 port closed, a child process (boot.exe again) can't
+//    open the TTL port but can open the RS232 port; it sends "CHILD" and
+//    exits without closing it, and the kernal lets it go.
+//  - The RS232 port with RTS/CTS sends 1000 bytes in one write, then the
+//    far end sends it 2000, which it takes a full buffer at a time: the
+//    UART turns RTS off and the far end waits.
+//  - The TTL port at 9600 7E1 echoes 50 bytes xor $20.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
+{
+	CHCP65				cHCP65;
+	CHCP65SDCard		cSDCard;
+	CHCP65UARTBoard		cUART;
+	CHCP65DebugPort		cPort;
+	CHCP65UART*			pcTTL;
+	CHCP65UART*			pcRS232;
+	EDebugProcessEvent	eEvent;
+	SDebugProcess		sProcess;
+	STestKernalStatus	sStatus;
+	CArrayUint8			acFromRS232;
+	CArrayUint8			acFromTTL;
+	uint8				auiBuffer[0x400];
+	uint8				auiExpected[TEST_UART_RECEIVED];
+	uint8*				puiROM;
+	uint8*				puiRAM;
+	uint32				uiStatus;
+	uint32				uiArgument;
+	size				uiCount;
+	int					i;
+	bool				bSentRS232;
+	bool				bSentTTL;
+	bool				bHeldOff;
+
+	if (!TestKernalPutUARTFiles())
+	{
+		return;
+	}
+
+	//boot.exe's argument is 0: it is the parent.
+	puiROM = pcBuilder->GetROM();
+	AssertTrue(pcBuilder->GetSymbol("_gsKernalStatus", &uiStatus));
+	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiArgument));
+	puiROM[uiArgument] = 0;
+	puiROM[uiArgument + 1] = 0;
+
+	cHCP65.Init(TEST_UART_CLOCK_RATE);
+	cSDCard.Init();
+	cUART.Init();
+	cPort.Init();
+	AssertTrue(cSDCard.InsertCard(TEST_HCP65_UART_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_UART_SOCKET, &cUART));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
+	cPort.Watch(true);
+	AssertTrue(cHCP65.LoadROM(puiROM, HCP65_ROM_SIZE));
+	cHCP65.SetMemoryFill(true);
+	cHCP65.Reset();
+
+	//The far ends: the RS232 port's has RTS and DTR on (its CTS and DSR) and DCD off; the TTL port's has RTS on.
+	pcTTL = cUART.GetTTL();
+	pcRS232 = cUART.GetRS232();
+	pcRS232->HostSetCTS(true);
+	pcRS232->HostSetDSR(true);
+	pcTTL->HostSetCTS(true);
+
+	acFromRS232.Init();
+	acFromTTL.Init();
+	bSentRS232 = false;
+	bSentTTL = false;
+	bHeldOff = false;
+	puiRAM = cHCP65.GetMPURAM();
+	for (i = 0; i < TEST_UART_MAX_RUNS; i++)
+	{
+		cHCP65.Run(TEST_UART_RUN_CYCLES);
+
+		do
+		{
+			uiCount = pcRS232->HostReceive(auiBuffer, sizeof(auiBuffer));
+			acFromRS232.Add(auiBuffer, uiCount);
+		}
+		while (uiCount > 0);
+		do
+		{
+			uiCount = pcTTL->HostReceive(auiBuffer, sizeof(auiBuffer));
+			acFromTTL.Add(auiBuffer, uiCount);
+		}
+		while (uiCount > 0);
+
+		//Once the RS232 port has had "CHILD" and the first pattern, the far end sends the second.  The TTL port's far
+		//end sends once the port is at 9600 7E1.
+		if (!bSentRS232 && (acFromRS232.NumElements() >= 5 + TEST_UART_SENT))
+		{
+			TestKernalUARTPattern(auiExpected, TEST_UART_RECEIVED, 5, 13);
+			pcRS232->HostSend(auiExpected, TEST_UART_RECEIVED);
+			bSentRS232 = true;
+		}
+		if (bSentRS232 && (pcRS232->NumHostToSend() > 0) && !pcRS232->IsRTSOn())
+		{
+			bHeldOff = true;
+		}
+		if (!bSentTTL && (pcTTL->GetBaudRate() == 9600) && ((pcTTL->GetLineControl() & 0x3F) == 0x1A))
+		{
+			TestKernalUARTPattern(auiBuffer, TEST_UART_ECHOES, 0x41, 1);
+			pcTTL->HostSend(auiBuffer, TEST_UART_ECHOES);
+			bSentTTL = true;
+		}
+		cHCP65.UpdateInterrupts();
+
+		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
+		if (getenv("TEST_HCP65_VERBOSE"))
+		{
+			printf("uart run %d: state %d, exit %d, process $%02X, PC $%06X, RS232 %d in %d to send, TTL %d in\n", i, sStatus.uiState, sStatus.uiExitCode, cHCP65.GetProcessID(), cHCP65.GetMPU()->GetProgramAddress(), (int)acFromRS232.NumElements(), (int)pcRS232->NumHostToSend(), (int)acFromTTL.NumElements());
+			fflush(stdout);
+		}
+		if (((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (sStatus.uiState <= TEST_KERNAL_STATE_BOOT_EXITED)) || ((sStatus.uiState > TEST_KERNAL_STATE_DEVICES_SCANNED) && (sStatus.uiState < TEST_KERNAL_STATE_MOUNTED)) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+
+	//boot.exe did what UARTTest.cpp checks.
+	AssertFalse(cHCP65.IsStopped());
+	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
+	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
+	AssertInt(0, sStatus.uiExitCode);
+
+	//The driver was loaded from the card for the UART Board, after the kernal.
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
+	AssertInt(0, sStatus.uiBadDevices);
+	AssertInt(0, sStatus.uiDriverError);
+	AssertInt(1 << TEST_HCP65_UART_SOCKET, sStatus.uiLoadedDrivers);
+	AssertSize(1, cPort.NumDrivers());
+	AssertString(TEST_HCP65_UART_DRIVER_PATH, cPort.GetDriver(0)->szName);
+	AssertInt(TEST_HCP65_UART_SOCKET, cPort.GetDriver(0)->uiSlot);
+
+	//The processes: boot.exe ($FF) ran itself as the child ($FE), which exited 0.
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Started, eEvent);
+	AssertInt(0xFF, sProcess.uiProcess);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Started, eEvent);
+	AssertInt(0xFE, sProcess.uiProcess);
+	AssertString("\\boot.exe", sProcess.szName);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Ended, eEvent);
+	AssertInt(0xFE, sProcess.uiProcess);
+	AssertInt(0, sProcess.iExitCode);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Ended, eEvent);
+	AssertInt(0xFF, sProcess.uiProcess);
+	AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
+
+	//The RS232 far end got "CHILD" (sent before the kernal closed the child's port) then the first pattern, and sent all
+	//of the second, held off by RTS on the way.  Nothing was lost on either port.
+	AssertTrue(bSentRS232);
+	AssertTrue(bHeldOff);
+	AssertSize(0, pcRS232->NumHostToSend());
+	AssertSize(5 + TEST_UART_SENT, acFromRS232.NumElements());
+	if (acFromRS232.NumElements() == 5 + TEST_UART_SENT)
+	{
+		AssertTrue(memcmp(acFromRS232.GetData(), "CHILD", 5) == 0);
+		TestKernalUARTPattern(auiExpected, TEST_UART_SENT, 3, 7);
+		AssertTrue(memcmp(acFromRS232.GetData() + 5, auiExpected, TEST_UART_SENT) == 0);
+	}
+	AssertLong(0, (int64)pcRS232->NumOverruns());
+
+	//The TTL far end got its 50 bytes back xor $20 ("LOOP" stayed in the UART).
+	AssertTrue(bSentTTL);
+	AssertSize(0, pcTTL->NumHostToSend());
+	AssertSize(TEST_UART_ECHOES, acFromTTL.NumElements());
+	if (acFromTTL.NumElements() == TEST_UART_ECHOES)
+	{
+		for (i = 0; i < TEST_UART_ECHOES; i++)
+		{
+			auiExpected[i] = (uint8)((0x41 + i) ^ 0x20);
+		}
+		AssertTrue(memcmp(acFromTTL.GetData(), auiExpected, TEST_UART_ECHOES) == 0);
+	}
+	AssertLong(0, (int64)pcTTL->NumOverruns());
+
+	//Closed, the ports are back at reset: outputs off, 115200.
+	AssertFalse(pcRS232->IsRTSOn());
+	AssertFalse(pcRS232->IsDTROn());
+	AssertInt(115200, pcTTL->GetBaudRate());
+
+	acFromTTL.Kill();
+	acFromRS232.Kill();
+	cSDCard.RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cHCP65.Kill();
+	cPort.Kill();
+	cUART.Kill();
+	cSDCard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Kernal(void)
@@ -843,6 +1111,7 @@ void TestHCP65Kernal(void)
 	if (TestKernalBuild(&cBuilder))
 	{
 		TestHCP65KernalBoot(&cBuilder);
+		TestHCP65KernalUART(&cBuilder);
 	}
 	cBuilder.Kill();
 
