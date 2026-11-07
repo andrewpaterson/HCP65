@@ -102,6 +102,7 @@ public:
 	CFast65C816*		GetMPU(void);
 	CHCP65Registers*	GetRegisters(void);
 	uint8*				GetMPURAM(void);
+	CHCP65MemoryChannel*	GetMemoryChannel(void);
 	uint8*				GetMPUROM(void);
 	uint8*				MainMemoryAt(uint32 uiPhysical);
 	void				MapMainMemory(void);

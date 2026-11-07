@@ -82,45 +82,67 @@ static bool KernalTakeBank(uint8 uiUse, uint8* puiBank)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Gives each memory board found (KernalScanDevices) its window, writes the
+// Gives the next windows to the boards in the memory sockets that provide
+// windows and are (bPrivate) or aren't private, setting their sockets' bits
+// of the main memory channel's registers.  Only a board that isn't private
+// is main memory.  *puiWindows counts the windows given.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalGiveWindows(bool bPrivate, uint8* puiWindows, uint8* puiRegisters)
+{
+	SKernalDevice*	psDevice;
+	uint8			uiWindow;
+	uint8			uiMainBus;
+	uint16			i;
+
+	for (i = 0; (i < KERNAL_NUM_MEMORY_SOCKETS) && (*puiWindows < sizeof(gauiKernalWindows)); i++)
+	{
+		psDevice = &gasKernalDevices[gauiKernalMemorySlots[i]];
+		uiMainBus = psDevice->psROM ? psDevice->psROM->uiMainBus : 0;
+		if (((uiMainBus & (DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B)) == 0) || (((uiMainBus & DEVICE_MAIN_BUS_PRIVATE) != 0) != bPrivate))
+		{
+			continue;
+		}
+		uiWindow = gauiKernalWindows[*puiWindows];
+		(*puiWindows)++;
+		psDevice->uiWindow = uiWindow;
+		puiRegisters[gauiKernalMemoryRegisters[i]] |= (uint8)(uiWindow << gauiKernalMemoryShifts[i]);
+		if (!bPrivate)
+		{
+			if (uiMainBus & DEVICE_MAIN_BUS_WINDOW_A)
+			{
+				KernalAddChip(uiWindow, 0);
+			}
+			if (uiMainBus & DEVICE_MAIN_BUS_WINDOW_B)
+			{
+				KernalAddChip(uiWindow, 1);
+			}
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Gives each memory board found (KernalScanDevices) its window, then each
+// private board (a coprocessor board, whose memory is its own), writes the
 // main memory channel's registers and takes the tables' and the heap's
 // banks.  False if there isn't enough main memory for them.
 //
 //////////////////////////////////////////////////////////////////////////
 bool KernalInitMainMemory(void)
 {
-	SKernalDevice*	psDevice;
-	uint8			auiRegisters[2];
-	uint8			uiWindow;
-	uint8			uiBoards;
-	uint8			uiBank;
-	uint8			uiMainBus;
-	uint16			i;
+	uint8	auiRegisters[2];
+	uint8	uiWindows;
+	uint8	uiBank;
+	uint16	i;
 
 	memset(gauiKernalBanks, KERNAL_BANK_ABSENT, sizeof(gauiKernalBanks));
 	auiRegisters[0] = 0;
 	auiRegisters[1] = 0;
-	uiBoards = 0;
-	for (i = 0; (i < KERNAL_NUM_MEMORY_SOCKETS) && (uiBoards < sizeof(gauiKernalWindows)); i++)
-	{
-		psDevice = &gasKernalDevices[gauiKernalMemorySlots[i]];
-		uiMainBus = psDevice->psROM ? psDevice->psROM->uiMainBus : 0;
-		if ((uiMainBus & (DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B)) == 0)
-		{
-			continue;
-		}
-		uiWindow = gauiKernalWindows[uiBoards];
-		uiBoards++;
-		auiRegisters[gauiKernalMemoryRegisters[i]] |= (uint8)(uiWindow << gauiKernalMemoryShifts[i]);
-		if (uiMainBus & DEVICE_MAIN_BUS_WINDOW_A)
-		{
-			KernalAddChip(uiWindow, 0);
-		}
-		if (uiMainBus & DEVICE_MAIN_BUS_WINDOW_B)
-		{
-			KernalAddChip(uiWindow, 1);
-		}
-	}
+	uiWindows = 0;
+	KernalGiveWindows(false, &uiWindows, auiRegisters);
+	KernalGiveWindows(true, &uiWindows, auiRegisters);
 	((volatile uint8*)KERNAL_MEMORY_CHANNEL)[0] = auiRegisters[0];
 	((volatile uint8*)KERNAL_MEMORY_CHANNEL)[1] = auiRegisters[1];
 

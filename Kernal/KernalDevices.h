@@ -21,6 +21,8 @@
 #define KERNAL_DEVICE_UNRECOGNISED		2			//Its ROM isn't a device ROM: wrong magic, format or checksum, or bad fields.
 #define KERNAL_DEVICE_WRONG_SOCKET		3			//It needs a 128KB socket (16 to 19).
 
+#define KERNAL_NO_WINDOW				0xFF		//A device not given a main memory window.
+
 
 //The fixed part of a device ROM, as it is in the device's slot (at the DEVICE_ROM_*_OFFSETs).  Every field is at its
 //natural alignment.
@@ -46,6 +48,8 @@ struct SKernalDevice
 	uint32				uiSize;
 	uint16				uiState;	//KERNAL_DEVICE_*.
 	SKernalDeviceROM*	psROM;		//The device's ROM (at uiAddress), NULL unless the device is present.
+	uint8				uiWindow;	//The main memory window (0 to 3) a board in a memory socket was given, KERNAL_NO_WINDOW if none:
+								//a private board's driver reaches its memory there (KernalInitMainMemory).
 };
 
 

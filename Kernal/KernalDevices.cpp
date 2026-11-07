@@ -100,6 +100,7 @@ void KernalScanDevices(void)
 		KernalSlotAddress(uiSlot, &psDevice->uiAddress, &psDevice->uiSize);
 		psDevice->uiState = KERNAL_DEVICE_NONE;
 		psDevice->psROM = NULL;
+		psDevice->uiWindow = KERNAL_NO_WINDOW;
 		if (psDevice->uiAddress != 0)
 		{
 			psDevice->uiState = KernalCheckDeviceROM(psDevice);

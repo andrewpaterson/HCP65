@@ -60,6 +60,9 @@
 #define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
 #define TEST_HCP65_UART_SOCKET		4
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
+#define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
+#define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
+#define TEST_HCP65_SOCKET_X			5
 
 //UARTTest.cpp's: what it sends and what the far end sends it.
 #define TEST_UART_SENT				1000
@@ -126,6 +129,40 @@ public:
 	bool	IsInterrupting(void) override	{ return mbArmed && !mbQuiet && !mbHeldInReset; }
 	void	Arm(void)						{ mbArmed = true; }
 	bool	IsQuiet(void)					{ return mbQuiet; }
+};
+
+
+//A board in a memory socket whose 4MB is its own (as a coprocessor board's is): its ROM says it provides windows A and B
+//and is private.  It answers its window as the Memory Board does, so a process or the kernal's tables put there would
+//change its memory from what reset left in it (HCP65_DEBUG_FILL_BYTE in fill mode, else zeros).
+class CTestPrivateBoard : public CHCP65MemoryBoard
+{
+public:
+	void	Init(void)
+	{
+		CHCP65MemoryBoard::Init();
+		mcROM.Init("Private Board", "Tester", 0, DEVICE_BUS_32KB, DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B | DEVICE_MAIN_BUS_PRIVATE, "");
+	}
+
+	uint32	FirstChanged(uint8 uiReset)	//The offset of its first byte that isn't uiReset (chip A then B), 2 * HCP65_MEMORY_CHIP_SIZE if none.
+	{
+		uint8*	puiChip;
+		uint32	i;
+		int		iChip;
+
+		for (iChip = 0; iChip < 2; iChip++)
+		{
+			puiChip = GetMemoryChip(iChip);
+			for (i = 0; i < HCP65_MEMORY_CHIP_SIZE; i++)
+			{
+				if (puiChip[i] != uiReset)
+				{
+					return (uint32)iChip * HCP65_MEMORY_CHIP_SIZE + i;
+				}
+			}
+		}
+		return 2 * HCP65_MEMORY_CHIP_SIZE;
+	}
 };
 
 
@@ -1009,6 +1046,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	CHCP65				cHCP65;
 	CHCP65SDCard		cSDCard;
 	CHCP65MemoryBoard	cMemory;
+	CTestPrivateBoard	cPrivate;
 	CHCP65UARTBoard		cUART;
 	CHCP65DebugPort		cPort;
 	CHCP65UART*			pcTTL;
@@ -1038,11 +1076,13 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	cSDCard.Init();
 	cMemory.Init();
+	cPrivate.Init();
 	cUART.Init();
 	cPort.Init();
 	AssertTrue(cSDCard.InsertCard(TEST_HCP65_UART_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_MEMORY_SOCKET, &cMemory));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_PRIVATE_SOCKET, &cPrivate));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_UART_SOCKET, &cUART));
 	TestKernalStart(&cHCP65, &cPort, pcBuilder);
 
@@ -1110,7 +1150,14 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(0, sStatus.uiExitCode);
 
 	//The driver was loaded from the card for the UART Board, after the kernal.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET) | (1 << TEST_HCP65_PRIVATE_SOCKET), sStatus.uiDevices);
+
+	//The Memory Board was given window 1 though the private board's socket is scanned first; the private board got the
+	//next, but none of its memory is main memory, and nothing was put in it.
+	AssertInt(1, cHCP65.GetMemoryChannel()->GetSocketWindow(TEST_HCP65_SOCKET_V));
+	AssertInt(2, cHCP65.GetMemoryChannel()->GetSocketWindow(TEST_HCP65_SOCKET_X));
+	AssertInt(64, sStatus.uiMainBanks);
+	AssertInt(2 * HCP65_MEMORY_CHIP_SIZE, cPrivate.FirstChanged(HCP65_DEBUG_FILL_BYTE));
 	AssertInt(0, sStatus.uiBadDevices);
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt(1 << TEST_HCP65_UART_SOCKET, sStatus.uiLoadedDrivers);
@@ -1175,6 +1222,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	cPort.Kill();
 	cUART.Kill();
 	cSDCard.Kill();
+	cPrivate.Kill();
 	cMemory.Kill();
 }
 
@@ -1183,13 +1231,15 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 //
 // Without a memory board the kernal scans the devices and stops: the SD
 // Card Board has nothing to read into.  Its heap is MPU RAM's, so it gets
-// that far.
+// that far.  A private board's memory isn't main memory, though it is
+// given a window.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
 {
 	CHCP65				cHCP65;
 	CHCP65SDCard		cSDCard;
+	CTestPrivateBoard	cPrivate;
 	STestKernalStatus	sStatus;
 	uint32				uiStatus;
 	int					i;
@@ -1199,6 +1249,8 @@ void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
 	cSDCard.Init();
 	AssertTrue(cSDCard.InsertCard(TEST_HCP65_SD_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
+	cPrivate.Init();
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_PRIVATE_SOCKET, &cPrivate));
 	AssertTrue(cHCP65.LoadROM(pcBuilder->GetROM(), HCP65_ROM_SIZE));
 	cHCP65.Reset();
 	sStatus.uiState = 0;
@@ -1209,10 +1261,13 @@ void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
 	}
 	AssertInt(TEST_KERNAL_STATE_NO_MAIN_MEMORY, sStatus.uiState);
 	AssertInt(0, sStatus.uiMainBanks);
-	AssertInt(1 << TEST_HCP65_SD_SOCKET, sStatus.uiDevices);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_PRIVATE_SOCKET), sStatus.uiDevices);
+	AssertInt(1, cHCP65.GetMemoryChannel()->GetSocketWindow(TEST_HCP65_SOCKET_X));
+	AssertInt(2 * HCP65_MEMORY_CHIP_SIZE, cPrivate.FirstChanged(0));
 	AssertInt(0, cSDCard.NumSectorsRead());
 	cHCP65.Kill();
 	cSDCard.Kill();
+	cPrivate.Kill();
 }
 
 
