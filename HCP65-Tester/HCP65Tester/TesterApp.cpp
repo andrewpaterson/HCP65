@@ -30,6 +30,11 @@ bool CTesterApp::Setup(CNativeWindowFactory* pcNativeFactory)
 	//The window is in the theme's panel colour; it has no widgets yet.
 	pBackground = OMalloc<CClearCanvasDraw>(0);
 	mpWindow = OMalloc<CWindow>("HCP65 Board Tester", pcNativeFactory, OMalloc<CTesterWindowTick>(), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+
+	//Only what changed is drawn.  HCP65_TESTER_VERIFY_REDRAW checks every partial paint against drawing all of the
+	//window and logs where they differ.
+	mpWindow->SetPartialRedraw(true);
+	mpWindow->SetVerifyRedraw(getenv("HCP65_TESTER_VERIFY_REDRAW") != NULL);
 	pBackground->SetColour(CJewelTheme::CreateDarkTheme(mpWindow, Ptr<CFont>())->GetColour(TC_Panel));
 	mpWindow->SetWindowSize(1280, 800);
 	return true;

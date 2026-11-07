@@ -222,6 +222,11 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pBackground = OMalloc<CClearCanvasDraw>(0);  //Coloured once there is a theme.
 		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		mpWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
+
+		//Only what changed is drawn.  HCP65_EMULATOR_VERIFY_REDRAW checks every partial paint against drawing all of
+		//the window and logs where they differ, for finding a component that changes without being invalidated.
+		mpWindow->SetPartialRedraw(true);
+		mpWindow->SetVerifyRedraw(getenv("HCP65_EMULATOR_VERIFY_REDRAW") != NULL);
 		mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
 
 		//The font is white and coloured as it is drawn.
@@ -241,6 +246,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pFileMenu = OMalloc<CMenuContainer>(mpWindow, pTheme);
 		mpMenuBar->AddMenu("File", pFileMenu);
 		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(pTheme->GetColour(TC_Editor)));
+		pScreen->SetDrawnEveryPaint(true);  //The emulated screen changes every tick without telling the canvas.
 		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
