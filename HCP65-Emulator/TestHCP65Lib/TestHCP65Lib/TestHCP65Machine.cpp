@@ -653,6 +653,14 @@ void TestHCP65DeviceROMFromXML(void)
 	AssertTrue(bSame);
 	cMemory.Kill();
 
+	//The VIA Board has no emulated board: its eight VIAs' 16 registers each are read and written, and the interrupts are
+	//only read.
+	AssertTrue(TestHCP65LoadDeviceROM(TEST_HCP65_BOARDS, "VIABoard.xml", &cROM, &szError));
+	AssertString("", szError.Text());
+	AssertInt(8 * 16 * 2 + 1, cROM.NumRegisters());
+	AssertString("VIA Board", (char*)&cROM.GetROM()[DEVICE_ROM_NAME_OFFSET]);
+	AssertString("VIA.DRV", (char*)&cROM.GetROM()[DEVICE_ROM_DRIVER_OFFSET]);
+
 	cFileUtil.TouchDir("Output");  //False when Output is already there.
 	AssertTrue(cFileUtil.IsDirectory("Output"));
 	pFile = fopen("Output" _FS_ "BadDeviceROM.xml", "wb");

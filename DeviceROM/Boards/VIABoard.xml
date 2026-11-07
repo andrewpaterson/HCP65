@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The HCP65 VIA Board (VIA Board, VIA Control and VIA Breakout sheets): eight W65C22 VIAs, named by their ports,
+     AB, CD, EF, GH, XJ, KL, MN and OP, two on each VIA Breakout.  VIA Control's 74LVC138 selects one by A6-A4 when A7 is
+     0, 16 bytes each from $400; A3-A0 are its RS3-RS0, so its registers are in the W65C22's order: ORB/IRB, ORA/IRA,
+     DDRB, DDRA, T1C-L, T1C-H, T1L-L, T1L-H, T2C-L, T2C-H, SR, ACR, PCR, IFR, IER, then ORA/IRA without handshake.  At
+     $480 (A7 set, A6-A0 clear) a 74LCX540 reads the VIAs' ~IRQs inverted: D0 is AB's to D7 OP's, 1 where it is
+     interrupting.  A8 and A9 aren't decoded, so it all repeats every $100 from $400; each register is listed once.
+     The selects don't go through a Stage B, so DeviceROM can't work these out from the schematic: this file is written
+     by hand. -->
+<DeviceROM Name="VIA Board" Manufacturer="HCP65" Revision="0" DeviceBus="32KB" Driver="VIA.DRV">
+	<Register Name="VIA AB" Offset="0x400" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA CD" Offset="0x410" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA EF" Offset="0x420" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA GH" Offset="0x430" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA XJ" Offset="0x440" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA KL" Offset="0x450" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA MN" Offset="0x460" Count="16" Access="ReadWrite"/>
+	<Register Name="VIA OP" Offset="0x470" Count="16" Access="ReadWrite"/>
+	<Register Name="Interrupts" Offset="0x480" Access="Read"/>
+</DeviceROM>
