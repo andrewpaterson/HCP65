@@ -12,7 +12,7 @@ registers.  Everything else (memory boards, video, sound, storage, input) plugs 
 - [Devices and Main Memory](devices.md) - the device sockets, the layout inside each device's
   space, and how main memory is assigned to the sockets.
 
-The compiler's runtime routines are in [HCP65 Drivers and Runtime](../runtime/index.md).
+The compiler's runtime routines are in [Drivers and Runtime](runtime/index.md).
 
 These pages were worked out from the KiCad schematics in `658-Computer/Kicad/Computer`.  The
 schematic sheet each part comes from is named in its section.

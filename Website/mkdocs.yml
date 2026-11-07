@@ -58,6 +58,10 @@ nav:
       - Memory Map: hcp65/memory-map.md
       - On-board Registers: hcp65/registers.md
       - Devices and Main Memory: hcp65/devices.md
+      - Drivers and Runtime:
+          - hcp65/runtime/index.md
+          - W65C816 Runtime: hcp65/runtime/w65c816.md
+      - Emulator: hcp65/emulator.md
   - HCP65 C++ Compiler:
       - compiler/index.md
   - W65C64 Microprocessor Proposal:
@@ -85,8 +89,6 @@ nav:
           - Block: w65c64/instructions/block.md
           - Vector: w65c64/instructions/vector.md
           - Hardware Registers: w65c64/instructions/hardware.md
+      - Emulator: w65c64/emulator.md
   - C++ Software Libraries:
       - libraries/index.md
-  - HCP65 Drivers and Runtime:
-      - runtime/index.md
-      - W65C816 Runtime: runtime/w65c816.md

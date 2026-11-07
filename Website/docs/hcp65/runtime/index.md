@@ -1,4 +1,4 @@
-# HCP65 Drivers and Runtime
+# Drivers and Runtime
 
 The HCP65's device drivers and the runtime routines compiled programs call.
 

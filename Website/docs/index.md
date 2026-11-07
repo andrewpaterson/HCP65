@@ -5,5 +5,3 @@
 - [W65C64 Microprocessor Proposal](w65c64/index.md) - a 64 bit successor to the W65C816: its
   registers, operands and instruction set.
 - [C++ Software Libraries](libraries/index.md) - the C++ common libraries.
-- [HCP65 Drivers and Runtime](runtime/index.md) - the device drivers and the runtime routines
-  compiled programs call.
