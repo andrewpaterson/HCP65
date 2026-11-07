@@ -14,7 +14,7 @@
 											//has had "CHILD" and the first pattern.
 #define UART_TEST_ECHOES		50			//Bytes the far end sends on the TTL port once it is at 9600 7E1; each comes back
 											//xor $20.
-#define UART_TEST_WAIT_TICKS	256			//A second.
+#define UART_TEST_WAIT_TICKS	KERNAL_DEVICE_TICKS_PER_SECOND
 #define UART_TEST_MAX_WAITS		20			//Seconds without a byte before it gives up.
 
 

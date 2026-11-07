@@ -19,7 +19,7 @@
 #define UART_BOARD_RS232				1		//UART2, the RS232 module (DE-9): TX, RX, RTS, CTS, DTR, DSR and DCD.
 
 #define UART_BOARD_BUFFER_SIZE			255		//Bytes the driver buffers each way, per port.
-#define UART_BOARD_WRITE_TICKS			256		//A second (KERNAL_TICKS_PER_SECOND).
+#define UART_BOARD_WRITE_TICKS			256		//A second (KERNAL_DEVICE_TICKS_PER_SECOND).
 #define UART_BOARD_CLOSE_TICKS			256
 
 //The baud rate is 115200 / divisor.

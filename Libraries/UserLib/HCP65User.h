@@ -67,6 +67,7 @@ extern "C" uint16	KernalFileRead(const char* szPath, uint32 uiOffset, void* pvDe
 #define KERNAL_DEVICE_BAD_HANDLE		10		//Not a handle of this program's.
 
 #define KERNAL_DEVICE_NAME_LENGTH		64
+#define KERNAL_DEVICE_TICKS_PER_SECOND	256		//KernalDeviceWait's ticks.
 
 //A board in a device socket (KernalDeviceInfo): its device ROM's description.
 struct SKernalDeviceInfo
@@ -101,7 +102,8 @@ extern "C" uint16	KernalDeviceWrite(uint16 uiHandle, uint32 uiOffset, const void
 //The driver's control uiCode with uiValue; *puiResult (if not NULL) is what it gives back.
 extern "C" uint16	KernalDeviceControl(uint16 uiHandle, uint16 uiCode, uint32 uiValue, uint32* puiResult);
 
-//Waits up to uiTicks (256 a second) for what uiValue says, sleeping.  KERNAL_DEVICE_TIMEOUT if it didn't happen.
+//Waits up to uiTicks (KERNAL_DEVICE_TICKS_PER_SECOND) for what uiValue says, sleeping.  KERNAL_DEVICE_TIMEOUT if it
+//didn't happen.
 extern "C" uint16	KernalDeviceWait(uint16 uiHandle, uint32 uiValue, uint16 uiTicks);
 
 
