@@ -189,7 +189,8 @@ static bool TestKernalPutExe(const char* szImage, const char* szName, const char
 //////////////////////////////////////////////////////////////////////////
 //
 // Builds a driver from its project, szProjectFile, and puts it on the SD
-// card image szImage as szName.
+// card image szImage as szName, and in Output by its file name (to compare
+// with hcp65build's: Drivers\<Board>\<Board>.sln builds the same bytes).
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalPutDriver(const char* szImage, const char* szName, const char* szProjectFile)
@@ -198,6 +199,8 @@ static bool TestKernalPutDriver(const char* szImage, const char* szName, const c
 	bool				bBuilt;
 	size				i;
 	FILE*				pFile;
+	CChars				szCopy;
+	const char*			szFile;
 
 	cDriver.Init();
 	bBuilt = cDriver.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_KERNAL, szProjectFile);
@@ -226,6 +229,11 @@ static bool TestKernalPutDriver(const char* szImage, const char* szName, const c
 		}
 		bBuilt = FatPutFileOnImage(szImage, szName, cDriver.GetModule(), cDriver.GetModuleSize());
 		AssertTrue(bBuilt);
+		szFile = strrchr(szName, '\\');
+		szCopy.Init(TEST_HCP65_OUTPUT _FS_);
+		szCopy.Append(szFile ? szFile + 1 : szName);
+		AssertTrue(cDriver.Write(szCopy.Text()));
+		szCopy.Kill();
 	}
 	cDriver.Kill();
 	return bBuilt;

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The kernal's driver for the board (\OS\Drivers\UART.DRV), a module it loads into MPU RAM: built as the kernal is,
+     without floats or the maths tables, and debugged on the kernal it was built against. -->
+<BuildConfigurations>
+	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" BreakpointSpace="Kernel" NoFloats="true" MathTables="false" Card="..\..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\UARTCard.img" CardPath="\OS\Drivers\UART.DRV">
+		<Module File="UART.DRV" Entry="_KernalCreateDriver" Limit="0x20000"/>
+		<Load File="..\..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
+	</Configuration>
+	<Configuration Name="Release|W65C816" Toolchain="W65C816" Solution="Release|Win32" BreakpointSpace="Kernel" NoFloats="true" MathTables="false" Card="..\..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\UARTCard.img" CardPath="\OS\Drivers\UART.DRV">
+		<Module File="UART.DRV" Entry="_KernalCreateDriver" Limit="0x20000"/>
+		<Load File="..\..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
+	</Configuration>
+</BuildConfigurations>

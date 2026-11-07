@@ -25,6 +25,7 @@ public:
 
 	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szKernal, const char* szProjectFile);
 
+	bool			Write(const char* szFilename);
 	uint8*			GetModule(void);
 	size			GetModuleSize(void);
 	CAsm65Linker*	GetLinker(void);
