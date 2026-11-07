@@ -269,19 +269,19 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 //////////////////////////////////////////////////////////////////////////
 void CHCP65EmulatorApp::Class(void)
 {
-	U_Data(CHCP65, mcHCP65);
-	U_Data(CHCP65Audio, mcAudio);
-	U_Data(CHCP65SDCard, mcSDCard);
-	U_Data(CHCP65DebugPort, mcDebugPort);
-	U_Data(CHCP65UARTBoard, mcUART);
-	U_Data(CHCP65MemoryBoard, mcMemory);
-	U_Data(CHCP65EmulatorDebugger, mcDebugger);
+	U_Unknown(CHCP65, mcHCP65);
+	U_Unknown(CHCP65Audio, mcAudio);
+	U_Unknown(CHCP65SDCard, mcSDCard);
+	U_Unknown(CHCP65DebugPort, mcDebugPort);
+	U_Unknown(CHCP65UARTBoard, mcUART);
+	U_Unknown(CHCP65MemoryBoard, mcMemory);
+	U_Unknown(CHCP65EmulatorDebugger, mcDebugger);
 	M_Pointer(mpWindow);
 	M_Pointer(mpMenuBar);
-	U_Data(CFileMenuListener, mcFileMenuListener);
+	U_Unknown(CFileMenuListener, mcFileMenuListener);
 	M_Pointer(mpInput);
 	M_Pointer(mpInputSource);
-	U_Data(CComponentInput, mcComponentInput);
+	U_Unknown(CComponentInput, mcComponentInput);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
