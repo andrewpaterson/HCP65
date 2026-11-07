@@ -51,9 +51,9 @@ void CKernalUARTPort::Reset(void)
 	muiTxHead = 0;
 	muiTxTail = 0;
 	ReadLineStatus();
-	mpuiRegisters[UART_RBR];
-	mpuiRegisters[UART_MSR];
-	mpuiRegisters[UART_IIR];
+	Discard(UART_RBR);
+	Discard(UART_MSR);
+	Discard(UART_IIR);
 	muiErrors = 0;
 }
 
@@ -131,7 +131,7 @@ void CKernalUARTPort::Interrupt(void)
 		}
 		else
 		{
-			mpuiRegisters[UART_MSR];
+			Discard(UART_MSR);
 		}
 	}
 }
@@ -475,6 +475,18 @@ void CKernalUARTPort::SetDivisor(uint16 uiDivisor)
 	mpuiRegisters[UART_DLL] = (uint8)uiDivisor;
 	mpuiRegisters[UART_DLM] = (uint8)(uiDivisor >> 8);
 	mpuiRegisters[UART_LCR] = muiLCR;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Reads the register for what reading it does (clears what it reports);
+// the value isn't wanted.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalUARTPort::Discard(uint8 uiRegister)
+{
+	mpuiRegisters[uiRegister];
 }
 
 

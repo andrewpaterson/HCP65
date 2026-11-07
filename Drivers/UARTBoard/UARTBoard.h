@@ -103,6 +103,7 @@ protected:
 	void	SetLCR(uint8 uiLCR);
 	void	SetMCR(uint8 uiMCR);
 	void	Flush(uint8 uiWhich);
+	void	Discard(uint8 uiRegister);
 	uint8	ReadLineStatus(void);
 	void	Receive(void);
 	void	Transmit(void);
