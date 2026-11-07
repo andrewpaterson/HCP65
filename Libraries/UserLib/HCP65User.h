@@ -57,7 +57,7 @@ extern "C" uint16	KernalFileRead(const char* szPath, uint32 uiOffset, void* pvDe
 #define KERNAL_DEVICE_SUCCESS			0
 #define KERNAL_DEVICE_NOT_SUPPORTED		1		//The board's driver doesn't do that.
 #define KERNAL_DEVICE_BAD_UNIT			2
-#define KERNAL_DEVICE_IN_USE			3		//Another program has the board open.
+#define KERNAL_DEVICE_IN_USE			3		//Another program has the board (or the unit) open.
 #define KERNAL_DEVICE_NOT_OPEN			4
 #define KERNAL_DEVICE_BAD_ARGUMENT		5
 #define KERNAL_DEVICE_FAILED			6
@@ -86,7 +86,7 @@ extern "C" uint16	KernalDeviceInfo(uint16 uiIndex, SKernalDeviceInfo* psInfo);
 //*puiHandle is the handle.
 extern "C" uint16	KernalDeviceOpen(const char* szManufacturer, const char* szName, uint16 uiIndex, uint16 uiUnit, uint16* puiHandle);
 
-//Closes the handle.  The board is let go when the program's last handle on it is closed.
+//Closes the handle.  The unit is let go when the program's last handle on it is closed.
 extern "C" uint16	KernalDeviceClose(uint16 uiHandle);
 
 //Moves up to uiLength bytes between the program's memory and the unit at uiOffset.  *puiDone (if not NULL) is how

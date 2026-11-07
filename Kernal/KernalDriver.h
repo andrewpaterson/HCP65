@@ -15,6 +15,7 @@
 #define KERNAL_DRIVER_TIMEOUT			7
 
 #define KERNAL_DRIVER_NO_OWNER			0		//Process IDs are $FC to $FF.
+#define KERNAL_DRIVER_ALL_UNITS			0xFFFF	//Close's unit when the process has ended.
 
 
 //The driver of the board in one device slot.  A board can have several units (the SD Card Board's four card
@@ -24,11 +25,14 @@
 //board interrupts calls SetInterrupt in its Init and overrides Interrupt, which the dispatch calls (KernalInterrupts.h:
 //with I set, on the kernal's stack; it quietens the board first).  A trusted Interrupt never touches main memory.
 //
-//Open, Close, Read, Write, Control and Wait are what a process asks of the board through a handle.  A process opens
-//the whole board: while it has it open no other process can.  The others refuse (KERNAL_DRIVER_NOT_SUPPORTED) unless
-//the driver does them.  Read and Write move up to uiLength bytes between the running process's memory at
-//uiUserAddress and the unit at uiOffset, and set *puiDone to how many they moved; Control's codes are the driver's
-//own; Wait waits up to uiTicks (KERNAL_TICKS_PER_SECOND) for what uiValue says.
+//Open, Close, Read, Write, Control and Wait are what a process asks of the board through a handle.  Open is called
+//for each handle; Close when the process's last handle on the unit is closed, and with KERNAL_DRIVER_ALL_UNITS when
+//the process has ended.  Here a process opens the whole board: while it has any unit open no other process can open
+//one.  A driver whose units are separate (the UART Board's two ports) overrides Open, Close and IsOpen to give each
+//unit its own process.  The others refuse (KERNAL_DRIVER_NOT_SUPPORTED) unless the driver does them.  Read and Write
+//move up to uiLength bytes between the running process's memory at uiUserAddress and the unit at uiOffset, and set
+//*puiDone to how many they moved; Control's codes are the driver's own; Wait waits up to uiTicks
+//(KERNAL_TICKS_PER_SECOND) for what uiValue says.
 class CKernalDriver
 {
 protected:
@@ -36,6 +40,7 @@ protected:
 	uint16			muiSlot;
 	volatile uint8*	mpuiRegisters;		//The slot's device registers ($400 in the slot).
 	uint8			muiOwner;			//The process that has the board open, KERNAL_DRIVER_NO_OWNER if none.
+	uint16			muiOpenUnits;		//Bit n set: the owner has unit n open.
 
 public:
 	virtual uint16	Init(SKernalDevice* psDevice, uint16 uiSlot);
@@ -45,7 +50,8 @@ public:
 	virtual void	Interrupt(void);
 
 	virtual uint16	Open(uint16 uiUnit, uint8 uiProcess);
-	virtual void	Close(uint8 uiProcess);
+	virtual void	Close(uint16 uiUnit, uint8 uiProcess);
+	virtual bool	IsOpen(void);
 	virtual uint16	Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	virtual uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	virtual uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult);
@@ -54,7 +60,6 @@ public:
 	SKernalDevice*		GetDevice(void);
 	uint16				GetSlot(void);
 	volatile uint8*		GetRegisters(void);
-	uint8				GetOwner(void);
 
 protected:
 	void	SetInterrupt(volatile uint8* puiFlags, bool bTrusted);

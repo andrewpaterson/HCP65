@@ -76,7 +76,7 @@ static uint16 KernalDeviceInfoCall(uint16 uiIndex, uint32 uiAddress)
 		sInfo.uiSlot = uiSlot;
 		sInfo.uiNumUnits = pcDriver ? pcDriver->NumUnits() : 0;
 		sInfo.uiRevision = psROM->uiRevision;
-		sInfo.uiOpen = (pcDriver && (pcDriver->GetOwner() != KERNAL_DRIVER_NO_OWNER)) ? 1 : 0;
+		sInfo.uiOpen = (pcDriver && pcDriver->IsOpen()) ? 1 : 0;
 		strcpy(sInfo.szName, psROM->szName);
 		strcpy(sInfo.szManufacturer, psROM->szManufacturer);
 		return KernalCopyToUser(uiAddress, (uint8*)&sInfo, sizeof(SKernalDeviceInfo)) ? KERNAL_DEVICE_SUCCESS : KERNAL_DEVICE_BAD_ARGUMENT;
@@ -139,7 +139,7 @@ static uint16 KernalDeviceOpenCall(uint32 uiManufacturer, uint32 uiName, uint16 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Frees the handle; its board is let go when it was the process's last
+// Frees the handle; its unit is let go when it was the process's last
 // handle on it.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -147,6 +147,7 @@ static uint16 KernalDeviceCloseCall(uint16 uiHandle)
 {
 	CKernalDriver*	pcDriver;
 	uint16			uiUnit;
+	SKernalHandle*	psHandle;
 	uint8			uiProcess;
 	uint8			uiSlot;
 	uint16			i;
@@ -161,12 +162,13 @@ static uint16 KernalDeviceCloseCall(uint16 uiHandle)
 	gasKernalHandles[uiHandle - 1].uiProcess = 0;
 	for (i = 0; i < KERNAL_MAX_HANDLES; i++)
 	{
-		if ((gasKernalHandles[i].uiProcess == uiProcess) && (gasKernalHandles[i].uiSlot == uiSlot))
+		psHandle = &gasKernalHandles[i];
+		if ((psHandle->uiProcess == uiProcess) && (psHandle->uiSlot == uiSlot) && (psHandle->uiUnit == uiUnit))
 		{
 			return KERNAL_DEVICE_SUCCESS;
 		}
 	}
-	pcDriver->Close(uiProcess);
+	pcDriver->Close(uiUnit, uiProcess);
 	return KERNAL_DEVICE_SUCCESS;
 }
 

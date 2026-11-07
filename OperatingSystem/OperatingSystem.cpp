@@ -17,6 +17,27 @@ uint32	guiProduct;
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Whether the first sound board shows open (KernalDeviceInfo).
+//
+//////////////////////////////////////////////////////////////////////////
+bool BootIsSoundBoardOpen(void)
+{
+	SKernalDeviceInfo	sInfo;
+	uint16				uiIndex;
+
+	for (uiIndex = 0; KernalDeviceInfo(uiIndex, &sInfo) == KERNAL_DEVICE_SUCCESS; uiIndex++)
+	{
+		if ((strcmp(sInfo.szManufacturer, SOUND_BOARD_MANUFACTURER) == 0) && (strcmp(sInfo.szName, SOUND_BOARD_NAME) == 0))
+		{
+			return sInfo.uiOpen != 0;
+		}
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Checks the device calls do what they should with what any HCP65 with a
 // sound board has: 0 if they do, or which check failed.  The handle it
 // opens is closed again, so modplay.exe can open the sound board.
@@ -27,6 +48,7 @@ uint16 BootCheckDevices(void)
 	SKernalDeviceInfo	sInfo;
 	uint16				uiIndex;
 	uint16				uiHandle;
+	uint16				uiRight;
 	uint16				uiSoundBoards;
 	uint32				uiDone;
 
@@ -75,14 +97,7 @@ uint16 BootCheckDevices(void)
 	{
 		return 7;
 	}
-	for (uiIndex = 0; KernalDeviceInfo(uiIndex, &sInfo) == KERNAL_DEVICE_SUCCESS; uiIndex++)
-	{
-		if ((strcmp(sInfo.szName, SOUND_BOARD_NAME) == 0) && sInfo.uiOpen)
-		{
-			break;
-		}
-	}
-	if (!sInfo.uiOpen)
+	if (!BootIsSoundBoardOpen())
 	{
 		return 8;
 	}
@@ -94,6 +109,25 @@ uint16 BootCheckDevices(void)
 	if ((KernalDeviceClose(uiHandle) != KERNAL_DEVICE_SUCCESS) || (KernalDeviceClose(uiHandle) != KERNAL_DEVICE_BAD_HANDLE))
 	{
 		return 10;
+	}
+
+	//The program has the whole sound board while either unit is open; a write says how much it wrote.
+	if ((KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0, SOUND_BOARD_LEFT, &uiHandle) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0, SOUND_BOARD_RIGHT, &uiRight) != KERNAL_DEVICE_SUCCESS))
+	{
+		return 11;
+	}
+	if ((KernalDeviceWrite(uiRight, 0, &sInfo, 16, &uiDone) != KERNAL_DEVICE_SUCCESS) || (uiDone != 16))
+	{
+		return 12;
+	}
+	if ((KernalDeviceClose(uiHandle) != KERNAL_DEVICE_SUCCESS) || !BootIsSoundBoardOpen())
+	{
+		return 13;
+	}
+	if ((KernalDeviceClose(uiRight) != KERNAL_DEVICE_SUCCESS) || BootIsSoundBoardOpen())
+	{
+		return 14;
 	}
 	return 0;
 }

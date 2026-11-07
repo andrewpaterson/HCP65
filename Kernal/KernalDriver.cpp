@@ -30,6 +30,7 @@ uint16 CKernalDriver::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	muiSlot = uiSlot;
 	mpuiRegisters = (volatile uint8*)(psDevice->uiAddress + DEVICE_ROM_SIZE);
 	muiOwner = KERNAL_DRIVER_NO_OWNER;
+	muiOpenUnits = 0;
 	KernalEnableDevice(uiSlot);
 	return KERNAL_DRIVER_SUCCESS;
 }
@@ -44,6 +45,7 @@ void CKernalDriver::Kill(void)
 	KernalClearInterruptHandler(muiSlot);
 	KernalDisableDevice(muiSlot);
 	muiOwner = KERNAL_DRIVER_NO_OWNER;
+	muiOpenUnits = 0;
 }
 
 
@@ -69,7 +71,8 @@ void CKernalDriver::Interrupt(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiProcess has the board until it closes it.
+// uiProcess has the whole board until it has closed every unit it opened
+// (at most 16 units).
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalDriver::Open(uint16 uiUnit, uint8 uiProcess)
@@ -83,21 +86,46 @@ uint16 CKernalDriver::Open(uint16 uiUnit, uint8 uiProcess)
 		return KERNAL_DRIVER_IN_USE;
 	}
 	muiOwner = uiProcess;
+	muiOpenUnits = (uint16)(muiOpenUnits | (1 << uiUnit));
 	return KERNAL_DRIVER_SUCCESS;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiProcess lets the board go, if it has it.
+// uiProcess has closed its last handle on uiUnit (every unit if
+// KERNAL_DRIVER_ALL_UNITS).  The board is let go once it has none open.
 //
 //////////////////////////////////////////////////////////////////////////
-void CKernalDriver::Close(uint8 uiProcess)
+void CKernalDriver::Close(uint16 uiUnit, uint8 uiProcess)
 {
-	if (muiOwner == uiProcess)
+	if (muiOwner != uiProcess)
+	{
+		return;
+	}
+	if (uiUnit == KERNAL_DRIVER_ALL_UNITS)
+	{
+		muiOpenUnits = 0;
+	}
+	else
+	{
+		muiOpenUnits = (uint16)(muiOpenUnits & ~(1 << uiUnit));
+	}
+	if (muiOpenUnits == 0)
 	{
 		muiOwner = KERNAL_DRIVER_NO_OWNER;
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process has a unit open (KernalDeviceInfo).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalDriver::IsOpen(void)
+{
+	return muiOwner != KERNAL_DRIVER_NO_OWNER;
 }
 
 
@@ -157,7 +185,6 @@ void CKernalDriver::SetInterrupt(volatile uint8* puiFlags, bool bTrusted)
 SKernalDevice* CKernalDriver::GetDevice(void) { return mpsDevice; }
 uint16 CKernalDriver::GetSlot(void) { return muiSlot; }
 volatile uint8* CKernalDriver::GetRegisters(void) { return mpuiRegisters; }
-uint8 CKernalDriver::GetOwner(void) { return muiOwner; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -227,7 +254,7 @@ CKernalDriver* KernalFindDriver(const char* szManufacturer, const char* szName, 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The boards uiProcess has open are let go (it has ended).
+// The units uiProcess has open are let go (it has ended).
 //
 //////////////////////////////////////////////////////////////////////////
 void KernalCloseDrivers(uint8 uiProcess)
@@ -236,9 +263,9 @@ void KernalCloseDrivers(uint8 uiProcess)
 
 	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
 	{
-		if (gapcKernalDrivers[uiSlot] && (gapcKernalDrivers[uiSlot]->GetOwner() == uiProcess))
+		if (gapcKernalDrivers[uiSlot])
 		{
-			gapcKernalDrivers[uiSlot]->Close(uiProcess);
+			gapcKernalDrivers[uiSlot]->Close(KERNAL_DRIVER_ALL_UNITS, uiProcess);
 		}
 	}
 }

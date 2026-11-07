@@ -71,10 +71,10 @@ _gauiKernalExports:
 		.long _CKernalDriver__GetRegisters
 		.long Export_CKernalDriver__GetRegisters_ax
 		.long _CKernalDriver__GetRegisters.ax
-		.long Export_CKernalDriver__GetOwner
-		.long _CKernalDriver__GetOwner
-		.long Export_CKernalDriver__GetOwner_ax
-		.long _CKernalDriver__GetOwner.ax
+		.long Export_CKernalDriver__IsOpen
+		.long _CKernalDriver__IsOpen
+		.long Export_CKernalDriver__IsOpen_ax
+		.long _CKernalDriver__IsOpen.ax
 		; The devices (KernalDevices.h) and their drivers (KernalDriver.h).
 		.long Export_gasKernalDevices
 		.long _gasKernalDevices
@@ -200,10 +200,10 @@ Export_CKernalDriver__GetRegisters:
 		.byte "_CKernalDriver__GetRegisters", 0
 Export_CKernalDriver__GetRegisters_ax:
 		.byte "_CKernalDriver__GetRegisters.ax", 0
-Export_CKernalDriver__GetOwner:
-		.byte "_CKernalDriver__GetOwner", 0
-Export_CKernalDriver__GetOwner_ax:
-		.byte "_CKernalDriver__GetOwner.ax", 0
+Export_CKernalDriver__IsOpen:
+		.byte "_CKernalDriver__IsOpen", 0
+Export_CKernalDriver__IsOpen_ax:
+		.byte "_CKernalDriver__IsOpen.ax", 0
 Export_gasKernalDevices:
 		.byte "_gasKernalDevices", 0
 Export_KernalReadRegister__Fh:
