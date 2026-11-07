@@ -332,6 +332,67 @@ static bool TestKernalReadTables(uint8* puiDest)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Output/szImage, a copy of the emulator's blank SD card image.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalCopyBlankCard(const char* szImage)
+{
+	CFileUtil	cFileUtil;
+	bool		bResult;
+
+	//TouchDir returns false when Output is already there (every run after the first).
+	cFileUtil.TouchDir(TEST_HCP65_OUTPUT);
+	AssertTrue(cFileUtil.IsDirectory(TEST_HCP65_OUTPUT));
+	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, szImage);
+	AssertTrue(bResult);
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Sets boot.exe's argument to uiArgument and gives where the kernal's
+// status is.  guiKernalBootArgument is image data: in the ROM at its MPU
+// RAM address (the kernal's status is set by the start up).
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestKernalSetBootArgument(CHCP65KernalBuilder* pcBuilder, uint16 uiArgument, uint32* puiStatus)
+{
+	uint8*	puiROM;
+	uint32	uiAddress;
+
+	puiROM = pcBuilder->GetROM();
+	AssertTrue(pcBuilder->GetSymbol("_gsKernalStatus", puiStatus));
+	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiAddress));
+	puiROM[uiAddress] = (uint8)uiArgument;
+	puiROM[uiAddress + 1] = (uint8)(uiArgument >> 8);
+	if (getenv("TEST_HCP65_VERBOSE"))
+	{
+		printf("status at $%06X, boot argument at $%06X\n", *puiStatus, uiAddress);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Puts the debug port in its socket, watched, loads the kernal ROM and
+// resets the machine, its other boards in place.  Fill mode: memory
+// nothing wrote reads $CC (the kernal doesn't clear the banks it gives
+// processes), so a program that relied on zeroed memory would fail.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestKernalStart(CHCP65* pcHCP65, CHCP65DebugPort* pcPort, CHCP65KernalBuilder* pcBuilder)
+{
+	AssertTrue(pcHCP65->SetDevice(TEST_HCP65_DEBUG_SOCKET, pcPort));
+	pcPort->Watch(true);
+	AssertTrue(pcHCP65->LoadROM(pcBuilder->GetROM(), HCP65_ROM_SIZE));
+	pcHCP65->SetMemoryFill(true);
+	pcHCP65->Reset();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Copies the blank SD card image to Output and puts boot.exe (HCP65/OperatingSystem),
 // modplay.exe (HCP65/ModPlay), the sound board's driver (HCP65/Drivers/
 // SoundBoard, \OS\Drivers\SOUND.DRV), the UART Board's (for the
@@ -342,16 +403,10 @@ static bool TestKernalReadTables(uint8* puiDest)
 static bool TestKernalPutFiles(void)
 {
 	static const char*	aszModPlayLibraries[] = { "StandardLib", "SupportLib", NULL };
-	CFileUtil			cFileUtil;
 	uint8*				puiTables;
 	bool				bResult;
 
-	//TouchDir returns false when Output is already there (every run after the first).
-	cFileUtil.TouchDir(TEST_HCP65_OUTPUT);
-	AssertTrue(cFileUtil.IsDirectory(TEST_HCP65_OUTPUT));
-	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, TEST_HCP65_SD_CARD_IMAGE);
-	AssertTrue(bResult);
-	if (!bResult)
+	if (!TestKernalCopyBlankCard(TEST_HCP65_SD_CARD_IMAGE))
 	{
 		return false;
 	}
@@ -592,7 +647,6 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	CFileUtil			cFileUtil;
 	uint8				auiFrames[0x1000 * 2];
 	uint32				uiStatus;
-	uint32				uiArgument;
 	uint32				uiSeconds;
 	uint64				uiRunCycles;
 	uint32				uiFrames;
@@ -611,22 +665,13 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 		return;
 	}
 
-	//guiKernalBootArgument is image data: in the ROM at its MPU RAM address (the kernal's status is set by the start
-	//up).  boot.exe gets the boot argument.
-	puiROM = pcBuilder->GetROM();
-	AssertTrue(pcBuilder->GetSymbol("_gsKernalStatus", &uiStatus));
-	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiArgument));
+	//boot.exe's argument is the seconds modplay.exe plays.
 	//TEST_MODPLAY_SECONDS, TEST_HCP65_RUN_CYCLES and TEST_HCP65_CLOCK (environment) override them, to time modplay.exe
 	//(at the board's 25000000 it must keep the sound board fed, or what it plays won't match).
 	uiSeconds = getenv("TEST_MODPLAY_SECONDS") ? (uint32)atoi(getenv("TEST_MODPLAY_SECONDS")) : TEST_MODPLAY_SECONDS;
 	uiRunCycles = getenv("TEST_HCP65_RUN_CYCLES") ? (uint64)atoll(getenv("TEST_HCP65_RUN_CYCLES")) : TEST_HCP65_RUN_CYCLES;
-	puiROM[uiArgument] = (uint8)uiSeconds;
-	puiROM[uiArgument + 1] = (uint8)(uiSeconds >> 8);
+	TestKernalSetBootArgument(pcBuilder, (uint16)uiSeconds, &uiStatus);
 
-	if (getenv("TEST_HCP65_VERBOSE"))
-	{
-		printf("status at $%06X, boot argument at $%06X\n", uiStatus, uiArgument);
-	}
 	cHCP65.Init(getenv("TEST_HCP65_CLOCK") ? (uint64)atoll(getenv("TEST_HCP65_CLOCK")) : TEST_HCP65_CLOCK_RATE);
 	cAudio.Init();
 	cAudio2.Init();
@@ -640,16 +685,9 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO_SOCKET, &cAudio));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO2_SOCKET, &cAudio2));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
-	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
 	cStray.Init();
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_STRAY_SOCKET, &cStray));
-	cPort.Watch(true);
-	AssertTrue(cHCP65.LoadROM(puiROM, HCP65_ROM_SIZE));
-
-	//Fill mode: memory nothing wrote reads $CC (the kernal doesn't clear the banks it gives processes), so a program
-	//that relied on zeroed memory would fail here.
-	cHCP65.SetMemoryFill(true);
-	cHCP65.Reset();
+	TestKernalStart(&cHCP65, &cPort, pcBuilder);
 
 	//The sound board's frames are taken as they are played: it keeps no more than 64K of them.
 	acPlayed.Init();
@@ -775,6 +813,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	free(puiTables);
 	AssertInt(15, puiMain[HCP65_TABLES_START + ((3 << 8) | 5) * 2]);
 	AssertInt(0x020000, puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE] | (puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 1] << 8) | (puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 2] << 16));
+	puiROM = pcBuilder->GetROM();
 	AssertTrue(memcmp(&puiROM[0x10000], &puiRAM[0x10000], 0x100) == 0);
 	for (i = 0; i < 0x400; i++)
 	{
@@ -857,13 +896,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalPutUARTFiles(void)
 {
-	CFileUtil	cFileUtil;
-	bool		bResult;
-
-	cFileUtil.TouchDir(TEST_HCP65_OUTPUT);
-	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, TEST_HCP65_UART_CARD_IMAGE);
-	AssertTrue(bResult);
-	if (!bResult)
+	if (!TestKernalCopyBlankCard(TEST_HCP65_UART_CARD_IMAGE))
 	{
 		return false;
 	}
@@ -925,10 +958,8 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	CArrayUint8			acFromTTL;
 	uint8				auiBuffer[0x400];
 	uint8				auiExpected[TEST_UART_RECEIVED];
-	uint8*				puiROM;
 	uint8*				puiRAM;
 	uint32				uiStatus;
-	uint32				uiArgument;
 	size				uiCount;
 	int					i;
 	bool				bSentRS232;
@@ -941,11 +972,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	}
 
 	//boot.exe's argument is 0: it is the parent.
-	puiROM = pcBuilder->GetROM();
-	AssertTrue(pcBuilder->GetSymbol("_gsKernalStatus", &uiStatus));
-	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiArgument));
-	puiROM[uiArgument] = 0;
-	puiROM[uiArgument + 1] = 0;
+	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	cSDCard.Init();
@@ -954,11 +981,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	AssertTrue(cSDCard.InsertCard(TEST_HCP65_UART_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_UART_SOCKET, &cUART));
-	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_SOCKET, &cPort));
-	cPort.Watch(true);
-	AssertTrue(cHCP65.LoadROM(puiROM, HCP65_ROM_SIZE));
-	cHCP65.SetMemoryFill(true);
-	cHCP65.Reset();
+	TestKernalStart(&cHCP65, &cPort, pcBuilder);
 
 	//The far ends: the RS232 port's has RTS and DTR on (its CTS and DSR) and DCD off; the TTL port's has RTS on.
 	pcTTL = cUART.GetTTL();
