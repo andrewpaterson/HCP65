@@ -596,6 +596,7 @@ void TestHCP65DeviceROMFromXML(void)
 	CHCP65UARTBoard	cUART;
 	CHCP65MemoryBoard	cMemory;
 	CChars			szError;
+	CChars			szMainBus;
 	FILE*			pFile;
 	uint32			i;
 	bool			bSame;
@@ -654,6 +655,30 @@ void TestHCP65DeviceROMFromXML(void)
 	fclose(pFile);
 	AssertFalse(TestHCP65LoadDeviceROM("Output", "BadDeviceROM.xml", &cROM, &szError));
 	AssertString("Register listed twice (<Register> line 4)", szError.Text());
+
+	//A private board: its windows are its own memory.  MainBus's words are written in one order.
+	pFile = fopen("Output" _FS_ "PrivateDeviceROM.xml", "wb");
+	AssertNotNull(pFile);
+	fputs("<?xml version=\"1.0\"?>\n<DeviceROM Name=\"Board\" Manufacturer=\"Maker\" DeviceBus=\"32KB\" MainBus=\"Private  WindowB WindowA\"/>\n", pFile);
+	fclose(pFile);
+	szError.Clear();
+	AssertTrue(TestHCP65LoadDeviceROM("Output", "PrivateDeviceROM.xml", &cROM, &szError));
+	AssertString("", szError.Text());
+	AssertInt(DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B | DEVICE_MAIN_BUS_PRIVATE, cROM.Read(DEVICE_ROM_MAIN_BUS_OFFSET));
+	szMainBus.Init();
+	DeviceROMMainBusText(DEVICE_MAIN_BUS_MASTER | DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B | DEVICE_MAIN_BUS_PRIVATE, &szMainBus);
+	AssertString("Master WindowA WindowB Private", szMainBus.Text());
+	DeviceROMMainBusText(0, &szMainBus);
+	AssertString("", szMainBus.Text());
+	szMainBus.Kill();
+
+	//A word that isn't a flag's is named.
+	pFile = fopen("Output" _FS_ "BadDeviceROM.xml", "wb");
+	AssertNotNull(pFile);
+	fputs("<?xml version=\"1.0\"?>\n<DeviceROM Name=\"Board\" Manufacturer=\"Maker\" DeviceBus=\"32KB\" MainBus=\"WindowA Privat\"/>\n", pFile);
+	fclose(pFile);
+	AssertFalse(TestHCP65LoadDeviceROM("Output", "BadDeviceROM.xml", &cROM, &szError));
+	AssertString("Unknown MainBus: Privat (<DeviceROM> line 2)", szError.Text());
 
 	szError.Kill();
 	DataMemoryKill();
@@ -749,6 +774,18 @@ void TestHCP65DeviceROMFromSchematic(void)
 	AssertSize(9, cSchematic.NumRegisters());
 	AssertString("PS2 FIFO 1", cSchematic.GetRegister(2)->szName);
 	AssertString("Clear Interrupt 1", cSchematic.GetRegister(3)->szName);
+	cSchematic.Kill();
+	szError.Kill();
+
+	//The Coprocessor Board: the coprocessors' memory is windows A and B, swapped onto the main bus to load and collect
+	//it, so its device ROM chip's ROM_MainBus says it is private.
+	cSchematic.Init();
+	szError.Init();
+	AssertTrue(cSchematic.Read(TEST_HCP65_KICAD _FS_ "Coprocessor" _FS_ "Coprocessor Board - Main" _FS_ "Coprocessor Board - Main.kicad_sch", &szError));
+	AssertString("", szError.Text());
+	AssertString("Coprocessor Board", cSchematic.GetName());
+	AssertString("COPROC.DRV", cSchematic.GetDriver());
+	AssertInt(DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B | DEVICE_MAIN_BUS_PRIVATE, cSchematic.GetMainBus());
 	cSchematic.Kill();
 	szError.Kill();
 

@@ -6,6 +6,24 @@
 #include "DeviceROM.h"
 
 
+//MainBus's words, in the order they are written.
+struct SDeviceROMMainBusFlag
+{
+	const char*	szWord;
+	uint8		uiFlag;
+};
+
+#define DEVICE_ROM_NUM_MAIN_BUS_FLAGS	4
+
+static const SDeviceROMMainBusFlag	gasDeviceROMMainBusFlags[DEVICE_ROM_NUM_MAIN_BUS_FLAGS] =
+{
+	{ "Master", DEVICE_MAIN_BUS_MASTER },
+	{ "WindowA", DEVICE_MAIN_BUS_WINDOW_A },
+	{ "WindowB", DEVICE_MAIN_BUS_WINDOW_B },
+	{ "Private", DEVICE_MAIN_BUS_PRIVATE },
+};
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Erased flash with the board's description and no registers.  Strings
@@ -251,13 +269,14 @@ static bool DeviceROMString(CMarkupTag* pcTag, const char* szName, uint32 uiLeng
 //////////////////////////////////////////////////////////////////////////
 //
 // The DEVICE_MAIN_BUS_* flags named in szMainBus, separated by spaces.
+// False, with pszUnknown (if given) set to the word, if one isn't a flag's.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool DeviceROMMainBus(CMarkupTag* pcTag, const char* szMainBus, uint8* puiMainBus, CChars* pszError)
+bool DeviceROMParseMainBus(const char* szMainBus, uint8* puiMainBus, CChars* pszUnknown)
 {
-	char		szWord[16];
 	const char*	sz;
 	size		uiLength;
+	size		i;
 
 	*puiMainBus = 0;
 	sz = szMainBus;
@@ -276,31 +295,71 @@ static bool DeviceROMMainBus(CMarkupTag* pcTag, const char* szMainBus, uint8* pu
 		{
 			uiLength++;
 		}
-		if (uiLength >= sizeof(szWord))
+		for (i = 0; i < DEVICE_ROM_NUM_MAIN_BUS_FLAGS; i++)
 		{
-			return DeviceROMError(pszError, pcTag, "Unknown MainBus: ", szMainBus);
+			if ((strlen(gasDeviceROMMainBusFlags[i].szWord) == uiLength) && (memcmp(gasDeviceROMMainBusFlags[i].szWord, sz, uiLength) == 0))
+			{
+				*puiMainBus |= gasDeviceROMMainBusFlags[i].uiFlag;
+				break;
+			}
 		}
-		memcpy(szWord, sz, uiLength);
-		szWord[uiLength] = '\0';
+		if (i == DEVICE_ROM_NUM_MAIN_BUS_FLAGS)
+		{
+			if (pszUnknown)
+			{
+				pszUnknown->Clear();
+				pszUnknown->Append(sz, uiLength);
+			}
+			return false;
+		}
 		sz += uiLength;
+	}
+}
 
-		if (strcmp(szWord, "Master") == 0)
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The words of uiMainBus's DEVICE_MAIN_BUS_* flags, separated by spaces,
+// as MainBus has them.
+//
+//////////////////////////////////////////////////////////////////////////
+void DeviceROMMainBusText(uint8 uiMainBus, CChars* pszDest)
+{
+	size	i;
+
+	pszDest->Clear();
+	for (i = 0; i < DEVICE_ROM_NUM_MAIN_BUS_FLAGS; i++)
+	{
+		if (uiMainBus & gasDeviceROMMainBusFlags[i].uiFlag)
 		{
-			*puiMainBus |= DEVICE_MAIN_BUS_MASTER;
-		}
-		else if (strcmp(szWord, "WindowA") == 0)
-		{
-			*puiMainBus |= DEVICE_MAIN_BUS_WINDOW_A;
-		}
-		else if (strcmp(szWord, "WindowB") == 0)
-		{
-			*puiMainBus |= DEVICE_MAIN_BUS_WINDOW_B;
-		}
-		else
-		{
-			return DeviceROMError(pszError, pcTag, "Unknown MainBus: ", szWord);
+			if (!pszDest->Empty())
+			{
+				pszDest->Append(' ');
+			}
+			pszDest->Append(gasDeviceROMMainBusFlags[i].szWord);
 		}
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// MainBus's flags, an error naming the word that isn't one.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool DeviceROMMainBus(CMarkupTag* pcTag, const char* szMainBus, uint8* puiMainBus, CChars* pszError)
+{
+	CChars	szUnknown;
+	bool	bResult;
+
+	szUnknown.Init();
+	bResult = DeviceROMParseMainBus(szMainBus, puiMainBus, &szUnknown);
+	if (!bResult)
+	{
+		DeviceROMError(pszError, pcTag, "Unknown MainBus: ", szUnknown.Text());
+	}
+	szUnknown.Kill();
+	return bResult;
 }
 
 

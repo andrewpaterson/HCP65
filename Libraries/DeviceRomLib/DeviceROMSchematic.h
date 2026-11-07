@@ -14,11 +14,13 @@ class CKicadSchemNet;
 
 //What a board's schematic can't show is given as properties of its device ROM chip (the chip whose ~{CE} or ~{CS}
 //is Device Decode Stage A's ~{Device_ROM}).  ROM_Manufacturer must be given; ROM_Name and ROM_Revision default to the
-//title block's title and revision ("V0" is 0); ROM_Driver defaults to none.
+//title block's title and revision ("V0" is 0); ROM_Driver defaults to none.  ROM_MainBus's words (as <DeviceROM>'s
+//MainBus) are added to what the wiring shows: Private for a board whose memory windows are its own.
 #define DEVICE_ROM_PROPERTY_NAME			"ROM_Name"
 #define DEVICE_ROM_PROPERTY_MANUFACTURER	"ROM_Manufacturer"
 #define DEVICE_ROM_PROPERTY_REVISION		"ROM_Revision"
 #define DEVICE_ROM_PROPERTY_DRIVER			"ROM_Driver"
+#define DEVICE_ROM_PROPERTY_MAIN_BUS		"ROM_MainBus"
 
 //The HCP65 library symbols and bus signals the schematic is read by.
 #define DEVICE_ROM_STAGE_A_SYMBOL			"Device_Decode_Stage_A"

@@ -35,6 +35,8 @@ class CChars;
 #define DEVICE_MAIN_BUS_MASTER			0x01		//Can drive the main bus (DMA).
 #define DEVICE_MAIN_BUS_WINDOW_A		0x02		//Provides a 2MB memory window on the main bus: chip A.
 #define DEVICE_MAIN_BUS_WINDOW_B		0x04		//Chip B.
+#define DEVICE_MAIN_BUS_PRIVATE			0x08		//Its windows are its own memory (a coprocessor's), swapped onto the main bus
+												//only to load and collect it: given a window, but not main memory.
 
 #define DEVICE_REGISTER_READ			0
 #define DEVICE_REGISTER_WRITE			1			//A register that is read and written is listed twice.
@@ -47,8 +49,8 @@ class CChars;
 //		<Register Name="Name Buffer" Offset="0x500" Count="64" Access="Read"/>
 //	</DeviceROM>
 //
-//Revision defaults to 0, MainBus to "" (doesn't use it) and Driver to "" (none).  MainBus lists any of Master, WindowA
-//and WindowB, separated by spaces.  Access is Read, Write or ReadWrite (listed twice).  Count registers follow one
+//Revision defaults to 0, MainBus to "" (doesn't use it) and Driver to "" (none).  MainBus lists any of Master, WindowA,
+//WindowB and Private, separated by spaces.  Access is Read, Write or ReadWrite (listed twice).  Count registers follow one
 //another from Offset (default 1).  A register's Name is only for the reader.  Numbers are decimal or 0x hexadecimal.
 #define DEVICE_ROM_XML_TAG				"DeviceROM"
 #define DEVICE_ROM_XML_REGISTER_TAG		"Register"
@@ -75,6 +77,10 @@ protected:
 	void	SetString(uint32 uiOffset, uint32 uiLength, const char* sz);
 	void	SetChecksum(void);
 };
+
+
+bool	DeviceROMParseMainBus(const char* szMainBus, uint8* puiMainBus, CChars* pszUnknown);
+void	DeviceROMMainBusText(uint8 uiMainBus, CChars* pszDest);
 
 
 #endif // __DEVICE_ROM_H__

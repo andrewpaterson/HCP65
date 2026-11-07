@@ -565,6 +565,7 @@ bool CDeviceROMSchematic::ReadDescription(CKicadSchemSymbol* pcStageA)
 	char*					szValue;
 	const char*				szRevision;
 	long					lRevision;
+	uint8					uiMainBus;
 	size					i;
 	size					j;
 
@@ -608,6 +609,16 @@ bool CDeviceROMSchematic::ReadDescription(CKicadSchemSymbol* pcStageA)
 	szValue = pcProperties->GetValue(DEVICE_ROM_PROPERTY_DRIVER);
 	mszDriver.Set(szValue ? szValue : "");
 
+	szValue = pcProperties->GetValue(DEVICE_ROM_PROPERTY_MAIN_BUS);
+	if (szValue)
+	{
+		if (!DeviceROMParseMainBus(szValue, &uiMainBus, NULL))
+		{
+			return Error("The device ROM chip's " DEVICE_ROM_PROPERTY_MAIN_BUS " isn't Master, WindowA, WindowB or Private: ", szValue);
+		}
+		muiMainBus |= uiMainBus;
+	}
+
 	szValue = pcProperties->GetValue(DEVICE_ROM_PROPERTY_REVISION);
 	szRevision = (szValue && szValue[0]) ? szValue : mpcFile->GetRevision();
 	while (szRevision && *szRevision && ((*szRevision < '0') || (*szRevision > '9')))
@@ -638,18 +649,7 @@ void CDeviceROMSchematic::SaveXML(CXMLWriter* pcWriter)
 	size							i;
 
 	szMainBus.Init();
-	if (muiMainBus & DEVICE_MAIN_BUS_MASTER)
-	{
-		szMainBus.Append("Master");
-	}
-	if (muiMainBus & DEVICE_MAIN_BUS_WINDOW_A)
-	{
-		szMainBus.Append(szMainBus.Empty() ? "WindowA" : " WindowA");
-	}
-	if (muiMainBus & DEVICE_MAIN_BUS_WINDOW_B)
-	{
-		szMainBus.Append(szMainBus.Empty() ? "WindowB" : " WindowB");
-	}
+	DeviceROMMainBusText(muiMainBus, &szMainBus);
 
 	pcWriter->Begin(DEVICE_ROM_XML_TAG);
 	pcWriter->Attribute("Name", mszName.Text());
