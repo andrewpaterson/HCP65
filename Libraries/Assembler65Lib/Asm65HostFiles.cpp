@@ -370,18 +370,20 @@ uint32 CAsm65HostFiles::Open(const char* szPath, uint32 uiMode)
 	bool			bRead;
 	bool			bWrite;
 	bool			bCreate;
+	bool			bTruncate;
 	size			i;
 
 	bRead = (uiMode & ASM65_HOST_MODE_READ) != 0;
 	bWrite = (uiMode & ASM65_HOST_MODE_WRITE) != 0;
 	bCreate = (uiMode & ASM65_HOST_MODE_CREATE) != 0;
+	bTruncate = (uiMode & ASM65_HOST_MODE_TRUNCATE) != 0;
 	if (bRead && bWrite)
 	{
 		eMode = bCreate ? EFM_ReadWrite_Create : EFM_ReadWrite;
 	}
 	else if (bWrite)
 	{
-		eMode = bCreate ? EFM_Write_Create : EFM_ReadWrite;
+		eMode = bCreate ? (bTruncate ? EFM_Write_Replace : EFM_Write_Create) : EFM_ReadWrite;
 	}
 	else if (bRead)
 	{
@@ -401,7 +403,7 @@ uint32 CAsm65HostFiles::Open(const char* szPath, uint32 uiMode)
 		SafeFree(psFile);
 		return 0;
 	}
-	if (uiMode & ASM65_HOST_MODE_TRUNCATE)
+	if (bTruncate && (eMode != EFM_Write_Replace))
 	{
 		psFile->cFile.Truncate(0);
 	}

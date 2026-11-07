@@ -2,6 +2,7 @@
 #include "BaseLib/PointerFunctions.h"
 #include "TestLib/Assert.h"
 #include "Assembler65Lib/Asm65Module.h"
+#include "BaseLib/FileUtil.h"
 #include "TestAsm65C64Context.h"
 
 
@@ -697,6 +698,9 @@ void TestAsm65LinkerLineTable(void)
 	SLinkTest			sTest;
 	CAsm65LineTable*	pcTable;
 	CAsm65LineTable		cRead;
+	CAsm65LineTable		cEmpty;
+	CFileUtil			cFileUtil;
+	filePos				iBigFile;
 	CMemoryFile*		pcMemoryFile;
 	SAsm65LineEntry*	psLine;
 	SAsm65LineEntry*	psRead;
@@ -810,6 +814,18 @@ void TestAsm65LinkerLineTable(void)
 	AssertInt(10, psRead->uiLine);
 	AssertInt(pcTable->GetLine(0)->uiAddress - (uint32)iStart, cRead.GetLine(0)->uiAddress);
 	cRead.Kill();
+
+	//Written over a bigger table's file, an empty table's file is its own size (a rebuild's .lines doesn't grow).
+	cFileUtil.TouchDir("Output");
+	AssertTrue(pcTable->WriteFile("Output" _FS_ "Rewrite.lines"));
+	iBigFile = cFileUtil.Size("Output" _FS_ "Rewrite.lines");
+	cEmpty.Init();
+	AssertTrue(cEmpty.WriteFile("Output" _FS_ "Rewrite.lines"));
+	AssertTrue(cFileUtil.Size("Output" _FS_ "Rewrite.lines") < iBigFile);
+	AssertTrue(cEmpty.ReadFile("Output" _FS_ "Rewrite.lines"));
+	AssertSize(0, cEmpty.NumLines());
+	cEmpty.Kill();
+	cFileUtil.Delete("Output" _FS_ "Rewrite.lines");
 
 	//Not a line table: nothing is read.
 	cRead.Init();
