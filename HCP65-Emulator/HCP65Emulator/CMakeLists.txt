@@ -179,7 +179,7 @@ add_library(WindowLib STATIC ${WINDOWLIB_SOURCES})
 target_link_libraries(WindowLib PUBLIC InputLib SupportLib StandardLib BaseLib)
 
 add_library(X11Lib STATIC ${X11LIB_SOURCES})
-target_link_libraries(X11Lib PUBLIC WindowLib InputLib SupportLib StandardLib BaseLib X11::X11)
+target_link_libraries(X11Lib PUBLIC WindowLib InputLib SupportLib StandardLib BaseLib X11::X11 X11::Xext)
 
 add_library(PulseAudioLib STATIC ${PULSEAUDIOLIB_SOURCES})
 target_link_libraries(PulseAudioLib PUBLIC WindowLib SupportLib StandardLib BaseLib ${CMAKE_DL_LIBS})
