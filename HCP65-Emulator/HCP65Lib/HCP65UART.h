@@ -177,9 +177,6 @@ protected:
 //ROM below $400, then the UARTs' registers (A3 picks the UART, A0-A2 the register; A4-A9 aren't decoded).  Its
 //interrupt is the two UARTs' and'ed: either interrupting pulls it.  Held in reset, the UARTs are in master reset and
 //their oscillators are stopped.
-//
-//This is the board as it should be: the V0 schematic has the device ROM's and device RAM's selects swapped at its
-//Stage A (Kicad/Computer/UART/UART Board/UART Board Bugs.txt).
 class CHCP65UARTBoard : public CHCP65Device
 {
 protected:
