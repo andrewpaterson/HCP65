@@ -45,6 +45,7 @@ temp-freerouting.dsn
 
 # MkDocs build output (web.sh)
 /Website/site/
+/Website/.venv/
 
 /Tests/TestLibc65/TestLibc65/Log_65C64.txt
 /Tests/TestLibc65/TestLibc65/Log_816.txt
