@@ -1,0 +1,26 @@
+HCP65 VIA Control (V0) - schematic bugs
+=======================================
+
+1. The interrupt register's 74LCX540 drives the data bus on writes as well as reads
+
+   IC11 (74LCX540) reads the eight VIAs' ~{IRQ}s onto D0-D7 at device register
+   $480.  Both its output enables, pin 1 ~{OE1} and pin 19 ~{OE2}, are on the net
+   ~{A0..A7}: IC7 (74LVC138) pin 15 ~{Y0}, which is only an address decode
+   (~{Device Registers}, A7 set, A6-A0 clear).  Nothing on the sheet looks at ~{RD}
+   or ~{WD}; ~{RD} doesn't reach the VIA Control board at all.
+
+   On the VIA Board, the Device Buffer's data transceiver (its IC4, a 74ABT245) has
+   DIR on ~{RD} and ~{OE} on the device select, with its B side on the board's
+   D0-D7.  During a write ~{RD} is high, so it drives the CPU's byte onto D0-D7.
+
+   Effect: a write to $480 (or its mirrors $580, $680 and $780: A8 and A9 aren't
+   decoded) has IC11 and the Device Buffer driving D0-D7 against each other for
+   the whole write.  Reads are fine.  Until it is fixed, nothing may write the
+   interrupt register: not a driver, and not a test or clear that walks the
+   device's registers.
+
+   Fix: enable IC11 only on a read.  Take ~{RD} (the VIA Board's net ~{RD}, the
+   Device Buffer's pin 46) to VIA Control through a spare connector pin (VIA
+   Control J3 / VIA Board B5 pins 29, 33, 34, 35, 38, 47 and 49 are unconnected
+   on both), and put IC11 pin 19 ~{OE2} on it instead of ~{A0..A7}.  Pin 1
+   ~{OE1} stays on ~{A0..A7}.
