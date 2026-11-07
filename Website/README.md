@@ -2,10 +2,11 @@
 
 MkDocs (Material theme) site source.
 
-    .venv/bin/mkdocs serve     # live preview on http://127.0.0.1:8000
-    .venv/bin/mkdocs build     # static site into site/, copy that to the web server
+    ./web.sh           # build, then serve site/ as static files on http://127.0.0.1:8000
+    ./web.sh live      # live preview while editing docs/
+    ./web.sh build     # build only: copy site/ to the web server
 
-Recreate the venv with:
+PORT=8080 ./web.sh uses another port.  web.sh creates the venv if it is missing; to do it by hand:
 
     python3 -m venv .venv
     .venv/bin/pip install mkdocs-material mkdocs-glightbox mkdocs-table-reader-plugin openpyxl
