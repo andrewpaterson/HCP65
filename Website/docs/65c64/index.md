@@ -1,6 +1,6 @@
-# W65C64 Microprocessor Proposal
+# 65C64 Microprocessor Proposal
 
-The W65C64 is a thought experiment: a 64 bit processor that feels like part of the 65 lineage.
+The 65C64 is a thought experiment: a 64 bit processor that feels like part of the 65 lineage.
 It's a W65C816 with a 64 bit ALU and (mostly) 64 bit registers, a 16 bit data bus and a 32 bit
 address bus.  It aims to be minimalist and fun to program.
 
@@ -19,7 +19,7 @@ address bus.  It aims to be minimalist and fun to program.
   condition holds, in place of `mvn` and `mvp`.
 
 The [assembler](instructions/index.md) (Assembler65Lib) and the simulator (MicroprocessorLib)
-implement the proposal, and the C++ compiler has a W65C64 back end.
+implement the proposal, and the C++ compiler has a 65C64 back end.
 
 ## Pages
 
@@ -35,9 +35,9 @@ implement the proposal, and the C++ compiler has a W65C64 back end.
 
 These pages are written from:
 
-- `W65C64/65C64 Instruction Architecture.xlsx` (V0.1 Prelim), the architecture spreadsheet.
-- `W65C64/65C64 Instruction Architecture - Copy.odt`, the draft instruction reference for `cpy`.
-- `W65C64/65C64 Proposal.odt`, the original proposal.
+- `65C64/65C64 Instruction Architecture.xlsx` (V0.1 Prelim), the architecture spreadsheet.
+- `65C64/65C64 Instruction Architecture - Copy.odt`, the draft instruction reference for `cpy`.
+- `65C64/65C64 Proposal.odt`, the original proposal.
 - `Libraries/Assembler65Lib/Assembler65C64Syntax.txt`, the assembler's syntax.
 - `MicroprocessorLib/65C64Simulator.txt`, the simulator's decisions on the parts the
   spreadsheet leaves open.

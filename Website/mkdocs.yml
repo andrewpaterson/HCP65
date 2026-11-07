@@ -1,5 +1,5 @@
 site_name: Codaphela
-site_description: The HCP65 modern home computer, its C++ compiler, the W65C64 microprocessor proposal, the C++ software libraries and the HCP65 drivers and runtime
+site_description: The HCP65 modern home computer, its C++ compiler, the 65C64 microprocessor proposal, the C++ software libraries and the HCP65 drivers and runtime
 docs_dir: docs
 site_dir: site
 
@@ -64,31 +64,31 @@ nav:
       - Emulator: hcp65/emulator.md
   - HCP65 C++ Compiler:
       - compiler/index.md
-  - W65C64 Microprocessor Proposal:
-      - w65c64/index.md
-      - Registers: w65c64/registers.md
-      - Notation: w65c64/notation.md
-      - Operands and Addressing: w65c64/operands.md
+  - 65C64 Microprocessor Proposal:
+      - 65c64/index.md
+      - Registers: 65c64/registers.md
+      - Notation: 65c64/notation.md
+      - Operands and Addressing: 65c64/operands.md
       - Instructions:
-          - w65c64/instructions/index.md
-          - Copy: w65c64/instructions/cpy.md
-          - Copy Extend: w65c64/instructions/cpyx.md
-          - Logical: w65c64/instructions/logical.md
-          - Arithmetic: w65c64/instructions/arithmetic.md
-          - Shift: w65c64/instructions/shift.md
-          - Subcopy: w65c64/instructions/subcopy.md
-          - Find: w65c64/instructions/find.md
-          - Multiply and Divide: w65c64/instructions/multiply-divide.md
-          - Jump: w65c64/instructions/jump.md
-          - Branch: w65c64/instructions/branch.md
-          - Return: w65c64/instructions/return.md
-          - Stack: w65c64/instructions/stack.md
-          - Status: w65c64/instructions/status.md
-          - Register Width: w65c64/instructions/width.md
-          - Control: w65c64/instructions/control.md
-          - Block: w65c64/instructions/block.md
-          - Vector: w65c64/instructions/vector.md
-          - Hardware Registers: w65c64/instructions/hardware.md
-      - Emulator: w65c64/emulator.md
+          - 65c64/instructions/index.md
+          - Copy: 65c64/instructions/cpy.md
+          - Copy Extend: 65c64/instructions/cpyx.md
+          - Logical: 65c64/instructions/logical.md
+          - Arithmetic: 65c64/instructions/arithmetic.md
+          - Shift: 65c64/instructions/shift.md
+          - Subcopy: 65c64/instructions/subcopy.md
+          - Find: 65c64/instructions/find.md
+          - Multiply and Divide: 65c64/instructions/multiply-divide.md
+          - Jump: 65c64/instructions/jump.md
+          - Branch: 65c64/instructions/branch.md
+          - Return: 65c64/instructions/return.md
+          - Stack: 65c64/instructions/stack.md
+          - Status: 65c64/instructions/status.md
+          - Register Width: 65c64/instructions/width.md
+          - Control: 65c64/instructions/control.md
+          - Block: 65c64/instructions/block.md
+          - Vector: 65c64/instructions/vector.md
+          - Hardware Registers: 65c64/instructions/hardware.md
+      - Emulator: 65c64/emulator.md
   - C++ Software Libraries:
       - libraries/index.md

@@ -50,7 +50,7 @@ Loop:
 
 ## Conditions
 
-| W65C816 | W65C64 | Branches when |
+| W65C816 | 65C64 | Branches when |
 |---|---|---|
 | `bcs` | `bras c, target` | c set |
 | `bcc` | `brac c, target` | c clear |

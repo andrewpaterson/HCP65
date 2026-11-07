@@ -1,6 +1,6 @@
 # Instructions
 
-Every W65C64 instruction, grouped by what it does.  The operations use the
+Every 65C64 instruction, grouped by what it does.  The operations use the
 [notation](../notation.md) of the architecture spreadsheet, and the operands are described in
 [Operands and Addressing](../operands.md).
 
@@ -157,9 +157,9 @@ yet.
 
 ## W65C816 instructions without a match
 
-Some W65C816 instructions have no single W65C64 instruction, but can be built from a few:
+Some W65C816 instructions have no single 65C64 instruction, but can be built from a few:
 
-| W65C816 | W65C64 | How |
+| W65C816 | 65C64 | How |
 |---|---|---|
 | `rol` | `stat f, c`<br>`shl A, 1`<br>`stab (A, 0), f` | Copy c into f, shift A left, copy f into bit 0. |
 | `ror` | `stat f, c`<br>`gwth X, (A, -1)`<br>`shr A, 1`<br>`stab (A, X), f` | Copy c into f, put A's width less one in X, shift A right, copy f into bit X. |
