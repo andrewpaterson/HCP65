@@ -33,6 +33,30 @@ extern "C" uint16 KernalDeviceInfo(uint16 uiIndex, SKernalDeviceInfo* psInfo)
 //
 //
 //////////////////////////////////////////////////////////////////////////
+extern "C" bool KernalDeviceIsOpen(const char* szManufacturer, const char* szName, uint16 uiIndex)
+{
+	SKernalDeviceInfo	sInfo;
+	uint16				uiBoard;
+
+	for (uiBoard = 0; KernalDeviceInfo(uiBoard, &sInfo) == KERNAL_DEVICE_SUCCESS; uiBoard++)
+	{
+		if ((strcmp(sInfo.szManufacturer, szManufacturer) == 0) && (strcmp(sInfo.szName, szName) == 0))
+		{
+			if (uiIndex == 0)
+			{
+				return sInfo.uiOpen != 0;
+			}
+			uiIndex--;
+		}
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
 extern "C" uint16 KernalDeviceOpen(const char* szManufacturer, const char* szName, uint16 uiIndex, uint16 uiUnit, uint16* puiHandle)
 {
 	SKernalDeviceCall	sCall;

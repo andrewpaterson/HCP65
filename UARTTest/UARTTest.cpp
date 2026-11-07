@@ -23,27 +23,6 @@ uint8	gauiUARTTestBuffer[256];
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Whether the first UART Board shows open (KernalDeviceInfo).
-//
-//////////////////////////////////////////////////////////////////////////
-bool UARTTestIsOpen(void)
-{
-	SKernalDeviceInfo	sInfo;
-	uint16				uiIndex;
-
-	for (uiIndex = 0; KernalDeviceInfo(uiIndex, &sInfo) == KERNAL_DEVICE_SUCCESS; uiIndex++)
-	{
-		if ((strcmp(sInfo.szManufacturer, UART_BOARD_MANUFACTURER) == 0) && (strcmp(sInfo.szName, UART_BOARD_NAME) == 0))
-		{
-			return sInfo.uiOpen != 0;
-		}
-	}
-	return false;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // The child, while the parent has the TTL port open: the TTL port is in
 // use, the RS232 port isn't.  It sends "CHILD" and exits without closing
 // it; the kernal closes it, which waits for "CHILD" to go.
@@ -107,7 +86,7 @@ uint16 UARTTestOpen(uint16* puiTTL, uint16* puiRS232)
 	{
 		return 4;
 	}
-	if (!UARTTestIsOpen())
+	if (!KernalDeviceIsOpen(UART_BOARD_MANUFACTURER, UART_BOARD_NAME, 0))
 	{
 		return 5;
 	}
@@ -192,7 +171,7 @@ uint16 UARTTestChildOwnership(uint16 uiRS232, uint16* puiRS232)
 	uint16	uiExitCode;
 	uint32	uiLines;
 
-	if ((KernalDeviceClose(uiRS232) != KERNAL_DEVICE_SUCCESS) || !UARTTestIsOpen())
+	if ((KernalDeviceClose(uiRS232) != KERNAL_DEVICE_SUCCESS) || !KernalDeviceIsOpen(UART_BOARD_MANUFACTURER, UART_BOARD_NAME, 0))
 	{
 		return 1;
 	}
@@ -404,7 +383,7 @@ int main(void)
 	}
 
 	//Closing both lets the board go.
-	if ((KernalDeviceClose(uiTTL) != KERNAL_DEVICE_SUCCESS) || !UARTTestIsOpen() || (KernalDeviceClose(uiRS232) != KERNAL_DEVICE_SUCCESS) || UARTTestIsOpen())
+	if ((KernalDeviceClose(uiTTL) != KERNAL_DEVICE_SUCCESS) || !KernalDeviceIsOpen(UART_BOARD_MANUFACTURER, UART_BOARD_NAME, 0) || (KernalDeviceClose(uiRS232) != KERNAL_DEVICE_SUCCESS) || KernalDeviceIsOpen(UART_BOARD_MANUFACTURER, UART_BOARD_NAME, 0))
 	{
 		return 600;
 	}

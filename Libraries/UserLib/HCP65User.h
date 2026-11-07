@@ -82,6 +82,10 @@ struct SKernalDeviceInfo
 //The uiIndex'th board in the device sockets (from 0, in socket order).  KERNAL_DEVICE_NOT_FOUND after the last.
 extern "C" uint16	KernalDeviceInfo(uint16 uiIndex, SKernalDeviceInfo* psInfo);
 
+//Whether a program has the uiIndex'th board made by szManufacturer called szName open (from 0, in socket order);
+//false if there isn't one.
+extern "C" bool		KernalDeviceIsOpen(const char* szManufacturer, const char* szName, uint16 uiIndex);
+
 //Opens unit uiUnit of the uiIndex'th board made by szManufacturer called szName (from 0, in socket order).
 //*puiHandle is the handle.
 extern "C" uint16	KernalDeviceOpen(const char* szManufacturer, const char* szName, uint16 uiIndex, uint16 uiUnit, uint16* puiHandle);

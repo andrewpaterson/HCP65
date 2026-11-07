@@ -17,27 +17,6 @@ uint32	guiProduct;
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Whether the first sound board shows open (KernalDeviceInfo).
-//
-//////////////////////////////////////////////////////////////////////////
-bool BootIsSoundBoardOpen(void)
-{
-	SKernalDeviceInfo	sInfo;
-	uint16				uiIndex;
-
-	for (uiIndex = 0; KernalDeviceInfo(uiIndex, &sInfo) == KERNAL_DEVICE_SUCCESS; uiIndex++)
-	{
-		if ((strcmp(sInfo.szManufacturer, SOUND_BOARD_MANUFACTURER) == 0) && (strcmp(sInfo.szName, SOUND_BOARD_NAME) == 0))
-		{
-			return sInfo.uiOpen != 0;
-		}
-	}
-	return false;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // Checks the device calls do what they should with what any HCP65 with a
 // sound board has: 0 if they do, or which check failed.  The handle it
 // opens is closed again, so modplay.exe can open the sound board.
@@ -97,7 +76,7 @@ uint16 BootCheckDevices(void)
 	{
 		return 7;
 	}
-	if (!BootIsSoundBoardOpen())
+	if (!KernalDeviceIsOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0))
 	{
 		return 8;
 	}
@@ -121,11 +100,11 @@ uint16 BootCheckDevices(void)
 	{
 		return 12;
 	}
-	if ((KernalDeviceClose(uiHandle) != KERNAL_DEVICE_SUCCESS) || !BootIsSoundBoardOpen())
+	if ((KernalDeviceClose(uiHandle) != KERNAL_DEVICE_SUCCESS) || !KernalDeviceIsOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0))
 	{
 		return 13;
 	}
-	if ((KernalDeviceClose(uiRight) != KERNAL_DEVICE_SUCCESS) || BootIsSoundBoardOpen())
+	if ((KernalDeviceClose(uiRight) != KERNAL_DEVICE_SUCCESS) || KernalDeviceIsOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0))
 	{
 		return 14;
 	}
