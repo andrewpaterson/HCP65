@@ -721,7 +721,7 @@ void CAsm65Linker::IndexRelocations(void)
 		{
 			psRelocation = psObject->pcObject->GetRelocation(j);
 			psLinkSection = GetLinkSection(i, psRelocation->uiSection);
-			maiRelocations.SetValue(psLinkSection->uiFirstRelocation + psLinkSection->uiNumRelocations, (int)j);
+			maiRelocations.SetValue(psLinkSection->uiFirstRelocation + psLinkSection->uiNumRelocations, j);
 			psLinkSection->uiNumRelocations++;
 		}
 	}
@@ -787,7 +787,7 @@ void CAsm65Linker::MarkUsed(void)
 	{
 		while (aiWork.NumElements() > 0)
 		{
-			uiSection = (size)aiWork.Pop();
+			uiSection = aiWork.Pop();
 			uiObject = ObjectOfSection(uiSection);
 			psObject = masObjects.Get(uiObject);
 			psLinkSection = masSections.Get(uiSection);
@@ -832,7 +832,7 @@ void CAsm65Linker::UseSection(size uiSection, CArraySize* paiWork)
 	if (psLinkSection->bKept && !psLinkSection->bUsed)
 	{
 		psLinkSection->bUsed = true;
-		paiWork->Add((int)uiSection);
+		paiWork->Add(uiSection);
 	}
 }
 
@@ -924,12 +924,12 @@ void CAsm65Linker::ForbiddenUse(size uiObject, SAsm65Relocation* psRelocation, c
 
 	for (i = 0; i < maiForbiddenUsers.NumElements(); i++)
 	{
-		if ((size)maiForbiddenUsers.GetValue(i) == muiUsingSection)
+		if (maiForbiddenUsers.GetValue(i) == muiUsingSection)
 		{
 			return;
 		}
 	}
-	maiForbiddenUsers.Add((int)muiUsingSection);
+	maiForbiddenUsers.Add(muiUsingSection);
 	psObject = masObjects.Get(uiObject);
 	psSection = psObject->pcObject->GetSection(muiUsingSection - psObject->uiFirstSection);
 	szDetail.Init(psSection->szName.Text());
@@ -1068,7 +1068,7 @@ void CAsm65Linker::Layout(void)
 					mcErrors.Add(psObject->pcObject->GetName(), 0, 0, "Only a section with an address (at) can be in bank 0", psSection->szName.Text());
 				}
 				uiAddress += psSection->uiSize;
-				maiPlacement.Add((int)SectionIndex(i, j));
+				maiPlacement.Add(SectionIndex(i, j));
 			}
 		}
 		if (uiAddress > 0xFFFFFFFFULL)
@@ -1154,7 +1154,7 @@ void CAsm65Linker::LayoutAt(void)
 					mcErrors.Add(psObject->pcObject->GetName(), 0, 0, "Section overlaps another section with an address", psSection->szName.Text());
 				}
 			}
-			maiPlacement.Add((int)SectionIndex(i, j));
+			maiPlacement.Add(SectionIndex(i, j));
 		}
 	}
 }
@@ -1682,7 +1682,7 @@ void CAsm65Linker::WriteMap(void)
 	mszMap.Append("Sections\n");
 	for (i = 0; i < maiPlacement.NumElements(); i++)
 	{
-		uiSection = (size)maiPlacement.GetValue(i);
+		uiSection = maiPlacement.GetValue(i);
 		uiObject = ObjectOfSection(uiSection);
 		AppendMapSection(uiObject, uiSection - masObjects.Get(uiObject)->uiFirstSection, true);
 	}
