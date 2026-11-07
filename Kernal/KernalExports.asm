@@ -31,14 +31,6 @@ _gauiKernalExports:
 		.long _CKernalDriver__Interrupt
 		.long Export_CKernalDriver__Interrupt_ax
 		.long _CKernalDriver__Interrupt.ax
-		.long Export_CKernalDriver__Open
-		.long _CKernalDriver__Open
-		.long Export_CKernalDriver__Open_axy
-		.long _CKernalDriver__Open.axy
-		.long Export_CKernalDriver__Close
-		.long _CKernalDriver__Close
-		.long Export_CKernalDriver__Close_axy
-		.long _CKernalDriver__Close.axy
 		.long Export_CKernalDriver__Read
 		.long _CKernalDriver__Read
 		.long Export_CKernalDriver__Read_axy
@@ -71,10 +63,22 @@ _gauiKernalExports:
 		.long _CKernalDriver__GetRegisters
 		.long Export_CKernalDriver__GetRegisters_ax
 		.long _CKernalDriver__GetRegisters.ax
-		.long Export_CKernalDriver__IsOpen
-		.long _CKernalDriver__IsOpen
-		.long Export_CKernalDriver__IsOpen_ax
-		.long _CKernalDriver__IsOpen.ax
+		.long Export_CKernalDriver__OpenUnit
+		.long _CKernalDriver__OpenUnit
+		.long Export_CKernalDriver__OpenUnit_axy
+		.long _CKernalDriver__OpenUnit.axy
+		.long Export_CKernalDriver__CloseUnit
+		.long _CKernalDriver__CloseUnit
+		.long Export_CKernalDriver__CloseUnit_axy
+		.long _CKernalDriver__CloseUnit.axy
+		.long Export_CKernalDriver__IsWaitOver
+		.long _CKernalDriver__IsWaitOver
+		.long Export_CKernalDriver__IsWaitOver_axy
+		.long _CKernalDriver__IsWaitOver.axy
+		.long Export_CKernalDriver__WaitFor
+		.long _CKernalDriver__WaitFor
+		.long Export_CKernalDriver__WaitFor_axy
+		.long _CKernalDriver__WaitFor.axy
 		; The devices (KernalDevices.h) and their drivers (KernalDriver.h).
 		.long Export_gasKernalDevices
 		.long _gasKernalDevices
@@ -141,7 +145,7 @@ _gauiKernalExports:
 
 		.global _guiKernalNumExports
 _guiKernalNumExports:
-		.word 60
+		.word 62
 
 		.section rodata.KernalExportNames
 Export_CKernalDriver__Init:
@@ -160,14 +164,6 @@ Export_CKernalDriver__Interrupt:
 		.byte "_CKernalDriver__Interrupt", 0
 Export_CKernalDriver__Interrupt_ax:
 		.byte "_CKernalDriver__Interrupt.ax", 0
-Export_CKernalDriver__Open:
-		.byte "_CKernalDriver__Open", 0
-Export_CKernalDriver__Open_axy:
-		.byte "_CKernalDriver__Open.axy", 0
-Export_CKernalDriver__Close:
-		.byte "_CKernalDriver__Close", 0
-Export_CKernalDriver__Close_axy:
-		.byte "_CKernalDriver__Close.axy", 0
 Export_CKernalDriver__Read:
 		.byte "_CKernalDriver__Read", 0
 Export_CKernalDriver__Read_axy:
@@ -200,10 +196,22 @@ Export_CKernalDriver__GetRegisters:
 		.byte "_CKernalDriver__GetRegisters", 0
 Export_CKernalDriver__GetRegisters_ax:
 		.byte "_CKernalDriver__GetRegisters.ax", 0
-Export_CKernalDriver__IsOpen:
-		.byte "_CKernalDriver__IsOpen", 0
-Export_CKernalDriver__IsOpen_ax:
-		.byte "_CKernalDriver__IsOpen.ax", 0
+Export_CKernalDriver__OpenUnit:
+		.byte "_CKernalDriver__OpenUnit", 0
+Export_CKernalDriver__OpenUnit_axy:
+		.byte "_CKernalDriver__OpenUnit.axy", 0
+Export_CKernalDriver__CloseUnit:
+		.byte "_CKernalDriver__CloseUnit", 0
+Export_CKernalDriver__CloseUnit_axy:
+		.byte "_CKernalDriver__CloseUnit.axy", 0
+Export_CKernalDriver__IsWaitOver:
+		.byte "_CKernalDriver__IsWaitOver", 0
+Export_CKernalDriver__IsWaitOver_axy:
+		.byte "_CKernalDriver__IsWaitOver.axy", 0
+Export_CKernalDriver__WaitFor:
+		.byte "_CKernalDriver__WaitFor", 0
+Export_CKernalDriver__WaitFor_axy:
+		.byte "_CKernalDriver__WaitFor.axy", 0
 Export_gasKernalDevices:
 		.byte "_gasKernalDevices", 0
 Export_KernalReadRegister__Fh:

@@ -76,10 +76,12 @@ public:
 
 	uint16			NumUnits(void) override;
 	void			Interrupt(void) override;
-	uint16			Open(uint16 uiUnit, uint8 uiProcess) override;
 
 	CKernalSDCard*	GetCard(uint16 uiSocket);
 	uint16			GetReadyCards(void);
+
+protected:
+	uint16			OpenUnit(uint16 uiUnit) override;
 };
 
 

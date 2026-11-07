@@ -69,7 +69,6 @@ class CKernalUARTPort
 protected:
 	volatile uint8*	mpuiRegisters;
 	uint8			muiLines;			//The inputs the module has (UART_LINE_*).
-	uint8			muiOwner;			//The process that has the port open, KERNAL_DRIVER_NO_OWNER if none.
 	uint8			muiIER;				//What was last written to the registers that can't be read back the same.
 	uint8			muiLCR;
 	uint8			muiMCR;
@@ -83,21 +82,18 @@ protected:
 
 public:
 	void	Init(volatile uint8* puiRegisters, uint8 uiLines);
-	void	Kill(void);
-
-	uint16	Open(uint8 uiProcess);
-	void	Close(void);
-	uint8	GetOwner(void);
+	void	Start(void);
+	void	Reset(void);
 
 	void	Interrupt(void);
 
 	uint16	Read(uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
-	uint16	Write(uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
+	uint16	Queue(uint32 uiUserAddress, uint32 uiLength, uint32* puiQueued);
 	uint16	Control(uint16 uiCode, uint32 uiValue, uint32* puiResult);
-	uint16	Wait(uint32 uiValue, uint16 uiTicks);
+	bool	IsWaitValid(uint32 uiValue);
+	bool	IsWaitOver(uint32 uiValue);
 
 protected:
-	void	Reset(void);
 	void	SetDivisor(uint16 uiDivisor);
 	void	SetIER(uint8 uiIER);
 	void	SetLCR(uint8 uiLCR);
@@ -110,13 +106,12 @@ protected:
 	uint8	NumReceived(void);
 	uint8	NumQueued(void);
 	bool	IsSent(void);
-	bool	IsWaitOver(uint32 uiValue);
 };
 
 
 //The HCP65 UART Board's driver: its units are its two UARTs (UART_BOARD_TTL and UART_BOARD_RS232), each opened by its
-//own process.  The board has no Flags & Interrupt board, so its interrupt is trusted: it only touches the UARTs and
-//the rings.
+//own process (mbSeparateUnits).  The board has no Flags & Interrupt board, so its interrupt is trusted: it only
+//touches the UARTs and the rings.  Closing a port waits up to UART_BOARD_CLOSE_TICKS for what is queued to go.
 class CKernalUARTBoard : public CKernalDriver
 {
 protected:
@@ -130,17 +125,16 @@ public:
 	uint16	NumUnits(void) override;
 	void	Interrupt(void) override;
 
-	uint16	Open(uint16 uiUnit, uint8 uiProcess) override;
-	void	Close(uint16 uiUnit, uint8 uiProcess) override;
-	bool	IsOpen(void) override;
 	uint16	Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone) override;
 	uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone) override;
 	uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult) override;
 	uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks) override;
 
 protected:
+	uint16				OpenUnit(uint16 uiUnit) override;
+	void				CloseUnit(uint16 uiUnit) override;
+	bool				IsWaitOver(uint16 uiUnit, uint32 uiValue) override;
 	CKernalUARTPort*	GetPort(uint16 uiUnit);
-	void				ClosePort(CKernalUARTPort* pcPort, uint8 uiProcess);
 };
 
 

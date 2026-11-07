@@ -25,13 +25,12 @@
 class CKernalDebugPort : public CKernalDriver
 {
 public:
-	uint16	Open(uint16 uiUnit, uint8 uiProcess) override;
-
 	void	Tell(uint8 uiCommand, uint8 uiProcess, uint16 uiExitCode, const char* szPath);
 	void	GiveBank(uint8 uiPhysical);
 	void	TellDriver(uint16 uiSlot, const char* szPath, uint32 uiAddress, uint32 uiSize);
 
 protected:
+	uint16	OpenUnit(uint16 uiUnit) override;
 	void	WriteName(const char* szPath);
 };
 

@@ -6,30 +6,23 @@
 #define UART_DEFAULT_IER	(UART_IER_RECEIVED | UART_IER_LINE_STATUS)
 #define UART_DEFAULT_FCR	(UART_FCR_ENABLE | UART_FCR_TRIGGER_8)
 
+//UART_WAIT_*'s kinds, its high word; the low word is the count.
+#define UART_WAIT_KIND_RX			(UART_WAIT_RX >> 16)
+#define UART_WAIT_KIND_TX_SPACE		(UART_WAIT_TX_SPACE >> 16)
+#define UART_WAIT_KIND_TX_EMPTY		(UART_WAIT_TX_EMPTY >> 16)
+
 
 //////////////////////////////////////////////////////////////////////////
 //
 // The UART at puiRegisters, whose module has the inputs uiLines.  Quiet
-// until it is opened.
+// until it is started.
 //
 //////////////////////////////////////////////////////////////////////////
 void CKernalUARTPort::Init(volatile uint8* puiRegisters, uint8 uiLines)
 {
 	mpuiRegisters = puiRegisters;
 	muiLines = uiLines;
-	muiOwner = KERNAL_DRIVER_NO_OWNER;
 	Reset();
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
-void CKernalUARTPort::Kill(void)
-{
-	Reset();
-	muiOwner = KERNAL_DRIVER_NO_OWNER;
 }
 
 
@@ -60,43 +53,15 @@ void CKernalUARTPort::Reset(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiProcess has the port until it closes it.  The first open starts it as
-// HCP65UARTBoard.h says.
+// Ready for a process, as HCP65UARTBoard.h says a port starts.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalUARTPort::Open(uint8 uiProcess)
+void CKernalUARTPort::Start(void)
 {
-	if (muiOwner == uiProcess)
-	{
-		return KERNAL_DRIVER_SUCCESS;
-	}
-	if (muiOwner != KERNAL_DRIVER_NO_OWNER)
-	{
-		return KERNAL_DRIVER_IN_USE;
-	}
 	Reset();
-	muiOwner = uiProcess;
 	SetMCR(UART_MCR_DTR | UART_MCR_RTS);
 	SetIER(UART_DEFAULT_IER);
-	return KERNAL_DRIVER_SUCCESS;
 }
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Waits up to UART_BOARD_CLOSE_TICKS for what is queued to be sent, then
-// lets the port go.
-//
-//////////////////////////////////////////////////////////////////////////
-void CKernalUARTPort::Close(void)
-{
-	Wait(UART_WAIT_TX_EMPTY, UART_BOARD_CLOSE_TICKS);
-	Reset();
-	muiOwner = KERNAL_DRIVER_NO_OWNER;
-}
-
-
-uint8 CKernalUARTPort::GetOwner(void) { return muiOwner; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -181,7 +146,7 @@ void CKernalUARTPort::Receive(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // The FIFO is empty: up to 16 bytes from the ring into it.  With the ring
-// empty the transmit interrupt is turned off; Write turns it on again.
+// empty the transmit interrupt is turned off; Queue turns it on again.
 //
 //////////////////////////////////////////////////////////////////////////
 void CKernalUARTPort::Transmit(void)
@@ -232,7 +197,7 @@ uint16 CKernalUARTPort::Read(uint32 uiUserAddress, uint32 uiLength, uint32* puiD
 	}
 
 	//There is room again: the bytes the FIFO held on to come in.
-	if (!(muiIER & UART_IER_RECEIVED))
+	if (!(muiIER & UART_IER_RECEIVED) && (NumReceived() < UART_BOARD_BUFFER_SIZE))
 	{
 		SetIER((uint8)(muiIER | UART_IER_RECEIVED));
 	}
@@ -242,26 +207,23 @@ uint16 CKernalUARTPort::Read(uint32 uiUserAddress, uint32 uiLength, uint32* puiD
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiLength bytes from the running process's memory at uiUserAddress queued
-// to send, sleeping while the ring is full: KERNAL_DRIVER_TIMEOUT after
-// UART_BOARD_WRITE_TICKS without room.
+// What fits in the ring of uiLength bytes from the running process's
+// memory at uiUserAddress, queued to send without waiting: *puiQueued
+// is how many.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalUARTPort::Write(uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
+uint16 CKernalUARTPort::Queue(uint32 uiUserAddress, uint32 uiLength, uint32* puiQueued)
 {
 	uint16	uiPart;
 	uint16	uiToEnd;
 
+	*puiQueued = 0;
 	while (uiLength > 0)
 	{
 		uiPart = (uint16)(UART_BOARD_BUFFER_SIZE - NumQueued());
 		if (uiPart == 0)
 		{
-			if (Wait(UART_WAIT_TX_SPACE | 1, UART_BOARD_WRITE_TICKS) != KERNAL_DRIVER_SUCCESS)
-			{
-				return KERNAL_DRIVER_TIMEOUT;
-			}
-			continue;
+			break;
 		}
 		uiToEnd = (uint16)(UART_RING_SIZE - muiTxHead);
 		uiPart = (uiPart < uiToEnd) ? uiPart : uiToEnd;
@@ -273,7 +235,7 @@ uint16 CKernalUARTPort::Write(uint32 uiUserAddress, uint32 uiLength, uint32* pui
 		muiTxHead = (uint8)(muiTxHead + uiPart);
 		uiUserAddress += uiPart;
 		uiLength -= uiPart;
-		*puiDone += uiPart;
+		*puiQueued += uiPart;
 
 		//The UART interrupts at once if its FIFO is empty.
 		if (!(muiIER & UART_IER_TRANSMIT))
@@ -381,55 +343,41 @@ uint16 CKernalUARTPort::Control(uint16 uiCode, uint32 uiValue, uint32* puiResult
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Waits up to uiTicks for what uiValue says (UART_WAIT_*), sleeping.
+// Whether uiValue is a UART_WAIT_* with a count it takes.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalUARTPort::Wait(uint32 uiValue, uint16 uiTicks)
+bool CKernalUARTPort::IsWaitValid(uint32 uiValue)
 {
-	uint32	uiCount;
-	uint32	uiStart;
+	uint16	uiCount;
 
-	uiCount = uiValue & UART_WAIT_COUNT_MASK;
-	if ((uiValue & ~(uint32)UART_WAIT_COUNT_MASK) == UART_WAIT_TX_EMPTY)
+	uiCount = (uint16)uiValue;
+	switch ((uint16)(uiValue >> 16))
 	{
-		if (uiCount != 0)
-		{
-			return KERNAL_DRIVER_BAD_ARGUMENT;
-		}
+	case UART_WAIT_KIND_RX:
+	case UART_WAIT_KIND_TX_SPACE:
+		return (uiCount > 0) && (uiCount <= UART_BOARD_BUFFER_SIZE);
+	case UART_WAIT_KIND_TX_EMPTY:
+		return uiCount == 0;
 	}
-	else if (((uiValue & ~(uint32)UART_WAIT_COUNT_MASK) > UART_WAIT_TX_SPACE) || (uiCount == 0) || (uiCount > UART_BOARD_BUFFER_SIZE))
-	{
-		return KERNAL_DRIVER_BAD_ARGUMENT;
-	}
-
-	uiStart = KernalTicks();
-	while (!IsWaitOver(uiValue))
-	{
-		if ((KernalTicks() - uiStart) > uiTicks)
-		{
-			return KERNAL_DRIVER_TIMEOUT;
-		}
-		KernalWaitForInterrupt();
-	}
-	return KERNAL_DRIVER_SUCCESS;
+	return false;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Whether what uiValue waits for (UART_WAIT_*, checked) has happened.
+// Whether what uiValue waits for (UART_WAIT_*, IsWaitValid) has happened.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CKernalUARTPort::IsWaitOver(uint32 uiValue)
 {
-	uint8	uiCount;
+	uint16	uiCount;
 
-	uiCount = (uint8)uiValue;
+	uiCount = (uint16)uiValue;
 	switch ((uint16)(uiValue >> 16))
 	{
-	case UART_WAIT_RX >> 16:
+	case UART_WAIT_KIND_RX:
 		return NumReceived() >= uiCount;
-	case UART_WAIT_TX_SPACE >> 16:
+	case UART_WAIT_KIND_TX_SPACE:
 		return (UART_BOARD_BUFFER_SIZE - NumQueued()) >= uiCount;
 	}
 	return (NumQueued() == 0) && IsSent();
@@ -508,6 +456,7 @@ uint16 CKernalUARTBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	uint16	uiResult;
 
 	uiResult = CKernalDriver::Init(psDevice, uiSlot);
+	mbSeparateUnits = true;
 	mcTTL.Init(&mpuiRegisters[UART_TTL_REGISTERS], UART_TTL_LINES);
 	mcRS232.Init(&mpuiRegisters[UART_RS232_REGISTERS], UART_RS232_LINES);
 	SetInterrupt(NULL, true);
@@ -521,8 +470,8 @@ uint16 CKernalUARTBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 //////////////////////////////////////////////////////////////////////////
 void CKernalUARTBoard::Kill(void)
 {
-	mcRS232.Kill();
-	mcTTL.Kill();
+	mcRS232.Reset();
+	mcTTL.Reset();
 	CKernalDriver::Kill();
 }
 
@@ -551,60 +500,26 @@ void CKernalUARTBoard::Interrupt(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Each port has its own process.
+// A process has opened the port.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalUARTBoard::Open(uint16 uiUnit, uint8 uiProcess)
+uint16 CKernalUARTBoard::OpenUnit(uint16 uiUnit)
 {
-	CKernalUARTPort*	pcPort;
-
-	pcPort = GetPort(uiUnit);
-	if (!pcPort)
-	{
-		return KERNAL_DRIVER_BAD_UNIT;
-	}
-	return pcPort->Open(uiProcess);
+	GetPort(uiUnit)->Start();
+	return KERNAL_DRIVER_SUCCESS;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Waits up to UART_BOARD_CLOSE_TICKS for what is queued to be sent, then
+// quietens the port.
 //
 //////////////////////////////////////////////////////////////////////////
-void CKernalUARTBoard::Close(uint16 uiUnit, uint8 uiProcess)
+void CKernalUARTBoard::CloseUnit(uint16 uiUnit)
 {
-	if (uiUnit == KERNAL_DRIVER_ALL_UNITS)
-	{
-		ClosePort(&mcTTL, uiProcess);
-		ClosePort(&mcRS232, uiProcess);
-	}
-	else
-	{
-		ClosePort(GetPort(uiUnit), uiProcess);
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
-void CKernalUARTBoard::ClosePort(CKernalUARTPort* pcPort, uint8 uiProcess)
-{
-	if (pcPort && (pcPort->GetOwner() == uiProcess))
-	{
-		pcPort->Close();
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
-bool CKernalUARTBoard::IsOpen(void)
-{
-	return (mcTTL.GetOwner() != KERNAL_DRIVER_NO_OWNER) || (mcRS232.GetOwner() != KERNAL_DRIVER_NO_OWNER);
+	WaitFor(uiUnit, UART_WAIT_TX_EMPTY, UART_BOARD_CLOSE_TICKS);
+	GetPort(uiUnit)->Reset();
 }
 
 
@@ -615,23 +530,38 @@ bool CKernalUARTBoard::IsOpen(void)
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalUARTBoard::Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
-	CKernalUARTPort*	pcPort;
-
-	pcPort = GetPort(uiUnit);
-	return pcPort ? pcPort->Read(uiUserAddress, uiLength, puiDone) : KERNAL_DRIVER_BAD_UNIT;
+	return GetPort(uiUnit)->Read(uiUserAddress, uiLength, puiDone);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// uiLength bytes queued to send, sleeping while the ring is full:
+// KERNAL_DRIVER_TIMEOUT after UART_BOARD_WRITE_TICKS without room.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalUARTBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
 	CKernalUARTPort*	pcPort;
+	uint32				uiQueued;
+	uint16				uiResult;
 
 	pcPort = GetPort(uiUnit);
-	return pcPort ? pcPort->Write(uiUserAddress, uiLength, puiDone) : KERNAL_DRIVER_BAD_UNIT;
+	for (;;)
+	{
+		uiResult = pcPort->Queue(uiUserAddress, uiLength, &uiQueued);
+		*puiDone += uiQueued;
+		if ((uiResult != KERNAL_DRIVER_SUCCESS) || (uiQueued == uiLength))
+		{
+			return uiResult;
+		}
+		uiUserAddress += uiQueued;
+		uiLength -= uiQueued;
+		if (WaitFor(uiUnit, UART_WAIT_TX_SPACE | 1, UART_BOARD_WRITE_TICKS) != KERNAL_DRIVER_SUCCESS)
+		{
+			return KERNAL_DRIVER_TIMEOUT;
+		}
+	}
 }
 
 
@@ -641,42 +571,43 @@ uint16 CKernalUARTBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddr
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalUARTBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult)
 {
-	CKernalUARTPort*	pcPort;
-
-	pcPort = GetPort(uiUnit);
-	return pcPort ? pcPort->Control(uiCode, uiValue, puiResult) : KERNAL_DRIVER_BAD_UNIT;
+	return GetPort(uiUnit)->Control(uiCode, uiValue, puiResult);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Sleeps up to uiTicks for what uiValue says (UART_WAIT_*).
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalUARTBoard::Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks)
 {
-	CKernalUARTPort*	pcPort;
-
-	pcPort = GetPort(uiUnit);
-	return pcPort ? pcPort->Wait(uiValue, uiTicks) : KERNAL_DRIVER_BAD_UNIT;
+	if (!GetPort(uiUnit)->IsWaitValid(uiValue))
+	{
+		return KERNAL_DRIVER_BAD_ARGUMENT;
+	}
+	return WaitFor(uiUnit, uiValue, uiTicks);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// NULL for a unit the board hasn't.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalUARTBoard::IsWaitOver(uint16 uiUnit, uint32 uiValue)
+{
+	return GetPort(uiUnit)->IsWaitOver(uiValue);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The kernal only gives the driver units below NumUnits.
 //
 //////////////////////////////////////////////////////////////////////////
 CKernalUARTPort* CKernalUARTBoard::GetPort(uint16 uiUnit)
 {
-	if (uiUnit == UART_BOARD_TTL)
-	{
-		return &mcTTL;
-	}
-	if (uiUnit == UART_BOARD_RS232)
-	{
-		return &mcRS232;
-	}
-	return NULL;
+	return (uiUnit == UART_BOARD_TTL) ? &mcTTL : &mcRS232;
 }
 
 

@@ -9,7 +9,7 @@ CKernalDebugPort*	gpcKernalDebugPort;
 // The kernal's own.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalDebugPort::Open(uint16 uiUnit, uint8 uiProcess)
+uint16 CKernalDebugPort::OpenUnit(uint16 uiUnit)
 {
 	return KERNAL_DRIVER_NOT_SUPPORTED;
 }

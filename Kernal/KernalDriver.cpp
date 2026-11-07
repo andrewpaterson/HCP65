@@ -29,8 +29,8 @@ uint16 CKernalDriver::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mpsDevice = psDevice;
 	muiSlot = uiSlot;
 	mpuiRegisters = (volatile uint8*)(psDevice->uiAddress + DEVICE_ROM_SIZE);
-	muiOwner = KERNAL_DRIVER_NO_OWNER;
-	muiOpenUnits = 0;
+	mbSeparateUnits = false;
+	memset(mauiOwners, KERNAL_DRIVER_NO_OWNER, sizeof(mauiOwners));
 	KernalEnableDevice(uiSlot);
 	return KERNAL_DRIVER_SUCCESS;
 }
@@ -44,8 +44,7 @@ void CKernalDriver::Kill(void)
 {
 	KernalClearInterruptHandler(muiSlot);
 	KernalDisableDevice(muiSlot);
-	muiOwner = KERNAL_DRIVER_NO_OWNER;
-	muiOpenUnits = 0;
+	memset(mauiOwners, KERNAL_DRIVER_NO_OWNER, sizeof(mauiOwners));
 }
 
 
@@ -71,61 +70,105 @@ void CKernalDriver::Interrupt(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiProcess has the whole board until it has closed every unit it opened
-// (at most 16 units).
+// uiProcess has uiUnit until it has closed its last handle on it.
+// Without mbSeparateUnits no other process can have one of the board's
+// units meanwhile.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalDriver::Open(uint16 uiUnit, uint8 uiProcess)
 {
+	uint16	uiResult;
+
 	if (uiUnit >= NumUnits())
 	{
 		return KERNAL_DRIVER_BAD_UNIT;
 	}
-	if ((muiOwner != KERNAL_DRIVER_NO_OWNER) && (muiOwner != uiProcess))
+	if (mauiOwners[uiUnit] == uiProcess)
+	{
+		return KERNAL_DRIVER_SUCCESS;
+	}
+	if ((mauiOwners[uiUnit] != KERNAL_DRIVER_NO_OWNER) || (!mbSeparateUnits && IsOpenByOther(uiProcess)))
 	{
 		return KERNAL_DRIVER_IN_USE;
 	}
-	muiOwner = uiProcess;
-	muiOpenUnits = (uint16)(muiOpenUnits | (1 << uiUnit));
-	return KERNAL_DRIVER_SUCCESS;
+	uiResult = OpenUnit(uiUnit);
+	if (uiResult == KERNAL_DRIVER_SUCCESS)
+	{
+		mauiOwners[uiUnit] = uiProcess;
+	}
+	return uiResult;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiProcess has closed its last handle on uiUnit (every unit if
-// KERNAL_DRIVER_ALL_UNITS).  The board is let go once it has none open.
+// uiProcess has closed its last handle on uiUnit (every unit it has open
+// if KERNAL_DRIVER_ALL_UNITS), which is let go.
 //
 //////////////////////////////////////////////////////////////////////////
 void CKernalDriver::Close(uint16 uiUnit, uint8 uiProcess)
 {
-	if (muiOwner != uiProcess)
+	uint16	i;
+
+	if (uiUnit != KERNAL_DRIVER_ALL_UNITS)
 	{
+		if ((uiUnit < KERNAL_DRIVER_MAX_UNITS) && (mauiOwners[uiUnit] == uiProcess))
+		{
+			LetGo(uiUnit);
+		}
 		return;
 	}
-	if (uiUnit == KERNAL_DRIVER_ALL_UNITS)
+	for (i = 0; i < KERNAL_DRIVER_MAX_UNITS; i++)
 	{
-		muiOpenUnits = 0;
-	}
-	else
-	{
-		muiOpenUnits = (uint16)(muiOpenUnits & ~(1 << uiUnit));
-	}
-	if (muiOpenUnits == 0)
-	{
-		muiOwner = KERNAL_DRIVER_NO_OWNER;
+		if (mauiOwners[i] == uiProcess)
+		{
+			LetGo(i);
+		}
 	}
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A process has a unit open (KernalDeviceInfo).
+// CloseUnit, then nobody has it.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalDriver::LetGo(uint16 uiUnit)
+{
+	CloseUnit(uiUnit);
+	mauiOwners[uiUnit] = KERNAL_DRIVER_NO_OWNER;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process has a unit open (KernalDeviceInfo): one other than
+// KERNAL_DRIVER_NO_OWNER, which no process is.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CKernalDriver::IsOpen(void)
 {
-	return muiOwner != KERNAL_DRIVER_NO_OWNER;
+	return IsOpenByOther(KERNAL_DRIVER_NO_OWNER);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process other than uiProcess has a unit open.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalDriver::IsOpenByOther(uint8 uiProcess)
+{
+	uint16	i;
+
+	for (i = 0; i < KERNAL_DRIVER_MAX_UNITS; i++)
+	{
+		if ((mauiOwners[i] != KERNAL_DRIVER_NO_OWNER) && (mauiOwners[i] != uiProcess))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 
@@ -166,6 +209,64 @@ uint16 CKernalDriver::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint
 uint16 CKernalDriver::Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks)
 {
 	return KERNAL_DRIVER_NOT_SUPPORTED;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process that hadn't uiUnit open is opening it: the driver gets it
+// ready, or refuses (KERNAL_DRIVER_NOT_SUPPORTED for a board only the
+// kernal uses).
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalDriver::OpenUnit(uint16 uiUnit)
+{
+	return KERNAL_DRIVER_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// uiUnit is being let go.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalDriver::CloseUnit(uint16 uiUnit)
+{
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether what uiValue waits for on uiUnit has happened (WaitFor).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalDriver::IsWaitOver(uint16 uiUnit, uint32 uiValue)
+{
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Sleeps until IsWaitOver(uiUnit, uiValue), for up to uiTicks:
+// KERNAL_DRIVER_TIMEOUT if it didn't happen.  The board's interrupts come
+// in while it sleeps.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalDriver::WaitFor(uint16 uiUnit, uint32 uiValue, uint16 uiTicks)
+{
+	uint32	uiStart;
+
+	uiStart = KernalTicks();
+	while (!IsWaitOver(uiUnit, uiValue))
+	{
+		if ((KernalTicks() - uiStart) > uiTicks)
+		{
+			return KERNAL_DRIVER_TIMEOUT;
+		}
+		KernalWaitForInterrupt();
+	}
+	return KERNAL_DRIVER_SUCCESS;
 }
 
 
@@ -254,7 +355,8 @@ CKernalDriver* KernalFindDriver(const char* szManufacturer, const char* szName, 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The units uiProcess has open are let go (it has ended).
+// The units uiProcess has open are let go (it has ended).  A driver's
+// CloseUnit can sleep, so this can take a while.
 //
 //////////////////////////////////////////////////////////////////////////
 void KernalCloseDrivers(uint8 uiProcess)

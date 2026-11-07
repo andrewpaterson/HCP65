@@ -23,6 +23,7 @@ public:
 	uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks) override;
 
 protected:
+	bool	IsWaitOver(uint16 uiUnit, uint32 uiValue) override;
 	uint16	CopyFromUser(uint8* puiDest, uint32 uiAddress, uint16 uiLength);
 };
 

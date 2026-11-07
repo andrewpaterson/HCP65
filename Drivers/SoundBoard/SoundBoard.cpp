@@ -68,10 +68,6 @@ uint16 CKernalSoundBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAdd
 	uint16	uiPart;
 	uint16	uiCopied;
 
-	if (uiUnit >= NumUnits())
-	{
-		return KERNAL_DRIVER_BAD_UNIT;
-	}
 	puiRAM = (uint8*)(mpsDevice->uiAddress + ((uiUnit == SOUND_BOARD_LEFT) ? SOUND_RAM_A : SOUND_RAM_B));
 	uiOffset &= SOUND_BOARD_RAM_SIZE - 1;
 	while (uiLength > 0)
@@ -123,20 +119,27 @@ uint16 CKernalSoundBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalSoundBoard::Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks)
 {
-	uint32	uiStart;
+	uint16	uiResult;
 
 	mbInterrupt = 0;
 	mpuiRegisters[SOUND_BOARD_INTERRUPT_LOW] = (uint8)uiValue;
 	mpuiRegisters[SOUND_BOARD_INTERRUPT_HIGH] = (uint8)(uiValue >> 8);
 	mpuiRegisters[SOUND_BOARD_FLAGS] = (uint8)(mpuiRegisters[SOUND_BOARD_FLAGS] | SOUND_BOARD_FLAG_INTERRUPT);
 
-	uiStart = KernalTicks();
-	while (!mbInterrupt && ((KernalTicks() - uiStart) <= uiTicks))
-	{
-		KernalWaitForInterrupt();
-	}
+	uiResult = WaitFor(uiUnit, uiValue, uiTicks);
 	mpuiRegisters[SOUND_BOARD_FLAGS] = (uint8)(mpuiRegisters[SOUND_BOARD_FLAGS] & ~SOUND_BOARD_FLAG_INTERRUPT);
-	return mbInterrupt ? KERNAL_DRIVER_SUCCESS : KERNAL_DRIVER_TIMEOUT;
+	return uiResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The counter has reached the address Wait gave it (the interrupt).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalSoundBoard::IsWaitOver(uint16 uiUnit, uint32 uiValue)
+{
+	return mbInterrupt != 0;
 }
 
 

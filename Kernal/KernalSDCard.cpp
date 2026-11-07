@@ -121,7 +121,7 @@ void CKernalSDCardBoard::Interrupt(void)
 // The kernal's own (its volume).
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSDCardBoard::Open(uint16 uiUnit, uint8 uiProcess)
+uint16 CKernalSDCardBoard::OpenUnit(uint16 uiUnit)
 {
 	return KERNAL_DRIVER_NOT_SUPPORTED;
 }
