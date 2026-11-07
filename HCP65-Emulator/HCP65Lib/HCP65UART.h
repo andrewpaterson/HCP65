@@ -180,7 +180,6 @@ protected:
 	CDeviceROM	mcROM;
 	CHCP65UART	mcUART1;
 	CHCP65UART	mcUART2;
-	uint64		muiCycle;		//The CPU cycle it has been caught up to.
 
 public:
 	void	Init(void);

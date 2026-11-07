@@ -738,7 +738,6 @@ void CHCP65UARTBoard::Init(void)
 
 	mcUART1.Init(HUM_TTL);
 	mcUART2.Init(HUM_RS232);
-	muiCycle = 0;
 }
 
 
@@ -819,7 +818,6 @@ void CHCP65UARTBoard::CatchUp(uint64 uiCycle)
 	{
 		return;
 	}
-	muiCycle = uiCycle;
 	uiTick = UARTTick(uiCycle);
 	mcUART1.CatchUp(uiTick);
 	mcUART2.CatchUp(uiTick);
