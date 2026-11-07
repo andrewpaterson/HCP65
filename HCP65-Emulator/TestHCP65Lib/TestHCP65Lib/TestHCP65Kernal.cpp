@@ -269,6 +269,9 @@ static void TestKernalExports(CHCP65KernalBuilder* pcBuilder)
 	uiNumExports = (uint32)puiROM[uiCount] | ((uint32)puiROM[uiCount + 1] << 8);
 	AssertTrue(uiNumExports > 0);
 
+	//The count (which the assembler works out) is right after the table: it counts all of it.
+	AssertInt(uiTable + uiNumExports * 8, uiCount);
+
 	szWrong.Init();
 	for (i = 0; i < uiNumExports; i++)
 	{

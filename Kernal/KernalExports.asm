@@ -8,7 +8,7 @@
 ; vtables have the ones it doesn't override.  Add to the table as drivers need more of the kernal.
 ;
 ; gauiKernalExports is guiKernalNumExports SKernalExports (KernalDriverLoader.h): each the name's address then the
-; symbol's, four bytes each.
+; symbol's, four bytes each.  guiKernalNumExports is worked out from the table's size, so adding to it is enough.
 
 		.section rodata.KernalExports
 		.align 4
@@ -142,10 +142,12 @@ _gauiKernalExports:
 		.long _KernalCopyFromUser__FPhjj
 		.long Export_KernalCopyFromUser__FPhjj_ax
 		.long _KernalCopyFromUser__FPhjj.ax
+KernalExportsEnd:
 
+		; The assembler counts them: eight bytes each.
 		.global _guiKernalNumExports
 _guiKernalNumExports:
-		.word 62
+		.word (KernalExportsEnd - _gauiKernalExports) / 8
 
 		.section rodata.KernalExportNames
 Export_CKernalDriver__Init:
