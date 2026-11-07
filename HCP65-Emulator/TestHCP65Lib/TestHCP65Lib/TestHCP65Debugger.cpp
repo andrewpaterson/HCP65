@@ -77,6 +77,31 @@ static void TestHCP65DebugTell(CHCP65DebugPort* pcPort, uint8 uiCommand, uint8 u
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The kernal telling the debug port of a driver it loaded (szName, for
+// the board in uiSlot) at uiAddress, as KernalDebugPort's TellDriver
+// writes it.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugTellDriver(CHCP65DebugPort* pcPort, uint8 uiSlot, uint32 uiAddress, uint32 uiSize, const char* szName)
+{
+	size	i;
+
+	pcPort->Write(HCP65_DEBUG_PORT_PROCESS, uiSlot);
+	for (i = 0; i < 3; i++)
+	{
+		pcPort->Write((uint32)(HCP65_DEBUG_PORT_ADDRESS + i), (uint8)(uiAddress >> (8 * i)));
+		pcPort->Write((uint32)(HCP65_DEBUG_PORT_SIZE + i), (uint8)(uiSize >> (8 * i)));
+	}
+	for (i = 0; i <= strlen(szName); i++)
+	{
+		pcPort->Write((uint32)(HCP65_DEBUG_PORT_NAME_BUFFER + i), (uint8)szName[i]);
+	}
+	pcPort->Write(HCP65_DEBUG_PORT_COMMAND, HCP65_DEBUG_PORT_DRIVER);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Ticks until the client has seen one more stop, whatever it is.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -235,6 +260,7 @@ void TestHCP65Debugger(void)
 	CHCP65DebugTarget		cTarget;
 	CHCP65DebugPort			cPort;
 	uint32					uiProcess;
+	SDebugModule*			psModule;
 	CSharedMemoryChannel	cServerChannel;
 	CSharedMemoryChannel	cClientChannel;
 	CDebugServer			cServer;
@@ -400,6 +426,35 @@ void TestHCP65Debugger(void)
 	AssertInt(7, cClient.GetProcessEvent(1)->sProcess.iExitCode);
 	AssertTrue(cClient.GetProcessEvent(2) == NULL);
 	AssertSize(0, cHCP65.GetProcessBreakpoints(3)->NumBreakpoints());
+
+	//Modules: a driver loaded while running stops it (DS_Module) before its code runs, and the debugger is told its
+	//file, where it is and how big.  A reset drops it.
+	AssertTrue(cClient.HasModules());
+	AssertSize(0, cClient.NumModules());
+	AssertTrue(cClient.Continue());
+	for (i = 0; (i < TEST_HCP65_DEBUG_TIMEOUT) && !cClient.IsRunning(); i++)
+	{
+		cServer.Tick(TEST_HCP65_DEBUG_CYCLES);
+		cClient.Poll(1);
+	}
+	AssertTrue(cClient.IsRunning());
+	TestHCP65DebugTellDriver(&cPort, 4, 0x012345, 0x2E46, "\\OS\\Drivers\\UART.DRV");
+	TestHCP65DebugWaitForAnyStop(&cServer, &cClient);
+	AssertInt(DS_Module, cClient.GetStopReason());
+	AssertSize(1, cClient.NumModules());
+	AssertSize(1, cClient.NumModuleChanges());
+	psModule = cClient.FindModule("\\os\\drivers\\uart.drv");
+	AssertTrue(psModule != NULL);
+	if (psModule)
+	{
+		AssertIntHex(0x012345, psModule->uiAddress);
+		AssertIntHex(0x2E46, psModule->uiSize);
+		AssertString("\\OS\\Drivers\\UART.DRV", psModule->szName);
+	}
+	AssertTrue(cClient.FindModule("\\OS\\Drivers\\SOUND.DRV") == NULL);
+	cPort.Reset();
+	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumModuleChanges, 2);
+	AssertSize(0, cClient.NumModules());
 
 	//Memory through the map: RAM at 0 once native.  A device reads as $FF and isn't written.
 	AssertTrue(cClient.ReadMemory(0x8000, sizeof(auiMain)));

@@ -36,7 +36,7 @@ struct SHCP65DebugDriver
 	uint8	uiSlot;
 	uint32	uiAddress;
 	uint32	uiSize;
-	char	szName[DEBUG_PROCESS_NAME_SIZE];
+	char	szName[DEBUG_MODULE_NAME_SIZE];
 };
 
 
@@ -49,7 +49,8 @@ typedef CArrayTemplate<SHCP65DebugDriver>	CArrayHCP65DebugDrivers;
 //any device; without one it tells nothing.  It keeps the processes running, and while they are watched (a debugger is
 //connected) each event, and a process started stops the HCP65's Run (StopRun) before the process's first instruction
 //so the debugger can give it its breakpoints first.  It keeps the drivers the kernal loaded since the last reset, and
-//while watched a driver loaded is an event too (TakeDriverEvent) and stops the Run before the driver's code runs.
+//while watched a driver loaded is an event too (TakeDriverEvent) and stops the Run before the driver's code runs, and a
+//reset that drops drivers is one (TakeDriversCleared).
 class CHCP65DebugPort : public CHCP65Device
 {
 protected:
@@ -65,6 +66,7 @@ protected:
 	uint32						muiSize;
 	CArrayHCP65DebugDrivers		masDrivers;
 	CArrayHCP65DebugDrivers		masDriverEvents;
+	bool						mbDriversCleared;
 
 public:
 	void	Init(void);
@@ -81,6 +83,7 @@ public:
 	size	NumDrivers(void);
 	SHCP65DebugDriver*	GetDriver(size uiIndex);
 	bool	TakeDriverEvent(SHCP65DebugDriver* psDest);
+	bool	TakeDriversCleared(void);
 
 protected:
 	void	Tell(uint8 uiCommand);

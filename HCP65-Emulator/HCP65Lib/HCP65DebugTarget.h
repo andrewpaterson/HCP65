@@ -16,7 +16,8 @@
 //The HCP65 as a CDebugServer sees it: its W65C816 and the memory map it sees now.  Run's budget is CPU cycles,
 //as CHCP65::Run's.  Memory is read and written without touching devices: device addresses read as $FF and a
 //write stops at the first one.  Breakpoints are the processor's addresses, in whichever process is running.  Its
-//instructions are decoded by what the W65C816's assembler knows (CAsm65816DebugDecoder).
+//instructions are decoded by what the W65C816's assembler knows (CAsm65816DebugDecoder).  The kernal's processes
+//and the drivers it loads (its modules) are what it tells the debug port.
 class CHCP65DebugTarget : public CDebugTarget
 {
 protected:
@@ -51,8 +52,12 @@ public:
 	bool			HasProcesses(void) override;
 	size			NumProcesses(void) override;
 	bool			GetProcess(size uiIndex, SDebugProcess* psDest) override;
-	void			WatchProcesses(bool bWatch) override;
+	void			WatchEvents(bool bWatch) override;
 	bool			TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest) override;
+	bool			HasModules(void) override;
+	size			NumModules(void) override;
+	bool			GetModule(size uiIndex, SDebugModule* psDest) override;
+	bool			TakeModuleEvent(EDebugModuleEvent* peEvent, SDebugModule* psDest) override;
 	uint32			GetCurrentSpace(void) override;
 	uint32			GetCurrentProcess(void) override;
 	bool			IsAtBreakpoint(void) override;

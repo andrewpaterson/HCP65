@@ -1,3 +1,4 @@
+#include <string.h>
 #include "HCP65DebugTarget.h"
 
 
@@ -226,7 +227,7 @@ bool CHCP65DebugTarget::GetProcess(size uiIndex, SDebugProcess* psDest)	{ return
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65DebugTarget::WatchProcesses(bool bWatch)
+void CHCP65DebugTarget::WatchEvents(bool bWatch)
 {
 	if (mpcPort)
 	{
@@ -251,6 +252,67 @@ bool CHCP65DebugTarget::TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProc
 	{
 		mpcHCP65->ClearProcessBreakpoints((uint8)psDest->uiProcess);
 	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A driver the kernal loaded as the debugger sees it: its file on the
+// card, where it is in MPU RAM and how big.
+//
+//////////////////////////////////////////////////////////////////////////
+static void HCP65DebugModule(SHCP65DebugDriver* psDriver, SDebugModule* psDest)
+{
+	psDest->uiAddress = psDriver->uiAddress;
+	psDest->uiSize = psDriver->uiSize;
+	memcpy(psDest->szName, psDriver->szName, DEBUG_MODULE_NAME_SIZE);
+}
+
+
+bool CHCP65DebugTarget::HasModules(void)								{ return mpcPort != NULL; }
+size CHCP65DebugTarget::NumModules(void)								{ return mpcPort ? mpcPort->NumDrivers() : 0; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugTarget::GetModule(size uiIndex, SDebugModule* psDest)
+{
+	if (!mpcPort || (uiIndex >= mpcPort->NumDrivers()))
+	{
+		return false;
+	}
+	HCP65DebugModule(mpcPort->GetDriver(uiIndex), psDest);
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The drivers dropped by a reset, then each one loaded since.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugTarget::TakeModuleEvent(EDebugModuleEvent* peEvent, SDebugModule* psDest)
+{
+	SHCP65DebugDriver	sDriver;
+
+	if (!mpcPort)
+	{
+		return false;
+	}
+	if (mpcPort->TakeDriversCleared())
+	{
+		*peEvent = DME_Cleared;
+		return true;
+	}
+	if (!mpcPort->TakeDriverEvent(&sDriver))
+	{
+		return false;
+	}
+	*peEvent = DME_Loaded;
+	HCP65DebugModule(&sDriver, psDest);
 	return true;
 }
 

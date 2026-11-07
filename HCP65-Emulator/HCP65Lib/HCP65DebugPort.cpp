@@ -28,6 +28,7 @@ void CHCP65DebugPort::Init(void)
 	muiAddress = 0;
 	muiSize = 0;
 	masDrivers.Init();
+	mbDriversCleared = false;
 	masDriverEvents.Init();
 }
 
@@ -48,11 +49,16 @@ void CHCP65DebugPort::Kill(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // A reset (the system's, or the port held in reset): the kernal starts
-// again, so the drivers it loaded are gone.
+// again, so the drivers it loaded are gone.  While watched that is an
+// event if there were any.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65DebugPort::Reset(void)
 {
+	if (mbWatching && (masDrivers.NumElements() > 0))
+	{
+		mbDriversCleared = true;
+	}
 	masDrivers.ReInit();
 	masDriverEvents.ReInit();
 }
@@ -283,8 +289,8 @@ void CHCP65DebugPort::TellDriver(void)
 	psDriver->uiSlot = muiProcess;
 	psDriver->uiAddress = muiAddress;
 	psDriver->uiSize = muiSize;
-	memcpy(psDriver->szName, mszName, DEBUG_PROCESS_NAME_SIZE);
-	psDriver->szName[DEBUG_PROCESS_NAME_SIZE - 1] = '\0';
+	memcpy(psDriver->szName, mszName, DEBUG_MODULE_NAME_SIZE);
+	psDriver->szName[DEBUG_MODULE_NAME_SIZE - 1] = '\0';
 	if (mbWatching)
 	{
 		masDriverEvents.Add(psDriver);
@@ -332,4 +338,20 @@ bool CHCP65DebugPort::TakeDriverEvent(SHCP65DebugDriver* psDest)
 	memcpy(psDest, masDriverEvents.Get(0), sizeof(SHCP65DebugDriver));
 	masDriverEvents.RemoveAt(0);
 	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether a reset dropped the drivers since this was last asked (while
+// watched).  Taken before the drivers loaded since, which follow it.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugPort::TakeDriversCleared(void)
+{
+	bool	bCleared;
+
+	bCleared = mbDriversCleared;
+	mbDriversCleared = false;
+	return bCleared;
 }
