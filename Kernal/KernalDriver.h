@@ -8,7 +8,7 @@
 #define KERNAL_DRIVER_SUCCESS			0
 #define KERNAL_DRIVER_NOT_SUPPORTED		1		//The board doesn't do that.
 #define KERNAL_DRIVER_BAD_UNIT			2
-#define KERNAL_DRIVER_IN_USE			3		//Another process has the board open.
+#define KERNAL_DRIVER_IN_USE			3		//Another process has the board (or the unit) open.
 #define KERNAL_DRIVER_NOT_OPEN			4
 #define KERNAL_DRIVER_BAD_ARGUMENT		5
 #define KERNAL_DRIVER_FAILED			6
