@@ -170,6 +170,8 @@ Addresses (the brackets inside are indirection):
 Offset (one word) is used when the address is below 0001:0000 unless :32 is given.
 An offset wider than 16 bits (with :16) or an absolute address wider than 32 bits
 keeps only its low bits, with a warning (the user, 2026-10-23).
+A negative absolute address down to -$80000000 is 32 bit two's complement, so
+[-4 + V] is V - 4, without a warning.
 
 
 Instructions

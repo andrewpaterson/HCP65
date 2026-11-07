@@ -161,6 +161,13 @@ suffix on the address picks one:
 	cpy A, [Table + X]	; offset or absolute, depending on where Table is
 ```
 
+A negative address, down to -$80000000, is absolute and is 32 bit two's complement.  Addresses
+wrap at 32 bits, so a negative address plus a register points below the register:
+
+```asm
+	cpy A, [-4 + V]		; the value at V - 4
+```
+
 When assembling an object for the linker, a label's address is 32 bits unless `:16` is given.
 
 ### Address Register (modes 10–14) {#address-register}

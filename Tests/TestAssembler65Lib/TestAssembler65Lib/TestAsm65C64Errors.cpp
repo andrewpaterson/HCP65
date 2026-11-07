@@ -229,6 +229,34 @@ void TestAsm65ErrorsWarnings(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
+void TestAsm65ErrorsNegativeAddress(void)
+{
+	CAsm65C64Assembler	cAssembler;
+
+	cAssembler.Init();
+	AssertTrue(cAssembler.Assemble(
+		".org $1000\n"
+		"	cpy A, [-4 + V]\n"
+		"	cpy A, [-$80000000]\n"
+		"	cpy A, [-$80000001]\n"));
+	AssertString("", cAssembler.GetErrors());
+	AssertString("4:10: Address is wider than 32 bits; the high bits are discarded '-'\n", cAssembler.GetWarnings());
+	AssertSize(1, cAssembler.NumWarnings());
+
+	AssertShortHex((uint16)0x0C20, TestAsm65Word(&cAssembler, 0x1000));
+	AssertShortHex((uint16)0xFFFC, TestAsm65Word(&cAssembler, 0x1002));
+	AssertShortHex((uint16)0xFFFF, TestAsm65Word(&cAssembler, 0x1004));
+	AssertShortHex((uint16)0x0820, TestAsm65Word(&cAssembler, 0x1006));
+	AssertShortHex((uint16)0x0000, TestAsm65Word(&cAssembler, 0x1008));
+	AssertShortHex((uint16)0x8000, TestAsm65Word(&cAssembler, 0x100A));
+	cAssembler.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
 void TestAsm65C64Errors(void)
 {
 	BeginTests();
@@ -238,6 +266,7 @@ void TestAsm65C64Errors(void)
 	TestAsm65ErrorsCopyExtendBranchEqual();
 	TestAsm65ErrorsTokens();
 	TestAsm65ErrorsWarnings();
+	TestAsm65ErrorsNegativeAddress();
 
 	TestStatistics();
 }

@@ -538,7 +538,8 @@ bool CAsm65C64Assembler::MemoryOperand(SAsm65C64Operand* psOperand, SAsm65C64Mem
 		bOffset = bFits && (uiFixedWords + 1 >= GetMinimumLength());
 	}
 
-	if (!bOffset && !bRelocatable && psAddress->sValue.bResolved && ((psAddress->sValue.iValue < 0) || (psAddress->sValue.iValue > 0xFFFFFFFFLL)))
+	//A negative absolute address is 32 bit two's complement, so [-4 + V] is V - 4 without a warning.
+	if (!bOffset && !bRelocatable && psAddress->sValue.bResolved && ((psAddress->sValue.iValue < -0x80000000LL) || (psAddress->sValue.iValue > 0xFFFFFFFFLL)))
 	{
 		Warning(psAddress->psToken, "Address is wider than 32 bits; the high bits are discarded");
 	}
