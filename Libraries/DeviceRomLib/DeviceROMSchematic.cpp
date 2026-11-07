@@ -234,7 +234,7 @@ CKicadSchemNet* CDeviceROMSchematic::GetPinNet(CKicadSchemSymbol* pcSymbol, cons
 	for (i = 0; i < pcLibSymbol->NumPins(); i++)
 	{
 		pcPin = pcLibSymbol->GetPin(i);
-		if (pcPin->IsOn(pcSymbol->GetUnit(), pcSymbol->GetBodyStyle()) && (strcmp(pcPin->GetName(), szPinName) == 0))
+		if (pcSymbol->IsUnitPin(pcPin) && (strcmp(pcPin->GetName(), szPinName) == 0))
 		{
 			return mpcNetlist->GetPinNet(pcSymbol->GetReference(), pcPin->GetNumber());
 		}
