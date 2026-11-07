@@ -35,7 +35,9 @@ public:
 //registers, written directly and repeating every 8 bytes through the slot, of a 2 bit window number for each memory
 //socket.  Register 0 is sockets S, T, U (device 19) and V (device 18), register 1 W (device 4), X (device 3),
 //Y (device 17) and Z (device 16), from D1-D0 up; S and T aren't wired on the small mainboard.  Nothing is read back
-//(the bus floats to $FF).  A system reset clears them; holding the device in reset doesn't.
+//(the bus floats to $FF).  They are latches (74LVC573s) that nothing resets: a system reset or holding the device in
+//reset leaves them as they were.  At power on the real ones hold anything; the emulator's start at 0, every socket
+//in window 0, so nothing may rely on them before the kernal writes both.
 class CHCP65MemoryChannel : public CHCP65Device
 {
 protected:
@@ -46,7 +48,6 @@ public:
 
 	uint8	Read(uint32 uiOffset) override;
 	void	Write(uint32 uiOffset, uint8 uiValue) override;
-	void	Reset(void) override;
 	void	SetHeldInReset(bool bHeld) override;
 
 	int		GetSocketSlot(int iSocket);

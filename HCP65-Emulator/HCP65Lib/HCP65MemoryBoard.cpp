@@ -72,12 +72,14 @@ uint8* CHCP65MemoryBoard::GetMemoryChip(int iChip)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Power on: every socket in window 0 (the real latches hold anything).
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65MemoryChannel::Init(void)
 {
 	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
-	Reset();
+	mauiRegisters[0] = 0;
+	mauiRegisters[1] = 0;
 }
 
 
@@ -107,22 +109,6 @@ void CHCP65MemoryChannel::Write(uint32 uiOffset, uint8 uiValue)
 		{
 			mpcHCP65->MapMainMemory();
 		}
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Every socket in window 0.
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65MemoryChannel::Reset(void)
-{
-	mauiRegisters[0] = 0;
-	mauiRegisters[1] = 0;
-	if (mpcHCP65)
-	{
-		mpcHCP65->MapMainMemory();
 	}
 }
 

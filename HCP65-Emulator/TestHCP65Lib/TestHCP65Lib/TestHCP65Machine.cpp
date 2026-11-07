@@ -424,7 +424,7 @@ void TestHCP65MemoryFill(void)
 // window its registers give it (chip A the lower 2MB), nothing where no
 // chip answers, the first socket's where two share a window.  The
 // registers repeat every 8 bytes and read nothing; the device enables
-// don't reach them, the system reset clears them.
+// don't reach them, and nor does the system reset: they are latches.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65MemoryBoard(void)
@@ -471,11 +471,17 @@ void TestHCP65MemoryBoard(void)
 	AssertTrue(cHCP65.MainMemoryAt(0xC00000) == cV.GetMemoryChip(0));
 	AssertTrue(cHCP65.MainMemoryAt(0x400000) == NULL);
 
-	//The reset puts every socket back in window 0; the memory is kept.
+	//The reset keeps the windows and the memory.
 	cHCP65.Reset();
-	AssertTrue(cHCP65.MainMemoryAt(0x800000) == NULL);
-	AssertTrue(cHCP65.MainMemoryAt(0x200000) == cV.GetMemoryChip(1));
+	AssertTrue(cHCP65.MainMemoryAt(0xC00000) == cV.GetMemoryChip(0));
+	AssertTrue(cHCP65.MainMemoryAt(0x800000) == cX.GetMemoryChip(0));
+	AssertTrue(cHCP65.MainMemoryAt(0x400000) == NULL);
 	AssertInt(0x5A, cV.GetMemoryChip(1)[0x12345]);
+
+	//Both back in window 0.
+	cHCP65.Write(0x108000, 0);
+	cHCP65.Write(0x108001, 0);
+	AssertTrue(cHCP65.MainMemoryAt(0x200000) == cV.GetMemoryChip(1));
 
 	//Taken out, its memory is gone.
 	AssertTrue(cHCP65.SetDevice(18, NULL));

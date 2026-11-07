@@ -212,7 +212,9 @@ the slot.
 
 Sockets S and T are not wired on the small mainboard.  In each pair the lower data bit is the low
 bit of the window number, so writing `%01` to a pair selects window 1.  Nothing can be read back,
-and a reset puts every socket in window 0.
+and nothing resets them: they are latches, so a reset leaves every socket in the window it was in,
+and at power on each socket is in any window.  Nothing may use main memory before the kernel has
+written both registers.
 
 ### How the kernel uses it
 
