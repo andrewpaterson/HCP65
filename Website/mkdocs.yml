@@ -28,6 +28,7 @@ theme:
 
 plugins:
   - search
+  - privacy
   - glightbox
   - table-reader
 
