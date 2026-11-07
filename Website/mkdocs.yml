@@ -1,5 +1,5 @@
 site_name: Codaphela
-site_description: Codaphela libraries, the 65C64 processor and the HCP65 computer
+site_description: The HCP65 modern home computer, its C++ compiler, the W65C64 microprocessor proposal, the C++ software libraries and the HCP65 drivers and runtime
 docs_dir: docs
 site_dir: site
 
@@ -52,13 +52,40 @@ extra_css:
 
 nav:
   - Home: index.md
-  - Libraries:
-      - libraries/index.md
-  - 65C64:
-      - 65c64/index.md
-  - HCP65 Computer:
+  - HCP65 Modern Home Computer:
       - hcp65/index.md
       - Memory Map: hcp65/memory-map.md
       - On-board Registers: hcp65/registers.md
       - Devices and Main Memory: hcp65/devices.md
-      - W65C816 Runtime: hcp65/runtime.md
+  - HCP65 C++ Compiler:
+      - compiler/index.md
+  - W65C64 Microprocessor Proposal:
+      - w65c64/index.md
+      - Registers: w65c64/registers.md
+      - Notation: w65c64/notation.md
+      - Operands and Addressing: w65c64/operands.md
+      - Instructions:
+          - w65c64/instructions/index.md
+          - Copy: w65c64/instructions/cpy.md
+          - Copy Extend: w65c64/instructions/cpyx.md
+          - Logical: w65c64/instructions/logical.md
+          - Arithmetic: w65c64/instructions/arithmetic.md
+          - Shift: w65c64/instructions/shift.md
+          - Subcopy: w65c64/instructions/subcopy.md
+          - Find: w65c64/instructions/find.md
+          - Multiply and Divide: w65c64/instructions/multiply-divide.md
+          - Jump: w65c64/instructions/jump.md
+          - Branch: w65c64/instructions/branch.md
+          - Return: w65c64/instructions/return.md
+          - Stack: w65c64/instructions/stack.md
+          - Status: w65c64/instructions/status.md
+          - Register Width: w65c64/instructions/width.md
+          - Control: w65c64/instructions/control.md
+          - Block: w65c64/instructions/block.md
+          - Vector: w65c64/instructions/vector.md
+          - Hardware Registers: w65c64/instructions/hardware.md
+  - C++ Software Libraries:
+      - libraries/index.md
+  - HCP65 Drivers and Runtime:
+      - runtime/index.md
+      - W65C816 Runtime: runtime/w65c816.md
