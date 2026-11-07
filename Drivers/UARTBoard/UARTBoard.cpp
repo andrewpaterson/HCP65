@@ -139,7 +139,8 @@ void CKernalUARTPort::Interrupt(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The line status, its errors kept (reading it clears them).
+// The line status, its errors kept (reading it clears them): every read
+// of LSR comes here, or an error could be lost.
 //
 //////////////////////////////////////////////////////////////////////////
 uint8 CKernalUARTPort::ReadLineStatus(void)
@@ -482,7 +483,7 @@ void CKernalUARTPort::SetLCR(uint8 uiLCR) { muiLCR = uiLCR; mpuiRegisters[UART_L
 void CKernalUARTPort::SetMCR(uint8 uiMCR) { muiMCR = uiMCR; mpuiRegisters[UART_MCR] = uiMCR; }
 uint8 CKernalUARTPort::NumReceived(void) { return (uint8)(muiRxHead - muiRxTail); }
 uint8 CKernalUARTPort::NumQueued(void) { return (uint8)(muiTxHead - muiTxTail); }
-bool CKernalUARTPort::IsSent(void) { return (mpuiRegisters[UART_LSR] & UART_LSR_TX_EMPTY) != 0; }
+bool CKernalUARTPort::IsSent(void) { return (ReadLineStatus() & UART_LSR_TX_EMPTY) != 0; }
 
 
 //////////////////////////////////////////////////////////////////////////
