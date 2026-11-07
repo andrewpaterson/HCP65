@@ -26,6 +26,9 @@ Listing/
 *.plain
 *.units
 
+# DeviceROM\MakeImages.ps1's ROM images
+/DeviceROM/Images/
+
 # Files the tests write
 /HCP65-Emulator/TestHCP65Lib/TestHCP65Lib/Post/
 /Tests/TestLibc65/TestLibc65/Post/

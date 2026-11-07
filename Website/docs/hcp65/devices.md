@@ -123,7 +123,12 @@ the current directory unless it is named) and makes the image from it.  From the
 
 A board whose registers aren't decoded by a *Device Decode Stage B* needs its description written by
 hand: the UART Board's two UARTs are selected by gates on its *UART Signals* board
-(`DeviceROM/Boards/UARTBoard.xml`).
+(`DeviceROM/Boards/UARTBoard.xml`), and the VIA Board's eight VIAs by its *VIA Control* board
+(`DeviceROM/Boards/VIABoard.xml`).
+
+`DeviceROM/MakeImages.ps1` makes every board's image into `DeviceROM/Images/`: from its description
+in `DeviceROM/Boards/` if it has one, else from its schematic.  A programmer burns an image into the
+board's SST39VF010 at address 0, the rest of the chip left erased (`$FF`).
 
 The HCP65's own boards have the manufacturer `HCP65`:
 
