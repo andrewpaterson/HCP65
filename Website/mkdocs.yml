@@ -69,6 +69,7 @@ nav:
       - Registers: 65c64/registers.md
       - Notation: 65c64/notation.md
       - Operands and Addressing: 65c64/operands.md
+      - Opcode Encoding: 65c64/opcode-encoding.md
       - Instructions:
           - 65c64/instructions/index.md
           - Copy: 65c64/instructions/cpy.md
