@@ -56892,6 +56892,42 @@
 				(hide yes)
 			)
 		)
+		(property "ROM_Manufacturer" "HCP65"
+			(at 285.115 179.705 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Name" "Video Board"
+			(at 285.115 179.705 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Driver" "VIDEO.DRV"
+			(at 285.115 179.705 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(property "Description" "32 pin PLCC socket\n(1 Mbit NOR Flash)"
 			(at 264.16 134.62 0)
 			(effects

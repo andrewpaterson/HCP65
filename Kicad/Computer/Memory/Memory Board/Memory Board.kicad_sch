@@ -11042,6 +11042,18 @@
 				(hide yes)
 			)
 		)
+		(property "ROM_Manufacturer" "HCP65"
+			(at 273.685 107.315 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(property "Description" "32 pin PLCC socket\n(1 Mbit NOR Flash)"
 			(at 252.73 62.23 0)
 			(effects

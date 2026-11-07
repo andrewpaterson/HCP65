@@ -21308,6 +21308,30 @@
 				(hide yes)
 			)
 		)
+		(property "ROM_Manufacturer" "HCP65"
+			(at 240.665 274.955 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Driver" "VIA.DRV"
+			(at 240.665 274.955 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(property "Description" "32 pin PLCC socket\n(1 Mbit NOR Flash)"
 			(at 219.71 229.87 0)
 			(effects

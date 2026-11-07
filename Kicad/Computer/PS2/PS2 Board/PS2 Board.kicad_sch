@@ -16978,6 +16978,42 @@
 				(hide yes)
 			)
 		)
+		(property "ROM_Manufacturer" "HCP65"
+			(at 139.065 225.425 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Name" "PS2 Board"
+			(at 139.065 225.425 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Driver" "PS2.DRV"
+			(at 139.065 225.425 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(property "Description" "32 pin PLCC socket\n(1 Mbit NOR Flash)"
 			(at 118.11 180.34 0)
 			(effects

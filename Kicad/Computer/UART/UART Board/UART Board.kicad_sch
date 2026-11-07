@@ -15170,6 +15170,30 @@
 				(hide yes)
 			)
 		)
+		(property "ROM_Manufacturer" "HCP65"
+			(at 252.095 231.775 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ROM_Driver" "UART.DRV"
+			(at 252.095 231.775 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
 		(property "Description" "32 pin PLCC socket\n(1 Mbit NOR Flash)"
 			(at 231.14 186.69 0)
 			(effects
