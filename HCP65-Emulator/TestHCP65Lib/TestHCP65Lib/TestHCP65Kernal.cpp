@@ -964,7 +964,6 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	int					i;
 	bool				bSentRS232;
 	bool				bSentTTL;
-	bool				bHeldOff;
 
 	if (!TestKernalPutUARTFiles())
 	{
@@ -994,7 +993,6 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	acFromTTL.Init();
 	bSentRS232 = false;
 	bSentTTL = false;
-	bHeldOff = false;
 	puiRAM = cHCP65.GetMPURAM();
 	for (i = 0; i < TEST_UART_MAX_RUNS; i++)
 	{
@@ -1020,10 +1018,6 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 			TestKernalUARTPattern(auiExpected, TEST_UART_RECEIVED, 5, 13);
 			pcRS232->HostSend(auiExpected, TEST_UART_RECEIVED);
 			bSentRS232 = true;
-		}
-		if (bSentRS232 && (pcRS232->NumHostToSend() > 0) && !pcRS232->IsRTSOn())
-		{
-			bHeldOff = true;
 		}
 		if (!bSentTTL && (pcTTL->GetBaudRate() == 9600) && ((pcTTL->GetLineControl() & 0x3F) == 0x1A))
 		{
@@ -1080,7 +1074,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	//The RS232 far end got "CHILD" (sent before the kernal closed the child's port) then the first pattern, and sent all
 	//of the second, held off by RTS on the way.  Nothing was lost on either port.
 	AssertTrue(bSentRS232);
-	AssertTrue(bHeldOff);
+	AssertTrue(pcRS232->NumHoldOffs() > 0);
 	AssertSize(0, pcRS232->NumHostToSend());
 	AssertSize(5 + TEST_UART_SENT, acFromRS232.NumElements());
 	if (acFromRS232.NumElements() == 5 + TEST_UART_SENT)

@@ -119,6 +119,8 @@ protected:
 	bool		mbHostCTS;
 	bool		mbHostDSR;
 	bool		mbHostDCD;
+	bool		mbHostHeldOff;			//The far end has a character to send and RTS is off.
+	uint64		muiHoldOffs;			//Times the far end has had to wait for RTS.
 	uint64		muiOverruns;
 
 public:
@@ -145,6 +147,7 @@ public:
 	uint32	GetBaudRate(void);
 	uint8	GetLineControl(void);
 	uint64	NumOverruns(void);
+	uint64	NumHoldOffs(void);
 
 protected:
 	uint8	Identify(void);

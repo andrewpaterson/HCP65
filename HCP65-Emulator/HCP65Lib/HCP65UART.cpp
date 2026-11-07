@@ -20,6 +20,7 @@ void CHCP65UART::Init(EHCP65UARTModule eModule)
 	mbHostCTS = false;
 	mbHostDSR = false;
 	mbHostDCD = false;
+	muiHoldOffs = 0;
 	muiOverruns = 0;
 	Reset();
 }
@@ -54,6 +55,7 @@ void CHCP65UART::Reset(void)
 	ClearTx();
 	mbShifting = false;
 	mbReceiving = false;
+	mbHostHeldOff = false;
 	muiRxActivity = muiTick;
 	muiModemInputs = ModemInputs();
 	muiModemDeltas = 0;
@@ -469,14 +471,25 @@ void CHCP65UART::FinishShifting(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // The far end starts its next character, if it has one and RTS is on.
+// Each time it has one and finds RTS off is a hold-off.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65UART::StartReceiving(void)
 {
-	if (mbReceiving || (muiHostSendIndex >= macHostSend.NumElements()) || !IsRTSOn())
+	if (mbReceiving || (muiHostSendIndex >= macHostSend.NumElements()))
 	{
 		return;
 	}
+	if (!IsRTSOn())
+	{
+		if (!mbHostHeldOff)
+		{
+			mbHostHeldOff = true;
+			muiHoldOffs++;
+		}
+		return;
+	}
+	mbHostHeldOff = false;
 	muiReceiveByte = macHostSend.GetValue(muiHostSendIndex);
 	muiHostSendIndex++;
 	if (muiHostSendIndex == macHostSend.NumElements())
@@ -705,6 +718,7 @@ size CHCP65UART::NumHostToSend(void) { return macHostSend.NumElements() - muiHos
 size CHCP65UART::NumHostReceived(void) { return macHostReceived.NumElements(); }
 uint8 CHCP65UART::GetLineControl(void) { return muiLCR; }
 uint64 CHCP65UART::NumOverruns(void) { return muiOverruns; }
+uint64 CHCP65UART::NumHoldOffs(void) { return muiHoldOffs; }
 
 
 //////////////////////////////////////////////////////////////////////////

@@ -632,6 +632,7 @@ void TestHCP65UART(void)
 	uint8		auiData[16];
 	uint64		uiTick;
 	uint64		uiChar;		//9600 8N1: 16 ticks a bit, divisor 12, 10 bits.
+	uint64		uiHoldOffs;
 	int			i;
 
 	uiChar = 16 * 12 * 10;
@@ -697,7 +698,8 @@ void TestHCP65UART(void)
 	AssertInt(HCP65_UART_IIR_NONE | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
 
 	//Auto-RTS: at the trigger level (4) RTS goes off and the far end waits; reading a byte lets it go on.  At the trigger
-	//level the received interrupt is pending.
+	//level the received interrupt is pending.  The far end is held off three times.
+	uiHoldOffs = cUART.NumHoldOffs();
 	cUART.Write(HCP65_UART_MCR, HCP65_UART_MCR_RTS | HCP65_UART_MCR_AUTO_FLOW);
 	for (i = 0; i < 10; i++)
 	{
@@ -730,6 +732,7 @@ void TestHCP65UART(void)
 	AssertSize(0, cUART.NumHostToSend());
 	AssertInt(0, cUART.Read(HCP65_UART_LSR) & HCP65_UART_LSR_DATA_READY);
 	AssertLong(0, (int64)cUART.NumOverruns());
+	AssertLong(3, (int64)(cUART.NumHoldOffs() - uiHoldOffs));
 
 	//Auto-CTS: with the far end's RTS off nothing goes; on, it does.
 	cUART.Write(HCP65_UART_IER, 0);
