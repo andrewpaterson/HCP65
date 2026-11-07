@@ -508,8 +508,8 @@ uint16 CKernalUARTBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	uint16	uiResult;
 
 	uiResult = CKernalDriver::Init(psDevice, uiSlot);
-	mcTTL.Init(&mpuiRegisters[UART1_REGISTERS], UART_TTL_LINES);
-	mcRS232.Init(&mpuiRegisters[UART2_REGISTERS], UART_RS232_LINES);
+	mcTTL.Init(&mpuiRegisters[UART_TTL_REGISTERS], UART_TTL_LINES);
+	mcRS232.Init(&mpuiRegisters[UART_RS232_REGISTERS], UART_RS232_LINES);
 	SetInterrupt(NULL, true);
 	return uiResult;
 }

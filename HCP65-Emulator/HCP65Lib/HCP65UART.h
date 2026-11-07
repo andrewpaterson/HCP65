@@ -8,7 +8,7 @@
 #define HCP65_UART_DRIVER			"UART.DRV"
 #define HCP65_UART_REGISTERS		0x400		//$400 to $7FF: UART2's eight registers then UART1's, repeating every 16 bytes.
 #define HCP65_UART_REGISTERS_END	0x800
-#define HCP65_UART_UART1			0x08		//A3 high: UART1 (the TTL module); low: UART2 (the RS232 module).
+#define HCP65_UART_TTL				0x08		//A3 high: UART1 (the TTL module); low: UART2 (the RS232 module).
 #define HCP65_UART_REGISTER			0x07		//A0-A2.
 #define HCP65_UART_NUM_REGISTERS	8
 #define HCP65_UART_CLOCK_RATE		1843200		//Each module's oscillator, in Hz: a divisor of 1 is 115200 baud.
@@ -181,8 +181,8 @@ class CHCP65UARTBoard : public CHCP65Device
 {
 protected:
 	CDeviceROM	mcROM;
-	CHCP65UART	mcUART1;
-	CHCP65UART	mcUART2;
+	CHCP65UART	mcTTL;		//UART1.
+	CHCP65UART	mcRS232;	//UART2.
 
 public:
 	void	Init(void);

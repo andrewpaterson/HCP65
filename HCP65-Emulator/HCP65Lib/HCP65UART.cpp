@@ -736,8 +736,8 @@ void CHCP65UARTBoard::Init(void)
 		mcROM.AddRegister((uint16)(HCP65_UART_REGISTERS + i), DEVICE_REGISTER_WRITE);
 	}
 
-	mcUART1.Init(HUM_TTL);
-	mcUART2.Init(HUM_RS232);
+	mcTTL.Init(HUM_TTL);
+	mcRS232.Init(HUM_RS232);
 }
 
 
@@ -747,8 +747,8 @@ void CHCP65UARTBoard::Init(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65UARTBoard::Kill(void)
 {
-	mcUART2.Kill();
-	mcUART1.Kill();
+	mcRS232.Kill();
+	mcTTL.Kill();
 	CHCP65Device::Kill();
 }
 
@@ -794,8 +794,8 @@ void CHCP65UARTBoard::Write(uint32 uiOffset, uint8 uiValue)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65UARTBoard::Reset(void)
 {
-	mcUART1.Reset();
-	mcUART2.Reset();
+	mcTTL.Reset();
+	mcRS232.Reset();
 }
 
 
@@ -812,8 +812,8 @@ void CHCP65UARTBoard::CatchUp(uint64 uiCycle)
 		return;
 	}
 	uiTick = UARTTick(uiCycle);
-	mcUART1.CatchUp(uiTick);
-	mcUART2.CatchUp(uiTick);
+	mcTTL.CatchUp(uiTick);
+	mcRS232.CatchUp(uiTick);
 }
 
 
@@ -830,8 +830,8 @@ uint64 CHCP65UARTBoard::NextEvent(void)
 	{
 		return HCP65_NEVER;
 	}
-	uiNext = mcUART1.NextEvent();
-	uiEvent = mcUART2.NextEvent();
+	uiNext = mcTTL.NextEvent();
+	uiEvent = mcRS232.NextEvent();
 	if (uiEvent < uiNext)
 	{
 		uiNext = uiEvent;
@@ -846,7 +846,7 @@ uint64 CHCP65UARTBoard::NextEvent(void)
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65UARTBoard::IsInterrupting(void)
 {
-	return !mbHeldInReset && (mcUART1.IsInterrupting() || mcUART2.IsInterrupting());
+	return !mbHeldInReset && (mcTTL.IsInterrupting() || mcRS232.IsInterrupting());
 }
 
 
@@ -868,6 +868,6 @@ uint64 CHCP65UARTBoard::CycleOfUARTTick(uint64 uiTick)
 }
 
 
-CHCP65UART* CHCP65UARTBoard::GetUART(uint32 uiOffset) { return (uiOffset & HCP65_UART_UART1) ? &mcUART1 : &mcUART2; }
-CHCP65UART* CHCP65UARTBoard::GetTTL(void) { return &mcUART1; }
-CHCP65UART* CHCP65UARTBoard::GetRS232(void) { return &mcUART2; }
+CHCP65UART* CHCP65UARTBoard::GetUART(uint32 uiOffset) { return (uiOffset & HCP65_UART_TTL) ? &mcTTL : &mcRS232; }
+CHCP65UART* CHCP65UARTBoard::GetTTL(void) { return &mcTTL; }
+CHCP65UART* CHCP65UARTBoard::GetRS232(void) { return &mcRS232; }

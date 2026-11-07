@@ -19,8 +19,8 @@
 #define UART_MSR					6
 #define UART_SCR					7
 
-#define UART1_REGISTERS				0x08	//From the slot's device registers ($400).
-#define UART2_REGISTERS				0x00
+#define UART_TTL_REGISTERS			0x08	//UART1, from the slot's device registers ($400).
+#define UART_RS232_REGISTERS		0x00	//UART2.
 
 #define UART_IER_RECEIVED			0x01	//Data available or the receive timeout.
 #define UART_IER_TRANSMIT			0x02	//Transmitter Holding Register empty.
