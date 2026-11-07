@@ -834,6 +834,33 @@ void TestHCP65UARTBoard(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A device clock's ticks and CPU cycles at 25MHz, the UART's 1.8432MHz:
+// a tick takes 13.56 cycles, so the first has happened by cycle 14.  A
+// thousand hours' cycles times the rate would overflow 64 bits.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65DeviceTick(void)
+{
+	CHCP65	cHCP65;
+	uint64	uiHours;
+
+	cHCP65.Init(25000000);
+	AssertLong(0, (int64)cHCP65.DeviceTick(13, 1843200));
+	AssertLong(1, (int64)cHCP65.DeviceTick(14, 1843200));
+	AssertLong(14, (int64)cHCP65.CycleOfDeviceTick(1, 1843200));
+	AssertLong(1843200, (int64)cHCP65.DeviceTick(25000000, 1843200));
+	AssertLong(25000000, (int64)cHCP65.CycleOfDeviceTick(1843200, 1843200));
+
+	uiHours = 1000ULL * 3600;
+	AssertLong((int64)(uiHours * 1843200), (int64)cHCP65.DeviceTick(uiHours * 25000000, 1843200));
+	AssertLong((int64)(uiHours * 25000000), (int64)cHCP65.CycleOfDeviceTick(uiHours * 1843200, 1843200));
+	AssertLong((int64)(uiHours * 25000000 + 14), (int64)cHCP65.CycleOfDeviceTick(uiHours * 1843200 + 1, 1843200));
+	cHCP65.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -846,6 +873,7 @@ void TestHCP65Machine(void)
 	TestHCP65BootAndUserMode();
 	TestHCP65AudioBoard();
 	TestHCP65AudioFromProgram();
+	TestHCP65DeviceTick();
 	TestHCP65UART();
 	TestHCP65UARTBoard();
 	TestHCP65Timer();

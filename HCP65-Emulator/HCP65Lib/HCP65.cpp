@@ -811,23 +811,42 @@ void CHCP65::WriteByte(void* pvContext, uint32 uiAddress, uint8 uiValue)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The crystal ticks completed by CPU cycle uiCycle.
+// The ticks of a device's uiRate Hz clock completed by CPU cycle uiCycle.
+// Whole seconds and the rest are taken apart, so it doesn't overflow.
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CHCP65::CrystalTick(uint64 uiCycle)
+uint64 CHCP65::DeviceTick(uint64 uiCycle, uint64 uiRate)
 {
-	return (uiCycle * HCP65_CRYSTAL_RATE) / muiClockRate;
+	return (uiCycle / muiClockRate) * uiRate + ((uiCycle % muiClockRate) * uiRate) / muiClockRate;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The first CPU cycle by which crystal tick uiTick has happened.
+// The first CPU cycle by which tick uiTick of a device's uiRate Hz clock
+// has happened.
 //
 //////////////////////////////////////////////////////////////////////////
+uint64 CHCP65::CycleOfDeviceTick(uint64 uiTick, uint64 uiRate)
+{
+	return (uiTick / uiRate) * muiClockRate + ((uiTick % uiRate) * muiClockRate + uiRate - 1) / uiRate;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The 32.768kHz crystal's (the timer's and the sound board's).
+//
+//////////////////////////////////////////////////////////////////////////
+uint64 CHCP65::CrystalTick(uint64 uiCycle)
+{
+	return DeviceTick(uiCycle, HCP65_CRYSTAL_RATE);
+}
+
+
 uint64 CHCP65::CycleOfCrystalTick(uint64 uiTick)
 {
-	return (uiTick * muiClockRate + HCP65_CRYSTAL_RATE - 1) / HCP65_CRYSTAL_RATE;
+	return CycleOfDeviceTick(uiTick, HCP65_CRYSTAL_RATE);
 }
 
 

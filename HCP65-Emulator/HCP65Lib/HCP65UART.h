@@ -204,8 +204,6 @@ public:
 
 protected:
 	CHCP65UART*	GetUART(uint32 uiOffset);
-	uint64	UARTTick(uint64 uiCycle);
-	uint64	CycleOfUARTTick(uint64 uiTick);
 };
 
 

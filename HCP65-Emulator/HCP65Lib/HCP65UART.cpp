@@ -825,7 +825,7 @@ void CHCP65UARTBoard::CatchUp(uint64 uiCycle)
 	{
 		return;
 	}
-	uiTick = UARTTick(uiCycle);
+	uiTick = mpcHCP65->DeviceTick(uiCycle, HCP65_UART_CLOCK_RATE);
 	mcTTL.CatchUp(uiTick);
 	mcRS232.CatchUp(uiTick);
 }
@@ -850,7 +850,7 @@ uint64 CHCP65UARTBoard::NextEvent(void)
 	{
 		uiNext = uiEvent;
 	}
-	return (uiNext == HCP65_NEVER) ? HCP65_NEVER : CycleOfUARTTick(uiNext);
+	return (uiNext == HCP65_NEVER) ? HCP65_NEVER : mpcHCP65->CycleOfDeviceTick(uiNext, HCP65_UART_CLOCK_RATE);
 }
 
 
@@ -861,24 +861,6 @@ uint64 CHCP65UARTBoard::NextEvent(void)
 bool CHCP65UARTBoard::IsInterrupting(void)
 {
 	return !mbHeldInReset && (mcTTL.IsInterrupting() || mcRS232.IsInterrupting());
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The oscillators' tick at CPU cycle uiCycle, and the first cycle by which
-// a tick has happened.
-//
-//////////////////////////////////////////////////////////////////////////
-uint64 CHCP65UARTBoard::UARTTick(uint64 uiCycle)
-{
-	return (uiCycle * HCP65_UART_CLOCK_RATE) / mpcHCP65->GetClockRate();
-}
-
-
-uint64 CHCP65UARTBoard::CycleOfUARTTick(uint64 uiTick)
-{
-	return (uiTick * mpcHCP65->GetClockRate() + HCP65_UART_CLOCK_RATE - 1) / HCP65_UART_CLOCK_RATE;
 }
 
 

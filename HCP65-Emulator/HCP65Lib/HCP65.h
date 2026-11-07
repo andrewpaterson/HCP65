@@ -101,6 +101,8 @@ public:
 	uint8*				GetMainMemory(void);
 	uint64				NumCycles(void);
 	uint64				GetClockRate(void);
+	uint64				DeviceTick(uint64 uiCycle, uint64 uiRate);
+	uint64				CycleOfDeviceTick(uint64 uiTick, uint64 uiRate);
 	uint64				CrystalTick(uint64 uiCycle);
 	uint64				CycleOfCrystalTick(uint64 uiTick);
 
