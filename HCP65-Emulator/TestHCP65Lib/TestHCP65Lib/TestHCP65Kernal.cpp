@@ -143,10 +143,10 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 //
 // Builds an executable from its project, szProjectFile (as HCP65-IDE
 // builds it; bMathTables as its MathTables), and puts it on the SD card
-// image as szName.
+// image szImage as szName.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalPutExe(const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize, bool bMathTables)
+static bool TestKernalPutExe(const char* szImage, const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize, bool bMathTables)
 {
 	CHCP65ExeBuilder	cExe;
 	bool				bBuilt;
@@ -164,7 +164,7 @@ static bool TestKernalPutExe(const char* szName, const char* szProjectFile, cons
 		{
 			printf("%s: %d bytes\n", szName, (int)cExe.GetExecutableSize());
 		}
-		bBuilt = FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, szName, cExe.GetExecutable(), cExe.GetExecutableSize());
+		bBuilt = FatPutFileOnImage(szImage, szName, cExe.GetExecutable(), cExe.GetExecutableSize());
 		AssertTrue(bBuilt);
 	}
 	cExe.Kill();
@@ -175,10 +175,10 @@ static bool TestKernalPutExe(const char* szName, const char* szProjectFile, cons
 //////////////////////////////////////////////////////////////////////////
 //
 // Builds a driver from its project, szProjectFile, and puts it on the SD
-// card image as szName.
+// card image szImage as szName.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalPutDriver(const char* szName, const char* szProjectFile)
+static bool TestKernalPutDriver(const char* szImage, const char* szName, const char* szProjectFile)
 {
 	CHCP65DriverBuilder	cDriver;
 	bool				bBuilt;
@@ -210,7 +210,7 @@ static bool TestKernalPutDriver(const char* szName, const char* szProjectFile)
 				fclose(pFile);
 			}
 		}
-		bBuilt = FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, szName, cDriver.GetModule(), cDriver.GetModuleSize());
+		bBuilt = FatPutFileOnImage(szImage, szName, cDriver.GetModule(), cDriver.GetModuleSize());
 		AssertTrue(bBuilt);
 	}
 	cDriver.Kill();
@@ -342,15 +342,15 @@ static bool TestKernalPutFiles(void)
 	}
 
 	//boot.exe loads the maths tables, so it is built without them; modplay.exe uses them.
-	if (!TestKernalPutExe("\\boot.exe", TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_SD_CARD_IMAGE, "\\boot.exe", TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
-	if (!TestKernalPutExe("\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE, true))
+	if (!TestKernalPutExe(TEST_HCP65_SD_CARD_IMAGE, "\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE, true))
 	{
 		return false;
 	}
-	if (!TestKernalPutDriver(TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER))
+	if (!TestKernalPutDriver(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER))
 	{
 		return false;
 	}
@@ -476,23 +476,85 @@ static bool TestKernalMakeMisplacedExe(uint32 uiAt, CArrayUint8* pacDest)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Builds the kernal ROM, boots it with the sound board and the SD Card
+// Builds the kernal ROM and writes it to Output/Kernal.rom, which the
+// emulator boots: its exports are right, nothing is stubbed and its boot
+// argument is $FFFF.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalBuild(CHCP65KernalBuilder* pcBuilder)
+{
+	CAsm65LineTable*	pcLines;
+	SAsm65LineEntry*	psLine;
+	CChars				szMissing;
+	uint8*				puiROM;
+	uint32				uiArgument;
+	FILE*				pFile;
+	bool				bBuilt;
+
+	bBuilt = pcBuilder->Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_KERNAL);
+	AssertString("", pcBuilder->GetErrors());
+	AssertTrue(bBuilt);
+	if (!bBuilt)
+	{
+		return false;
+	}
+	AssertTrue(pcBuilder->GetCodeEnd() > 0x10000);
+	AssertTrue(pcBuilder->GetCodeEnd() <= HCP65_ROM_CODE_END);
+	if (getenv("TEST_HCP65_MAP"))
+	{
+		//The kernal's link map, to find what is at an address.
+		pFile = fopen(TEST_HCP65_OUTPUT _FS_ "Kernal.map", "w");
+		if (pFile)
+		{
+			fputs(pcBuilder->GetBuilder()->GetLinker()->GetMap(), pFile);
+			fclose(pFile);
+		}
+	}
+
+	//Nothing is stubbed: the kernal is built without the maths tables (they aren't in memory until boot.exe loads
+	//them), so nothing it links may read MathMult or MathInvert.
+	szMissing.Init();
+	pcBuilder->GetBuilder()->GetMissingNames(&szMissing);
+	AssertString("", szMissing.Text());
+	TestKernalExports(pcBuilder);
+	szMissing.Kill();
+
+	puiROM = pcBuilder->GetROM();
+	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiArgument));
+	AssertInt(0xFFFF, (int32)(puiROM[uiArgument] | (puiROM[uiArgument + 1] << 8)));
+	AssertTrue(pcBuilder->Write(TEST_HCP65_KERNAL_ROM));
+
+	//Start.asm's lines are in the line table, as the C++ units' are, so a debugger can stop at them: the native
+	//vectors at $FFE4 are its data.
+	pcLines = pcBuilder->GetBuilder()->GetLineTable();
+	psLine = pcLines->FindLine(0xFFE4);
+	AssertTrue(psLine != NULL);
+	if (psLine)
+	{
+		AssertTrue(strstr(pcLines->GetFile(psLine->uiFile), "Start.asm") != NULL);
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Boots the kernal ROM with the sound boards and the SD Card
 // Board (holding Output/SDCard.img, a copy of the emulator's blank
 // Input/SDCard.img with the test's boot.exe, modplay.exe, Space Debris and
 // the maths tables on it, not written back) and checks that it found both,
 // mounted the FAT32 volume and ran boot.exe in user mode, which loaded the
 // maths tables to main memory and ran modplay.exe as a second process: it
 // played the first TEST_MODPLAY_SECONDS of the song through the sound
-// board as CModPlayer does on the host.  The ROM image is written to
-// Output/Kernal.rom; the emulator boots it and Output/SDCard.img (where
-// boot.exe's argument is zero: modplay.exe plays the whole song).  Then
+// board as CModPlayer does on the host.  The emulator boots Output/
+// Kernal.rom (TestKernalBuild's) and Output/SDCard.img (where boot.exe's
+// argument is zero: modplay.exe plays the whole song).  Then
 // boots a copy of the card whose modplay.exe is where its heap would be,
 // which the kernal refuses to load.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalBoot(void)
+void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 {
-	CHCP65KernalBuilder	cBuilder;
 	CHCP65				cHCP65;
 	CHCP65Audio			cAudio;
 	CHCP65Audio			cAudio2;
@@ -522,66 +584,19 @@ void TestHCP65KernalBoot(void)
 	uint8*				puiROM;
 	uint8*				puiPlayed;
 	uint8*				puiTables;
-	CChars				szMissing;
 	int					i;
-	bool				bBuilt;
 	bool				bSilence;
-	CAsm65LineTable*	pcLines;
-	SAsm65LineEntry*	psLine;
-	FILE*				pFile;
 
 	if (!TestKernalPutFiles())
 	{
 		return;
 	}
 
-	cBuilder.Init();
-	bBuilt = cBuilder.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_KERNAL);
-	AssertString("", cBuilder.GetErrors());
-	AssertTrue(bBuilt);
-	if (!bBuilt)
-	{
-		cBuilder.Kill();
-		return;
-	}
-	AssertTrue(cBuilder.GetCodeEnd() > 0x10000);
-	AssertTrue(cBuilder.GetCodeEnd() <= HCP65_ROM_CODE_END);
-	if (getenv("TEST_HCP65_MAP"))
-	{
-		//The kernal's link map, to find what is at an address.
-		pFile = fopen(TEST_HCP65_OUTPUT _FS_ "Kernal.map", "w");
-		if (pFile)
-		{
-			fputs(cBuilder.GetBuilder()->GetLinker()->GetMap(), pFile);
-			fclose(pFile);
-		}
-	}
-
-	//Nothing is stubbed: the kernal is built without the maths tables (they aren't in memory until boot.exe loads
-	//them), so nothing it links may read MathMult or MathInvert.
-	szMissing.Init();
-	cBuilder.GetBuilder()->GetMissingNames(&szMissing);
-	AssertString("", szMissing.Text());
-	TestKernalExports(&cBuilder);
-	szMissing.Kill();
-	AssertTrue(cBuilder.GetSymbol("_gsKernalStatus", &uiStatus));
-	AssertTrue(cBuilder.Write(TEST_HCP65_KERNAL_ROM));
-
-	//Start.asm's lines are in the line table, as the C++ units' are, so a debugger can stop at them: the native
-	//vectors at $FFE4 are its data.
-	pcLines = cBuilder.GetBuilder()->GetLineTable();
-	psLine = pcLines->FindLine(0xFFE4);
-	AssertTrue(psLine != NULL);
-	if (psLine)
-	{
-		AssertTrue(strstr(pcLines->GetFile(psLine->uiFile), "Start.asm") != NULL);
-	}
-
 	//guiKernalBootArgument is image data: in the ROM at its MPU RAM address (the kernal's status is set by the start
 	//up).  boot.exe gets the boot argument.
-	puiROM = cBuilder.GetROM();
-	AssertTrue(cBuilder.GetSymbol("_guiKernalBootArgument", &uiArgument));
-	AssertInt(0xFFFF, (int32)(puiROM[uiArgument] | (puiROM[uiArgument + 1] << 8)));
+	puiROM = pcBuilder->GetROM();
+	AssertTrue(pcBuilder->GetSymbol("_gsKernalStatus", &uiStatus));
+	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiArgument));
 	//TEST_MODPLAY_SECONDS, TEST_HCP65_RUN_CYCLES and TEST_HCP65_CLOCK (environment) override them, to time modplay.exe
 	//(at the board's 25000000 it must keep the sound board fed, or what it plays won't match).
 	uiSeconds = getenv("TEST_MODPLAY_SECONDS") ? (uint32)atoi(getenv("TEST_MODPLAY_SECONDS")) : TEST_MODPLAY_SECONDS;
@@ -682,7 +697,7 @@ void TestHCP65KernalBoot(void)
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt((1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET), sStatus.uiLoadedDrivers);
 	AssertSize(1, cPort.NumDrivers());
-	AssertTrue(cBuilder.GetSymbol("__end", &uiKernalEnd));
+	AssertTrue(pcBuilder->GetSymbol("__end", &uiKernalEnd));
 	AssertString(TEST_HCP65_SOUND_DRIVER_PATH, cPort.GetDriver(0)->szName);
 	AssertInt(TEST_HCP65_AUDIO_SOCKET, cPort.GetDriver(0)->uiSlot);
 	AssertTrue(cPort.GetDriver(0)->uiAddress >= uiKernalEnd);
@@ -811,7 +826,6 @@ void TestHCP65KernalBoot(void)
 	cSDCard.Kill();
 	cAudio2.Kill();
 	cAudio.Kill();
-	cBuilder.Kill();
 }
 
 
@@ -821,9 +835,16 @@ void TestHCP65KernalBoot(void)
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Kernal(void)
 {
+	CHCP65KernalBuilder	cBuilder;
+
 	BeginTests();
 
-	TestHCP65KernalBoot();
+	cBuilder.Init();
+	if (TestKernalBuild(&cBuilder))
+	{
+		TestHCP65KernalBoot(&cBuilder);
+	}
+	cBuilder.Kill();
 
 	TestStatistics();
 }
