@@ -22,8 +22,6 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include <stdlib.h>
 #include <string.h>
 #include "BaseLib/StringHelper.h"
-#include "BaseLib/MemoryFile.h"
-#include "BaseLib/PointerFunctions.h"
 #include "Asm65Attributes.h"
 #include "Asm65Object.h"
 #include "Asm65Executable.h"
@@ -180,7 +178,6 @@ bool CAsm65Executable::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CCha
 	SAsm65Segment*		psSegment;
 	SAsm65Section*		psSection;
 	SAsm65ObjectSymbol*	psSymbol;
-	CMemoryFile*		pcMemoryFile;
 	CChars				szName;
 	int64				lliEntry;
 	int64				lliBssStart;
@@ -240,19 +237,11 @@ bool CAsm65Executable::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CCha
 		psSymbol->eBinding = AB65_Global;
 	}
 
-	pcMemoryFile = MemoryFile();
-	pcMemoryFile->mbBasicFileMustFree = false;
-	bResult = cObject.Write(pcMemoryFile);
-	if (bResult)
-	{
-		macBytes.Resize((size)pcMemoryFile->GetBufferSize());
-		memcpy(macBytes.GetData(), pcMemoryFile->GetBufferPointer(), (size)pcMemoryFile->GetBufferSize());
-	}
-	else
+	bResult = cObject.WriteBytes(&macBytes);
+	if (!bResult)
 	{
 		pszErrors->Append("Could not write the executable.\n");
 	}
-	SafeKill(pcMemoryFile);
 	cObject.Kill();
 	return bResult;
 }
@@ -265,21 +254,7 @@ bool CAsm65Executable::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CCha
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65Executable::Write(const char* szFilename)
 {
-	FILE*	pcFile;
-	bool	bResult;
-
-	if (macBytes.NumElements() == 0)
-	{
-		return false;
-	}
-	pcFile = fopen(szFilename, "wb");
-	if (!pcFile)
-	{
-		return false;
-	}
-	bResult = fwrite(macBytes.GetData(), 1, macBytes.NumElements(), pcFile) == macBytes.NumElements();
-	bResult &= fclose(pcFile) == 0;
-	return bResult;
+	return Asm65WriteFile(szFilename, &macBytes);
 }
 
 

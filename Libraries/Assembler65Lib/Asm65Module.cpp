@@ -18,22 +18,41 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#include <stdio.h>
 #include <string.h>
-#include "BaseLib/MemoryFile.h"
-#include "BaseLib/PointerFunctions.h"
+#include "BaseLib/StringHelper.h"
+#include "Asm65Attributes.h"
 #include "Asm65Object.h"
 #include "Asm65Module.h"
 
 
+#define ASM65_MODULE_TAG			"Module"
+#define ASM65_MODULE_FILE			"File"
+#define ASM65_MODULE_ENTRY			"Entry"
+#define ASM65_MODULE_LIMIT			"Limit"
+
+
 //////////////////////////////////////////////////////////////////////////
 //
-// szEntry is the symbol the loader calls once the module is in place.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65Module::Init(const char* szEntry)
+void CAsm65Module::Init(void)
 {
+	Init("", "", 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The module szFile; szEntry is the symbol the loader calls once it is in
+// place.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Module::Init(const char* szFile, const char* szEntry, uint32 uiLimit)
+{
+	mszFile.Init(szFile);
 	mszEntry.Init(szEntry);
+	muiLimit = uiLimit;
+	muiBase = 0;
 	macBytes.Init();
 }
 
@@ -46,6 +65,54 @@ void CAsm65Module::Kill(void)
 {
 	macBytes.Kill();
 	mszEntry.Kill();
+	mszFile.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Module::SaveXML(CXMLWriter* pcWriter)
+{
+	pcWriter->Begin(ASM65_MODULE_TAG);
+	pcWriter->Attribute(ASM65_MODULE_FILE, mszFile.Text());
+	pcWriter->Attribute(ASM65_MODULE_ENTRY, mszEntry.Text());
+	Asm65WriteHexAttribute(pcWriter, ASM65_MODULE_LIMIT, muiLimit);
+	pcWriter->End();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// False if pcTag isn't a module with a file and an entry.  Limit
+// (default none) may be left out.  Call it on a module just Init'ed.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65Module::LoadXML(CMarkupTag* pcTag)
+{
+	char*	szFile;
+	char*	szEntry;
+
+	if (StringCompare(pcTag->GetName(), ASM65_MODULE_TAG) != 0)
+	{
+		return false;
+	}
+	szFile = pcTag->GetStringAttribute(ASM65_MODULE_FILE);
+	szEntry = pcTag->GetStringAttribute(ASM65_MODULE_ENTRY);
+	if (!szFile || (szFile[0] == '\0') || !szEntry || (szEntry[0] == '\0'))
+	{
+		return false;
+	}
+	mszFile.Set(szFile);
+	mszEntry.Set(szEntry);
+
+	muiLimit = 0;
+	if (pcTag->GetStringAttribute(ASM65_MODULE_LIMIT))
+	{
+		return Asm65ReadUint32Attribute(pcTag, ASM65_MODULE_LIMIT, &muiLimit);
+	}
+	return true;
 }
 
 
@@ -80,7 +147,6 @@ bool CAsm65Module::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* 
 	SAsm65ObjectSymbol*	psSymbol;
 	SAsm65Relocation*	psRelocation;
 	SAsm65Fixup*		psFixup;
-	CMemoryFile*		pcMemoryFile;
 	int64				iBase;
 	int64				iEnd;
 	int64				iEntry;
@@ -93,6 +159,7 @@ bool CAsm65Module::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* 
 
 	macBytes.Kill();
 	macBytes.Init();
+	muiBase = 0;
 	if (!pcLinker->GetSymbol("__text_start", &iBase) || !pcLinker->GetSymbol("__end", &iEnd) ||
 		!pcLinker->GetSymbol(ASM65_MODULE_INIT_START, &iInitStart) || !pcLinker->GetSymbol(ASM65_MODULE_INIT_END, &iInitEnd))
 	{
@@ -172,19 +239,15 @@ bool CAsm65Module::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* 
 		psRelocation->uiForm = psFixup->uiForm;
 	}
 
-	pcMemoryFile = MemoryFile();
-	pcMemoryFile->mbBasicFileMustFree = false;
-	bResult = cObject.Write(pcMemoryFile);
+	bResult = cObject.WriteBytes(&macBytes);
 	if (bResult)
 	{
-		macBytes.Resize((size)pcMemoryFile->GetBufferSize());
-		memcpy(macBytes.GetData(), pcMemoryFile->GetBufferPointer(), (size)pcMemoryFile->GetBufferSize());
+		muiBase = (uint32)iBase;
 	}
 	else
 	{
 		pszErrors->Append("Could not write the module.\n");
 	}
-	SafeKill(pcMemoryFile);
 	cObject.Kill();
 	return bResult;
 }
@@ -197,24 +260,13 @@ bool CAsm65Module::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* 
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65Module::Write(const char* szFilename)
 {
-	FILE*	pcFile;
-	bool	bResult;
-
-	if (macBytes.NumElements() == 0)
-	{
-		return false;
-	}
-	pcFile = fopen(szFilename, "wb");
-	if (!pcFile)
-	{
-		return false;
-	}
-	bResult = fwrite(macBytes.GetData(), 1, macBytes.NumElements(), pcFile) == macBytes.NumElements();
-	bResult &= fclose(pcFile) == 0;
-	return bResult;
+	return Asm65WriteFile(szFilename, &macBytes);
 }
 
 
+char* CAsm65Module::GetFile(void)		{ return mszFile.Text(); }
 char* CAsm65Module::GetEntry(void)		{ return mszEntry.Text(); }
+uint32 CAsm65Module::GetLimit(void)		{ return muiLimit; }
+uint32 CAsm65Module::GetBase(void)		{ return muiBase; }
 uint8* CAsm65Module::GetBytes(void)		{ return macBytes.GetData(); }
 size CAsm65Module::GetSize(void)		{ return macBytes.NumElements(); }

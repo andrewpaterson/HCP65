@@ -75,6 +75,7 @@ public:
 	void					AddLine(uint32 uiAddress, const char* szFile, uint32 uiLine);
 	void					AddFingerprint(const char* szLabel, uint32 uiHash, int64 iTime);
 	void					Sort(void);
+	void					Move(int64 iOffset);
 
 	size					NumLines(void);
 	SAsm65LineEntry*		GetLine(size uiIndex);

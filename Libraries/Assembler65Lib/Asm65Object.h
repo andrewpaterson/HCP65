@@ -199,6 +199,7 @@ public:
 	void				Dump(CChars* psz);
 
 	bool				Write(CAbstractFile* pcFile);
+	bool				WriteBytes(CArrayUint8* pacDest);
 	bool				Read(CAbstractFile* pcFile);
 	bool				ReadChunks(CChunkFile* pcChunkFile);	//From a chunk file opened for reading (Read's, or one without hashes).
 	void				SetSkipSectionBytes(bool bSkip);		//Read leaves sections' bytes in the file (iBytesPosition, uiNumBytes), unhashed.
@@ -221,6 +222,7 @@ bool		Asm65WriteText(CFileWriter* pcWriter, const char* szText);
 bool		Asm65ReadText(CFileReader* pcReader, CChars* psz);
 bool		Asm65WriteMagic(CFileWriter* pcWriter, const char* szMagic, int32 iVersion);
 bool		Asm65ReadMagic(CFileReader* pcReader, const char* szMagic, int32 iVersion);
+bool		Asm65WriteFile(const char* szFilename, CArrayUint8* pacBytes);
 
 
 #endif // __ASM65_OBJECT_H__

@@ -9,7 +9,7 @@
 void CHCP65DriverBuilder::Init(void)
 {
 	mcBuilder.Init();
-	mcModule.Init(HCP65_DRIVER_ENTRY_SYMBOL);
+	mcModule.Init("", HCP65_DRIVER_ENTRY_SYMBOL, HCP65_DRIVER_LIMIT);
 	mszErrors.Init();
 }
 
@@ -38,7 +38,7 @@ bool CHCP65DriverBuilder::Build(const char* szCommonLibraries, const char* szHCP
 
 	mcBuilder.SetMathTables(false);
 	bResult = HCP65AddProgram(&mcBuilder, szCommonLibraries, szHCP65Libraries, szProjectFile, szKernal, NULL);
-	mcBuilder.SetLimit(HCP65_DRIVER_LIMIT);
+	mcBuilder.SetLimit(mcModule.GetLimit());
 	mcBuilder.SetNoFloats(true);
 	mcBuilder.GetLinker()->SetRelocatable(true);
 	mcBuilder.GetLinker()->KeepSymbol(HCP65_DRIVER_ENTRY_SYMBOL);
@@ -52,6 +52,7 @@ bool CHCP65DriverBuilder::Build(const char* szCommonLibraries, const char* szHCP
 }
 
 
+bool CHCP65DriverBuilder::Write(const char* szFilename) { return mcModule.Write(szFilename); }
 uint8* CHCP65DriverBuilder::GetModule(void) { return mcModule.GetBytes(); }
 size CHCP65DriverBuilder::GetModuleSize(void) { return mcModule.GetSize(); }
 CAsm65Linker* CHCP65DriverBuilder::GetLinker(void) { return mcBuilder.GetLinker(); }

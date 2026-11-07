@@ -802,6 +802,13 @@ void TestAsm65LinkerLineTable(void)
 	AssertTrue(psRead != NULL);
 	AssertInt(10, psRead->uiLine);
 	AssertSize(pcTable->NumFingerprints(), cRead.NumFingerprints());
+
+	//Moved (a module's table, from its link's addresses to its own): each line is where it was less the start.
+	cRead.Move(-iStart);
+	psRead = cRead.FindLine(3);
+	AssertTrue(psRead != NULL);
+	AssertInt(10, psRead->uiLine);
+	AssertInt(pcTable->GetLine(0)->uiAddress - (uint32)iStart, cRead.GetLine(0)->uiAddress);
 	cRead.Kill();
 
 	//Not a line table: nothing is read.
@@ -929,9 +936,10 @@ void TestAsm65LinkerRelocatable(void)
 	AssertSize(2, uiImports);
 
 	szErrors.Init();
-	cModule.Init("Entry");
+	cModule.Init("Test.DRV", "Entry", 0);
 	AssertTrue(cModule.Make(sTest.cLinker.GetOutput(), &sTest.cLinker, &szErrors));
 	AssertString("", szErrors.Text());
+	AssertInt((uint32)LinkedSymbol(&sTest, "__text_start"), cModule.GetBase());
 
 	pcFile = MemoryFile(cModule.GetBytes(), (filePos)cModule.GetSize());  //Read frees it.
 	cObject.Init("");

@@ -18,7 +18,10 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include <stdio.h>
 #include <string.h>
+#include "BaseLib/MemoryFile.h"
+#include "BaseLib/PointerFunctions.h"
 #include "Asm65Object.h"
 
 
@@ -665,6 +668,31 @@ bool CAsm65Object::Write(CAbstractFile* pcFile)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The object as Write writes it, in pacDest (which it replaces).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65Object::WriteBytes(CArrayUint8* pacDest)
+{
+	CMemoryFile*	pcMemoryFile;
+	bool			bResult;
+
+	pacDest->Kill();
+	pacDest->Init();
+	pcMemoryFile = MemoryFile();
+	pcMemoryFile->mbBasicFileMustFree = false;
+	bResult = Write(pcMemoryFile);
+	if (bResult)
+	{
+		pacDest->Resize((size)pcMemoryFile->GetBufferSize());
+		memcpy(pacDest->GetData(), pcMemoryFile->GetBufferPointer(), (size)pcMemoryFile->GetBufferSize());
+	}
+	SafeKill(pcMemoryFile);
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65Object::WriteChunks(CChunkFile* pcChunkFile)
@@ -1032,3 +1060,30 @@ bool CAsm65Object::ReadSources(CChunkFile* pcChunkFile)
 	}
 	return pcChunkFile->ReadChunkEnd();
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// pacBytes (an object WriteBytes made) to szFilename.  False if there
+// are none or they couldn't all be written.
+//
+//////////////////////////////////////////////////////////////////////////
+bool Asm65WriteFile(const char* szFilename, CArrayUint8* pacBytes)
+{
+	FILE*	pcFile;
+	bool	bResult;
+
+	if (pacBytes->NumElements() == 0)
+	{
+		return false;
+	}
+	pcFile = fopen(szFilename, "wb");
+	if (!pcFile)
+	{
+		return false;
+	}
+	bResult = fwrite(pacBytes->GetData(), 1, pacBytes->NumElements(), pcFile) == pacBytes->NumElements();
+	bResult &= fclose(pcFile) == 0;
+	return bResult;
+}
+

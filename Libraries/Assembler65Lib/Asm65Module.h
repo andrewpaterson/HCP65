@@ -22,6 +22,8 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define __ASM65_MODULE_H__
 #include "BaseLib/Chars.h"
 #include "BaseLib/ArrayUint8.h"
+#include "BaseLib/XMLWriter.h"
+#include "BaseLib/MarkupTag.h"
 #include "Asm65Output.h"
 #include "Asm65Linker.h"
 
@@ -38,21 +40,38 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //
 //Its relocations are the link's fixups, all in that section: a target section of 0 is the section's own address
 //plus the addend; a target symbol is an import, a name the loader finds (the kernal's exports), plus the addend.
-//Its global symbols are offsets in the section: the entry, ASM65_MODULE_INIT_START and ASM65_MODULE_INIT_END.
+//Its global symbols are offsets in the section: the entry, ASM65_MODULE_INIT_START and ASM65_MODULE_INIT_END.  The
+//section starts at the link's __text_start (GetBase, once Made), which a debugger takes from the link's addresses
+//and adds where the loader put it.  The limit is the highest address the linker may place anything at
+//(CCPP65Builder::SetLimit, zero for none).  A build configuration describes one as
+//
+//	<Module File="UART.DRV" Entry="_KernalCreateDriver" Limit="0x20000"/>
+//
+//with numbers in hexadecimal (0x) or decimal.
 class CAsm65Module
 {
 protected:
+	CChars		mszFile;
 	CChars		mszEntry;
+	uint32		muiLimit;
+	uint32		muiBase;
 	CArrayUint8	macBytes;
 
 public:
-	void		Init(const char* szEntry);
+	void		Init(void);
+	void		Init(const char* szFile, const char* szEntry, uint32 uiLimit);
 	void		Kill(void);
+
+	void		SaveXML(CXMLWriter* pcWriter);
+	bool		LoadXML(CMarkupTag* pcTag);
 
 	bool		Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* pszErrors);
 	bool		Write(const char* szFilename);
 
+	char*		GetFile(void);
 	char*		GetEntry(void);
+	uint32		GetLimit(void);
+	uint32		GetBase(void);
 	uint8*		GetBytes(void);
 	size		GetSize(void);
 };
