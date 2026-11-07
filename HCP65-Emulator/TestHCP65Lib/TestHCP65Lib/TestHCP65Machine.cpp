@@ -8,6 +8,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
+#include "HCP65Lib/HCP65UARTBoard.h"
 #include "TestLib/Assert.h"
 
 
@@ -480,6 +481,7 @@ void TestHCP65DeviceROMFromXML(void)
 	CDeviceROM		cROM;
 	CHCP65Audio		cAudio;
 	CHCP65SDCard	cSDCard;
+	CHCP65UARTBoard	cUART;
 	CChars			szError;
 	FILE*			pFile;
 	uint32			i;
@@ -508,6 +510,17 @@ void TestHCP65DeviceROMFromXML(void)
 	}
 	AssertTrue(bSame);
 	cSDCard.Kill();
+
+	cUART.Init();
+	AssertTrue(TestHCP65LoadDeviceROM(TEST_HCP65_BOARDS, "UARTBoard.xml", &cROM, &szError));
+	AssertString("", szError.Text());
+	bSame = true;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		bSame &= cROM.Read(i) == cUART.Read(i);
+	}
+	AssertTrue(bSame);
+	cUART.Kill();
 
 	cFileUtil.TouchDir("Output");  //False when Output is already there.
 	AssertTrue(cFileUtil.IsDirectory("Output"));
@@ -607,6 +620,217 @@ void TestHCP65DeviceROMFromSchematic(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// One emulated TL16C550D on its own, in its oscillator's ticks: the
+// divisor, a character's time, the interrupts and their priorities, the
+// FIFO trigger and timeout, auto-RTS and auto-CTS, loopback, an overrun,
+// the modem status deltas and 7 bit characters.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65UART(void)
+{
+	CHCP65UART	cUART;
+	uint8		auiData[16];
+	uint64		uiTick;
+	uint64		uiChar;		//9600 8N1: 16 ticks a bit, divisor 12, 10 bits.
+	int			i;
+
+	uiChar = 16 * 12 * 10;
+	cUART.Init(HUM_RS232);
+
+	//Master reset: nothing pending, the transmitter empty, RI tied on.
+	AssertInt(HCP65_UART_IIR_NONE, cUART.Read(HCP65_UART_IIR));
+	AssertInt(0x60, cUART.Read(HCP65_UART_LSR));
+	AssertInt(HCP65_UART_MSR_RI, cUART.Read(HCP65_UART_MSR));
+
+	//The divisor latch behind DLAB.
+	cUART.Write(HCP65_UART_LCR, 0x83);
+	cUART.Write(HCP65_UART_RBR, 12);
+	cUART.Write(HCP65_UART_IER, 0);
+	AssertInt(12, cUART.Read(HCP65_UART_RBR));
+	cUART.Write(HCP65_UART_LCR, 0x03);
+	AssertInt(9600, cUART.GetBaudRate());
+	cUART.Write(HCP65_UART_IIR, HCP65_UART_FCR_ENABLE | HCP65_UART_FCR_RX_RESET | HCP65_UART_FCR_TX_RESET);
+	AssertInt(HCP65_UART_IIR_NONE | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+
+	//A byte goes straight to the shift register (THR empty again) and reaches the far end a character later.
+	uiTick = 0;
+	cUART.Write(HCP65_UART_RBR, 'A');
+	AssertInt(HCP65_UART_LSR_THR_EMPTY, cUART.Read(HCP65_UART_LSR));
+	cUART.CatchUp(uiTick + uiChar - 1);
+	AssertSize(0, cUART.NumHostReceived());
+	uiTick += uiChar;
+	cUART.CatchUp(uiTick);
+	AssertSize(1, cUART.HostReceive(auiData, 16));
+	AssertInt('A', auiData[0]);
+	AssertInt(0x60, cUART.Read(HCP65_UART_LSR));
+
+	//Turning the transmit interrupt on with THR empty interrupts; reading IIR clears it.
+	cUART.Write(HCP65_UART_IER, HCP65_UART_IER_TRANSMIT);
+	AssertTrue(cUART.IsInterrupting());
+	AssertInt(HCP65_UART_IIR_TRANSMIT | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+	AssertFalse(cUART.IsInterrupting());
+	cUART.Write(HCP65_UART_IER, 0);
+
+	//The far end only sends while RTS is on, one character at a time.  Three bytes are under the trigger level (4), so
+	//they interrupt by the timeout, four characters after the last.
+	cUART.Write(HCP65_UART_IIR, HCP65_UART_FCR_ENABLE | 0x40);
+	cUART.Write(HCP65_UART_IER, HCP65_UART_IER_RECEIVED);
+	cUART.HostSend((uint8*)"xyz", 3);
+	uiTick += 10 * uiChar;
+	cUART.CatchUp(uiTick);
+	AssertSize(3, cUART.NumHostToSend());
+	cUART.Write(HCP65_UART_MCR, HCP65_UART_MCR_RTS);
+	AssertTrue(cUART.IsRTSOn());
+	cUART.CatchUp(uiTick + uiChar - 1);
+	AssertInt(0, cUART.Read(HCP65_UART_LSR) & HCP65_UART_LSR_DATA_READY);
+	cUART.CatchUp(uiTick + 3 * uiChar);
+	AssertInt(HCP65_UART_LSR_DATA_READY, cUART.Read(HCP65_UART_LSR) & HCP65_UART_LSR_DATA_READY);
+	AssertSize(0, cUART.NumHostToSend());
+	AssertFalse(cUART.IsInterrupting());
+	AssertInt((int)(uiTick + 7 * uiChar), (int)cUART.NextEvent());
+	uiTick += 7 * uiChar;
+	cUART.CatchUp(uiTick);
+	AssertInt(HCP65_UART_IIR_TIMEOUT | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+	AssertInt('x', cUART.Read(HCP65_UART_RBR));
+	AssertInt('y', cUART.Read(HCP65_UART_RBR));
+	AssertInt('z', cUART.Read(HCP65_UART_RBR));
+	AssertInt(HCP65_UART_IIR_NONE | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+
+	//Auto-RTS: at the trigger level (4) RTS goes off and the far end waits; reading a byte lets it go on.  At the trigger
+	//level the received interrupt is pending.
+	cUART.Write(HCP65_UART_MCR, HCP65_UART_MCR_RTS | HCP65_UART_MCR_AUTO_FLOW);
+	for (i = 0; i < 10; i++)
+	{
+		auiData[i] = (uint8)('0' + i);
+	}
+	cUART.HostSend(auiData, 10);
+	uiTick += 20 * uiChar;
+	cUART.CatchUp(uiTick);
+	AssertFalse(cUART.IsRTSOn());
+	AssertSize(6, cUART.NumHostToSend());
+	AssertInt(HCP65_UART_IIR_RECEIVED | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+	AssertInt('0', cUART.Read(HCP65_UART_RBR));
+	AssertTrue(cUART.IsRTSOn());
+	uiTick += uiChar;
+	cUART.CatchUp(uiTick);
+	AssertSize(5, cUART.NumHostToSend());
+	for (i = 1; i <= 4; i++)
+	{
+		AssertInt('0' + i, cUART.Read(HCP65_UART_RBR));
+	}
+	uiTick += 20 * uiChar;
+	cUART.CatchUp(uiTick);
+	for (i = 5; i <= 8; i++)
+	{
+		AssertInt('0' + i, cUART.Read(HCP65_UART_RBR));
+	}
+	uiTick += 20 * uiChar;
+	cUART.CatchUp(uiTick);
+	AssertInt('9', cUART.Read(HCP65_UART_RBR));
+	AssertSize(0, cUART.NumHostToSend());
+	AssertInt(0, cUART.Read(HCP65_UART_LSR) & HCP65_UART_LSR_DATA_READY);
+	AssertLong(0, (int64)cUART.NumOverruns());
+
+	//Auto-CTS: with the far end's RTS off nothing goes; on, it does.
+	cUART.Write(HCP65_UART_IER, 0);
+	cUART.Write(HCP65_UART_RBR, 'C');
+	uiTick += 10 * uiChar;
+	cUART.CatchUp(uiTick);
+	AssertSize(0, cUART.NumHostReceived());
+	AssertInt(0, cUART.Read(HCP65_UART_LSR) & HCP65_UART_LSR_THR_EMPTY);
+	cUART.HostSetCTS(true);
+	AssertInt(0x01 | HCP65_UART_MSR_CTS | HCP65_UART_MSR_RI, cUART.Read(HCP65_UART_MSR));
+	AssertInt(HCP65_UART_MSR_CTS | HCP65_UART_MSR_RI, cUART.Read(HCP65_UART_MSR));
+	uiTick += uiChar;
+	cUART.CatchUp(uiTick);
+	AssertSize(1, cUART.HostReceive(auiData, 16));
+	AssertInt('C', auiData[0]);
+
+	//A modem status change interrupts while it is enabled, until MSR is read.
+	cUART.Write(HCP65_UART_IER, HCP65_UART_IER_MODEM_STATUS);
+	cUART.HostSetDSR(true);
+	AssertInt(HCP65_UART_IIR_MODEM_STATUS | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+	AssertInt(0x02 | HCP65_UART_MSR_CTS | HCP65_UART_MSR_DSR | HCP65_UART_MSR_RI, cUART.Read(HCP65_UART_MSR));
+	AssertInt(HCP65_UART_IIR_NONE | HCP65_UART_IIR_FIFOS, cUART.Read(HCP65_UART_IIR));
+	cUART.Write(HCP65_UART_IER, 0);
+
+	//Loopback: what it sends comes back and the far end gets nothing; its inputs are its outputs, and RTS and DTR are
+	//off to the far end.
+	cUART.Write(HCP65_UART_MCR, HCP65_UART_MCR_LOOP | HCP65_UART_MCR_RTS);
+	cUART.Read(HCP65_UART_MSR);
+	AssertInt(HCP65_UART_MSR_CTS, cUART.Read(HCP65_UART_MSR));
+	AssertFalse(cUART.IsRTSOn());
+	cUART.Write(HCP65_UART_RBR, 'L');
+	uiTick += uiChar;
+	cUART.CatchUp(uiTick);
+	AssertSize(0, cUART.NumHostReceived());
+	AssertInt('L', cUART.Read(HCP65_UART_RBR));
+
+	//With the FIFOs off there is one holding register: the far end's next two bytes overrun it, which the line status
+	//interrupt says until LSR is read.
+	cUART.Write(HCP65_UART_MCR, HCP65_UART_MCR_RTS);
+	cUART.Write(HCP65_UART_IIR, 0);
+	cUART.Write(HCP65_UART_IER, HCP65_UART_IER_LINE_STATUS);
+	cUART.HostSend((uint8*)"abc", 3);
+	uiTick += 3 * uiChar;
+	cUART.CatchUp(uiTick);
+	AssertLong(2, (int64)cUART.NumOverruns());
+	AssertInt(HCP65_UART_IIR_LINE_STATUS, cUART.Read(HCP65_UART_IIR));
+	AssertInt(HCP65_UART_LSR_DATA_READY | HCP65_UART_LSR_OVERRUN | 0x60, cUART.Read(HCP65_UART_LSR));
+	AssertInt(HCP65_UART_IIR_NONE, cUART.Read(HCP65_UART_IIR));
+	AssertInt('a', cUART.Read(HCP65_UART_RBR));
+	cUART.Write(HCP65_UART_IER, 0);
+
+	//7 bit characters lose bit 7 on the line.
+	cUART.Write(HCP65_UART_LCR, 0x02);
+	auiData[0] = 0xC1;
+	cUART.HostSend(auiData, 1);
+	uiTick += uiChar;
+	cUART.CatchUp(uiTick);
+	AssertInt(0x41, cUART.Read(HCP65_UART_RBR));
+
+	cUART.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The UART Board decodes A3 to pick its UART and repeats every 16 bytes;
+// below $400 is its device ROM.  The TTL module has no DSR or DCD.
+// Writes are ignored while it is held in reset.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65UARTBoard(void)
+{
+	CHCP65UARTBoard	cBoard;
+
+	cBoard.Init();
+	AssertInt(0x1A, cBoard.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cBoard.Read(0x800));
+
+	cBoard.Write(0x400 + HCP65_UART_SCR, 0x55);
+	AssertInt(0, cBoard.Read(0x400 + HCP65_UART_SCR));
+	cBoard.SetHeldInReset(false);
+	cBoard.Write(0x400 + HCP65_UART_SCR, 0x55);
+	cBoard.Write(0x408 + HCP65_UART_SCR, 0xAA);
+	AssertInt(0x55, cBoard.Read(0x400 + HCP65_UART_SCR));
+	AssertInt(0xAA, cBoard.Read(0x408 + HCP65_UART_SCR));
+	AssertInt(0x55, cBoard.Read(0x7F0 + HCP65_UART_SCR));
+	AssertInt(0xAA, cBoard.Read(0x418 + HCP65_UART_SCR));
+
+	cBoard.GetTTL()->HostSetDSR(true);
+	cBoard.GetTTL()->HostSetDCD(true);
+	cBoard.GetRS232()->HostSetDSR(true);
+	AssertInt(HCP65_UART_MSR_RI, cBoard.Read(0x408 + HCP65_UART_MSR));
+	AssertInt(0x02 | HCP65_UART_MSR_DSR | HCP65_UART_MSR_RI, cBoard.Read(0x400 + HCP65_UART_MSR));
+	AssertFalse(cBoard.IsInterrupting());
+
+	cBoard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -619,6 +843,8 @@ void TestHCP65Machine(void)
 	TestHCP65BootAndUserMode();
 	TestHCP65AudioBoard();
 	TestHCP65AudioFromProgram();
+	TestHCP65UART();
+	TestHCP65UARTBoard();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();

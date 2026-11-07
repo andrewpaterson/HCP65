@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The HCP65 UART Board (UART Board, UART Signals, TTL5V and RS232 sheets): two TL16C550D UARTs.  UART2 (the RS232
+     module) is at $400, UART1 (the TTL module) at $408; they repeat every 16 bytes from $400 and each is listed once.
+     With LCR's DLAB set, registers 0 and 1 are the divisor latch.  The schematic has no Stage B, so DeviceROM can't
+     work these out from it: this file is written by hand. -->
+<DeviceROM Name="UART Board" Manufacturer="HCP65" Revision="0" DeviceBus="32KB" Driver="UART.DRV">
+	<Register Name="UART2 Receiver Buffer / Transmitter Holding" Offset="0x400" Access="ReadWrite"/>
+	<Register Name="UART2 Interrupt Enable" Offset="0x401" Access="ReadWrite"/>
+	<Register Name="UART2 Interrupt Identification / FIFO Control" Offset="0x402" Access="ReadWrite"/>
+	<Register Name="UART2 Line Control" Offset="0x403" Access="ReadWrite"/>
+	<Register Name="UART2 Modem Control" Offset="0x404" Access="ReadWrite"/>
+	<Register Name="UART2 Line Status" Offset="0x405" Access="ReadWrite"/>
+	<Register Name="UART2 Modem Status" Offset="0x406" Access="ReadWrite"/>
+	<Register Name="UART2 Scratch" Offset="0x407" Access="ReadWrite"/>
+	<Register Name="UART1 Receiver Buffer / Transmitter Holding" Offset="0x408" Access="ReadWrite"/>
+	<Register Name="UART1 Interrupt Enable" Offset="0x409" Access="ReadWrite"/>
+	<Register Name="UART1 Interrupt Identification / FIFO Control" Offset="0x40A" Access="ReadWrite"/>
+	<Register Name="UART1 Line Control" Offset="0x40B" Access="ReadWrite"/>
+	<Register Name="UART1 Modem Control" Offset="0x40C" Access="ReadWrite"/>
+	<Register Name="UART1 Line Status" Offset="0x40D" Access="ReadWrite"/>
+	<Register Name="UART1 Modem Status" Offset="0x40E" Access="ReadWrite"/>
+	<Register Name="UART1 Scratch" Offset="0x40F" Access="ReadWrite"/>
+</DeviceROM>

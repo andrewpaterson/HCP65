@@ -10,6 +10,7 @@
 #define HCP65_EMULATOR_SD_SOCKET		2			//Socket 1 is the main memory channel.
 #define HCP65_EMULATOR_AUDIO_SOCKET		16
 #define HCP65_EMULATOR_DEBUG_SOCKET		7			//The debug port: the kernal tells it of its processes.
+#define HCP65_EMULATOR_UART_SOCKET		4			//The UART Board; nothing is on the far end of its ports yet.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
 
 
@@ -27,12 +28,13 @@
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65DebugPort.h"
+#include "HCP65Lib/HCP65UARTBoard.h"
 #include "FileMenuListener.h"
 #include "HCP65EmulatorDebugger.h"
 
 
-//The emulator: the HCP65 (its kernal ROM, the sound board and an SD card board with HCP65_EMULATOR_SD_CARD_IMAGE, or
-//the card given with --card) in a
+//The emulator: the HCP65 (its kernal ROM, the sound board, the UART Board and an SD card board with
+//HCP65_EMULATOR_SD_CARD_IMAGE, or the card given with --card) in a
 //window with a menu bar, and the input that drives it.  HCP65EmulatorRun makes it, adds it to the root, runs it and removes
 //it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
 class CHCP65EmulatorApp : public CObject
@@ -44,6 +46,7 @@ protected:
 	CHCP65Audio				mcAudio;
 	CHCP65SDCard			mcSDCard;
 	CHCP65DebugPort			mcDebugPort;
+	CHCP65UARTBoard			mcUART;
 	CHCP65EmulatorDebugger	mcDebugger;
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;

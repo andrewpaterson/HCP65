@@ -136,6 +136,7 @@ void CHCP65EmulatorApp::Init(void)
 	mcAudio.Init();
 	mcSDCard.Init();
 	mcDebugPort.Init();
+	mcUART.Init();
 	mcDebugger.Init();
 	mbValid = false;
 	mbInputs = false;
@@ -198,6 +199,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	mcHCP65.SetDevice(HCP65_EMULATOR_SD_SOCKET, &mcSDCard);
 	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
 	mcHCP65.SetDevice(HCP65_EMULATOR_DEBUG_SOCKET, &mcDebugPort);
+	mcHCP65.SetDevice(HCP65_EMULATOR_UART_SOCKET, &mcUART);
 	for (i = 1; i < argc; i++)
 	{
 		if (strcmp(argv[i], HCP65_EMULATOR_ARGUMENT_FILL) == 0)
@@ -269,6 +271,7 @@ void CHCP65EmulatorApp::Class(void)
 	U_Data(CHCP65Audio, mcAudio);
 	U_Data(CHCP65SDCard, mcSDCard);
 	U_Data(CHCP65DebugPort, mcDebugPort);
+	U_Data(CHCP65UARTBoard, mcUART);
 	U_Data(CHCP65EmulatorDebugger, mcDebugger);
 	M_Pointer(mpWindow);
 	M_Pointer(mpMenuBar);
@@ -300,6 +303,7 @@ void CHCP65EmulatorApp::Free(void)
 	}
 	mcDebugger.Kill();
 	mcHCP65.Kill();
+	mcUART.Kill();
 	mcDebugPort.Kill();
 	mcSDCard.Kill();
 	mcAudio.Kill();
