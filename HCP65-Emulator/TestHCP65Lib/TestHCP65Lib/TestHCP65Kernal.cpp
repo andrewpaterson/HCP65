@@ -774,12 +774,21 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(0xFF, cHCP65.GetProcessID());
 	AssertInt(1, cHCP65.GetInterruptDepth());
 
-	//The kernal told the debug port of each process, in order: boot.exe ($FF) started, modplay.exe ($FE) started and
-	//ended, then boot.exe ended with modplay.exe's exit code.  Each start stopped a Run, which went on in the next.
+	//The kernal told the debug port of each process, in order: boot.exe ($FF) started, boot.exe again as the child that
+	//checks it can't open the sound board ($FE) started and ended, modplay.exe ($FE) started and ended, then boot.exe
+	//ended with modplay.exe's exit code.  Each start stopped a Run, which went on in the next.
 	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFF, sProcess.uiProcess);
 	AssertString("\\boot.exe", sProcess.szName);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Started, eEvent);
+	AssertInt(0xFE, sProcess.uiProcess);
+	AssertString("\\boot.exe", sProcess.szName);
+	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Ended, eEvent);
+	AssertInt(0xFE, sProcess.uiProcess);
+	AssertInt(0, sProcess.iExitCode);
 	AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFE, sProcess.uiProcess);
