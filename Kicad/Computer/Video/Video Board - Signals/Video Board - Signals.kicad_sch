@@ -21098,7 +21098,7 @@
 		)
 		(uuid "35659a7a-c138-4a5b-8057-7fc7f4ca85c2")
 	)
-	(text "Horiztonal Sync Start"
+	(text "Horizontal Sync Start"
 		(exclude_from_sim no)
 		(at 40.64 500.38 0)
 		(effects
@@ -41925,7 +41925,7 @@
 		)
 		(uuid "243266cd-afd7-40b9-84f9-70cb3b691334")
 	)
-	(label "Write Horiztonal Sync Start"
+	(label "Write Horizontal Sync Start"
 		(at 481.33 307.34 180)
 		(effects
 			(font
@@ -45565,7 +45565,7 @@
 		)
 		(uuid "86ee4e12-b3b4-4e72-bd6e-d80e60834423")
 	)
-	(label "Write Horiztonal Sync Start"
+	(label "Write Horizontal Sync Start"
 		(at 405.13 91.44 0)
 		(effects
 			(font
@@ -47245,7 +47245,7 @@
 		)
 		(uuid "b73f1d11-5a8a-477d-a650-d4b14764804c")
 	)
-	(label "Write Horiztonal Sync Start"
+	(label "Write Horizontal Sync Start"
 		(at 612.14 289.56 180)
 		(effects
 			(font
