@@ -457,7 +457,7 @@ void CKernalUARTPort::Flush(uint8 uiWhich)
 		uiFCR |= UART_FCR_TX_RESET;
 	}
 	mpuiRegisters[UART_FCR] = uiFCR;
-	if ((muiOwner != KERNAL_DRIVER_NO_OWNER) && !(muiIER & UART_IER_RECEIVED))
+	if (!(muiIER & UART_IER_RECEIVED))
 	{
 		SetIER((uint8)(muiIER | UART_IER_RECEIVED));
 	}
