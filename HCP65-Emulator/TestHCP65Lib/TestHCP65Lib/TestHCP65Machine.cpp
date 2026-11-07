@@ -789,6 +789,19 @@ void TestHCP65DeviceROMFromSchematic(void)
 	cSchematic.Kill();
 	szError.Kill();
 
+	//The Video Board: its video memory is windows A and B too, but on the Video Board - Memory board, past a connector the
+	//wiring isn't followed through, so ROM_MainBus gives all three words.
+	cSchematic.Init();
+	szError.Init();
+	AssertTrue(cSchematic.Read(TEST_HCP65_KICAD _FS_ "Video" _FS_ "Video Board - Signals" _FS_ "Video Board - Signals.kicad_sch", &szError));
+	AssertString("", szError.Text());
+	AssertString("Video Board", cSchematic.GetName());
+	AssertInt(DEVICE_BUS_128KB, cSchematic.GetDeviceBus());
+	AssertInt(DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B | DEVICE_MAIN_BUS_PRIVATE, cSchematic.GetMainBus());
+	AssertSize(27, cSchematic.NumRegisters());
+	cSchematic.Kill();
+	szError.Kill();
+
 	DataMemoryKill();
 }
 

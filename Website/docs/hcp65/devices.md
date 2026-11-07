@@ -118,7 +118,8 @@ the current directory unless it is named) and makes the image from it.  From the
   the driver file are properties of the device ROM chip (the chip on *Device Decode Stage A*'s
   ~Device ROM): `ROM_Manufacturer` and `ROM_Driver`.  `ROM_Name` and `ROM_Revision` override the
   title block.  `ROM_MainBus`'s words are added to what the wiring shows: the Coprocessor Board's is
-  `Private`.
+  `Private`.  Wiring that leaves through a connector isn't followed, so the Video Board, whose memory
+  is on its *Video Board - Memory* board, gives `WindowA WindowB Private`.
 
 A board whose registers aren't decoded by a *Device Decode Stage B* needs its description written by
 hand: the UART Board's two UARTs are selected by gates on its *UART Signals* board
@@ -133,6 +134,7 @@ The HCP65's own boards have the manufacturer `HCP65`:
 | `UART Board` | 32KB | Doesn't use it | `UART.DRV` |
 | `Memory Board` | 32KB | Windows A and B: it is 4MB of main memory | none: the kernel sets its window |
 | `Coprocessor Board` | 32KB | Windows A and B, private: the coprocessors' 4MB | `COPROC.DRV` |
+| `Video Board` | 128KB | Windows A and B, private: its video memory | `VIDEO.DRV` |
 | `Debug Port` (the emulator's) | 32KB | Doesn't use it | none: the kernel drives it itself |
 
 ### Drivers
@@ -217,9 +219,10 @@ and a reset puts every socket in window 0.
 The kernel finds the memory boards by their device ROMs (`MainBus` `WindowA` and `WindowB`, the
 *Memory Board*, `DeviceROM/Boards/MemoryBoard.xml`), in socket order (devices 3, 4, 16, 17, 18
 then 19), and gives the first window 1, the next 2, then 3, then 0: window 0's lower 2MB is only
-reachable from user mode.  Private boards (the Coprocessor Board) in the memory sockets get the
-windows after the memory boards', in the same order; their memory isn't main memory, and their
-drivers find their window in their device's `uiWindow`.  Of the banks they make, from `$200000` up, it keeps four for the
+reachable from user mode.  Private boards (the Coprocessor Board and the Video Board) in the memory
+sockets get the windows after the memory boards', in the same order; their memory isn't main
+memory, and their drivers find their window in their device's `uiWindow`.  With both, two windows
+are left for memory boards; no more than four boards with windows are expected.  Of the banks they make, from `$200000` up, it keeps four for the
 [maths tables](runtime.md#the-maths-tables) and one for its main memory heap (what the SD Card
 Board's DMA must reach), and gives the rest to processes.  With one board the tables are banks
 `$40`–`$43`, the heap `$44` and processes `$45`–`$7F`.  Without a memory board the kernel stops
