@@ -15,6 +15,7 @@
 #define TEST_HCP65_CLOCK_RATE	10000000
 #define TEST_HCP65_BOARDS		".." _FS_ ".." _FS_ ".." _FS_ "DeviceROM" _FS_ "Boards"
 #define TEST_HCP65_KICAD		".." _FS_ ".." _FS_ ".." _FS_ "Kicad" _FS_ "Computer"
+#define TEST_HCP65_MEMORY_SOCKET	18		//Socket V: the channel's register 0, D7-D6.
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -24,6 +25,36 @@
 static void TestHCP65Put(uint8* puiMemory, uint32 uiAddress, const uint8* puiBytes, size uiLength)
 {
 	memcpy(&puiMemory[uiAddress], puiBytes, uiLength);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A memory board in the test's socket (V, device 18): in window 0 until
+// the channel says otherwise, so main memory is $000000 to $3FFFFF, the
+// kernel mode part from $200000.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65AddMemory(CHCP65* pcHCP65, CHCP65MemoryBoard* pcMemory)
+{
+	pcMemory->Init();
+	AssertTrue(pcHCP65->SetDevice(TEST_HCP65_MEMORY_SOCKET, pcMemory));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The byte of main memory at the physical address uiAddress (there must
+// be memory there).
+//
+//////////////////////////////////////////////////////////////////////////
+static uint8* TestHCP65Main(CHCP65* pcHCP65, uint32 uiAddress)
+{
+	uint8*	puiMain;
+
+	puiMain = pcHCP65->MainMemoryAt(uiAddress);
+	AssertNotNull(puiMain);
+	return puiMain;
 }
 
 
@@ -58,10 +89,11 @@ static void TestHCP65Program(CHCP65* pcHCP65, const uint8* puiProgram, size uiLe
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65BootAndUserMode(void)
 {
-	CHCP65	cHCP65;
-	uint8*	puiROM;
-	uint8*	puiRAM;
-	uint8*	puiMain;
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	uint8*				puiROM;
+	uint8*				puiRAM;
+	uint8*				puiMain;
 
 	static const uint8 auiKernal[] = {
 		0x18, 0xFB,					//8000 clc  xce
@@ -80,19 +112,20 @@ void TestHCP65BootAndUserMode(void)
 	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
 	puiROM = cHCP65.GetMPUROM();
 	puiRAM = cHCP65.GetMPURAM();
-	puiMain = cHCP65.GetMainMemory();
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	puiMain = TestHCP65Main(&cHCP65, 0x220000);
 	TestHCP65Program(&cHCP65, auiKernal, sizeof(auiKernal));
 	puiROM[0x8003] = 0x11;
 	puiRAM[0x8100] = 0xDB;									//stp
 	puiRAM[0xFFE6] = 0x00;									//Native BRK vector.
 	puiRAM[0xFFE7] = 0x81;
-	puiRAM[HCP65_REMAP_TABLE + 0xFE00 + 0] = 0x42;			//Process $FE's bank 0 is bank $42.
+	puiRAM[HCP65_REMAP_TABLE + 0xFE00 + 0] = 0x22;			//Process $FE's bank 0 is bank $22.
 
-	TestHCP65Put(puiMain, 0x429000, auiUser, sizeof(auiUser));
-	puiMain[0x4200F1] = 0x34;	//P
-	puiMain[0x4200F2] = 0x00;	//PCL
-	puiMain[0x4200F3] = 0x90;	//PCH
-	puiMain[0x4200F4] = 0x00;	//PBR
+	TestHCP65Put(puiMain, 0x9000, auiUser, sizeof(auiUser));
+	puiMain[0x00F1] = 0x34;	//P
+	puiMain[0x00F2] = 0x00;	//PCL
+	puiMain[0x00F3] = 0x90;	//PCH
+	puiMain[0x00F4] = 0x00;	//PBR
 
 	cHCP65.Reset();
 	AssertTrue(cHCP65.IsKernelMode());
@@ -102,16 +135,17 @@ void TestHCP65BootAndUserMode(void)
 	cHCP65.Run(1000);
 	AssertTrue(cHCP65.IsStopped());
 	AssertTrue(cHCP65.IsNativeLatched());
-	AssertInt(0x22, puiMain[0x200000]);
+	AssertInt(0x22, *TestHCP65Main(&cHCP65, 0x200000));
 	AssertInt(0xFE, cHCP65.GetProcessID());
-	AssertInt(0x33, puiMain[0x421234]);
+	AssertInt(0x33, puiMain[0x1234]);
 	AssertInt(1, cHCP65.GetInterruptDepth());
 	AssertTrue(cHCP65.IsKernelMode());
-	AssertInt(0x00, puiMain[0x4200F4]);
-	AssertInt(0x90, puiMain[0x4200F3]);
-	AssertInt(0x07, puiMain[0x4200F2]);
+	AssertInt(0x00, puiMain[0x00F4]);
+	AssertInt(0x90, puiMain[0x00F3]);
+	AssertInt(0x07, puiMain[0x00F2]);
 	AssertInt(0x8101, cHCP65.GetMPU()->GetProgramCounter());
 	cHCP65.Kill();
+	cMemory.Kill();
 }
 
 
@@ -150,10 +184,11 @@ static uint8* TestHCP65WaitingKernal(CHCP65* pcHCP65, uint16 uiIrqHandler, uint1
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65AudioBoard(void)
 {
-	CHCP65		cHCP65;
-	CHCP65Audio	cAudio;
-	uint8*		puiRAM;
-	uint8		auiFrames[64];
+	CHCP65				cHCP65;
+	CHCP65Audio			cAudio;
+	CHCP65MemoryBoard	cMemory;
+	uint8*				puiRAM;
+	uint8				auiFrames[64];
 	uint32		uiFrames;
 	uint64		uiEnableCycle;
 	uint64		uiDue;
@@ -167,6 +202,7 @@ void TestHCP65AudioBoard(void)
 		0xDB };						//stp
 
 	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
 	cAudio.Init();
 	AssertFalse(cHCP65.SetDevice(3, &cAudio));
 	AssertTrue(cHCP65.SetDevice(16, &cAudio));
@@ -197,8 +233,8 @@ void TestHCP65AudioBoard(void)
 
 	cHCP65.Run(100000);
 	AssertTrue(cHCP65.IsStopped());
-	AssertInt(0xC0, cHCP65.GetMainMemory()[0x200010]);
-	AssertInt(0x12, cHCP65.GetMainMemory()[0x200011]);
+	AssertInt(0xC0, *TestHCP65Main(&cHCP65, 0x200010));
+	AssertInt(0x12, *TestHCP65Main(&cHCP65, 0x200011));
 	uiDue = cHCP65.CycleOfCrystalTick(cHCP65.CrystalTick(uiEnableCycle) + 2);
 	AssertTrue(cHCP65.NumCycles() >= uiDue);
 	AssertTrue(cHCP65.NumCycles() < uiDue + 60);
@@ -226,6 +262,7 @@ void TestHCP65AudioBoard(void)
 
 	cHCP65.Kill();
 	cAudio.Kill();
+	cMemory.Kill();
 }
 
 
@@ -308,8 +345,9 @@ void TestHCP65Timer(void)
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Contention(void)
 {
-	CHCP65	cHCP65;
-	uint8*	puiRAM;
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	uint8*				puiRAM;
 
 	static const uint8 auiKernal[] = {
 		0x18, 0xFB,					//8000 clc  xce
@@ -320,6 +358,7 @@ void TestHCP65Contention(void)
 		0x80, 0xFE };				//800F bra $800F
 
 	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
 	TestHCP65Program(&cHCP65, auiKernal, sizeof(auiKernal));
 	puiRAM = cHCP65.GetMPURAM();
 	puiRAM[0x8100] = 0xDB;
@@ -333,13 +372,14 @@ void TestHCP65Contention(void)
 	AssertTrue(cHCP65.IsContention());
 	AssertTrue(cHCP65.IsStopped());
 	AssertInt(0x8101, cHCP65.GetMPU()->GetProgramAddress() & 0xFFFF);
-	AssertInt(0, cHCP65.GetMainMemory()[0x200000]);
+	AssertInt(0, *TestHCP65Main(&cHCP65, 0x200000));
 	AssertInt(0xFF, cHCP65.Read(0x200000));
 
 	//Only a reset clears it.
 	cHCP65.Reset();
 	AssertFalse(cHCP65.IsContention());
 	cHCP65.Kill();
+	cMemory.Kill();
 }
 
 
@@ -351,26 +391,98 @@ void TestHCP65Contention(void)
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65MemoryFill(void)
 {
-	CHCP65	cHCP65;
-	uint8*	puiMain;
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	uint8*				puiBank;
 
 	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
-	puiMain = cHCP65.GetMainMemory();
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	puiBank = TestHCP65Main(&cHCP65, 0x300000);
 	cHCP65.Reset();
-	AssertInt(0, puiMain[0x500000]);
-	cHCP65.FillMainMemoryBank(0x50);
-	AssertInt(0, puiMain[0x500000]);
+	AssertInt(0, puiBank[0]);
+	cHCP65.FillMainMemoryBank(0x30);
+	AssertInt(0, puiBank[0]);
 
 	cHCP65.SetMemoryFill(true);
 	cHCP65.Reset();
-	AssertInt(HCP65_DEBUG_FILL_BYTE, puiMain[0x500000]);
+	AssertInt(HCP65_DEBUG_FILL_BYTE, puiBank[0]);
 	AssertInt(HCP65_DEBUG_FILL_BYTE, cHCP65.GetMPURAM()[0x1234]);
-	puiMain[0x50FFFF] = 0;
-	puiMain[0x510000] = 0;
-	cHCP65.FillMainMemoryBank(0x50);
-	AssertInt(HCP65_DEBUG_FILL_BYTE, puiMain[0x50FFFF]);
-	AssertInt(0, puiMain[0x510000]);
+	puiBank[0xFFFF] = 0;
+	puiBank[0x10000] = 0;
+	cHCP65.FillMainMemoryBank(0x30);
+	AssertInt(HCP65_DEBUG_FILL_BYTE, puiBank[0xFFFF]);
+	AssertInt(0, puiBank[0x10000]);
+	cHCP65.FillMainMemoryBank(0x80);  //No memory there.
 	cHCP65.Kill();
+	cMemory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The memory boards and the main memory channel: each socket's 4MB in the
+// window its registers give it (chip A the lower 2MB), nothing where no
+// chip answers, the first socket's where two share a window.  The
+// registers repeat every 8 bytes and read nothing; the device enables
+// don't reach them, the system reset clears them.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65MemoryBoard(void)
+{
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cV;
+	CHCP65MemoryBoard	cX;
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	cV.Init();
+	cX.Init();
+	AssertFalse(cHCP65.SetDevice(HCP65_MEMORY_CHANNEL_SLOT, &cV));
+	AssertTrue(cHCP65.SetDevice(18, &cV));
+	AssertTrue(cHCP65.SetDevice(3, &cX));
+	AssertInt(0x1A, cHCP65.Read(0x118000));		//X's device ROM: its magic, $C0DAFE1A.
+	AssertInt(DEVICE_MAIN_BUS_WINDOW_A | DEVICE_MAIN_BUS_WINDOW_B, cX.Read(DEVICE_ROM_MAIN_BUS_OFFSET));
+
+	//Both in window 0: V answers, before X in the channel's order.
+	AssertTrue(cHCP65.MainMemoryAt(0x000000) == cV.GetMemoryChip(0));
+	AssertTrue(cHCP65.MainMemoryAt(0x3FFFFF) == cV.GetMemoryChip(1) + 0x1FFFFF);
+	AssertTrue(cHCP65.MainMemoryAt(0x400000) == NULL);
+	AssertInt(0xFF, cHCP65.Read(0x400000));
+
+	//V in window 1 (register 0, D7-D6), X in window 2 (register 1, D3-D2).
+	cHCP65.Write(0x108000, 1 << 6);
+	cHCP65.Write(0x108001, 2 << 2);
+	AssertInt(0xFF, cHCP65.Read(0x108000));
+	AssertTrue(cHCP65.MainMemoryAt(0x200000) == NULL);
+	AssertTrue(cHCP65.MainMemoryAt(0x400000) == cV.GetMemoryChip(0));
+	AssertTrue(cHCP65.MainMemoryAt(0x600000) == cV.GetMemoryChip(1));
+	AssertTrue(cHCP65.MainMemoryAt(0x800000) == cX.GetMemoryChip(0));
+	AssertTrue(cHCP65.MainMemoryAt(0xBFFFFF) == cX.GetMemoryChip(1) + 0x1FFFFF);
+	AssertTrue(cHCP65.MainMemoryAt(0xC00000) == NULL);
+	cHCP65.Write(0x612345, 0x5A);
+	AssertInt(0x5A, cV.GetMemoryChip(1)[0x12345]);
+	AssertInt(0x5A, cHCP65.Read(0x612345));
+	cHCP65.Write(0xC00000, 0x5A);
+	AssertInt(0xFF, cHCP65.Read(0xC00000));
+
+	//The device enables don't clear the registers; a write 8 bytes on is register 0 again.
+	cHCP65.SetDeviceEnables(0);
+	AssertTrue(cHCP65.MainMemoryAt(0x400000) == cV.GetMemoryChip(0));
+	cHCP65.Write(0x108008, 3 << 6);
+	AssertTrue(cHCP65.MainMemoryAt(0xC00000) == cV.GetMemoryChip(0));
+	AssertTrue(cHCP65.MainMemoryAt(0x400000) == NULL);
+
+	//The reset puts every socket back in window 0; the memory is kept.
+	cHCP65.Reset();
+	AssertTrue(cHCP65.MainMemoryAt(0x800000) == NULL);
+	AssertTrue(cHCP65.MainMemoryAt(0x200000) == cV.GetMemoryChip(1));
+	AssertInt(0x5A, cV.GetMemoryChip(1)[0x12345]);
+
+	//Taken out, its memory is gone.
+	AssertTrue(cHCP65.SetDevice(18, NULL));
+	AssertTrue(cHCP65.MainMemoryAt(0x000000) == cX.GetMemoryChip(0));
+	cHCP65.Kill();
+	cX.Kill();
+	cV.Kill();
 }
 
 
@@ -482,6 +594,7 @@ void TestHCP65DeviceROMFromXML(void)
 	CHCP65Audio		cAudio;
 	CHCP65SDCard	cSDCard;
 	CHCP65UARTBoard	cUART;
+	CHCP65MemoryBoard	cMemory;
 	CChars			szError;
 	FILE*			pFile;
 	uint32			i;
@@ -521,6 +634,17 @@ void TestHCP65DeviceROMFromXML(void)
 	}
 	AssertTrue(bSame);
 	cUART.Kill();
+
+	cMemory.Init();
+	AssertTrue(TestHCP65LoadDeviceROM(TEST_HCP65_BOARDS, "MemoryBoard.xml", &cROM, &szError));
+	AssertString("", szError.Text());
+	bSame = true;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		bSame &= cROM.Read(i) == cMemory.Read(i);
+	}
+	AssertTrue(bSame);
+	cMemory.Kill();
 
 	cFileUtil.TouchDir("Output");  //False when Output is already there.
 	AssertTrue(cFileUtil.IsDirectory("Output"));
@@ -879,6 +1003,7 @@ void TestHCP65Machine(void)
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();
+	TestHCP65MemoryBoard();
 
 	TestStatistics();
 }

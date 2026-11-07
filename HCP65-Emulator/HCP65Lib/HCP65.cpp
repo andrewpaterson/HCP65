@@ -17,10 +17,9 @@ void CHCP65::Init(uint64 uiClockRate)
 	muiClockRate = uiClockRate;
 	mpuiRAM = (uint8*)malloc(HCP65_MPU_RAM_SIZE);
 	mpuiROM = (uint8*)malloc(HCP65_MPU_ROM_SIZE);
-	mpuiMain = (uint8*)malloc(HCP65_MAIN_MEMORY_SIZE);
 	memset(mpuiRAM, 0, HCP65_MPU_RAM_SIZE);
 	memset(mpuiROM, 0xFF, HCP65_MPU_ROM_SIZE);
-	memset(mpuiMain, 0, HCP65_MAIN_MEMORY_SIZE);
+	memset(mapuiMainBanks, 0, sizeof(mapuiMainBanks));
 
 	mcMPU.Init(ReadByte, WriteByte, this, mpuiRAM, HCP65_MPU_RAM_SIZE);
 	mcMPU.SetSignal(Signal);
@@ -40,6 +39,9 @@ void CHCP65::Init(uint64 uiClockRate)
 	mcRegisters.Init();
 	mcRegisters.Attach(this);
 	mapcDevices[0] = &mcRegisters;
+	mcChannel.Init();
+	mcChannel.Attach(this);
+	mapcDevices[HCP65_MEMORY_CHANNEL_SLOT] = &mcChannel;
 
 	mbNativeLatch = false;
 	mbKernel = true;
@@ -62,7 +64,7 @@ void CHCP65::Kill(void)
 {
 	int		i;
 
-	for (i = 1; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	for (i = HCP65_MEMORY_CHANNEL_SLOT + 1; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
 		if (mapcDevices[i])
 		{
@@ -70,6 +72,7 @@ void CHCP65::Kill(void)
 			mapcDevices[i] = NULL;
 		}
 	}
+	mcChannel.Kill();
 	mcRegisters.Kill();
 	mcMPU.Kill();
 	for (i = 0; i < HCP65_NUM_PROCESSES; i++)
@@ -78,7 +81,6 @@ void CHCP65::Kill(void)
 	}
 	mcUserBreakpoints.Kill();
 	mcKernelBreakpoints.Kill();
-	SafeFree(mpuiMain);
 	SafeFree(mpuiROM);
 	SafeFree(mpuiRAM);
 }
@@ -86,15 +88,17 @@ void CHCP65::Kill(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Puts pcDevice in socket iSlot (1-7 or 16-19), or empties it with NULL.
-// A device that decodes A16 needs a 128KB socket.
+// Puts pcDevice in socket iSlot (2-7 or 16-19), or empties it with NULL.
+// A device that decodes A16 needs a 128KB socket.  Slot 1 is the main
+// memory channel's.  Main memory is mapped again: the socket may hold a
+// memory board.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65::SetDevice(int iSlot, CHCP65Device* pcDevice)
 {
 	uint32	uiSlotSize;
 
-	if ((iSlot >= 1) && (iSlot <= 7))
+	if ((iSlot > HCP65_MEMORY_CHANNEL_SLOT) && (iSlot <= 7))
 	{
 		uiSlotSize = HCP65_SMALL_SLOT_SIZE;
 	}
@@ -123,6 +127,7 @@ bool CHCP65::SetDevice(int iSlot, CHCP65Device* pcDevice)
 		pcDevice->Reset();
 		pcDevice->SetHeldInReset((muiDeviceEnables & (1u << iSlot)) == 0);
 	}
+	MapMainMemory();
 	return true;
 }
 
@@ -176,7 +181,7 @@ void CHCP65::Reset(void)
 	if (mbFill)
 	{
 		memset(mpuiRAM, muiFillByte, HCP65_MPU_RAM_SIZE);
-		memset(mpuiMain, muiFillByte, HCP65_MAIN_MEMORY_SIZE);
+		FillMemoryChips();
 	}
 	mcRegisters.Reset();
 	SetDeviceEnables(0);
@@ -452,9 +457,34 @@ bool CHCP65::IsMemoryFill(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65::FillMainMemoryBank(uint8 uiBank)
 {
-	if (mbFill)
+	if (mbFill && mapuiMainBanks[uiBank])
 	{
-		memset(&mpuiMain[(uint32)uiBank << 16], muiFillByte, 0x10000);
+		memset(mapuiMainBanks[uiBank], muiFillByte, 0x10000);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Every memory board's chips, all of them (mapped or not).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::FillMemoryChips(void)
+{
+	uint8*	puiChip;
+	int		i;
+	int		iChip;
+
+	for (i = HCP65_MEMORY_CHANNEL_SLOT + 1; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	{
+		for (iChip = 0; mapcDevices[i] && (iChip < 2); iChip++)
+		{
+			puiChip = mapcDevices[i]->GetMemoryChip(iChip);
+			if (puiChip)
+			{
+				memset(puiChip, muiFillByte, HCP65_MEMORY_CHIP_SIZE);
+			}
+		}
 	}
 }
 
@@ -640,6 +670,37 @@ CHCP65Device* CHCP65::DecodeDevice(uint32 uiAddress, uint32* puiOffset)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The processor reading main memory at the physical address uiPhysical:
+// $FF where no chip answers or main memory is shut off (contention).
+//
+//////////////////////////////////////////////////////////////////////////
+uint8 CHCP65::ReadMain(uint32 uiPhysical)
+{
+	uint8*	puiBank;
+
+	puiBank = mapuiMainBanks[(uiPhysical >> 16) & 0xFF];
+	return (MainMemoryAccess() && puiBank) ? puiBank[uiPhysical & 0xFFFF] : 0xFF;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::WriteMain(uint32 uiPhysical, uint8 uiValue)
+{
+	uint8*	puiBank;
+
+	puiBank = mapuiMainBanks[(uiPhysical >> 16) & 0xFF];
+	if (MainMemoryAccess() && puiBank)
+	{
+		puiBank[uiPhysical & 0xFFFF] = uiValue;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A bus read, as the processor would make it now.  Nothing drives the
 // data bus for an empty socket.
 //
@@ -653,12 +714,12 @@ uint8 CHCP65::Read(uint32 uiAddress)
 	uiAddress &= 0xFFFFFF;
 	if (!mbKernel)
 	{
-		return MainMemoryAccess() ? mpuiMain[UserAddress(uiAddress)] : 0xFF;
+		return ReadMain(UserAddress(uiAddress));
 	}
 
 	if (uiAddress >= 0x200000)
 	{
-		return MainMemoryAccess() ? mpuiMain[uiAddress] : 0xFF;
+		return ReadMain(uiAddress);
 	}
 
 	if (uiAddress < 0x100000)
@@ -704,19 +765,13 @@ void CHCP65::Write(uint32 uiAddress, uint8 uiValue)
 	uiAddress &= 0xFFFFFF;
 	if (!mbKernel)
 	{
-		if (MainMemoryAccess())
-		{
-			mpuiMain[UserAddress(uiAddress)] = uiValue;
-		}
+		WriteMain(UserAddress(uiAddress), uiValue);
 		return;
 	}
 
 	if (uiAddress >= 0x200000)
 	{
-		if (MainMemoryAccess())
-		{
-			mpuiMain[uiAddress] = uiValue;
-		}
+		WriteMain(uiAddress, uiValue);
 		return;
 	}
 
@@ -743,7 +798,8 @@ void CHCP65::Write(uint32 uiAddress, uint8 uiValue)
 //////////////////////////////////////////////////////////////////////////
 //
 // The memory a processor address is now (as Read and Write would find it),
-// or NULL where it is a device or an empty socket.  For a debugger, which
+// or NULL where it is a device, an empty socket or main memory no chip
+// answers.  For a debugger, which
 // must read and write without touching devices.  ROM can be written here.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -752,11 +808,11 @@ uint8* CHCP65::MemoryAt(uint32 uiAddress)
 	uiAddress &= 0xFFFFFF;
 	if (!mbKernel)
 	{
-		return &mpuiMain[UserAddress(uiAddress)];
+		return MainMemoryAt(UserAddress(uiAddress));
 	}
 	if (uiAddress >= 0x200000)
 	{
-		return &mpuiMain[uiAddress];
+		return MainMemoryAt(uiAddress);
 	}
 	if (uiAddress < 0x100000)
 	{
@@ -1027,9 +1083,51 @@ uint8* CHCP65::GetMPUROM(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65::GetMainMemory(void)
+uint8* CHCP65::MainMemoryAt(uint32 uiPhysical)
 {
-	return mpuiMain;
+	uint8*	puiBank;
+
+	puiBank = mapuiMainBanks[(uiPhysical >> 16) & 0xFF];
+	return puiBank ? &puiBank[uiPhysical & 0xFFFF] : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each 64KB bank of main memory as the memory boards and the channel have
+// it: a socket's chip A is the lower 2MB of its window, chip B the upper.
+// Where two sockets share a window the first in the channel's order
+// answers.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::MapMainMemory(void)
+{
+	CHCP65Device*	pcDevice;
+	uint8*			puiChip;
+	uint32			uiBank;
+	int				iSocket;
+	int				iSlot;
+	int				iChip;
+	int				i;
+
+	memset(mapuiMainBanks, 0, sizeof(mapuiMainBanks));
+	for (iSocket = 0; iSocket < HCP65_MEMORY_NUM_SOCKETS; iSocket++)
+	{
+		iSlot = mcChannel.GetSocketSlot(iSocket);
+		pcDevice = (iSlot >= 0) ? mapcDevices[iSlot] : NULL;
+		for (iChip = 0; pcDevice && (iChip < 2); iChip++)
+		{
+			puiChip = pcDevice->GetMemoryChip(iChip);
+			uiBank = (uint32)mcChannel.GetSocketWindow(iSocket) * (HCP65_MEMORY_WINDOW_SIZE >> 16) + (uint32)iChip * (HCP65_MEMORY_CHIP_SIZE >> 16);
+			for (i = 0; puiChip && (i < (HCP65_MEMORY_CHIP_SIZE >> 16)); i++, uiBank++)
+			{
+				if (!mapuiMainBanks[uiBank])
+				{
+					mapuiMainBanks[uiBank] = &puiChip[(size)i << 16];
+				}
+			}
+		}
+	}
 }
 
 

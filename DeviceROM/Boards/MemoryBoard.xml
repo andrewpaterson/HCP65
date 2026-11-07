@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The HCP65 Memory Board (Memory Board and Memory 4MB sheets): two 2MB chips, A and B, the lower and upper half of
+     the 4MB window the main memory channel gives its socket.  Nothing else is in its slot.  The schematic has no
+     Device Decode Stage A, so DeviceROM can't work this out from it: this file is written by hand. -->
+<DeviceROM Name="Memory Board" Manufacturer="HCP65" Revision="0" DeviceBus="32KB" MainBus="WindowA WindowB"/>

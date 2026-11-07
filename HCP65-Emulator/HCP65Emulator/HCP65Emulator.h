@@ -11,6 +11,7 @@
 #define HCP65_EMULATOR_AUDIO_SOCKET		16
 #define HCP65_EMULATOR_DEBUG_SOCKET		7			//The debug port: the kernal tells it of its processes.
 #define HCP65_EMULATOR_UART_SOCKET		4			//The UART Board; nothing is on the far end of its ports yet.
+#define HCP65_EMULATOR_MEMORY_SOCKET	18			//The Memory Board: main memory, window 1 once the kernal has set it.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
 
 
@@ -47,6 +48,7 @@ protected:
 	CHCP65SDCard			mcSDCard;
 	CHCP65DebugPort			mcDebugPort;
 	CHCP65UARTBoard			mcUART;
+	CHCP65MemoryBoard		mcMemory;
 	CHCP65EmulatorDebugger	mcDebugger;
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;

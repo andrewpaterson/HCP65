@@ -916,7 +916,6 @@ void CHCP65SDCard::FinishRead(void)
 	{
 		return;
 	}
-	puiMain = mpcHCP65->GetMainMemory();
 	puiSector = &psCard->puiImage[(size_t)psCard->uiReadSector * HCP65_SD_SECTOR_SIZE];
 
 	//The CRC bytes as the card sends them: CRC16 of each DAT line, the lines' bits interleaved in nybbles.
@@ -952,9 +951,10 @@ void CHCP65SDCard::FinishRead(void)
 		{
 			uiByte = 0xFF;
 		}
-		if (!mpcHCP65->IsContention())
+		puiMain = mpcHCP65->MainMemoryAt((muiAddress + i) & 0xFFFFFF);
+		if (puiMain && !mpcHCP65->IsContention())
 		{
-			puiMain[(muiAddress + i) & 0xFFFFFF] = uiByte;
+			*puiMain = uiByte;
 		}
 	}
 	muiAddress = (muiAddress + muiDataCount) & 0xFFFFFF;

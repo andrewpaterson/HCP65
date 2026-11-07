@@ -44,6 +44,7 @@ public:
 	virtual void	CatchUp(uint64 uiCycle);
 	virtual uint64	NextEvent(void);
 	virtual bool	IsInterrupting(void);
+	virtual uint8*	GetMemoryChip(int iChip);
 };
 
 

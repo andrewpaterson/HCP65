@@ -106,3 +106,15 @@ bool CHCP65Device::IsInterrupting(void)
 {
 	return false;
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A memory board's chip iChip (0 is A, 1 is B), HCP65_MEMORY_CHIP_SIZE
+// bytes the HCP65 maps into main memory; NULL for any other device.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8* CHCP65Device::GetMemoryChip(int iChip)
+{
+	return NULL;
+}

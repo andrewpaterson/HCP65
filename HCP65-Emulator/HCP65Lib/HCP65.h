@@ -4,11 +4,13 @@
 #include "MicroprocessorLib/Fast65C816.h"
 #include "HCP65Device.h"
 #include "HCP65Registers.h"
+#include "HCP65MemoryBoard.h"
 
 
 #define HCP65_MPU_RAM_SIZE			0x80000		//512KB.
 #define HCP65_MPU_ROM_SIZE			0x80000		//512KB.
 #define HCP65_MAIN_MEMORY_SIZE		0x1000000	//16MB.
+#define HCP65_MAIN_MEMORY_BANKS		256
 #define HCP65_REMAP_TABLE			0x70000		//In MPU RAM: a 256 byte page of physical banks per process.
 #define HCP65_NUM_DEVICE_SLOTS		20			//0 to 19; 8 to 15 do not exist.
 #define HCP65_NUM_PROCESSES			256			//Process IDs 0 to $FF.
@@ -29,7 +31,9 @@
 //When the processor is in kernel mode and has been native, MPU RAM is the CFast65C816's flat block and
 //costs nothing extra.  Everything else goes through the callbacks.
 //
-//Main memory is one flat 16MB here; the main memory channel (device 1) and memory boards are not modelled.
+//Main memory is the memory boards' chips (CHCP65MemoryBoard), each socket's 4MB in the window the main memory
+//channel (device 1, CHCP65MemoryChannel, which the HCP65 has itself) gives it: a 64KB bank no chip answers reads
+//$FF and isn't written.  Two sockets in one window: the first in the channel's order answers.
 //The MPU ROM is flash on the real board; writes to it are ignored.
 //
 //Breakpoints are kept for each mode (GetModeBreakpoints): kernel mode and user mode see different memory at the same
@@ -52,8 +56,9 @@ protected:
 	CFast65C816			mcMPU;
 	uint8*				mpuiRAM;
 	uint8*				mpuiROM;
-	uint8*				mpuiMain;
+	uint8*				mapuiMainBanks[HCP65_MAIN_MEMORY_BANKS];	//Each 64KB bank's memory, NULL if no chip answers it.
 	CHCP65Registers		mcRegisters;
+	CHCP65MemoryChannel	mcChannel;
 	CHCP65Device*		mapcDevices[HCP65_NUM_DEVICE_SLOTS];
 	CBreakpoints		mcKernelBreakpoints;
 	CBreakpoints		mcUserBreakpoints;
@@ -98,7 +103,8 @@ public:
 	CHCP65Registers*	GetRegisters(void);
 	uint8*				GetMPURAM(void);
 	uint8*				GetMPUROM(void);
-	uint8*				GetMainMemory(void);
+	uint8*				MainMemoryAt(uint32 uiPhysical);
+	void				MapMainMemory(void);
 	uint64				NumCycles(void);
 	uint64				GetClockRate(void);
 	uint64				DeviceTick(uint64 uiCycle, uint64 uiRate);
@@ -134,6 +140,9 @@ protected:
 	void				UseModeBreakpoints(void);
 	void				EndChunk(void);
 	bool				MainMemoryAccess(void);
+	uint8				ReadMain(uint32 uiPhysical);
+	void				WriteMain(uint32 uiPhysical, uint8 uiValue);
+	void				FillMemoryChips(void);
 	uint32				UserAddress(uint32 uiAddress);
 	CHCP65Device*		DecodeDevice(uint32 uiAddress, uint32* puiOffset);
 	void				CatchUpDevices(uint64 uiCycle);
