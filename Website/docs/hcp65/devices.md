@@ -128,6 +128,7 @@ The HCP65's own boards have the manufacturer `HCP65`:
 | `SD Card Board` | 32KB | Drives it (DMA) | `SDCARD.DRV` |
 | `Sound Board` | 128KB | Doesn't use it | `SOUND.DRV` |
 | `UART Board` | 32KB | Doesn't use it | `UART.DRV` |
+| `Memory Board` | 32KB | Windows A and B: it is 4MB of main memory | none: the kernel sets its window |
 | `Debug Port` (the emulator's) | 32KB | Doesn't use it | none: the kernel drives it itself |
 
 ### Drivers
@@ -204,5 +205,20 @@ the slot.
 | 1 | `$108001` | Socket W (device 4) | Socket X (device 3) | Socket Y (device 17) | Socket Z (device 16) |
 
 Sockets S and T are not wired on the small mainboard.  In each pair the lower data bit is the low
-bit of the window number, so writing `%01` to a pair selects window 1.
+bit of the window number, so writing `%01` to a pair selects window 1.  Nothing can be read back,
+and a reset puts every socket in window 0.
+
+### How the kernel uses it
+
+The kernel finds the memory boards by their device ROMs (`MainBus` `WindowA` and `WindowB`, the
+*Memory Board*, `DeviceROM/Boards/MemoryBoard.xml`), in socket order (devices 3, 4, 16, 17, 18
+then 19), and gives the first window 1, the next 2, then 3, then 0: window 0's lower 2MB is only
+reachable from user mode.  Of the banks they make, from `$200000` up, it keeps four for the
+[maths tables](runtime.md#the-maths-tables) and one for its main memory heap (what the SD Card
+Board's DMA must reach), and gives the rest to processes.  With one board the tables are banks
+`$40`–`$43`, the heap `$44` and processes `$45`–`$7F`.  Without a memory board the kernel stops
+once it has scanned the devices: the SD Card Board has nothing to read into.
+
+The kernel's own heap is MPU RAM's bank 6, `$060000`–`$06FFFF`, below the remap table.  The
+drivers it loads go in MPU RAM from the end of its data up to it.
 

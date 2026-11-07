@@ -59,6 +59,7 @@
 #define TEST_HCP65_AUDIO2_SOCKET	17			//A second sound board, which the same driver drives.
 #define TEST_HCP65_DEBUG_SOCKET		7			//As the emulator has it.
 #define TEST_HCP65_UART_SOCKET		4
+#define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 
 //UARTTest.cpp's: what it sends and what the far end sends it.
 #define TEST_UART_SENT				1000
@@ -73,6 +74,8 @@
 #define TEST_KERNAL_STATE_MOUNTED			6
 #define TEST_KERNAL_STATE_BOOT_FAILED		7
 #define TEST_KERNAL_STATE_BOOT_EXITED		8
+#define TEST_KERNAL_STATE_NO_MAIN_MEMORY	9
+#define TEST_KERNAL_MPU_HEAP_SIZE			0x10000		//Kernal/KernalMemory.h's.
 #define TEST_KERNAL_PROCESS_EXITED			5
 #define TEST_KERNAL_PROCESS_BAD_ADDRESS		7
 #define TEST_HCP65_MISPLACED_CARD		TEST_HCP65_OUTPUT _FS_ "Misplaced.img"	//The card with a misplaced modplay.exe.
@@ -101,6 +104,9 @@ struct STestKernalStatus
 	uint32	uiBadDevices;
 	uint32	uiLoadedDrivers;
 	uint16	uiDriverError;
+	uint32	uiHeapPeak;
+	uint32	uiMainHeapPeak;
+	uint16	uiMainBanks;
 };
 
 
@@ -150,6 +156,27 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 	psStatus->uiBadDevices = (uint32)p[40] | ((uint32)p[41] << 8) | ((uint32)p[42] << 16) | ((uint32)p[43] << 24);
 	psStatus->uiLoadedDrivers = (uint32)p[44] | ((uint32)p[45] << 8) | ((uint32)p[46] << 16) | ((uint32)p[47] << 24);
 	psStatus->uiDriverError = (uint16)(p[48] | (p[49] << 8));
+	psStatus->uiHeapPeak = (uint32)p[52] | ((uint32)p[53] << 8) | ((uint32)p[54] << 16) | ((uint32)p[55] << 24);  //uint32s are 4 byte aligned.
+	psStatus->uiMainHeapPeak = (uint32)p[56] | ((uint32)p[57] << 8) | ((uint32)p[58] << 16) | ((uint32)p[59] << 24);
+	psStatus->uiMainBanks = (uint16)(p[60] | (p[61] << 8));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the kernal has finished starting up: boot.exe ran (or couldn't),
+// or it stopped short (no main memory, no card, no volume).  Until the
+// start up has copied the kernal's data its status is whatever MPU RAM
+// held ($CC in fill mode).
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalIsDone(STestKernalStatus* psStatus)
+{
+	if ((psStatus->uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (psStatus->uiState <= TEST_KERNAL_STATE_NO_MAIN_MEMORY))
+	{
+		return true;
+	}
+	return (psStatus->uiState > TEST_KERNAL_STATE_DEVICES_SCANNED) && (psStatus->uiState < TEST_KERNAL_STATE_MOUNTED);
 }
 
 
@@ -646,6 +673,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	SHCP65DebugDriver	sDriver;
 	uint32				uiKernalEnd;
 	CHCP65SDCard		cSDCard;
+	CHCP65MemoryBoard	cMemory;
 	uint8*				puiBlankCard;
 	CTestStrayDevice	cStray;
 	CHCP65DebugPort		cPort;
@@ -687,6 +715,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	cAudio.Init();
 	cAudio2.Init();
 	cSDCard.Init();
+	cMemory.Init();
 	cPort.Init();
 	//The kernal brings up each socket's card and mounts the first volume it finds: socket 0's card has none.
 	puiBlankCard = (uint8*)calloc(1, TEST_HCP65_BLANK_CARD_SIZE);
@@ -696,6 +725,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO_SOCKET, &cAudio));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_AUDIO2_SOCKET, &cAudio2));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_MEMORY_SOCKET, &cMemory));
 	cStray.Init();
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_STRAY_SOCKET, &cStray));
 	TestKernalStart(&cHCP65, &cPort, pcBuilder);
@@ -728,8 +758,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 			printf("run %d: state %d (boot %d, exit %d, argument %d), process $%02X, depth %d, kernel %d, PC $%06X, sound %s, counter $%04X, frames %d\n", i, sStatus.uiState, sStatus.uiBootResult, sStatus.uiExitCode, sStatus.uiBootArgument, cHCP65.GetProcessID(), cHCP65.GetInterruptDepth(), cHCP65.IsKernelMode(), cHCP65.GetMPU()->GetProgramAddress(), cAudio.IsEnabled() ? "on" : "off", cAudio.GetCounter(), (int)(acPlayed.NumElements() / 2));
 			fflush(stdout);
 		}
-		//Until the start up has copied the kernal's data its status is whatever MPU RAM held ($CC in fill mode).
-		if (((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (sStatus.uiState <= TEST_KERNAL_STATE_BOOT_EXITED)) || ((sStatus.uiState > TEST_KERNAL_STATE_DEVICES_SCANNED) && (sStatus.uiState < TEST_KERNAL_STATE_MOUNTED)) || cHCP65.IsStopped())
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
 		{
 			break;
 		}
@@ -752,11 +781,11 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 
 	//The kernal never used main memory while the SD Card Board's DMA had it, and reset the stray device.
 	AssertFalse(cHCP65.IsContention());
-	AssertInt(HCP65_DEBUG_FILL_BYTE, cHCP65.GetMainMemory()[0x300000]);
+	AssertInt(HCP65_DEBUG_FILL_BYTE, *cHCP65.MainMemoryAt(0x7F0000));
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
 
-	//The scan found the three boards by their device ROMs, and the stray device's blank ROM unrecognised.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
+	//The scan found the boards (the memory board too) by their device ROMs, and the stray device's blank ROM unrecognised.
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiBadDevices);
 
 	//The sound boards' driver was loaded from \OS\Drivers\SOUND.DRV once and drives both (the SD Card Board's and the
@@ -781,6 +810,17 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	//and ran modplay.exe (process $FE), whose exit code it exited with; the kernal is back in kernel mode.
 	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
 	AssertInt(MODPLAY_EXIT_SUCCESS, sStatus.uiExitCode);
+
+	//The kernal's heap (MPU RAM's bank 6) was enough, and its main memory heap held the SD card's bounce buffer.  The
+	//Memory Board is window 1: 64 banks.
+	AssertTrue(sStatus.uiHeapPeak > 0);
+	AssertTrue(sStatus.uiHeapPeak < TEST_KERNAL_MPU_HEAP_SIZE);
+	AssertTrue(sStatus.uiMainHeapPeak >= 512);
+	AssertInt(64, sStatus.uiMainBanks);
+	if (getenv("TEST_HCP65_VERBOSE"))
+	{
+		printf("kernal heap peak %u bytes, main memory heap peak %u bytes\n", (unsigned int)sStatus.uiHeapPeak, (unsigned int)sStatus.uiMainHeapPeak);
+	}
 	AssertInt(20000, sStatus.uiUserValue);
 	AssertInt(0xFF, cHCP65.GetProcessID());
 	AssertInt(1, cHCP65.GetInterruptDepth());
@@ -825,7 +865,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	//boot.exe loaded MULT and INVERT's upper half (round(2^32 / $8000) first) from the SD card to main memory at
 	//$400000, and the kernal was copied from ROM banks 0-3 to MPU RAM.  The processes' pages of the remap table were
 	//cleared when they exited.
-	puiMain = cHCP65.GetMainMemory();
+	puiMain = cHCP65.MainMemoryAt(HCP65_TABLES_START) - HCP65_TABLES_START;  //Chip A: $400000 to $5FFFFF, the tables' banks.
 	puiTables = (uint8*)malloc(HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_SIZE);
 	AssertTrue(TestKernalReadTables(puiTables));
 	AssertTrue(memcmp(puiTables, &puiMain[HCP65_TABLES_START], HCP65_MATH_MULT_SIZE) == 0);
@@ -887,7 +927,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	{
 		cHCP65.Run(TEST_HCP65_RUN_CYCLES);
 		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
-		if (((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (sStatus.uiState <= TEST_KERNAL_STATE_BOOT_EXITED)) || cHCP65.IsStopped())
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
 		{
 			break;
 		}
@@ -902,6 +942,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	cPort.Kill();
 	cStray.Kill();
 	cSDCard.Kill();
+	cMemory.Kill();
 	cAudio2.Kill();
 	cAudio.Kill();
 }
@@ -967,6 +1008,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 {
 	CHCP65				cHCP65;
 	CHCP65SDCard		cSDCard;
+	CHCP65MemoryBoard	cMemory;
 	CHCP65UARTBoard		cUART;
 	CHCP65DebugPort		cPort;
 	CHCP65UART*			pcTTL;
@@ -995,10 +1037,12 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	cSDCard.Init();
+	cMemory.Init();
 	cUART.Init();
 	cPort.Init();
 	AssertTrue(cSDCard.InsertCard(TEST_HCP65_UART_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_MEMORY_SOCKET, &cMemory));
 	AssertTrue(cHCP65.SetDevice(TEST_HCP65_UART_SOCKET, &cUART));
 	TestKernalStart(&cHCP65, &cPort, pcBuilder);
 
@@ -1053,7 +1097,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 			printf("uart run %d: state %d, exit %d, process $%02X, PC $%06X, RS232 %d in %d to send, TTL %d in\n", i, sStatus.uiState, sStatus.uiExitCode, cHCP65.GetProcessID(), cHCP65.GetMPU()->GetProgramAddress(), (int)acFromRS232.NumElements(), (int)pcRS232->NumHostToSend(), (int)acFromTTL.NumElements());
 			fflush(stdout);
 		}
-		if (((sStatus.uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (sStatus.uiState <= TEST_KERNAL_STATE_BOOT_EXITED)) || ((sStatus.uiState > TEST_KERNAL_STATE_DEVICES_SCANNED) && (sStatus.uiState < TEST_KERNAL_STATE_MOUNTED)) || cHCP65.IsStopped())
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
 		{
 			break;
 		}
@@ -1066,7 +1110,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(0, sStatus.uiExitCode);
 
 	//The driver was loaded from the card for the UART Board, after the kernal.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET), sStatus.uiDevices);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
 	AssertInt(0, sStatus.uiBadDevices);
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt(1 << TEST_HCP65_UART_SOCKET, sStatus.uiLoadedDrivers);
@@ -1131,6 +1175,44 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	cPort.Kill();
 	cUART.Kill();
 	cSDCard.Kill();
+	cMemory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Without a memory board the kernal scans the devices and stops: the SD
+// Card Board has nothing to read into.  Its heap is MPU RAM's, so it gets
+// that far.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
+{
+	CHCP65				cHCP65;
+	CHCP65SDCard		cSDCard;
+	STestKernalStatus	sStatus;
+	uint32				uiStatus;
+	int					i;
+
+	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	cSDCard.Init();
+	AssertTrue(cSDCard.InsertCard(TEST_HCP65_SD_CARD_IMAGE, false, TEST_HCP65_CARD_SOCKET));
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_SD_SOCKET, &cSDCard));
+	AssertTrue(cHCP65.LoadROM(pcBuilder->GetROM(), HCP65_ROM_SIZE));
+	cHCP65.Reset();
+	sStatus.uiState = 0;
+	for (i = 0; (i < TEST_HCP65_MAX_RUNS) && !TestKernalIsDone(&sStatus) && !cHCP65.IsStopped(); i++)
+	{
+		cHCP65.Run(TEST_HCP65_RUN_CYCLES);
+		TestKernalReadStatus(cHCP65.GetMPURAM(), uiStatus, &sStatus);
+	}
+	AssertInt(TEST_KERNAL_STATE_NO_MAIN_MEMORY, sStatus.uiState);
+	AssertInt(0, sStatus.uiMainBanks);
+	AssertInt(1 << TEST_HCP65_SD_SOCKET, sStatus.uiDevices);
+	AssertInt(0, cSDCard.NumSectorsRead());
+	cHCP65.Kill();
+	cSDCard.Kill();
 }
 
 
@@ -1149,6 +1231,7 @@ void TestHCP65Kernal(void)
 	{
 		TestHCP65KernalBoot(&cBuilder);
 		TestHCP65KernalUART(&cBuilder);
+		TestHCP65KernalNoMainMemory(&cBuilder);
 	}
 	cBuilder.Kill();
 

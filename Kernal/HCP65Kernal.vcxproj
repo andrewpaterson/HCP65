@@ -79,6 +79,7 @@
   <ItemGroup>
     <ClCompile Include="Start.asm" />
     <ClCompile Include="Kernal.cpp" />
+    <ClCompile Include="KernalMemory.cpp" />
     <ClCompile Include="KernalDevices.cpp" />
     <ClCompile Include="KernalDriver.cpp" />
     <ClCompile Include="KernalSDCard.cpp" />
@@ -100,6 +101,7 @@
     <ClInclude Include="KernalDeviceCalls.h" />
     <ClInclude Include="KernalDebugPort.h" />
     <ClInclude Include="KernalInterrupts.h" />
+    <ClInclude Include="KernalMemory.h" />
     <ClInclude Include="KernalProcess.h" />
     <ClInclude Include="KernalSDCard.h" />
   </ItemGroup>

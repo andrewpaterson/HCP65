@@ -10,9 +10,10 @@
 #include "KernalDriver.h"
 #include "KernalDebugPort.h"
 #include "KernalDriverLoader.h"
+#include "KernalMemory.h"
 
 
-SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 //The drivers in the ROM, for the HCP65's own boards: up to KERNAL_SD_MAX_BOARDS SD Card Boards and one debug port.
 CKernalSDCardBoard	gacKernalSDCardBoards[KERNAL_SD_MAX_BOARDS];
 CKernalDebugPort	gcKernalDebugPort;
@@ -23,20 +24,6 @@ CFatVolume		gcKernalVolume;
 //Libc65's heap.
 extern CTrueMallocator	gcHeap;
 extern bool				gbHeap;
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Called by the start up before the init table: the kernal's heap is main
-// memory on the 4MB card (which is always there), where the SD Card Board
-// can reach it too.
-//
-//////////////////////////////////////////////////////////////////////////
-extern "C" void KernalInitHeap(void)
-{
-	gcHeap.Init((void*)KERNAL_HEAP_START, KERNAL_HEAP_END - KERNAL_HEAP_START);
-	gbHeap = true;
-}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -170,6 +157,15 @@ int main(void)
 		}
 	}
 	gsKernalStatus.uiState = KERNAL_STATE_DEVICES_SCANNED;
+
+	//Main memory is the memory boards': without it the SD Card Board has nothing to read into.
+	if (!KernalInitMainMemory())
+	{
+		gsKernalStatus.uiMainBanks = KernalNumMainBanks();
+		gsKernalStatus.uiState = KERNAL_STATE_NO_MAIN_MEMORY;
+		return 1;
+	}
+	gsKernalStatus.uiMainBanks = KernalNumMainBanks();
 	KernalInitInterrupts();
 	KernalStartBuiltInDrivers();
 
@@ -222,6 +218,8 @@ int main(void)
 
 	gsKernalStatus.uiBootArgument = (guiKernalBootArgument == KERNAL_NO_BOOT_ARGUMENT) ? 0 : guiKernalBootArgument;
 	gsKernalStatus.uiBootResult = KernalRunExecutable(KERNAL_BOOT_FILE, gsKernalStatus.uiBootArgument, &gsKernalStatus.uiExitCode);
+	gsKernalStatus.uiHeapPeak = (uint32)gcHeap.PeakBytes();
+	gsKernalStatus.uiMainHeapPeak = KernalMainHeapPeak();
 	gsKernalStatus.uiState = (gsKernalStatus.uiBootResult == KERNAL_PROCESS_EXITED) ? KERNAL_STATE_BOOT_EXITED : KERNAL_STATE_BOOT_FAILED;
 	return 0;
 }

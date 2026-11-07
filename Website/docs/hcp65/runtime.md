@@ -124,8 +124,9 @@ them into every process at the same address (`HCP65/Libraries/UserLib/UserMathTa
 | `$400000`–`$41FFFF` | 128KB | MULT (`MathMult`), from `\OS\Math\MULT.BIN` | The MathTables multiplies, inline 8 bit multiplies and the soft float |
 | `$420000`–`$43FFFF` | 128KB | The upper half of INVERT (`MathInvertHigh`), from `$20000` in `\OS\Math\INVERT.BIN` | The soft float's divides (`softfloat816.asm`) |
 
-`INVERT.BIN` on the card holds the whole table, but only its upper half is loaded.  The kernal's
-heap starts after the tables, at `$440000`.
+`INVERT.BIN` on the card holds the whole table, but only its upper half is loaded.  Physically the
+tables are the first four banks of main memory the kernal keeps (`$40`–`$43` with one memory
+board: [How the kernel uses it](devices.md#how-the-kernel-uses-it)).
 
 Programs that aren't for the HCP65 (the test programs) link the tables into the program instead
 (`Libc65/MathTbls`).  INVERT is two sections there, so a program links only the half it uses.

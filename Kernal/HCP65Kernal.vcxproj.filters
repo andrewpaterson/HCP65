@@ -15,6 +15,9 @@
     <ClCompile Include="Kernal.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KernalMemory.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="KernalDevices.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -72,6 +75,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalInterrupts.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalMemory.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalProcess.h">

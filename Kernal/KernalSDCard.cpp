@@ -2,6 +2,7 @@
 #include <string.h>
 #include "KernalSDCard.h"
 #include "KernalInterrupts.h"
+#include "KernalMemory.h"
 
 
 #define SD_ADDRESS_LOW			0x00
@@ -246,8 +247,8 @@ uint16 CKernalSDCard::Init(volatile uint8* puiRegisters, uint8 uiSocket)
 		return muiError;
 	}
 
-	//Only for sectors read to (or written from) memory the board can't reach.
-	mpuiBounce = (uint8*)malloc(SD_SECTOR_SIZE);
+	//Only for sectors read to (or written from) memory the board can't reach (MPU RAM, where the kernal's heap is).
+	mpuiBounce = (uint8*)KernalMainMalloc(SD_SECTOR_SIZE);
 	return KERNAL_SD_SUCCESS;
 }
 

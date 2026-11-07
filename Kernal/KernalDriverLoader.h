@@ -2,12 +2,13 @@
 #define __KERNAL_DRIVER_LOADER_H__
 #include "BaseLib/PrimitiveTypes.h"
 #include "KernalDriver.h"
+#include "KernalMemory.h"
 
 
 #define KERNAL_DRIVER_DIRECTORY			"\\OS\\Drivers\\"		//Where a board's device ROM's driver file is.
 #define KERNAL_DRIVER_ENTRY				"_KernalCreateDriver"	//extern "C" CKernalDriver* KernalCreateDriver(uint16 uiIndex).
 #define KERNAL_MAX_MODULES				16						//Different driver files loaded.
-#define KERNAL_DRIVER_MEMORY_END		0x070000				//Drivers go in MPU RAM after the kernal, up to the remap table.
+#define KERNAL_DRIVER_MEMORY_END		KERNAL_MPU_HEAP_START	//Drivers go in MPU RAM after the kernal, up to its heap.
 
 //What loading a board's driver came to.
 #define KERNAL_LOAD_SUCCESS				0

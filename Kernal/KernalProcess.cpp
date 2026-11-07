@@ -12,6 +12,7 @@
 #include "KernalDriver.h"
 #include "KernalDeviceCalls.h"
 #include "KernalDebugPort.h"
+#include "KernalMemory.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
@@ -31,7 +32,7 @@ extern CFatVolume	gcKernalVolume;
 SKernalCall			gsKernalCall;
 static uint8		guiKernalProcess;							//The process running (or calling), 0 for none.
 static uint16		gauiKernalArguments[256];					//Each process ID's argument.
-static uint8		gauiKernalBankOwners[KERNAL_LAST_PROCESS_BANK + 1];	//The process ID a physical bank is given to.
+static uint8		gauiKernalBankOwners[KERNAL_NUM_BANKS];					//The process ID a physical bank is given to.
 static uint8*			gpuiKernalArguments;					//The call's arguments, on the process's stack in its bank 0.
 
 
@@ -244,9 +245,9 @@ static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 	{
 		return true;
 	}
-	for (uiPhysical = KERNAL_FIRST_PROCESS_BANK; uiPhysical <= KERNAL_LAST_PROCESS_BANK; uiPhysical++)
+	for (uiPhysical = 0; uiPhysical < KERNAL_NUM_BANKS; uiPhysical++)
 	{
-		if (gauiKernalBankOwners[uiPhysical] == 0)
+		if ((gauiKernalBanks[uiPhysical] == KERNAL_BANK_PROCESS) && (gauiKernalBankOwners[uiPhysical] == 0))
 		{
 			gauiKernalBankOwners[uiPhysical] = uiProcess;
 			puiPage[uiBank] = (uint8)uiPhysical;
@@ -270,7 +271,7 @@ static void KernalFreeProcess(uint8 uiProcess)
 {
 	uint16	uiPhysical;
 
-	for (uiPhysical = KERNAL_FIRST_PROCESS_BANK; uiPhysical <= KERNAL_LAST_PROCESS_BANK; uiPhysical++)
+	for (uiPhysical = 0; uiPhysical < KERNAL_NUM_BANKS; uiPhysical++)
 	{
 		if (gauiKernalBankOwners[uiPhysical] == uiProcess)
 		{
@@ -463,7 +464,7 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 	puiPage = KernalRemapPage(uiProcess);
 	for (i = 0; i < KERNAL_NUM_TABLE_BANKS; i++)
 	{
-		puiPage[KERNAL_TABLES_BANK + i] = (uint8)(KERNAL_TABLES_BANK + i);
+		puiPage[KERNAL_TABLES_USER_BANK + i] = gauiKernalTableBanks[i];
 	}
 	bLoaded = true;
 	for (i = 0; i < sizeof(gauiKernalProcessBanks); i++)

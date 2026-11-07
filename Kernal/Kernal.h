@@ -5,8 +5,6 @@
 
 #define KERNAL_BOOT_FILE				"\\boot.exe"
 #define KERNAL_NO_BOOT_ARGUMENT			0xFFFF		//guiKernalBootArgument in the ROM: boot.exe's argument is 0.
-#define KERNAL_HEAP_START				0x440000	//Main memory on the 4MB card, after the math tables (banks $40-$43).
-#define KERNAL_HEAP_END					0x500000
 
 #define KERNAL_STATE_STARTING			0x0001
 #define KERNAL_STATE_DEVICES_SCANNED	0x0002
@@ -16,6 +14,7 @@
 #define KERNAL_STATE_MOUNTED			0x0006
 #define KERNAL_STATE_BOOT_FAILED		0x0007
 #define KERNAL_STATE_BOOT_EXITED		0x0008
+#define KERNAL_STATE_NO_MAIN_MEMORY		0x0009		//No memory board gave enough for the tables and the heap.
 
 
 //What the kernal found starting up, for tests and debuggers to read.
@@ -39,6 +38,9 @@ struct SKernalStatus
 	uint32	uiBadDevices;		//Bit n set: socket n holds a board whose ROM isn't usable or that is in the wrong socket.
 	uint32	uiLoadedDrivers;	//Bit n set: socket n's board's driver was loaded from the SD card (KernalDriverLoader.h).
 	uint16	uiDriverError;		//Why the last driver that didn't load didn't (KERNAL_LOAD_*), 0 if they all did.
+	uint32	uiHeapPeak;			//The most of the kernal's heap (MPU RAM) used, once boot.exe has exited.
+	uint32	uiMainHeapPeak;		//The most of its main memory heap used, then.
+	uint16	uiMainBanks;		//The banks of main memory the memory boards gave (KernalMemory.h).
 };
 
 
@@ -46,7 +48,6 @@ extern SKernalStatus	gsKernalStatus;
 extern uint16			guiKernalBootArgument;	//Image data (the start up doesn't set it): tests patch the ROM.
 
 
-extern "C" void	KernalInitHeap(void);
 
 
 #endif // __KERNAL_H__
