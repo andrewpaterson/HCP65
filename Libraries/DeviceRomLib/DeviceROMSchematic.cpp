@@ -437,7 +437,51 @@ bool CDeviceROMSchematic::ReadStageB(CKicadSchemSymbol* pcStageB)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A register named by its strobe's net, without its "Read " or "Write ".
+// szText without KiCad's text markup (~{overbar}, _{subscript} and
+// ^{superscript} keep only what is in the braces), its runs of spaces one
+// space and none at its ends, in szDest (uiSize bytes, cut short to fit).
+//
+//////////////////////////////////////////////////////////////////////////
+static void DeviceROMPlainText(const char* szText, char* szDest, size uiSize)
+{
+	size	uiLength;
+	char	c;
+
+	uiLength = 0;
+	while ((c = *szText) != '\0')
+	{
+		szText++;
+		if (((c == '~') || (c == '_') || (c == '^')) && (*szText == '{'))
+		{
+			szText++;
+			continue;
+		}
+		if (c == '}')
+		{
+			continue;
+		}
+		if ((c == ' ') && ((uiLength == 0) || (szDest[uiLength - 1] == ' ')))
+		{
+			continue;
+		}
+		if (uiLength + 1 < uiSize)
+		{
+			szDest[uiLength] = c;
+			uiLength++;
+		}
+	}
+	if ((uiLength > 0) && (szDest[uiLength - 1] == ' '))
+	{
+		uiLength--;
+	}
+	szDest[uiLength] = '\0';
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A register named by its strobe's net, without its "Read " or "Write "
+// or KiCad's markup.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CDeviceROMSchematic::AddRegister(uint16 uiOffset, uint8 uiDirection, CKicadSchemNet* pcNet)
@@ -461,8 +505,7 @@ bool CDeviceROMSchematic::AddRegister(uint16 uiOffset, uint8 uiDirection, CKicad
 			szName += 6;
 		}
 	}
-	strncpy(psRegister->szName, szName, DEVICE_ROM_NAME_LENGTH - 1);
-	psRegister->szName[DEVICE_ROM_NAME_LENGTH - 1] = '\0';
+	DeviceROMPlainText(szName, psRegister->szName, DEVICE_ROM_NAME_LENGTH);
 	return true;
 }
 

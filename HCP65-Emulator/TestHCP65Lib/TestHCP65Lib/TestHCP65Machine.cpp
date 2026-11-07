@@ -738,6 +738,20 @@ void TestHCP65DeviceROMFromSchematic(void)
 	cSchematic.Kill();
 	szError.Kill();
 
+	//The PS2 Board: its name from its device ROM chip's ROM_Name (the title block's is "PS2 Board PS2"), and its
+	//registers' names without KiCad's markup (the nets are "PS2 FIFO_{ 1}" and "Clear Interrupt _{1}").
+	cSchematic.Init();
+	szError.Init();
+	AssertTrue(cSchematic.Read(TEST_HCP65_KICAD _FS_ "PS2" _FS_ "PS2 Board" _FS_ "PS2 Board.kicad_sch", &szError));
+	AssertString("", szError.Text());
+	AssertString("PS2 Board", cSchematic.GetName());
+	AssertString("PS2.DRV", cSchematic.GetDriver());
+	AssertSize(9, cSchematic.NumRegisters());
+	AssertString("PS2 FIFO 1", cSchematic.GetRegister(2)->szName);
+	AssertString("Clear Interrupt 1", cSchematic.GetRegister(3)->szName);
+	cSchematic.Kill();
+	szError.Kill();
+
 	DataMemoryKill();
 }
 
