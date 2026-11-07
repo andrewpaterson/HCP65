@@ -8,7 +8,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
-#include "HCP65Lib/HCP65UARTBoard.h"
+#include "HCP65Lib/HCP65UART.h"
 #include "TestLib/Assert.h"
 
 

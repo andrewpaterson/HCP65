@@ -2,7 +2,7 @@
 #define __HCP65_UART_BOARD_H__
 
 
-//The HCP65 UART Board (HCP65Lib/HCP65UARTBoard.h has the board) through its driver, \OS\Drivers\UART.DRV: open a port
+//The HCP65 UART Board (HCP65Lib/HCP65UART.h has the board) through its driver, \OS\Drivers\UART.DRV: open a port
 //with KernalDeviceOpen(UART_BOARD_MANUFACTURER, UART_BOARD_NAME, index, unit, &handle) (HCP65User.h).  Two TL16C550D
 //UARTs, each with its own 1.8432MHz oscillator.  Each port is opened on its own: two programs can have one each.
 //

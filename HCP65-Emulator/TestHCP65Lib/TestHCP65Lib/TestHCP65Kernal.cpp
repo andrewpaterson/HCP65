@@ -16,7 +16,7 @@
 #include "HCP65Lib/HCP65DebugPort.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
-#include "HCP65Lib/HCP65UARTBoard.h"
+#include "HCP65Lib/HCP65UART.h"
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
 #include "HCP65ExeBuilder.h"

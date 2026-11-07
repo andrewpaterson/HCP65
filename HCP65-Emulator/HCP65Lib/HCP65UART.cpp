@@ -1,6 +1,6 @@
 #include <string.h>
 #include "HCP65.h"
-#include "HCP65UARTBoard.h"
+#include "HCP65UART.h"
 
 
 //////////////////////////////////////////////////////////////////////////

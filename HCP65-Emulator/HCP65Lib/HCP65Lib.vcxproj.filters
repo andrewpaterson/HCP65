@@ -13,7 +13,7 @@
     <ClCompile Include="HCP65Audio.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="HCP65UARTBoard.cpp">
+    <ClCompile Include="HCP65UART.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="HCP65SDCard.cpp">
@@ -42,7 +42,7 @@
     <ClInclude Include="HCP65Audio.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="HCP65UARTBoard.h">
+    <ClInclude Include="HCP65UART.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65SDCard.h">

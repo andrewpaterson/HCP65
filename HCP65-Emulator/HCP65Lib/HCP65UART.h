@@ -1,5 +1,5 @@
-#ifndef __HCP65_UART_BOARD_H__
-#define __HCP65_UART_BOARD_H__
+#ifndef __HCP65_UART_H__
+#define __HCP65_UART_H__
 #include "BaseLib/ArrayUint8.h"
 #include "HCP65Device.h"
 
@@ -203,4 +203,4 @@ protected:
 };
 
 
-#endif // __HCP65_UART_BOARD_H__
+#endif // __HCP65_UART_H__
