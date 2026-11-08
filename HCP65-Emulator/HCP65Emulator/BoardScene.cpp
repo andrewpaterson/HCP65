@@ -7,7 +7,10 @@
 #include "StandardLib/Objects.h"
 #include "SupportLib/ImageCel.h"
 #include "SupportLib/Mesh.h"
+#include "SupportLib/MeshFixReversed.h"
+#include "SupportLib/MeshModifierStack.h"
 #include "SupportLib/MeshReader.h"
+#include "SupportLib/MeshSimplify.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65MemoryBoard.h"
@@ -20,7 +23,10 @@
 #define BOARD_SCENE_UNITS_PER_MM	4096
 
 //Everything closer than this goes when a model is simplified.  A millimetre is a little under two pixels here.
-#define BOARD_SCENE_CELL_SIZE		((BOARD_SCENE_UNITS_PER_MM * 3) / 4)
+#define BOARD_SCENE_CELL_MM			0.75
+
+//Change this when what's done to a model changes, so a model saved by the old way isn't loaded.
+#define BOARD_SCENE_MODEL_VERSION	2
 
 //Turned from looking straight down on the board (the camera's start) to 30 degrees up from its plane: 60 degrees, taking
 //its back edge away from the eye.
@@ -302,8 +308,8 @@ bool CBoardSceneDraw::LoadNext(const char** aszTypes)
 //////////////////////////////////////////////////////////////////////////
 //
 // From what was saved of it, if that was made from the file as it is now.
-// Otherwise the file is read, cleaned up and simplified, and saved for next
-// time.  It is scaled once and for all, and all the models are at one scale.
+// Otherwise the file is read, its modifiers run, and what comes out is built
+// and saved for next time.  It is scaled once and for all, and all the models are at one scale.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::LoadModel(int iModel)
@@ -311,7 +317,9 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 	const SBoardSceneModel*	psModel;
 	CRasterMesh*			pcModel;
 	CFileUtil				cFileUtil;
+	CMeshModifierStack		cModifiers;
 	Ptr<CMesh>				pMesh;
+	Ptr<CMesh>				pOutput;
 	CChars					szSaved;
 	struct stat				sFile;
 	uint64					uiSource;
@@ -326,7 +334,7 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 	}
 
 	//Which export this is, and what's done to it.
-	uiSource = ((uint64)sFile.st_mtime << 24) ^ (uint64)sFile.st_size ^ ((uint64)BOARD_SCENE_CELL_SIZE << 48);
+	uiSource = ((uint64)sFile.st_mtime << 24) ^ (uint64)sFile.st_size ^ ((uint64)BOARD_SCENE_MODEL_VERSION << 48);
 
 	cFileUtil.TouchDir("Output");
 	cFileUtil.TouchDir(BOARD_SCENE_MODEL_DIRECTORY);
@@ -340,11 +348,15 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 		bResult = ReadMesh(pMesh, (char*)psModel->szFile, MT_VRML);
 		if (bResult)
 		{
-			pcModel->Build(&pMesh, BoardSceneUnits(psModel->fMillimetresPerUnit));
+			cModifiers.Init(pMesh);
+			cModifiers.AddModifier<CMeshFixReversed>()->Init();
+			cModifiers.AddModifier<CMeshSimplify>()->Init((float32)(BOARD_SCENE_CELL_MM / psModel->fMillimetresPerUnit));
+			pOutput = cModifiers.GetOutput();
+			pcModel->Build(&pOutput, BoardSceneUnits(psModel->fMillimetresPerUnit));
+			pOutput = NULL;
+			cModifiers.Kill();
 			pMesh = NULL;
 			pcModel->RemoveDegenerate();
-			pcModel->FixReversed();
-			pcModel->Simplify(BOARD_SCENE_CELL_SIZE);
 			if (!pcModel->Save(szSaved.Text(), uiSource))
 			{
 				gcLogger.Warning2(__METHOD__, " Could not save [", szSaved.Text(), "].", NULL);
