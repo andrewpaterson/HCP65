@@ -136,6 +136,8 @@ void CBoardSceneDraw::Init(Ptr<CWindowTheme> pTheme)
 	muiNumInstances = 0;
 	mcCamera.Init();
 	mcRasteriser.Init();
+	mcJobs.Init(BOARD_SCENE_WORKERS);
+	mcRasteriser.SetJobs(&mcJobs);
 	mcTarget.mpiDepths = NULL;
 	sColour = pTheme->GetColour(TC_DialogBackground);
 	muiBackground = 0xFF000000 | ((uint32)Get8BitRedColour(sColour) << 16) | ((uint32)Get8BitGreenColour(sColour) << 8) | (uint32)Get8BitBlueColour(sColour);
@@ -162,6 +164,7 @@ void CBoardSceneDraw::Class(void)
 	U_Data(size, muiNumInstances);
 	U_Data(CRasterCamera, mcCamera);
 	U_Data(CRasteriser, mcRasteriser);
+	U_Data(CWorkerThreadJobs, mcJobs);
 	U_Data(CRasterTarget, mcTarget);
 	U_UInt32(muiBackground);
 	U_Float32(mfYaw);
@@ -183,6 +186,7 @@ void CBoardSceneDraw::Free(void)
 		mcTarget.Kill();
 	}
 	mcRasteriser.Kill();
+	mcJobs.Kill();
 	for (i = 0; i < BOARD_SCENE_NUM_MODELS; i++)
 	{
 		macModels[i].Kill();
