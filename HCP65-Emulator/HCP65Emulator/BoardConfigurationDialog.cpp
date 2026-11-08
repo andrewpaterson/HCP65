@@ -6,6 +6,11 @@
 #include "BoardConfigurationDialog.h"
 
 
+//The order of the rows, which is the order of the sockets along the Small Mainboard: 3 and 4, then 18, 19, 17 and 16.  The
+//sockets it hasn't got are skipped.  Any socket a mainboard can have must be here.
+static const int gaiBoardConfigurationSockets[] = { 2, 3, 4, 5, 6, 7, 18, 19, 17, 16 };
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // The mainboard isn't held.  pScene can be NULL, for no picture.
@@ -13,7 +18,7 @@
 //////////////////////////////////////////////////////////////////////////
 void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, CHCP65Mainboard* pcMainboard, Ptr<CBoardSceneDraw> pScene)
 {
-	int		i;
+	size	i;
 
 	PreInit();
 
@@ -31,11 +36,11 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 		mpDialog->AddEditor(NULL, mpSceneCanvas);
 		mpDialog->SetTicker(this, &CBoardConfigurationDialog::TickScene);
 	}
-	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	for (i = 0; i < sizeof(gaiBoardConfigurationSockets) / sizeof(int); i++)
 	{
-		if (CHCP65Mainboard::HasSocket(pcMainboard->GetType(), 0, i))
+		if (CHCP65Mainboard::HasSocket(pcMainboard->GetType(), 0, gaiBoardConfigurationSockets[i]))
 		{
-			AddSocket(i);
+			AddSocket(gaiBoardConfigurationSockets[i]);
 		}
 	}
 
@@ -197,13 +202,19 @@ void CBoardConfigurationDialog::GetTypes(const char** aszTypes)
 {
 	const char*	szChosen;
 	size		uiCombo;
+	size		uiRow;
 	size		i;
 	int			iSocket;
 
-	uiCombo = 0;
 	for (iSocket = 0; iSocket < HCP65_NUM_DEVICE_SLOTS; iSocket++)
 	{
 		aszTypes[iSocket] = NULL;
+	}
+
+	uiCombo = 0;
+	for (uiRow = 0; uiRow < sizeof(gaiBoardConfigurationSockets) / sizeof(int); uiRow++)
+	{
+		iSocket = gaiBoardConfigurationSockets[uiRow];
 		if (CHCP65Mainboard::HasSocket(mpcMainboard->GetType(), 0, iSocket))
 		{
 			szChosen = maCombos.Get(uiCombo)->GetSelectedText();

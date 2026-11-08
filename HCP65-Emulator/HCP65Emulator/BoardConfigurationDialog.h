@@ -26,7 +26,7 @@ CONSTRUCTABLE(CBoardConfigurationDialog);
 DESTRUCTABLE(CBoardConfigurationDialog);
 protected:
 	Ptr<CDialog>			mpDialog;
-	CArray<CComboBox>		maCombos;		//One for each of the mainboard's sockets, lowest first.
+	CArray<CComboBox>		maCombos;		//One for each of the mainboard's sockets, in the order of the rows.
 	CHCP65Mainboard*		mpcMainboard;
 	Ptr<CCanvas>			mpSceneCanvas;
 	Ptr<CBoardSceneDraw>	mpScene;		//NULL for no picture.
