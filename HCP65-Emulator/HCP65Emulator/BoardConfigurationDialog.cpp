@@ -3,6 +3,8 @@
 #include "BaseLib/Timer.h"
 #include "StandardLib/ClassDefines.h"
 #include "StandardLib/Objects.h"
+#include "WindowLib/ClearCanvasDraw.h"
+#include "WindowLib/Label.h"
 #include "BoardConfigurationDialog.h"
 
 
@@ -18,7 +20,8 @@ static const int gaiBoardConfigurationSockets[] = { 2, 3, 4, 5, 6, 7, 18, 19, 17
 //////////////////////////////////////////////////////////////////////////
 void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, CHCP65Mainboard* pcMainboard, Ptr<CBoardSceneDraw> pScene)
 {
-	size	i;
+	Ptr<CGridContainer>	pColumns;
+	size				i;
 
 	PreInit();
 
@@ -28,12 +31,26 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 	mbPainted = false;
 	miStartTime = -1;
 	mpDialog = OMalloc<CDialog>(pOwner, psLook, "Board Configuration");
+
+	mpRows = OMalloc<CGridContainer>(mpDialog->GetWindow());
+	mpRows->SetDesiredSize(BOARD_SCENE_WIDTH, -1);
+	mpRows->SetAlignment(CSH_Center, CSV_Top);
+	miNumRows = 0;
+
+	pColumns = OMalloc<CGridContainer>(mpDialog->GetWindow());
+	pColumns->SetAlignment(CSH_Stretch, CSV_Top);
+	AddSideSpace(pColumns, 0);
+	pColumns->AddComponent(mpRows, 1, 0);
+	AddSideSpace(pColumns, 2);
+	mpDialog->AddEditor(NULL, pColumns);
+
 	if (pScene.IsNotNull())
 	{
 		mpSceneCanvas = OMalloc<CCanvas>(mpDialog->GetWindow(), pScene);
 		mpSceneCanvas->SetDesiredSize(BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT);
 		mpSceneCanvas->SetAlignment(CSH_Center, CSV_Center);
-		mpDialog->AddEditor(NULL, mpSceneCanvas);
+		mpRows->AddComponent(mpSceneCanvas, 0, miNumRows, 2, 1, 1, 0);
+		miNumRows++;
 		mpDialog->SetTicker(this, &CBoardConfigurationDialog::TickScene);
 	}
 	for (i = 0; i < sizeof(gaiBoardConfigurationSockets) / sizeof(int); i++)
@@ -55,6 +72,8 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 void CBoardConfigurationDialog::Class(void)
 {
 	M_Pointer(mpDialog);
+	M_Pointer(mpRows);
+	U_Int32(miNumRows);
 	M_Embedded(maCombos);
 	U_Pointer(mpcMainboard);
 	M_Pointer(mpSceneCanvas);
@@ -149,6 +168,9 @@ void CBoardConfigurationDialog::TickScene(void)
 //////////////////////////////////////////////////////////////////////////
 void CBoardConfigurationDialog::AddSocket(int iSocket)
 {
+	CWindowTheme*	pcTheme;
+	Ptr<CLabel>		pLabel;
+	Ptr<CComboBox>	pCombo;
 	const char*	aszItems[HCP65_NUM_DEVICE_SLOTS];
 	const char*	szName;
 	const char*	szCurrent;
@@ -176,7 +198,61 @@ void CBoardConfigurationDialog::AddSocket(int iSocket)
 	}
 
 	snprintf(szLabel, sizeof(szLabel), "Socket %d (%dKB)", iSocket, (int)(CHCP65Mainboard::GetSocketSize(iSocket) / 1024));
-	maCombos.Add(mpDialog->AddComboBox(szLabel, aszItems, uiNumItems, iSelected));
+	pcTheme = mpDialog->GetLook()->pcTheme;
+
+	if (miNumRows > 0)
+	{
+		AddRowGap();
+	}
+
+	pLabel = OMalloc<CLabel>(mpDialog->GetWindow(), pcTheme->GetFont(), szLabel);
+	pLabel->SetDesiredSize(pLabel->GetRequiredSize().x + pcTheme->GetMetric(TM_DialogLabelGap), -1);
+	pLabel->SetAlignment(CSH_Left, CSV_Center);
+	mpRows->AddComponent(pLabel, 0, miNumRows);
+
+	pCombo = OMalloc<CComboBox>(mpDialog->GetWindow(), pcTheme);
+	for (i = 0; i < uiNumItems; i++)
+	{
+		pCombo->AddItem(aszItems[i]);
+	}
+	pCombo->Select(iSelected);
+	pCombo->SetAlignment(CSH_Stretch, CSV_Center);
+	mpRows->AddComponent(pCombo, 1, miNumRows, 1, 1, 1, 0);
+	miNumRows++;
+
+	maCombos.Add(pCombo);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardConfigurationDialog::AddRowGap(void)
+{
+	CWindowTheme*	pcTheme;
+	Ptr<CCanvas>	pGap;
+
+	pcTheme = mpDialog->GetLook()->pcTheme;
+	pGap = OMalloc<CCanvas>(mpDialog->GetWindow(), OMalloc<CClearCanvasDraw>(pcTheme->GetColour(TC_DialogBackground)));
+	pGap->SetDesiredSize(1, pcTheme->GetMetric(TM_DialogRowGap));
+	mpRows->AddComponent(pGap, 0, miNumRows);
+	miNumRows++;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A column that takes its share of whatever the middle one doesn't need.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardConfigurationDialog::AddSideSpace(Ptr<CGridContainer> pGrid, int iColumn)
+{
+	Ptr<CCanvas>	pSpace;
+
+	pSpace = OMalloc<CCanvas>(mpDialog->GetWindow(), OMalloc<CClearCanvasDraw>(mpDialog->GetLook()->pcTheme->GetColour(TC_DialogBackground)));
+	pSpace->SetDesiredSize(1, 1);
+	pGrid->AddComponent(pSpace, iColumn, 0, 1, 1, 1, 0);
 }
 
 
@@ -188,7 +264,12 @@ void CBoardConfigurationDialog::AddSocket(int iSocket)
 //////////////////////////////////////////////////////////////////////////
 bool CBoardConfigurationDialog::Show(void)
 {
-	return mpDialog->Show();
+	//The rows are inside a grid, which the dialog can't see to give the first of them the focus.
+	if (maCombos.NumElements() > 0)
+	{
+		mpDialog->GetWindow()->GetFocus()->SetFocus(maCombos.Get(0));
+	}
+	return mpDialog->Show(BOARD_SCENE_WIDTH + (mpDialog->GetLook()->pcTheme->GetMetric(TM_DialogInset) + BOARD_CONFIGURATION_SIDE_SPACE) * 2);
 }
 
 
