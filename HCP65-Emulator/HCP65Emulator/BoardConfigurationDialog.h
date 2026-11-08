@@ -10,7 +10,7 @@
 
 #define BOARD_CONFIGURATION_EMPTY		"Empty"		//A socket with no board, in its combo box.
 #define BOARD_CONFIGURATION_FRAME_MS	50			//Between one picture and the next.
-#define BOARD_CONFIGURATION_TURN_MS		60000		//How long the mainboard takes to go right round.
+#define BOARD_CONFIGURATION_TURN_MS		30000		//How long the mainboard takes to go right round.
 #define BOARD_CONFIGURATION_SIDE_SPACE	160			//Each side of the picture and the rows when the dialog opens.
 
 
