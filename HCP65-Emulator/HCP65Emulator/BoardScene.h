@@ -10,11 +10,13 @@
 
 #define BOARD_SCENE_WIDTH		640
 #define BOARD_SCENE_HEIGHT		420		//With the combo boxes under it the dialog just fits over the emulator's window.
-#define BOARD_SCENE_NUM_MODELS	5		//The Small Mainboard and the boards CHCP65Mainboard can make.
+#define BOARD_SCENE_NUM_MODELS	6		//The Small Mainboard, the Processor Board and the boards CHCP65Mainboard can make.
+#define BOARD_SCENE_NUM_INSTANCES	(HCP65_NUM_DEVICE_SLOTS + 2)	//The mainboard, the Processor Board and a board for each socket.
 
 
-//The Small Mainboard's 3D model with the boards chosen for its sockets standing in them, turning, in perspective with the
-//eye 30 degrees up from the mainboard's plane.  The same board in two sockets is one model drawn twice (SRasterInstance).
+//The Small Mainboard's 3D model with the Processor Board in its socket and the boards chosen for its other sockets
+//standing in them, turning, in perspective with the eye 30 degrees up from the mainboard's plane.  The same board in two
+//sockets is one model drawn twice (SRasterInstance).
 //
 //The models are KiCad's VRML exports, which take seconds to read.  One is only needed when it is shown, when it's read,
 //cleaned up and simplified to about what a pixel is here, and saved to Output/Models (CRasterMesh::Save), from where it
@@ -31,7 +33,7 @@ protected:
 	Ptr<CImage>				mpImage;		//What the rasteriser draws on.
 	CRasterMesh				macModels[BOARD_SCENE_NUM_MODELS];
 	bool					mabTried[BOARD_SCENE_NUM_MODELS];	//It has been loaded, or couldn't be.
-	SRasterInstance			masInstances[HCP65_NUM_DEVICE_SLOTS + 1];
+	SRasterInstance			masInstances[BOARD_SCENE_NUM_INSTANCES];
 	size					muiNumInstances;
 	CRasterCamera			mcCamera;
 	CRasteriser				mcRasteriser;
@@ -60,6 +62,7 @@ public:
 protected:
 	bool		LoadModel(int iModel);
 	void		AddInstance(int iModel, SInt32Vec3* psOffset, bool bStanding);
+	void		AddStandingBoard(int iModel, float64 fFootprintY);
 	void		FitCamera(void);
 };
 

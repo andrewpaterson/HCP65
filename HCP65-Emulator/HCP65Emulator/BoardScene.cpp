@@ -29,6 +29,8 @@
 
 #define BOARD_SCENE_MODEL_DIRECTORY	"Output/Models"
 #define BOARD_SCENE_MAINBOARD		0
+#define BOARD_SCENE_PROCESSOR		1
+#define BOARD_SCENE_FIRST_CARD		2
 
 
 //A socket on the Small Mainboard: the device it is and the y of its footprint (DEV3, say) in the PCB.  A socket's row A is
@@ -51,6 +53,10 @@ static const SBoardSceneSocket gasBoardSceneSockets[] =
 };
 
 
+//The y of the Processor Board's socket's footprint (MPU0), which is like the others'.
+#define BOARD_SCENE_PROCESSOR_FOOTPRINT_Y	68.58
+
+
 //A board's model.  KiCad's exports are in the PCB's coordinates with y negated, but in what units depends on how they were
 //exported.  fEdgeY is the y in the PCB of the board's edge connector's footprint, which is the bottom of the board.
 struct SBoardSceneModel
@@ -66,6 +72,7 @@ struct SBoardSceneModel
 static const SBoardSceneModel gasBoardSceneModels[BOARD_SCENE_NUM_MODELS] =
 {
 	{ NULL,						"../../Kicad/Computer/Main/Mainboard Small/Mainboard Small.wrl",	"Mainboard Small",	1000.0,	0.0 },
+	{ NULL,						"../../Kicad/Computer/Processor/Processor Board/Processor Board.wrl",	"Processor Board",	1000.0,	5.715 },
 	{ HCP65_SD_NAME,			"../../Kicad/Computer/SD Card/SD Card Board/SD Card Board.wrl",		"SD Card Board",	2.54,	4.699 },
 	{ HCP65_UART_NAME,			"../../Kicad/Computer/UART/UART Board/UART Board.wrl",				"UART Board",		2.54,	4.896 },
 	{ HCP65_AUDIO_NAME,			"../../Kicad/Computer/Audio/Audio Board/Audio Board.wrl",			"Audio Board",		2.54,	4.445 },
@@ -84,9 +91,9 @@ static const SBoardSceneModel gasBoardSceneModels[BOARD_SCENE_NUM_MODELS] =
 //The height in the model of the floor of a socket's slot, 3.7mm below the bottom of its contacts.
 #define BOARD_SCENE_SEAT			8.8
 
-//The room framed above the mainboard for cards standing in its sockets: the tallest are 150mm (the Audio and SD Card
-//Boards) from the seat.
-#define BOARD_SCENE_TALLEST_CARD	150.0
+//The room framed above the mainboard for boards standing in its sockets: the tallest is the Processor Board, 161.925mm
+//from the seat.
+#define BOARD_SCENE_TALLEST_CARD	161.925
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -142,7 +149,7 @@ void CBoardSceneDraw::Class(void)
 	M_Pointer(mpImage);
 	U_Data(CRasterMesh[BOARD_SCENE_NUM_MODELS], macModels);
 	U_Data(bool[BOARD_SCENE_NUM_MODELS], mabTried);
-	U_Data(SRasterInstance[HCP65_NUM_DEVICE_SLOTS + 1], masInstances);
+	U_Data(SRasterInstance[BOARD_SCENE_NUM_INSTANCES], masInstances);
 	U_Data(size, muiNumInstances);
 	U_Data(CRasterCamera, mcCamera);
 	U_Data(CRasteriser, mcRasteriser);
@@ -258,9 +265,10 @@ bool CBoardSceneDraw::Draw(Ptr<CCanvas> pCanvas)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Loads the mainboard's model, or else one of the boards in aszTypes (for
-// each of HCP65_NUM_DEVICE_SLOTS sockets, NULL for empty), that hasn't been
-// tried.  False if there are none to load.  It can take seconds.
+// Loads the mainboard's model, the Processor Board's, or else one of the
+// boards in aszTypes (for each of HCP65_NUM_DEVICE_SLOTS sockets, NULL for
+// empty), that hasn't been tried.  False if there are none to load.  It can
+// take seconds.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::LoadNext(const char** aszTypes)
@@ -268,14 +276,17 @@ bool CBoardSceneDraw::LoadNext(const char** aszTypes)
 	size	uiSocket;
 	int		iModel;
 
-	if (!mabTried[BOARD_SCENE_MAINBOARD])
+	for (iModel = 0; iModel < BOARD_SCENE_FIRST_CARD; iModel++)
 	{
-		LoadModel(BOARD_SCENE_MAINBOARD);
-		return true;
+		if (!mabTried[iModel])
+		{
+			LoadModel(iModel);
+			return true;
+		}
 	}
 	for (uiSocket = 0; uiSocket < sizeof(gasBoardSceneSockets) / sizeof(SBoardSceneSocket); uiSocket++)
 	{
-		for (iModel = BOARD_SCENE_MAINBOARD + 1; iModel < BOARD_SCENE_NUM_MODELS; iModel++)
+		for (iModel = BOARD_SCENE_FIRST_CARD; iModel < BOARD_SCENE_NUM_MODELS; iModel++)
 		{
 			if (!mabTried[iModel] && aszTypes[gasBoardSceneSockets[uiSocket].iSocket] && (strcmp(aszTypes[gasBoardSceneSockets[uiSocket].iSocket], gasBoardSceneModels[iModel].szType) == 0))
 			{
@@ -352,7 +363,7 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// To the mainboard and the tallest card there could be, wherever it is, so
+// To the mainboard and the tallest board there could be, wherever it is, so
 // that the view stays the same whichever boards are in it.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -399,8 +410,25 @@ void CBoardSceneDraw::AddInstance(int iModel, SInt32Vec3* psOffset, bool bStandi
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The mainboard, and in each of its sockets the board of aszTypes
-// (HCP65_NUM_DEVICE_SLOTS of them, NULL for empty) if its model is loaded.
+// iModel in the socket whose footprint is at y fFootprintY.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardSceneDraw::AddStandingBoard(int iModel, float64 fFootprintY)
+{
+	SInt32Vec3	sOffset;
+
+	sOffset.Init(BoardSceneUnits(BOARD_SCENE_CARD_X),
+				 BoardSceneUnits(BOARD_SCENE_SLOT_MIDDLE - fFootprintY),
+				 BoardSceneUnits(BOARD_SCENE_SEAT + gasBoardSceneModels[iModel].fEdgeY));
+	AddInstance(iModel, &sOffset, true);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The mainboard, the Processor Board in its socket, and in each of the other
+// sockets the board of aszTypes (HCP65_NUM_DEVICE_SLOTS of them, NULL for
+// empty), each if its model is loaded.
 //
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::SetBoards(const char** aszTypes)
@@ -417,18 +445,19 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 		sOffset.Init(0, 0, 0);
 		AddInstance(BOARD_SCENE_MAINBOARD, &sOffset, false);
 	}
+	if (macModels[BOARD_SCENE_PROCESSOR].NumTriangles() > 0)
+	{
+		AddStandingBoard(BOARD_SCENE_PROCESSOR, BOARD_SCENE_PROCESSOR_FOOTPRINT_Y);
+	}
 	for (uiSocket = 0; uiSocket < sizeof(gasBoardSceneSockets) / sizeof(SBoardSceneSocket); uiSocket++)
 	{
 		psSocket = &gasBoardSceneSockets[uiSocket];
 		szType = aszTypes[psSocket->iSocket];
-		for (iModel = BOARD_SCENE_MAINBOARD + 1; szType && (iModel < BOARD_SCENE_NUM_MODELS); iModel++)
+		for (iModel = BOARD_SCENE_FIRST_CARD; szType && (iModel < BOARD_SCENE_NUM_MODELS); iModel++)
 		{
 			if ((strcmp(szType, gasBoardSceneModels[iModel].szType) == 0) && (macModels[iModel].NumTriangles() > 0))
 			{
-				sOffset.Init(BoardSceneUnits(BOARD_SCENE_CARD_X),
-							 BoardSceneUnits(BOARD_SCENE_SLOT_MIDDLE - psSocket->fFootprintY),
-							 BoardSceneUnits(BOARD_SCENE_SEAT + gasBoardSceneModels[iModel].fEdgeY));
-				AddInstance(iModel, &sOffset, true);
+				AddStandingBoard(iModel, psSocket->fFootprintY);
 			}
 		}
 	}
