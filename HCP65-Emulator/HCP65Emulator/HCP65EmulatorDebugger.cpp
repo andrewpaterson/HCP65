@@ -118,17 +118,16 @@ bool CHCP65EmulatorDebugger::IsWaiting(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Makes the channel, debugging pcHCP65 (and the processes its kernal tells
-// pcPort of, if there is one).  A shared memory channel is created now; the network
+// Makes the channel, debugging pcHCP65.  A shared memory channel is created now; the network
 // listens now and accepts the debugger in a later Tick.  The server holds
 // the HCP65 stopped (DEBUG_ARGUMENT_WAIT) or runs it until then.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65EmulatorDebugger::Start(CHCP65* pcHCP65, CHCP65DebugPort* pcPort)
+bool CHCP65EmulatorDebugger::Start(CHCP65* pcHCP65)
 {
 	CProcessChannel*	pcChannel;
 
-	mcTarget.Init(pcHCP65, pcPort);
+	mcTarget.Init(pcHCP65);
 	if (meTransport == HDT_SharedMemory)
 	{
 		if (!mcShared.Create(mszName.Text()))

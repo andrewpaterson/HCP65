@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <string.h>
 #include "BaseLib/Chars.h"
 #include "ThreadLib/SharedMemoryChannel.h"
@@ -12,6 +13,8 @@
 #define TEST_HCP65_DEBUG_CLOCK_RATE		10000000
 #define TEST_HCP65_DEBUG_CYCLES			1000		//The cycles each Tick runs.
 #define TEST_HCP65_DEBUG_TIMEOUT		5000
+#define TEST_HCP65_DEBUG_MESSAGE		0x1000		//Where the WDM programs' message is, in bank 0.
+#define TEST_HCP65_DEBUG_MEMORY_SOCKET	18
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -56,47 +59,48 @@ static void TestHCP65DebugWait(CDebugServer* pcServer, CDebugClient* pcClient, s
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The message telling of uiCommand.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugSetMessage(SHCP65DebugMessage* psMessage, uint8 uiCommand, uint8 uiValue, uint16 uiExitCode, uint32 uiAddress, uint32 uiSize, const char* szName)
+{
+	memset(psMessage, 0, sizeof(SHCP65DebugMessage));
+	psMessage->uiCommand = uiCommand;
+	psMessage->uiValue = uiValue;
+	psMessage->uiExitCode = uiExitCode;
+	psMessage->uiAddress = uiAddress;
+	psMessage->uiSize = uiSize;
+	strcpy(psMessage->szName, szName);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The kernal telling the debug port of uiProcess (running szName) started
-// or ended, as KernalDebugTell writes it.
+// or ended, as the emulator hears it.
 //
 //////////////////////////////////////////////////////////////////////////
 static void TestHCP65DebugTell(CHCP65DebugPort* pcPort, uint8 uiCommand, uint8 uiProcess, uint16 uiExitCode, const char* szName)
 {
-	size	i;
+	SHCP65DebugMessage	sMessage;
 
-	pcPort->Write(HCP65_DEBUG_PORT_PROCESS, uiProcess);
-	pcPort->Write(HCP65_DEBUG_PORT_EXIT_LOW, (uint8)uiExitCode);
-	pcPort->Write(HCP65_DEBUG_PORT_EXIT_HIGH, (uint8)(uiExitCode >> 8));
-	for (i = 0; i <= strlen(szName); i++)
-	{
-		pcPort->Write((uint32)(HCP65_DEBUG_PORT_NAME_BUFFER + i), (uint8)szName[i]);
-	}
-	pcPort->Write(HCP65_DEBUG_PORT_COMMAND, uiCommand);
+	TestHCP65DebugSetMessage(&sMessage, uiCommand, uiProcess, uiExitCode, 0, 0, szName);
+	pcPort->Tell(&sMessage);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 // The kernal telling the debug port of a driver it loaded (szName, for
-// the board in uiSlot) at uiAddress, as KernalDebugPort's TellDriver
-// writes it.
+// the board in uiSlot) at uiAddress, as the emulator hears it.
 //
 //////////////////////////////////////////////////////////////////////////
 static void TestHCP65DebugTellDriver(CHCP65DebugPort* pcPort, uint8 uiSlot, uint32 uiAddress, uint32 uiSize, const char* szName)
 {
-	size	i;
+	SHCP65DebugMessage	sMessage;
 
-	pcPort->Write(HCP65_DEBUG_PORT_PROCESS, uiSlot);
-	for (i = 0; i < 3; i++)
-	{
-		pcPort->Write((uint32)(HCP65_DEBUG_PORT_ADDRESS + i), (uint8)(uiAddress >> (8 * i)));
-		pcPort->Write((uint32)(HCP65_DEBUG_PORT_SIZE + i), (uint8)(uiSize >> (8 * i)));
-	}
-	for (i = 0; i <= strlen(szName); i++)
-	{
-		pcPort->Write((uint32)(HCP65_DEBUG_PORT_NAME_BUFFER + i), (uint8)szName[i]);
-	}
-	pcPort->Write(HCP65_DEBUG_PORT_COMMAND, HCP65_DEBUG_PORT_DRIVER);
+	TestHCP65DebugSetMessage(&sMessage, HCP65_DEBUG_DRIVER, uiSlot, 0, uiAddress, uiSize, szName);
+	pcPort->Tell(&sMessage);
 }
 
 
@@ -139,7 +143,7 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	cHCP65.GetMPUROM()[0xFFFC] = 0x00;
 	cHCP65.GetMPUROM()[0xFFFD] = 0x80;
 	cHCP65.Reset();
-	cTarget.Init(&cHCP65, NULL);
+	cTarget.Init(&cHCP65);
 
 	//Kernel mode (reset): the kernel's, and no process's.
 	AssertTrue(cHCP65.IsKernelMode());
@@ -179,63 +183,242 @@ static void TestHCP65DebugProcessBreakpoints(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A process started, told the debug port by the processor's store, stops
-// Run after the store while the port is watched (and not otherwise); the
-// port keeps it as running.
-//
-//	$8000	clc  xce
-//	$8002	lda #1
-//	$8004	sta $138400 (the port's command, in socket 7)
-//	$8008	nop
-//	$8009	stp
+// A machine whose kernel mode program, from $8000 in ROM and RAM, goes
+// native and then runs auiProgram, with psMessage in MPU RAM at
+// TEST_HCP65_DEBUG_MESSAGE.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestHCP65DebugPortStopRun(void)
+static void TestHCP65DebugWDMMachine(CHCP65* pcHCP65, const uint8* auiProgram, size uiProgramSize, SHCP65DebugMessage* psMessage)
+{
+	static const uint8	auiNative[] = { 0x18, 0xFB };	//clc  xce
+
+	pcHCP65->Init(TEST_HCP65_DEBUG_CLOCK_RATE);
+	memcpy(&pcHCP65->GetMPUROM()[0x8000], auiNative, sizeof(auiNative));
+	memcpy(&pcHCP65->GetMPURAM()[0x8000], auiNative, sizeof(auiNative));
+	memcpy(&pcHCP65->GetMPUROM()[0x8002], auiProgram, uiProgramSize);
+	memcpy(&pcHCP65->GetMPURAM()[0x8002], auiProgram, uiProgramSize);
+	pcHCP65->GetMPUROM()[0xFFFC] = 0x00;
+	pcHCP65->GetMPUROM()[0xFFFD] = 0x80;
+	pcHCP65->Reset();
+	memcpy(&pcHCP65->GetMPURAM()[TEST_HCP65_DEBUG_MESSAGE], psMessage, sizeof(SHCP65DebugMessage));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process started, told by the kernal's WDM, stops Run after the WDM
+// while the port is watched (and not otherwise); the port keeps it as
+// running, with the message's name.
+//
+//	$8000	clc  xce
+//	$8002	rep #$30
+//	$8004	lda #TEST_HCP65_DEBUG_MESSAGE
+//	$8007	ldx #0
+//	$800A	wdm #HCP65_DEBUG_WDM_SIGNATURE
+//	$800C	nop
+//	$800D	stp
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugWDMStopRun(void)
 {
 	CHCP65				cHCP65;
-	CHCP65DebugPort		cPort;
+	CHCP65DebugPort*	pcPort;
+	SHCP65DebugMessage	sMessage;
 	EDebugProcessEvent	eEvent;
 	SDebugProcess		sProcess;
 	int					i;
-	static const uint8	auiTell[] = { 0x18, 0xFB, 0xA9, 0x01, 0x8F, 0x00, 0x84, 0x13, 0xEA, 0xDB };
+	static const uint8	auiTell[] = { 0xC2, 0x30, 0xA9, 0x00, 0x10, 0xA2, 0x00, 0x00, 0x42, HCP65_DEBUG_WDM_SIGNATURE, 0xEA, 0xDB };
 
+	TestHCP65DebugSetMessage(&sMessage, HCP65_DEBUG_STARTED, 0xFF, 0, 0, 0, "\\boot.exe");
 	for (i = 0; i < 2; i++)
 	{
-		cHCP65.Init(TEST_HCP65_DEBUG_CLOCK_RATE);
-		cPort.Init();
-		AssertTrue(cHCP65.SetDevice(7, &cPort));
-		memcpy(&cHCP65.GetMPUROM()[0x8000], auiTell, sizeof(auiTell));
-		memcpy(&cHCP65.GetMPURAM()[0x8000], auiTell, sizeof(auiTell));
-		cHCP65.GetMPUROM()[0xFFFC] = 0x00;
-		cHCP65.GetMPUROM()[0xFFFD] = 0x80;
-		cHCP65.Reset();
-		cPort.Write(HCP65_DEBUG_PORT_PROCESS, 0xFF);
-		cPort.Watch(i == 0);
+		TestHCP65DebugWDMMachine(&cHCP65, auiTell, sizeof(auiTell), &sMessage);
+		pcPort = cHCP65.GetDebugPort();
+		pcPort->Watch(i == 0);
 
 		cHCP65.Run(100000);
 		if (i == 0)
 		{
-			AssertIntHex(0x8008, cHCP65.GetMPU()->GetProgramAddress());
+			AssertIntHex(0x800C, cHCP65.GetMPU()->GetProgramAddress());
 			AssertFalse(cHCP65.IsStopped());
-			AssertTrue(cPort.TakeEvent(&eEvent, &sProcess));
+			AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 			AssertInt(DPE_Started, eEvent);
 			AssertInt(0xFF, sProcess.uiProcess);
-			AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
+			AssertString("\\boot.exe", sProcess.szName);
+			AssertFalse(pcPort->TakeEvent(&eEvent, &sProcess));
 			cHCP65.Run(100000);
 		}
 		else
 		{
-			AssertFalse(cPort.TakeEvent(&eEvent, &sProcess));
+			AssertFalse(pcPort->TakeEvent(&eEvent, &sProcess));
 		}
 		AssertTrue(cHCP65.IsStopped());
-		AssertSize(1, cPort.NumProcesses());
-		AssertTrue(cPort.GetProcess(0, &sProcess));
+		AssertSize(1, pcPort->NumProcesses());
+		AssertTrue(pcPort->GetProcess(0, &sProcess));
 		AssertInt(0xFF, sProcess.uiProcess);
+		AssertString("\\boot.exe", sProcess.szName);
 
-		cHCP65.SetDevice(7, NULL);
-		cPort.Kill();
 		cHCP65.Kill();
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A WDM that isn't for the debug port runs on as the no-op it is: another
+// signature, or a message that isn't all in memory (its address is a
+// device's), tells nothing.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugWDMIgnored(void)
+{
+	CHCP65				cHCP65;
+	SHCP65DebugMessage	sMessage;
+	static const uint8	auiSignature[] = { 0xC2, 0x30, 0xA9, 0x00, 0x10, 0xA2, 0x00, 0x00, 0x42, 0xD5, 0xDB };	//wdm #$D5
+	static const uint8	auiDevice[] = { 0xC2, 0x30, 0xA9, 0x00, 0x00, 0xA2, 0x10, 0x00, 0x42, HCP65_DEBUG_WDM_SIGNATURE, 0xDB };	//ldx #$10: $100000.
+
+	TestHCP65DebugSetMessage(&sMessage, HCP65_DEBUG_STARTED, 0xFF, 0, 0, 0, "\\boot.exe");
+
+	TestHCP65DebugWDMMachine(&cHCP65, auiSignature, sizeof(auiSignature), &sMessage);
+	cHCP65.GetDebugPort()->Watch(true);
+	cHCP65.Run(100000);
+	AssertTrue(cHCP65.IsStopped());
+	AssertSize(0, cHCP65.GetDebugPort()->NumProcesses());
+	cHCP65.Kill();
+
+	TestHCP65DebugWDMMachine(&cHCP65, auiDevice, sizeof(auiDevice), &sMessage);
+	cHCP65.GetDebugPort()->Watch(true);
+	cHCP65.Run(100000);
+	AssertTrue(cHCP65.IsStopped());
+	AssertSize(0, cHCP65.GetDebugPort()->NumProcesses());
+	cHCP65.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process can't tell the debug port anything: in user mode WDM is a
+// no-op, even with the signature and a message.  With a Memory Board
+// (window 0, so process 0's bank 0 is its first bank), the same program
+// runs from main memory once the interrupt depth says user mode.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugWDMUserMode(void)
+{
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	SHCP65DebugMessage	sMessage;
+	static const uint8	auiTell[] = { 0xC2, 0x30, 0xA9, 0x00, 0x10, 0xA2, 0x00, 0x00, 0x42, HCP65_DEBUG_WDM_SIGNATURE, 0xDB };
+
+	TestHCP65DebugSetMessage(&sMessage, HCP65_DEBUG_STARTED, 0xFF, 0, 0, 0, "\\boot.exe");
+	TestHCP65DebugWDMMachine(&cHCP65, auiTell, sizeof(auiTell), &sMessage);
+	cMemory.Init();
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_MEMORY_SOCKET, &cMemory));
+	memcpy(&cMemory.GetMemoryChip(0)[0x8002], auiTell, sizeof(auiTell));
+	memcpy(&cMemory.GetMemoryChip(0)[TEST_HCP65_DEBUG_MESSAGE], &sMessage, sizeof(sMessage));
+
+	cHCP65.GetDebugPort()->Watch(true);
+	AssertTrue(cHCP65.GetMPU()->Step());	//clc
+	AssertTrue(cHCP65.GetMPU()->Step());	//xce
+	AssertTrue(cHCP65.IsNativeLatched());
+	cHCP65.SetInterruptDepth(0);
+	AssertFalse(cHCP65.IsKernelMode());
+	cHCP65.Run(100000);
+	AssertTrue(cHCP65.IsStopped());
+	AssertSize(0, cHCP65.GetDebugPort()->NumProcesses());
+
+	cHCP65.SetDevice(TEST_HCP65_DEBUG_MEMORY_SOCKET, NULL);
+	cMemory.Kill();
+	cHCP65.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The message's layout is the kernal's (TestHCP65Kernal checks they agree
+// on the W65C816), and each of its commands does what it says: a process's
+// name is kept for when it ends, a bank is filled in fill mode, a driver
+// is kept until a reset, and a command it doesn't know does nothing.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugMessages(void)
+{
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	CHCP65DebugPort*	pcPort;
+	SHCP65DebugMessage	sMessage;
+	EDebugProcessEvent	eEvent;
+	SDebugProcess		sProcess;
+
+	AssertSize(0, offsetof(SHCP65DebugMessage, uiCommand));
+	AssertSize(1, offsetof(SHCP65DebugMessage, uiValue));
+	AssertSize(2, offsetof(SHCP65DebugMessage, uiExitCode));
+	AssertSize(4, offsetof(SHCP65DebugMessage, uiAddress));
+	AssertSize(8, offsetof(SHCP65DebugMessage, uiSize));
+	AssertSize(12, offsetof(SHCP65DebugMessage, szName));
+	AssertSize(12 + HCP65_DEBUG_NAME_SIZE, sizeof(SHCP65DebugMessage));
+
+	cHCP65.Init(TEST_HCP65_DEBUG_CLOCK_RATE);
+	cMemory.Init();
+	AssertTrue(cHCP65.SetDevice(TEST_HCP65_DEBUG_MEMORY_SOCKET, &cMemory));
+	cHCP65.Reset();
+	pcPort = cHCP65.GetDebugPort();
+	pcPort->Watch(true);
+
+	//The name a process ended with is the one it started with; ended, it isn't running.
+	TestHCP65DebugTell(pcPort, HCP65_DEBUG_STARTED, 5, 0, "\\five.exe");
+	AssertSize(1, pcPort->NumProcesses());
+	TestHCP65DebugTell(pcPort, HCP65_DEBUG_ENDED, 5, 0xFFFE, "");
+	AssertSize(0, pcPort->NumProcesses());
+	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Started, eEvent);
+	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
+	AssertInt(DPE_Ended, eEvent);
+	AssertInt(5, sProcess.uiProcess);
+	AssertInt(-2, sProcess.iExitCode);
+	AssertString("\\five.exe", sProcess.szName);
+	AssertFalse(pcPort->TakeEvent(&eEvent, &sProcess));
+
+	//A bank given to a process is filled in fill mode, and only then.
+	cMemory.GetMemoryChip(0)[0x10000] = 0x12;
+	TestHCP65DebugSetMessage(&sMessage, HCP65_DEBUG_BANK, 1, 0, 0, 0, "");
+	pcPort->Tell(&sMessage);
+	AssertIntHex(0x12, cMemory.GetMemoryChip(0)[0x10000]);
+	cHCP65.SetMemoryFill(true);
+	pcPort->Tell(&sMessage);
+	AssertIntHex(HCP65_DEBUG_FILL_BYTE, cMemory.GetMemoryChip(0)[0x10000]);
+
+	//A driver is kept until a reset, which is an event as there was one.
+	TestHCP65DebugTellDriver(pcPort, 4, 0x012345, 0x2E46, "\\OS\\Drivers\\UART.DRV");
+	AssertSize(1, pcPort->NumDrivers());
+	AssertInt(4, pcPort->GetDriver(0)->uiSlot);
+	AssertIntHex(0x012345, pcPort->GetDriver(0)->uiAddress);
+	AssertIntHex(0x2E46, pcPort->GetDriver(0)->uiSize);
+	AssertString("\\OS\\Drivers\\UART.DRV", pcPort->GetDriver(0)->szName);
+	AssertFalse(pcPort->TakeDriversCleared());
+	cHCP65.Reset();
+	AssertSize(0, pcPort->NumDrivers());
+	AssertTrue(pcPort->TakeDriversCleared());
+	AssertFalse(pcPort->TakeDriversCleared());
+
+	//A name that fills the message is cut short.
+	memset(&sMessage, 0, sizeof(sMessage));
+	sMessage.uiCommand = HCP65_DEBUG_STARTED;
+	sMessage.uiValue = 7;
+	memset(sMessage.szName, 'x', HCP65_DEBUG_NAME_SIZE);
+	pcPort->Tell(&sMessage);
+	AssertTrue(pcPort->GetProcess(0, &sProcess));
+	AssertSize(HCP65_DEBUG_NAME_SIZE - 1, strlen(sProcess.szName));
+
+	//Nothing is done for a command it doesn't know.
+	TestHCP65DebugSetMessage(&sMessage, 99, 9, 0, 0, 0, "\\nine.exe");
+	pcPort->Tell(&sMessage);
+	AssertSize(1, pcPort->NumProcesses());
+	AssertSize(0, pcPort->NumDrivers());
+
+	cHCP65.SetDevice(TEST_HCP65_DEBUG_MEMORY_SOCKET, NULL);
+	cMemory.Kill();
+	cHCP65.Kill();
 }
 
 
@@ -258,7 +441,7 @@ void TestHCP65Debugger(void)
 {
 	CHCP65					cHCP65;
 	CHCP65DebugTarget		cTarget;
-	CHCP65DebugPort			cPort;
+	CHCP65DebugPort*		pcPort;
 	uint32					uiProcess;
 	SDebugModule*			psModule;
 	CSharedMemoryChannel	cServerChannel;
@@ -277,11 +460,13 @@ void TestHCP65Debugger(void)
 	BeginTests();
 
 	TestHCP65DebugProcessBreakpoints();
-	TestHCP65DebugPortStopRun();
+	TestHCP65DebugWDMStopRun();
+	TestHCP65DebugWDMIgnored();
+	TestHCP65DebugWDMUserMode();
+	TestHCP65DebugMessages();
 
 	cHCP65.Init(TEST_HCP65_DEBUG_CLOCK_RATE);
-	cPort.Init();
-	AssertTrue(cHCP65.SetDevice(7, &cPort));
+	pcPort = cHCP65.GetDebugPort();
 	memcpy(&cHCP65.GetMPUROM()[0x8000], auiMain, sizeof(auiMain));
 	memcpy(&cHCP65.GetMPURAM()[0x8000], auiMain, sizeof(auiMain));
 	memcpy(&cHCP65.GetMPUROM()[0x8010], auiFunction, sizeof(auiFunction));
@@ -290,7 +475,7 @@ void TestHCP65Debugger(void)
 	cHCP65.GetMPUROM()[0xFFFD] = 0x80;
 	cHCP65.Reset();
 
-	cTarget.Init(&cHCP65, &cPort);
+	cTarget.Init(&cHCP65);
 	cServerChannel.Init();
 	cClientChannel.Init();
 	AssertTrue(cServerChannel.Create("TestHCP65Debugger"));
@@ -397,7 +582,7 @@ void TestHCP65Debugger(void)
 		cClient.Poll(1);
 	}
 	AssertTrue(cClient.IsRunning());
-	TestHCP65DebugTell(&cPort, HCP65_DEBUG_PORT_STARTED, 3, 0, "\\test.exe");
+	TestHCP65DebugTell(pcPort, HCP65_DEBUG_STARTED, 3, 0, "\\test.exe");
 	TestHCP65DebugWaitForAnyStop(&cServer, &cClient);
 	AssertInt(DS_Process, cClient.GetStopReason());
 	AssertSize(1, cClient.NumProcesses());
@@ -417,7 +602,7 @@ void TestHCP65Debugger(void)
 	AssertFalse(cHCP65.GetModeBreakpoints(true)->Contains(0x8003));
 
 	//Ended: the debugger is told its exit code, and its breakpoints go.
-	TestHCP65DebugTell(&cPort, HCP65_DEBUG_PORT_ENDED, 3, 7, "\\test.exe");
+	TestHCP65DebugTell(pcPort, HCP65_DEBUG_ENDED, 3, 7, "\\test.exe");
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumProcessEvents, 2);
 	AssertSize(0, cClient.NumProcesses());
 	AssertTrue(cClient.GetProcessEvent(0)->bStarted);
@@ -438,7 +623,7 @@ void TestHCP65Debugger(void)
 		cClient.Poll(1);
 	}
 	AssertTrue(cClient.IsRunning());
-	TestHCP65DebugTellDriver(&cPort, 4, 0x012345, 0x2E46, "\\OS\\Drivers\\UART.DRV");
+	TestHCP65DebugTellDriver(pcPort, 4, 0x012345, 0x2E46, "\\OS\\Drivers\\UART.DRV");
 	TestHCP65DebugWaitForAnyStop(&cServer, &cClient);
 	AssertInt(DS_Module, cClient.GetStopReason());
 	AssertSize(1, cClient.NumModules());
@@ -452,7 +637,7 @@ void TestHCP65Debugger(void)
 		AssertString("\\OS\\Drivers\\UART.DRV", psModule->szName);
 	}
 	AssertTrue(cClient.FindModule("\\OS\\Drivers\\SOUND.DRV") == NULL);
-	cPort.Reset();
+	pcPort->Reset();
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumModuleChanges, 2);
 	AssertSize(0, cClient.NumModules());
 
@@ -491,8 +676,6 @@ void TestHCP65Debugger(void)
 	cClientChannel.Kill();
 	cServerChannel.Kill();
 	cTarget.Kill();
-	cHCP65.SetDevice(7, NULL);
-	cPort.Kill();
 	cHCP65.Kill();
 
 	TestStatistics();

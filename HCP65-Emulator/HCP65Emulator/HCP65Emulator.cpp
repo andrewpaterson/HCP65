@@ -23,7 +23,6 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
-#include "HCP65Lib/HCP65DebugPort.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65Emulator.h"
 #include "HCP65EmulatorTick.h"
@@ -227,7 +226,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 
 	if (mbValid && mcDebugger.IsEnabled())
 	{
-		mbValid = mcDebugger.Start(&mcHCP65, (CHCP65DebugPort*)mcMainboard.FindBoard(HCP65_DEBUG_PORT_NAME));
+		mbValid = mcDebugger.Start(&mcHCP65);
 	}
 
 	if (mbValid)

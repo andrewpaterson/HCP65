@@ -3,33 +3,26 @@
 #include "HCP65DebugPort.h"
 
 
+#if (HCP65_DEBUG_NAME_SIZE != DEBUG_PROCESS_NAME_SIZE) || (HCP65_DEBUG_NAME_SIZE != DEBUG_MODULE_NAME_SIZE)
+#error A debug message's name is copied whole into a process's and a driver's.
+#endif
+
+
 //////////////////////////////////////////////////////////////////////////
 //
-// A small slot's device.  The kernal drives it itself: its ROM names no
-// driver.
+// pcHCP65 is the machine it stops and fills the banks of.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65DebugPort::Init(void)
+void CHCP65DebugPort::Init(CHCP65* pcHCP65)
 {
-	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
-	mcROM.Init(HCP65_DEBUG_PORT_NAME, HCP65_DEVICE_MANUFACTURER, 0, DEVICE_BUS_32KB, 0, "");
-	mcROM.AddRegister(HCP65_DEBUG_PORT_COMMAND, DEVICE_REGISTER_WRITE);
-	mcROM.AddRegisters(HCP65_DEBUG_PORT_PROCESS, 9, DEVICE_REGISTER_READ);
-	mcROM.AddRegisters(HCP65_DEBUG_PORT_PROCESS, 9, DEVICE_REGISTER_WRITE);
-	mcROM.AddRegisters(HCP65_DEBUG_PORT_NAME_BUFFER, DEBUG_PROCESS_NAME_SIZE, DEVICE_REGISTER_READ);
-	mcROM.AddRegisters(HCP65_DEBUG_PORT_NAME_BUFFER, DEBUG_PROCESS_NAME_SIZE - 1, DEVICE_REGISTER_WRITE);
-	muiProcess = 0;
-	muiExitCode = 0;
-	memset(mszName, 0, sizeof(mszName));
+	mpcHCP65 = pcHCP65;
 	memset(mabRunning, 0, sizeof(mabRunning));
 	memset(maszRunning, 0, sizeof(maszRunning));
 	mbWatching = false;
 	masEvents.Init();
-	muiAddress = 0;
-	muiSize = 0;
 	masDrivers.Init();
-	mbDriversCleared = false;
 	masDriverEvents.Init();
+	mbDriversCleared = false;
 }
 
 
@@ -42,15 +35,14 @@ void CHCP65DebugPort::Kill(void)
 	masDriverEvents.Kill();
 	masDrivers.Kill();
 	masEvents.Kill();
-	CHCP65Device::Kill();
+	mpcHCP65 = NULL;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A reset (the system's, or the port held in reset): the kernal starts
-// again, so the drivers it loaded are gone.  While watched that is an
-// event if there were any.
+// The machine's reset: the kernal starts again, so the drivers it loaded
+// are gone.  While watched that is an event if there were any.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65DebugPort::Reset(void)
@@ -66,118 +58,63 @@ void CHCP65DebugPort::Reset(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The ROM, then the registers as written.
+// A message from the kernal.  A command it doesn't know is ignored.
 //
 //////////////////////////////////////////////////////////////////////////
-uint8 CHCP65DebugPort::Read(uint32 uiOffset)
+void CHCP65DebugPort::Tell(SHCP65DebugMessage* psMessage)
 {
-	if (uiOffset < DEVICE_ROM_SIZE)
+	switch (psMessage->uiCommand)
 	{
-		return mcROM.Read(uiOffset);
-	}
-	switch (uiOffset)
-	{
-	case HCP65_DEBUG_PORT_PROCESS:		return muiProcess;
-	case HCP65_DEBUG_PORT_EXIT_LOW:		return (uint8)muiExitCode;
-	case HCP65_DEBUG_PORT_EXIT_HIGH:	return (uint8)(muiExitCode >> 8);
-	}
-	if ((uiOffset >= HCP65_DEBUG_PORT_ADDRESS) && (uiOffset < HCP65_DEBUG_PORT_ADDRESS + 3))
-	{
-		return (uint8)(muiAddress >> (8 * (uiOffset - HCP65_DEBUG_PORT_ADDRESS)));
-	}
-	if ((uiOffset >= HCP65_DEBUG_PORT_SIZE) && (uiOffset < HCP65_DEBUG_PORT_SIZE + 3))
-	{
-		return (uint8)(muiSize >> (8 * (uiOffset - HCP65_DEBUG_PORT_SIZE)));
-	}
-	if ((uiOffset >= HCP65_DEBUG_PORT_NAME_BUFFER) && (uiOffset < HCP65_DEBUG_PORT_NAME_BUFFER + DEBUG_PROCESS_NAME_SIZE))
-	{
-		return (uint8)mszName[uiOffset - HCP65_DEBUG_PORT_NAME_BUFFER];
-	}
-	return 0xFF;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The kernal writes the process, its exit code and name, then the command.
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65DebugPort::Write(uint32 uiOffset, uint8 uiValue)
-{
-	switch (uiOffset)
-	{
-	case HCP65_DEBUG_PORT_COMMAND:		Tell(uiValue);											return;
-	case HCP65_DEBUG_PORT_PROCESS:		muiProcess = uiValue;									return;
-	case HCP65_DEBUG_PORT_EXIT_LOW:		muiExitCode = (uint16)((muiExitCode & 0xFF00) | uiValue);	return;
-	case HCP65_DEBUG_PORT_EXIT_HIGH:	muiExitCode = (uint16)((muiExitCode & 0x00FF) | (uiValue << 8));	return;
-	}
-	if ((uiOffset >= HCP65_DEBUG_PORT_ADDRESS) && (uiOffset < HCP65_DEBUG_PORT_ADDRESS + 3))
-	{
-		muiAddress = SetByte(muiAddress, uiOffset - HCP65_DEBUG_PORT_ADDRESS, uiValue);
-		return;
-	}
-	if ((uiOffset >= HCP65_DEBUG_PORT_SIZE) && (uiOffset < HCP65_DEBUG_PORT_SIZE + 3))
-	{
-		muiSize = SetByte(muiSize, uiOffset - HCP65_DEBUG_PORT_SIZE, uiValue);
-		return;
-	}
-	if ((uiOffset >= HCP65_DEBUG_PORT_NAME_BUFFER) && (uiOffset < HCP65_DEBUG_PORT_NAME_BUFFER + DEBUG_PROCESS_NAME_SIZE - 1))
-	{
-		mszName[uiOffset - HCP65_DEBUG_PORT_NAME_BUFFER] = (char)uiValue;
+	case HCP65_DEBUG_STARTED:
+	case HCP65_DEBUG_ENDED:
+		TellProcess(psMessage);
+		break;
+	case HCP65_DEBUG_BANK:
+		mpcHCP65->FillMainMemoryBank(psMessage->uiValue);
+		break;
+	case HCP65_DEBUG_DRIVER:
+		TellDriver(psMessage);
+		break;
 	}
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A process started (it is running, with the name written) or ended.
+// A process started (it is running, with the message's name) or ended.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65DebugPort::Tell(uint8 uiCommand)
+void CHCP65DebugPort::TellProcess(SHCP65DebugMessage* psMessage)
 {
 	SHCP65DebugPortEvent*	psEvent;
+	uint8					uiProcess;
+	bool					bStarted;
 
-	if (uiCommand == HCP65_DEBUG_PORT_BANK)
+	uiProcess = psMessage->uiValue;
+	bStarted = psMessage->uiCommand == HCP65_DEBUG_STARTED;
+	if (bStarted)
 	{
-		if (mpcHCP65 != NULL)
-		{
-			mpcHCP65->FillMainMemoryBank(muiProcess);
-		}
-		return;
-	}
-	if (uiCommand == HCP65_DEBUG_PORT_DRIVER)
-	{
-		TellDriver();
-		return;
-	}
-	if ((uiCommand != HCP65_DEBUG_PORT_STARTED) && (uiCommand != HCP65_DEBUG_PORT_ENDED))
-	{
-		return;
-	}
-
-	if (uiCommand == HCP65_DEBUG_PORT_STARTED)
-	{
-		mabRunning[muiProcess] = true;
-		memcpy(maszRunning[muiProcess], mszName, DEBUG_PROCESS_NAME_SIZE);
-		maszRunning[muiProcess][DEBUG_PROCESS_NAME_SIZE - 1] = '\0';
+		mabRunning[uiProcess] = true;
+		memcpy(maszRunning[uiProcess], psMessage->szName, DEBUG_PROCESS_NAME_SIZE);
+		maszRunning[uiProcess][DEBUG_PROCESS_NAME_SIZE - 1] = '\0';
 	}
 
 	if (mbWatching)
 	{
 		psEvent = masEvents.Add();
-		psEvent->eEvent = (uiCommand == HCP65_DEBUG_PORT_STARTED) ? DPE_Started : DPE_Ended;
-		psEvent->sProcess.uiProcess = muiProcess;
-		psEvent->sProcess.iExitCode = (int16)muiExitCode;
-		memcpy(psEvent->sProcess.szName, maszRunning[muiProcess], DEBUG_PROCESS_NAME_SIZE);
-		if ((uiCommand == HCP65_DEBUG_PORT_STARTED) && (mpcHCP65 != NULL))
+		psEvent->eEvent = bStarted ? DPE_Started : DPE_Ended;
+		psEvent->sProcess.uiProcess = uiProcess;
+		psEvent->sProcess.iExitCode = (int16)psMessage->uiExitCode;
+		memcpy(psEvent->sProcess.szName, maszRunning[uiProcess], DEBUG_PROCESS_NAME_SIZE);
+		if (bStarted)
 		{
 			mpcHCP65->StopRun();
 		}
 	}
 
-	if (uiCommand == HCP65_DEBUG_PORT_ENDED)
+	if (!bStarted)
 	{
-		mabRunning[muiProcess] = false;
+		mabRunning[uiProcess] = false;
 	}
 }
 
@@ -192,7 +129,7 @@ size CHCP65DebugPort::NumProcesses(void)
 	size	uiCount;
 
 	uiCount = 0;
-	for (i = 0; i < 256; i++)
+	for (i = 0; i < HCP65_NUM_PROCESSES; i++)
 	{
 		uiCount += mabRunning[i] ? 1 : 0;
 	}
@@ -209,7 +146,7 @@ bool CHCP65DebugPort::GetProcess(size uiIndex, SDebugProcess* psDest)
 {
 	size	i;
 
-	for (i = 0; i < 256; i++)
+	for (i = 0; i < HCP65_NUM_PROCESSES; i++)
 	{
 		if (mabRunning[i])
 		{
@@ -236,8 +173,7 @@ bool CHCP65DebugPort::GetProcess(size uiIndex, SDebugProcess* psDest)
 void CHCP65DebugPort::Watch(bool bWatch)
 {
 	mbWatching = bWatch;
-	masEvents.Kill();
-	masEvents.Init();
+	masEvents.ReInit();
 	masDriverEvents.ReInit();
 }
 
@@ -265,39 +201,24 @@ bool CHCP65DebugPort::TakeEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDe
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiValue as byte uiByte of uiOld.
+// The kernal loaded a driver: it is kept, and while watched it is an event
+// and stops the Run before the driver's code runs.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65DebugPort::SetByte(uint32 uiOld, uint32 uiByte, uint8 uiValue)
-{
-	return (uiOld & ~((uint32)0xFF << (8 * uiByte))) | ((uint32)uiValue << (8 * uiByte));
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The kernal loaded a driver (the name, address, size and slot written):
-// it is kept, and while watched it is an event and stops the Run before
-// the driver's code runs.
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65DebugPort::TellDriver(void)
+void CHCP65DebugPort::TellDriver(SHCP65DebugMessage* psMessage)
 {
 	SHCP65DebugDriver*	psDriver;
 
 	psDriver = masDrivers.Add();
-	psDriver->uiSlot = muiProcess;
-	psDriver->uiAddress = muiAddress;
-	psDriver->uiSize = muiSize;
-	memcpy(psDriver->szName, mszName, DEBUG_MODULE_NAME_SIZE);
+	psDriver->uiSlot = psMessage->uiValue;
+	psDriver->uiAddress = psMessage->uiAddress;
+	psDriver->uiSize = psMessage->uiSize;
+	memcpy(psDriver->szName, psMessage->szName, DEBUG_MODULE_NAME_SIZE);
 	psDriver->szName[DEBUG_MODULE_NAME_SIZE - 1] = '\0';
 	if (mbWatching)
 	{
 		masDriverEvents.Add(psDriver);
-		if (mpcHCP65 != NULL)
-		{
-			mpcHCP65->StopRun();
-		}
+		mpcHCP65->StopRun();
 	}
 }
 

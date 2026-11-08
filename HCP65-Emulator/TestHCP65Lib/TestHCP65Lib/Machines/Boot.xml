@@ -12,6 +12,5 @@
 		<Board Socket="16" Type="Sound Board"/>
 		<Board Socket="17" Type="Sound Board"/>
 		<Board Socket="18" Type="Memory Board"/>
-		<Board Socket="19" Type="Debug Port"/>
 	</Processor>
 </Mainboard>

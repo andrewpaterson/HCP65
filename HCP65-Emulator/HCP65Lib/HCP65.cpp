@@ -42,6 +42,7 @@ void CHCP65::Init(uint64 uiClockRate)
 	mcChannel.Init();
 	mcChannel.Attach(this);
 	mapcDevices[HCP65_MEMORY_CHANNEL_SLOT] = &mcChannel;
+	mcDebugPort.Init(this);
 
 	mbNativeLatch = false;
 	mbKernel = true;
@@ -72,6 +73,7 @@ void CHCP65::Kill(void)
 			mapcDevices[i] = NULL;
 		}
 	}
+	mcDebugPort.Kill();
 	mcChannel.Kill();
 	mcRegisters.Kill();
 	mcMPU.Kill();
@@ -192,6 +194,7 @@ void CHCP65::Reset(void)
 			mapcDevices[i]->Reset();
 		}
 	}
+	mcDebugPort.Reset();
 	UpdateMode();
 	mcMPU.SetIRQ(false);
 	mcMPU.SetNMI(false);
@@ -630,6 +633,51 @@ void CHCP65::Signal(void* pvContext, uint8 uiSignal)
 			pcHCP65->EndChunk();
 		}
 	}
+	else if (uiSignal == FAST_65C816_SIGNAL_WDM)
+	{
+		pcHCP65->HearWDM();
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A WDM has run.  In kernel mode with the debug signature it is the
+// kernal telling the debug port something: the message is at X:A.  The
+// processor doesn't read any of this, so no devices are touched: a message
+// that isn't all in memory is ignored.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::HearWDM(void)
+{
+	SHCP65DebugMessage	sMessage;
+	uint8*				puiMessage;
+	uint8*				puiByte;
+	uint32				uiAddress;
+	size				i;
+
+	if (!mbKernel)
+	{
+		return;
+	}
+	puiByte = MemoryAt(((uint32)mcMPU.GetProgramBank() << 16) | (uint16)(mcMPU.GetProgramCounter() - 1));
+	if ((puiByte == NULL) || (*puiByte != HCP65_DEBUG_WDM_SIGNATURE))
+	{
+		return;
+	}
+
+	uiAddress = ((uint32)(mcMPU.GetX() & 0xFF) << 16) | mcMPU.GetC();
+	puiMessage = (uint8*)&sMessage;
+	for (i = 0; i < sizeof(SHCP65DebugMessage); i++)
+	{
+		puiByte = MemoryAt((uint32)(uiAddress + i));
+		if (puiByte == NULL)
+		{
+			return;
+		}
+		puiMessage[i] = *puiByte;
+	}
+	mcDebugPort.Tell(&sMessage);
 }
 
 
@@ -1056,6 +1104,16 @@ CFast65C816* CHCP65::GetMPU(void)
 CHCP65Registers* CHCP65::GetRegisters(void)
 {
 	return &mcRegisters;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+CHCP65DebugPort* CHCP65::GetDebugPort(void)
+{
+	return &mcDebugPort;
 }
 
 

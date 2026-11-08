@@ -140,11 +140,10 @@ The HCP65's own boards have the manufacturer `HCP65`:
 | `Memory Board` | 32KB | Windows A and B: it is 4MB of main memory | none: the kernel sets its window |
 | `Coprocessor Board` | 32KB | Windows A and B, private: the coprocessors' 4MB | `COPROC.DRV` |
 | `Video Board` | 128KB | Windows A and B, private: its video memory | `VIDEO.DRV` |
-| `Debug Port` (the emulator's) | 32KB | Doesn't use it | none: the kernel drives it itself |
 
 ### Drivers
 
-The kernel has the SD Card Board's and the debug port's drivers in its ROM: it needs the SD card to
+The kernel has the SD Card Board's driver in its ROM: it needs the SD card to
 load anything else.  Once it has mounted the SD card, it loads the driver of each other board from
 `\OS\Drivers\`, the file its device ROM names (the sound board's is `SOUND.DRV`).
 
@@ -157,7 +156,8 @@ runs the driver's constructors and calls its `KernalCreateDriver(index)`, which 
 boards use it: each board gets the next index (the sound board's driver drives up to four, the UART
 Board's up to two).  The ROM drives up to two SD Card Boards.
 
-On the emulator, the kernel tells the debug port of each driver it loads (its file, where it is and
+On the emulator, the kernel tells the debugger, through a `WDM` instruction that a real W65C816 runs
+as a no-op, of each driver it loads (its file, where it is and
 its first board's socket) after filling in its addresses and before any of it runs.  While a
 debugger watches, that stops the run, so breakpoints can be bound in the driver first.
 

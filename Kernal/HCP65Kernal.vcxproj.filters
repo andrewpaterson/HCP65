@@ -33,7 +33,10 @@
     <ClCompile Include="KernalProcess.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="KernalDebugPort.cpp">
+    <ClCompile Include="KernalDebug.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalDebug.asm">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="KernalDriverLoader.cpp">
@@ -71,7 +74,7 @@
     <ClInclude Include="KernalDeviceCalls.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="KernalDebugPort.h">
+    <ClInclude Include="KernalDebug.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalInterrupts.h">

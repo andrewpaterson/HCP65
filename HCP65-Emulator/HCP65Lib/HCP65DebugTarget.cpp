@@ -6,10 +6,9 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65DebugTarget::Init(CHCP65* pcHCP65, CHCP65DebugPort* pcPort)
+void CHCP65DebugTarget::Init(CHCP65* pcHCP65)
 {
 	mpcHCP65 = pcHCP65;
-	mpcPort = pcPort;
 }
 
 
@@ -214,13 +213,12 @@ void CHCP65DebugTarget::EnableAllBreakpoints(bool bEnabled)		{ mpcHCP65->EnableA
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The kernal's processes, as it tells the debug port of them (none
-// without one).
+// The kernal's processes, as it tells the debug port of them.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65DebugTarget::HasProcesses(void)								{ return mpcPort != NULL; }
-size CHCP65DebugTarget::NumProcesses(void)								{ return mpcPort ? mpcPort->NumProcesses() : 0; }
-bool CHCP65DebugTarget::GetProcess(size uiIndex, SDebugProcess* psDest)	{ return mpcPort && mpcPort->GetProcess(uiIndex, psDest); }
+bool CHCP65DebugTarget::HasProcesses(void)								{ return true; }
+size CHCP65DebugTarget::NumProcesses(void)								{ return mpcHCP65->GetDebugPort()->NumProcesses(); }
+bool CHCP65DebugTarget::GetProcess(size uiIndex, SDebugProcess* psDest)	{ return mpcHCP65->GetDebugPort()->GetProcess(uiIndex, psDest); }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -229,10 +227,7 @@ bool CHCP65DebugTarget::GetProcess(size uiIndex, SDebugProcess* psDest)	{ return
 //////////////////////////////////////////////////////////////////////////
 void CHCP65DebugTarget::WatchEvents(bool bWatch)
 {
-	if (mpcPort)
-	{
-		mpcPort->Watch(bWatch);
-	}
+	mpcHCP65->GetDebugPort()->Watch(bWatch);
 }
 
 
@@ -244,7 +239,7 @@ void CHCP65DebugTarget::WatchEvents(bool bWatch)
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65DebugTarget::TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest)
 {
-	if (!mpcPort || !mpcPort->TakeEvent(peEvent, psDest))
+	if (!mpcHCP65->GetDebugPort()->TakeEvent(peEvent, psDest))
 	{
 		return false;
 	}
@@ -270,8 +265,8 @@ static void HCP65DebugModule(SHCP65DebugDriver* psDriver, SDebugModule* psDest)
 }
 
 
-bool CHCP65DebugTarget::HasModules(void)								{ return mpcPort != NULL; }
-size CHCP65DebugTarget::NumModules(void)								{ return mpcPort ? mpcPort->NumDrivers() : 0; }
+bool CHCP65DebugTarget::HasModules(void)								{ return true; }
+size CHCP65DebugTarget::NumModules(void)								{ return mpcHCP65->GetDebugPort()->NumDrivers(); }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -280,11 +275,14 @@ size CHCP65DebugTarget::NumModules(void)								{ return mpcPort ? mpcPort->NumD
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65DebugTarget::GetModule(size uiIndex, SDebugModule* psDest)
 {
-	if (!mpcPort || (uiIndex >= mpcPort->NumDrivers()))
+	CHCP65DebugPort*	pcPort;
+
+	pcPort = mpcHCP65->GetDebugPort();
+	if (uiIndex >= pcPort->NumDrivers())
 	{
 		return false;
 	}
-	HCP65DebugModule(mpcPort->GetDriver(uiIndex), psDest);
+	HCP65DebugModule(pcPort->GetDriver(uiIndex), psDest);
 	return true;
 }
 
@@ -297,17 +295,15 @@ bool CHCP65DebugTarget::GetModule(size uiIndex, SDebugModule* psDest)
 bool CHCP65DebugTarget::TakeModuleEvent(EDebugModuleEvent* peEvent, SDebugModule* psDest)
 {
 	SHCP65DebugDriver	sDriver;
+	CHCP65DebugPort*	pcPort;
 
-	if (!mpcPort)
-	{
-		return false;
-	}
-	if (mpcPort->TakeDriversCleared())
+	pcPort = mpcHCP65->GetDebugPort();
+	if (pcPort->TakeDriversCleared())
 	{
 		*peEvent = DME_Cleared;
 		return true;
 	}
-	if (!mpcPort->TakeDriverEvent(&sDriver))
+	if (!pcPort->TakeDriverEvent(&sDriver))
 	{
 		return false;
 	}

@@ -5,6 +5,7 @@
 #include "HCP65Device.h"
 #include "HCP65Registers.h"
 #include "HCP65MemoryBoard.h"
+#include "HCP65DebugPort.h"
 
 
 #define HCP65_MPU_RAM_SIZE			0x80000		//512KB.
@@ -13,7 +14,6 @@
 #define HCP65_MAIN_MEMORY_BANKS		256
 #define HCP65_REMAP_TABLE			0x70000		//In MPU RAM: a 256 byte page of physical banks per process.
 #define HCP65_NUM_DEVICE_SLOTS		20			//0 to 19; 8 to 15 do not exist.
-#define HCP65_NUM_PROCESSES			256			//Process IDs 0 to $FF.
 #define HCP65_CRYSTAL_RATE			32768		//The timer and sound crystal, in Hz.
 #define HCP65_DEFAULT_CLOCK_RATE	25000000	//CPU cycles per second: the board's MPU clock (an LTC6903 set to 25MHz).
 #define HCP65_DEBUG_FILL_BYTE		0xCC		//What memory nothing has written holds in fill mode.
@@ -42,6 +42,10 @@
 //
 //StopRun (from a device, during an instruction) makes Run return after the instruction.
 //
+//In kernel mode, WDM #HCP65_DEBUG_WDM_SIGNATURE gives the debug port (GetDebugPort) the message at the address in X:A
+//(DebugLib/HCP65DebugMessage.h).  It costs what any WDM costs and makes no bus cycles of its own.  In user mode, or with
+//another signature, WDM is the no-op it is on a real W65C816.
+//
 //Main memory contention: there is no arbiter on the main memory bus.  A device using it (the SD Card Board's DMA)
 //says until when (SetMainMemoryBusy); a processor access to main memory before then latches Contention, as the
 //mainboard's Main Memory Abort and Small Enable boards do: main memory is shut off (reads float to $FF, writes are
@@ -59,6 +63,7 @@ protected:
 	uint8*				mapuiMainBanks[HCP65_MAIN_MEMORY_BANKS];	//Each 64KB bank's memory, NULL if no chip answers it.
 	CHCP65Registers		mcRegisters;
 	CHCP65MemoryChannel	mcChannel;
+	CHCP65DebugPort		mcDebugPort;
 	CHCP65Device*		mapcDevices[HCP65_NUM_DEVICE_SLOTS];
 	CBreakpoints		mcKernelBreakpoints;
 	CBreakpoints		mcUserBreakpoints;
@@ -101,6 +106,7 @@ public:
 
 	CFast65C816*		GetMPU(void);
 	CHCP65Registers*	GetRegisters(void);
+	CHCP65DebugPort*	GetDebugPort(void);
 	uint8*				GetMPURAM(void);
 	CHCP65MemoryChannel*	GetMemoryChannel(void);
 	uint8*				GetMPUROM(void);
@@ -151,6 +157,7 @@ protected:
 
 	static uint8		ReadByte(void* pvContext, uint32 uiAddress);
 	static void			WriteByte(void* pvContext, uint32 uiAddress, uint8 uiValue);
+	void				HearWDM(void);
 	static void			Signal(void* pvContext, uint8 uiSignal);
 };
 

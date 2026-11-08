@@ -9,6 +9,5 @@
 		</Board>
 		<Board Socket="16" Type="UART Board"/>
 		<Board Socket="18" Type="Memory Board"/>
-		<Board Socket="19" Type="Debug Port"/>
 	</Processor>
 </Mainboard>

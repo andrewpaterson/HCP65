@@ -69,7 +69,6 @@
 #define TEST_HCP65_STRAY_SOCKET		3			//A device with no driver that interrupts.
 #define TEST_HCP65_AUDIO_SOCKET		16
 #define TEST_HCP65_AUDIO2_SOCKET	17			//A second sound board, which the same driver drives.
-#define TEST_HCP65_DEBUG_SOCKET		19
 #define TEST_HCP65_UART_SOCKET		16
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
@@ -535,9 +534,9 @@ static void TestKernalSetBootArgument(CHCP65KernalBuilder* pcBuilder, uint16 uiA
 // relied on zeroed memory would fail.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestKernalStart(CHCP65* pcHCP65, CHCP65DebugPort* pcPort, CHCP65KernalBuilder* pcBuilder)
+static void TestKernalStart(CHCP65* pcHCP65, CHCP65KernalBuilder* pcBuilder)
 {
-	pcPort->Watch(true);
+	pcHCP65->GetDebugPort()->Watch(true);
 	AssertTrue(pcHCP65->LoadROM(pcBuilder->GetROM(), HCP65_ROM_SIZE));
 	pcHCP65->SetMemoryFill(true);
 	pcHCP65->Reset();
@@ -853,9 +852,9 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
 	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
 	pcStray = (CTestStrayDevice*)TestKernalBoard(&cMainboard, TEST_HCP65_STRAY_SOCKET, TEST_HCP65_STRAY_TYPE);
-	pcPort = (CHCP65DebugPort*)TestKernalBoard(&cMainboard, TEST_HCP65_DEBUG_SOCKET, HCP65_DEBUG_PORT_NAME);
+	pcPort = cHCP65.GetDebugPort();
 	AssertInt(TEST_HCP65_BLANK_CARD_SIZE / 512, pcSDCard->NumSectors(0));
-	TestKernalStart(&cHCP65, pcPort, pcBuilder);
+	TestKernalStart(&cHCP65, pcBuilder);
 
 	//The sound board's frames are taken as they are played: it keeps no more than 64K of them.
 	acPlayed.Init();
@@ -912,11 +911,11 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
 
 	//The scan found the boards (the memory board too) by their device ROMs, and the stray device's blank ROM unrecognised.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiBadDevices);
 
-	//The sound boards' driver was loaded from \OS\Drivers\SOUND.DRV once and drives both (the SD Card Board's and the
-	//debug port's are in the ROM); modplay.exe played through the first, with the device calls.  The debug port was told
+	//The sound boards' driver was loaded from \OS\Drivers\SOUND.DRV once and drives both (the SD Card Board's is in the
+	//ROM); modplay.exe played through the first, with the device calls.  The debug port was told
 	//where the driver went, after the kernal, and (watched) stopped the run before the driver ran.
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt((1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET), sStatus.uiLoadedDrivers);
@@ -982,10 +981,10 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertFalse(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertSize(0, pcPort->NumProcesses());
 
-	//The drivers took the SD Card Board, the debug port and both sound boards out of reset at boot (modplay.exe left the
+	//The drivers took the SD Card Board and both sound boards out of reset at boot (modplay.exe left the
 	//first disabled; nothing used the second), and the test the stray device (the kernal's reset of it put its enable
 	//back).
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET) | (1 << TEST_HCP65_STRAY_SOCKET), cHCP65.GetDeviceEnables());
 	AssertFalse(pcAudio->IsEnabled());
 	AssertFalse(pcAudio2->IsEnabled());
 
@@ -1169,8 +1168,8 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
 	pcPrivate = (CTestPrivateBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_PRIVATE_SOCKET, TEST_HCP65_PRIVATE_TYPE);
 	pcUART = (CHCP65UARTBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_UART_SOCKET, HCP65_UART_NAME);
-	pcPort = (CHCP65DebugPort*)TestKernalBoard(&cMainboard, TEST_HCP65_DEBUG_SOCKET, HCP65_DEBUG_PORT_NAME);
-	TestKernalStart(&cHCP65, pcPort, pcBuilder);
+	pcPort = cHCP65.GetDebugPort();
+	TestKernalStart(&cHCP65, pcBuilder);
 
 	//The far ends: the RS232 port's has RTS and DTR on (its CTS and DSR) and DCD off; the TTL port's has RTS on.
 	pcTTL = pcUART->GetTTL();
@@ -1236,7 +1235,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(0, sStatus.uiExitCode);
 
 	//The driver was loaded from the card for the UART Board, after the kernal.
-	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_DEBUG_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET) | (1 << TEST_HCP65_PRIVATE_SOCKET), sStatus.uiDevices);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET) | (1 << TEST_HCP65_PRIVATE_SOCKET), sStatus.uiDevices);
 
 	//The Memory Board was given window 1 though the private board's socket is scanned first; the private board got the
 	//next, but none of its memory is main memory, and nothing was put in it.

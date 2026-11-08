@@ -8,15 +8,13 @@
 #include "Kernal.h"
 #include "KernalInterrupts.h"
 #include "KernalDriver.h"
-#include "KernalDebugPort.h"
 #include "KernalDriverLoader.h"
 #include "KernalMemory.h"
 
 
 SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//The drivers in the ROM, for the HCP65's own boards: up to KERNAL_SD_MAX_BOARDS SD Card Boards and one debug port.
+//The drivers in the ROM: up to KERNAL_SD_MAX_BOARDS SD Card Boards.
 CKernalSDCardBoard	gacKernalSDCardBoards[KERNAL_SD_MAX_BOARDS];
-CKernalDebugPort	gcKernalDebugPort;
 uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
 CFatVolume		gcKernalVolume;
 
@@ -37,10 +35,6 @@ static CKernalDriver* KernalBuiltInDriver(const char* szName, uint16 uiIndex)
 	if ((strcmp(szName, KERNAL_SD_CARD_NAME) == 0) && (uiIndex < KERNAL_SD_MAX_BOARDS))
 	{
 		return &gacKernalSDCardBoards[uiIndex];
-	}
-	if ((strcmp(szName, KERNAL_DEBUG_PORT_NAME) == 0) && (uiIndex == 0))
-	{
-		return &gcKernalDebugPort;
 	}
 	return NULL;
 }
@@ -88,7 +82,6 @@ static void KernalStartBuiltInDrivers(void)
 			}
 		}
 	}
-	gpcKernalDebugPort = (CKernalDebugPort*)KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_DEBUG_PORT_NAME, 0);
 }
 
 

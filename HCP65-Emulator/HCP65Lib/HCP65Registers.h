@@ -3,6 +3,8 @@
 #include "HCP65Device.h"
 
 
+#define HCP65_NUM_PROCESSES						256	//The Process ID register's IDs, 0 to $FF.
+
 #define HCP65_REGISTER_DEVICE_INTERRUPT_LOW		0	//Read: D1-D7 = devices 1-7, 0 = interrupting.
 #define HCP65_REGISTER_DEVICE_INTERRUPT_HIGH	2	//Read: D0-D3 = devices 16-19, 0 = interrupting.
 #define HCP65_REGISTER_DEVICE_ENABLE_LOW		3	//D1-D7 = devices 1-7, 0 = held in reset.

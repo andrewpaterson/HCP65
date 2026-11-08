@@ -28,9 +28,9 @@
 
 
 //The emulator: the HCP65 (its kernal ROM, and the boards HCP65_EMULATOR_MACHINE or --machine's description puts in its
-//sockets; --card's image replaces the first SD Card Board's card in its card socket 0) in a window with a menu bar, and the input that drives
-//it.  The first Sound Board is heard and the first Debug Port is the debugger's.  HCP65EmulatorRun makes it, adds it to
-//the root, runs it and removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
+//sockets; --card's image replaces the first SD Card Board's card in its card socket 0) in a window with a menu bar, and
+//the input that drives it.  The first Sound Board is heard.  HCP65EmulatorRun makes it, adds it to the root, runs it and
+//removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
 class CHCP65EmulatorApp : public CObject
 {
 CONSTRUCTABLE(CHCP65EmulatorApp);

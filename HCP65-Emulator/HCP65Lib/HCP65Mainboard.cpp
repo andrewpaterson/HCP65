@@ -8,7 +8,6 @@
 #include "BaseLib/MarkupTag.h"
 #include "HCP65Audio.h"
 #include "HCP65SDCard.h"
-#include "HCP65DebugPort.h"
 #include "HCP65UART.h"
 #include "HCP65MemoryBoard.h"
 #include "HCP65Mainboard.h"
@@ -344,7 +343,6 @@ CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszT
 {
 	CHCP65Audio*		pcAudio;
 	CHCP65SDCard*		pcSDCard;
-	CHCP65DebugPort*	pcDebugPort;
 	CHCP65UARTBoard*	pcUART;
 	CHCP65MemoryBoard*	pcMemory;
 
@@ -361,13 +359,6 @@ CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszT
 		pcSDCard->Init();
 		*pszType = HCP65_SD_NAME;
 		return pcSDCard;
-	}
-	if (strcmp(szType, HCP65_DEBUG_PORT_NAME) == 0)
-	{
-		pcDebugPort = NewMalloc<CHCP65DebugPort>();
-		pcDebugPort->Init();
-		*pszType = HCP65_DEBUG_PORT_NAME;
-		return pcDebugPort;
 	}
 	if (strcmp(szType, HCP65_UART_NAME) == 0)
 	{

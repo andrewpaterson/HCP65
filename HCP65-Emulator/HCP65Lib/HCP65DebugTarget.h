@@ -4,7 +4,6 @@
 #include "EmulatorDebugLib/W65C816DebugRegisters.h"
 #include "Asm65816DebugDecoder.h"
 #include "HCP65.h"
-#include "HCP65DebugPort.h"
 
 
 //After the W65C816's registers: the process the MMU maps user mode for, read only (changing it would move the running
@@ -22,11 +21,10 @@ class CHCP65DebugTarget : public CDebugTarget
 {
 protected:
 	CHCP65*					mpcHCP65;
-	CHCP65DebugPort*		mpcPort;		//Where the kernal tells of its processes, NULL for none.
 	CAsm65816DebugDecoder	mcDecoder;
 
 public:
-	void			Init(CHCP65* pcHCP65, CHCP65DebugPort* pcPort = NULL);
+	void			Init(CHCP65* pcHCP65);
 	void			Kill(void);
 
 	const char*		GetProcessorName(void) override;

@@ -85,7 +85,8 @@
     <ClCompile Include="KernalSDCard.cpp" />
     <ClCompile Include="KernalSDCard.asm" />
     <ClCompile Include="KernalProcess.cpp" />
-    <ClCompile Include="KernalDebugPort.cpp" />
+    <ClCompile Include="KernalDebug.cpp" />
+    <ClCompile Include="KernalDebug.asm" />
     <ClCompile Include="KernalDriverLoader.cpp" />
     <ClCompile Include="KernalDeviceCalls.cpp" />
     <ClCompile Include="KernalExports.asm" />
@@ -99,7 +100,7 @@
     <ClInclude Include="KernalDriver.h" />
     <ClInclude Include="KernalDriverLoader.h" />
     <ClInclude Include="KernalDeviceCalls.h" />
-    <ClInclude Include="KernalDebugPort.h" />
+    <ClInclude Include="KernalDebug.h" />
     <ClInclude Include="KernalInterrupts.h" />
     <ClInclude Include="KernalMemory.h" />
     <ClInclude Include="KernalProcess.h" />

@@ -3,7 +3,7 @@
 #include "BaseLib/FatAbstractFile.h"
 #include "BaseLib/ChunkFile.h"
 #include "Assembler65Lib/Asm65Object.h"
-#include "KernalDebugPort.h"
+#include "KernalDebug.h"
 #include "KernalDriverLoader.h"
 
 
@@ -162,7 +162,7 @@ static uint16 KernalRelocateDriver(CAsm65Object* pcObject, uint8* puiBase)
 //////////////////////////////////////////////////////////////////////////
 //
 // The module read from pcFile (its section's bytes still in the file) is
-// put in MPU RAM, relocated (the debug port is told where, for the board
+// put in MPU RAM, relocated (the emulator is told where, for the board
 // in uiSlot) and its globals constructed.  psModule gets its create
 // function.
 //
@@ -208,10 +208,7 @@ static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, SKerna
 	{
 		return uiResult;
 	}
-	if (gpcKernalDebugPort)
-	{
-		gpcKernalDebugPort->TellDriver(uiSlot, szPath, (uint32)puiBase, psSection->uiSize);
-	}
+	KernalDebugDriver(uiSlot, szPath, (uint32)puiBase, psSection->uiSize);
 
 	//Its globals' constructors, in link order, as the start up runs the kernal's.
 	for (iInit = iInitStart; iInit < iInitEnd; iInit += 4)

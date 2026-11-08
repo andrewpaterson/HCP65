@@ -11,7 +11,7 @@
 #include "KernalInterrupts.h"
 #include "KernalDriver.h"
 #include "KernalDeviceCalls.h"
-#include "KernalDebugPort.h"
+#include "KernalDebug.h"
 #include "KernalMemory.h"
 
 
@@ -251,10 +251,7 @@ static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 		{
 			gauiKernalBankOwners[uiPhysical] = uiProcess;
 			puiPage[uiBank] = (uint8)uiPhysical;
-			if (gpcKernalDebugPort)
-			{
-				gpcKernalDebugPort->GiveBank((uint8)uiPhysical);
-			}
+			KernalDebugBank((uint8)uiPhysical);
 			return true;
 		}
 	}
@@ -529,7 +526,7 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 // Runs an executable (see KernalLoadExecutable) as a new process in user
 // mode until it exits.  boot.exe is process $FF; a process run by another
 // (during the other's execute call) gets the next ID down and its own
-// banks, and the other carries on once it exits.  The debug port is told
+// banks, and the other carries on once it exits.  The emulator is told
 // of it starting and ending.  Returns KERNAL_PROCESS_EXITED with its exit
 // code, or why it couldn't run.
 //
@@ -565,17 +562,11 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 	gsKernalCall.uiUserS = KERNAL_USER_STACK_TOP - 4;
 	gauiKernalArguments[uiProcess] = uiArgument;
 
-	if (gpcKernalDebugPort)
-	{
-		gpcKernalDebugPort->Tell(KERNAL_DEBUG_PORT_STARTED, uiProcess, 0, szPath);
-	}
+	KernalDebugProcessStarted(uiProcess, szPath);
 	KernalWriteRegister(8, uiProcess);
 	KernalEnterUser();
 	*puiExitCode = gsKernalCall.uiExitCode;
-	if (gpcKernalDebugPort)
-	{
-		gpcKernalDebugPort->Tell(KERNAL_DEBUG_PORT_ENDED, uiProcess, *puiExitCode, szPath);
-	}
+	KernalDebugProcessEnded(uiProcess, *puiExitCode);
 
 	KernalCloseHandles(uiProcess);
 	KernalCloseDrivers(uiProcess);
