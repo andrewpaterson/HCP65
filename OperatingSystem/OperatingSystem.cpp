@@ -5,7 +5,8 @@
 
 #define BOOT_PROGRAM	"\\modplay.exe"
 #define BOOT_SELF		"\\boot.exe"
-#define BOOT_CHILD		0xB0C1	//The argument it runs itself with as the child (BootChild).
+#define BOOT_CHILD		0xB0C1	//The argument it runs itself with as the child (BootChild) when there is one sound board.
+#define BOOT_CHILD_TWO	0xB0C2	//The child's argument when there is a second sound board, which it opens too.
 #define BOOT_NO_TABLES	200		//The exit code when the maths tables couldn't be loaded, plus why.
 #define BOOT_DEVICES	300		//The exit code when a device call didn't do what it should, plus which.
 #define BOOT_MAX_BOARDS	20		//More boards than there are device sockets.
@@ -112,13 +113,14 @@ uint16 BootCheckDevices(void)
 		return 14;
 	}
 
-	//While it has the left unit, another process (itself, BootChild) can open neither unit of the first sound board.
+	//While it has the left unit, another process (itself, BootChild) can open neither unit of the first sound board,
+	//but can open a second sound board if there is one.
 	if (KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 0, SOUND_BOARD_LEFT, &uiHandle) != KERNAL_DEVICE_SUCCESS)
 	{
 		return 15;
 	}
 	uiExitCode = 1;
-	if ((KernalExecute(BOOT_SELF, BOOT_CHILD, &uiExitCode) != KERNAL_RESULT_EXITED) || (uiExitCode != 0))
+	if ((KernalExecute(BOOT_SELF, (uiSoundBoards > 1) ? BOOT_CHILD_TWO : BOOT_CHILD, &uiExitCode) != KERNAL_RESULT_EXITED) || (uiExitCode != 0))
 	{
 		return 16;
 	}
@@ -134,11 +136,11 @@ uint16 BootCheckDevices(void)
 //
 // The child, while the parent has the first sound board's left unit:
 // neither of its units can be opened (KERNAL_DEVICE_IN_USE), as the
-// parent has the whole board, but the second sound board's can.  0 if
-// so, or which check failed.
+// parent has the whole board, but, if bSecondBoard, the second sound
+// board's can.  0 if so, or which check failed.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 BootChild(void)
+uint16 BootChild(bool bSecondBoard)
 {
 	uint16	uiHandle;
 
@@ -150,10 +152,13 @@ uint16 BootChild(void)
 	{
 		return 2;
 	}
-	if ((KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 1, SOUND_BOARD_RIGHT, &uiHandle) != KERNAL_DEVICE_SUCCESS) ||
-		(KernalDeviceClose(uiHandle) != KERNAL_DEVICE_SUCCESS))
+	if (bSecondBoard)
 	{
-		return 3;
+		if ((KernalDeviceOpen(SOUND_BOARD_MANUFACTURER, SOUND_BOARD_NAME, 1, SOUND_BOARD_RIGHT, &uiHandle) != KERNAL_DEVICE_SUCCESS) ||
+			(KernalDeviceClose(uiHandle) != KERNAL_DEVICE_SUCCESS))
+		{
+			return 3;
+		}
 	}
 	return 0;
 }
@@ -167,7 +172,8 @@ uint16 BootChild(void)
 // multiplies and divides and gives the kernal a value, checks the device
 // calls (BootCheckDevices), then runs modplay.exe (built with the tables)
 // with its own argument and exits with modplay's exit code (or 100 and
-// why it couldn't run).  Run with BOOT_CHILD it is BootChild.
+// why it couldn't run).  Run with BOOT_CHILD or BOOT_CHILD_TWO it is
+// BootChild.
 //
 //////////////////////////////////////////////////////////////////////////
 int main(void)
@@ -177,7 +183,11 @@ int main(void)
 
 	if (KernalGetArgument() == BOOT_CHILD)
 	{
-		return BootChild();
+		return BootChild(false);
+	}
+	if (KernalGetArgument() == BOOT_CHILD_TWO)
+	{
+		return BootChild(true);
 	}
 
 	uiResult = KernalFileLoad(KERNAL_MATH_MULT_PATH, (void*)KERNAL_MATH_MULT_ADDRESS, KERNAL_MATH_MULT_SIZE);
