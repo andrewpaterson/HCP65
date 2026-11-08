@@ -24,12 +24,21 @@
 //All of a scene is in one scale, whatever its models' files are in.
 #define BOARD_SCENE_UNITS_PER_MM	4096
 
-//The error allowed when a model is simplified.  Surfaces move far less than this on average, but with more of it dark
-//streaks start to show across a card's edge connector pads.  A millimetre is a little under two pixels here.
-#define BOARD_SCENE_MAX_ERROR_MM	0.25
+//The error allowed when a card is simplified.  Surfaces move far less than this on average, but with more of it dark
+//streaks start to show across its edge connector pads, and its small text and chip legs go.  A millimetre is a little under
+//two pixels here.
+#define BOARD_SCENE_CARD_MAX_ERROR_MM	0.25
+
+//The mainboard's, which brings it to about 150,000 vertices.  Its pins become small triangles and its sockets' bases jagged,
+//but it's what the cards are in front of.
+#define BOARD_SCENE_MAINBOARD_MAX_ERROR_MM	6.0
+
+//80 degrees: normals at a corner closer than this merge, and an edge of a box, at 90, stays sharp.  At 90 or more about a
+//tenth of the pixels are clearly wrong.
+#define BOARD_SCENE_MAX_NORMAL_ANGLE	1.3962634f
 
 //Change this when what's done to a model changes, so a model saved by the old way isn't loaded.
-#define BOARD_SCENE_MODEL_VERSION	4
+#define BOARD_SCENE_MODEL_VERSION	5
 
 //Turned from looking straight down on the board (the camera's start) to 30 degrees up from its plane: 60 degrees, taking
 //its back edge away from the eye.
@@ -75,17 +84,18 @@ struct SBoardSceneModel
 	const char*		szSaved;
 	float64			fMillimetresPerUnit;
 	float64			fEdgeY;
+	float64			fMaxErrorMillimetres;
 };
 
 
 static const SBoardSceneModel gasBoardSceneModels[BOARD_SCENE_NUM_MODELS] =
 {
-	{ NULL,						"../../Kicad/Computer/Main/Mainboard Small/Mainboard Small.wrl",	"Mainboard Small",	1000.0,	0.0 },
-	{ NULL,						"../../Kicad/Computer/Processor/Processor Board/Processor Board.wrl",	"Processor Board",	1000.0,	5.715 },
-	{ HCP65_SD_NAME,			"../../Kicad/Computer/SD Card/SD Card Board/SD Card Board.wrl",		"SD Card Board",	2.54,	4.699 },
-	{ HCP65_UART_NAME,			"../../Kicad/Computer/UART/UART Board/UART Board.wrl",				"UART Board",		2.54,	4.896 },
-	{ HCP65_AUDIO_NAME,			"../../Kicad/Computer/Audio/Audio Board/Audio Board.wrl",			"Audio Board",		2.54,	4.445 },
-	{ HCP65_MEMORY_BOARD_NAME,	"../../Kicad/Computer/Memory/Memory Board/Memory Board.wrl",		"Memory Board",		2.54,	4.445 },
+	{ NULL,						"../../Kicad/Computer/Main/Mainboard Small/Mainboard Small.wrl",	"Mainboard Small",	1000.0,	0.0,	BOARD_SCENE_MAINBOARD_MAX_ERROR_MM },
+	{ NULL,						"../../Kicad/Computer/Processor/Processor Board/Processor Board.wrl",	"Processor Board",	1000.0,	5.715,	BOARD_SCENE_CARD_MAX_ERROR_MM },
+	{ HCP65_SD_NAME,			"../../Kicad/Computer/SD Card/SD Card Board/SD Card Board.wrl",		"SD Card Board",	2.54,	4.699,	BOARD_SCENE_CARD_MAX_ERROR_MM },
+	{ HCP65_UART_NAME,			"../../Kicad/Computer/UART/UART Board/UART Board.wrl",				"UART Board",		2.54,	4.896,	BOARD_SCENE_CARD_MAX_ERROR_MM },
+	{ HCP65_AUDIO_NAME,			"../../Kicad/Computer/Audio/Audio Board/Audio Board.wrl",			"Audio Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM },
+	{ HCP65_MEMORY_BOARD_NAME,	"../../Kicad/Computer/Memory/Memory Board/Memory Board.wrl",		"Memory Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM },
 };
 
 
@@ -358,8 +368,8 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 			cModifiers.Init(pMesh);
 			cModifiers.AddModifier<CMeshFixReversed>()->Init();
 			cModifiers.AddModifier<CMeshWeldCorners>()->Init();
-			cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(BOARD_SCENE_MAX_ERROR_MM / psModel->fMillimetresPerUnit));
-			cModifiers.AddModifier<CMeshMergeNormals>()->Init(0.0f);
+			cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(psModel->fMaxErrorMillimetres / psModel->fMillimetresPerUnit));
+			cModifiers.AddModifier<CMeshMergeNormals>()->Init(BOARD_SCENE_MAX_NORMAL_ANGLE);
 			pOutput = cModifiers.GetOutput();
 			pcModel->Build(&pOutput, BoardSceneUnits(psModel->fMillimetresPerUnit));
 			pOutput = NULL;

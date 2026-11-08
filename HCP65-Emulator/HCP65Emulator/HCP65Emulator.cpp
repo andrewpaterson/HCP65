@@ -287,7 +287,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		mcComponentInput.AddKeyboards();
 		mcComponentInput.AddMice();
 		mpWindow->SetComponentInput(&mcComponentInput);
-		mpWindow->SetWindowSize(1280, 800);
+		mpWindow->SetWindowSize(1920, 1200);
 	}
 	return mbValid;
 }
