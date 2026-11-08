@@ -92,30 +92,74 @@ void CHCP65SDCard::Kill(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Card is the disk image in socket 0 (relative to szDirectory), unless a
-// card is in it already (the emulator's --card).  It isn't written back.
+// Each <Card Socket="0" File="SDCard.img"/> is the disk image (relative to
+// szDirectory) in one of the board's four card sockets, unless a card is
+// in it already (the emulator's --card, in socket 0).  Sockets without a
+// <Card> are empty.  Cards aren't written back.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65SDCard::LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError)
 {
+	CMarkupTag*		pcCard;
+	STagIterator	sIterator;
+	bool			abSeen[HCP65_SD_NUM_SOCKETS];
+	uint32			uiSocket;
+	int				i;
+
+	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
+	{
+		abSeen[i] = false;
+	}
+	for (pcCard = pcTag->GetTag(&sIterator); pcCard; pcCard = pcTag->GetNextTag(&sIterator))
+	{
+		if (strcmp(pcCard->GetName(), HCP65_SD_CARD_XML_TAG) != 0)
+		{
+			return HCP65XMLError(pszError, pcCard, "Expected <" HCP65_SD_CARD_XML_TAG ">", NULL);
+		}
+		if (!HCP65XMLNumber(pcCard, "Socket", true, HCP65_SD_NUM_SOCKETS - 1, 0, &uiSocket, pszError))
+		{
+			return false;
+		}
+		if (abSeen[uiSocket])
+		{
+			return HCP65XMLError(pszError, pcCard, "A card is in this socket already", NULL);
+		}
+		abSeen[uiSocket] = true;
+		if ((masSockets[uiSocket].puiImage == NULL) && !LoadCardXML(pcCard, uiSocket, szDirectory, pszError))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The disk image a <Card> tag's File names (relative to szDirectory) into
+// iSocket.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65SDCard::LoadCardXML(CMarkupTag* pcTag, int iSocket, const char* szDirectory, CChars* pszError)
+{
 	CFileUtil	cFileUtil;
 	CChars		szPath;
-	char*		szCard;
+	char*		szFile;
 	bool		bResult;
 
-	szCard = pcTag->GetStringAttribute("Card");
-	if ((szCard == NULL) || (szCard[0] == '\0') || (masSockets[0].puiImage != NULL))
+	szFile = pcTag->GetStringAttribute("File");
+	if ((szFile == NULL) || (szFile[0] == '\0'))
 	{
-		return true;
+		return HCP65XMLError(pszError, pcTag, "Missing File", NULL);
 	}
 
 	szPath.Init();
-	if (!cFileUtil.IsAbsolutePath(szCard))
+	if (!cFileUtil.IsAbsolutePath(szFile))
 	{
 		szPath.Set(szDirectory);
 	}
-	cFileUtil.AppendToPath(&szPath, szCard);
-	bResult = InsertCard(szPath.Text(), false);
+	cFileUtil.AppendToPath(&szPath, szFile);
+	bResult = InsertCard(szPath.Text(), false, iSocket);
 	if (!bResult)
 	{
 		HCP65XMLError(pszError, pcTag, "Could not insert the SD card ", szPath.Text());

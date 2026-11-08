@@ -27,7 +27,9 @@ enum EHCP65Mainboard
 //
 //  <Mainboard Type="Small">				Small, Any or Full.
 //    <Processor Index="0">					One per processor socket; Index defaults to 0.
-//      <Board Socket="3" Type="SD Card Board" Card="SDCard.img"/>
+//      <Board Socket="3" Type="SD Card Board">
+//        <Card Socket="0" File="SDCard.img"/>		Up to four, sockets 0 to 3.
+//      </Board>
 //      <Board Socket="16" Type="Sound Board"/>
 //    </Processor>
 //  </Mainboard>

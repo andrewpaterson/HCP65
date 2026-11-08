@@ -4,7 +4,9 @@
 <!-- relative to this one. -->
 <Mainboard Type="Small">
 	<Processor Index="0">
-		<Board Socket="3" Type="SD Card Board" Card="../../TestHCP65Lib/TestHCP65Lib/Output/SDCard.img"/>
+		<Board Socket="3" Type="SD Card Board">
+			<Card Socket="0" File="../../TestHCP65Lib/TestHCP65Lib/Output/SDCard.img"/>
+		</Board>
 		<Board Socket="4" Type="UART Board"/>
 		<Board Socket="16" Type="Sound Board"/>
 		<Board Socket="17" Type="Debug Port"/>

@@ -8,6 +8,7 @@
 #define HCP65_SD_DRIVER					"SDCARD.DRV"
 #define HCP65_SD_REGISTERS				0x400
 #define HCP65_SD_NUM_SOCKETS			4
+#define HCP65_SD_CARD_XML_TAG			"Card"	//A card in the board's <Board> tag (LoadXML).
 
 //Registers, from $400.  They repeat every 32 bytes; $410-$41F decode nothing.
 #define HCP65_SD_ADDRESS_LOW			0x00	//W: DMA main memory address bits 0-7.
@@ -142,6 +143,7 @@ public:
 	static uint16	CRC16(uint8* puiBits, uint32 uiLength);
 
 protected:
+	bool	LoadCardXML(CMarkupTag* pcTag, int iSocket, const char* szDirectory, CChars* pszError);
 	uint8	ReadRegister(uint32 uiRegister);
 	void	WriteRegister(uint32 uiRegister, uint8 uiValue);
 	void	WriteFlags(uint8 uiValue);

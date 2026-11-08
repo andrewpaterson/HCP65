@@ -112,8 +112,8 @@ void CHCP65Mainboard::Kill(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The disk image the first SD Card Board gets in socket 0 in place of its
-// Card attribute (the emulator's --card).  Call it before reading.
+// The disk image the first SD Card Board gets in card socket 0 in place
+// of its socket 0 <Card> (the emulator's --card).  Call it before reading.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65Mainboard::SetCard(const char* szImageFilename)
