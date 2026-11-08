@@ -35,6 +35,7 @@ Listing/
 
 # KiCad's own files: backups, caches, autosaves, locks and local view settings
 *-backups/
+Kicad/**/.history/
 fp-info-cache
 _autosave-*
 *.lck
