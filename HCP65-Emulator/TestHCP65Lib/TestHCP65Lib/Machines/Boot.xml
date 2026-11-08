@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TestHCP65KernalBoot's Small Mainboard: two sound boards the one driver drives, a stray device that interrupts -->
+<!-- with nothing to handle it (the test's own), and an SD card without a volume in card socket 0.  Files are relative -->
+<!-- to this one; the test writes the cards into Output. -->
+<Mainboard Type="Small">
+	<Processor Index="0">
+		<Board Socket="3" Type="Test Stray Device"/>
+		<Board Socket="4" Type="SD Card Board">
+			<Card Socket="0" File="../Output/BlankCard.img"/>
+			<Card Socket="2" File="../Output/SDCard.img"/>
+		</Board>
+		<Board Socket="16" Type="Sound Board"/>
+		<Board Socket="17" Type="Sound Board"/>
+		<Board Socket="18" Type="Memory Board"/>
+		<Board Socket="19" Type="Debug Port"/>
+	</Processor>
+</Mainboard>

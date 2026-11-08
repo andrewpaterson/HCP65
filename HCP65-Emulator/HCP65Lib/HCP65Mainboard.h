@@ -39,7 +39,8 @@ enum EHCP65Mainboard
 //one of 16 to 19.  Only one processor is emulated, so only processor 0 can have boards, and the Full Mainboard isn't
 //allowed yet.  Socket 1 is the main memory channel the HCP65 always has (CHCP65MemoryChannel).
 //
-//The mainboard makes and owns the boards: Kill them after the HCP65 they are plugged into.
+//The mainboard makes and owns the boards: Kill them after the HCP65 they are plugged into.  A subclass can make more
+//kinds of board (a test's own) by overriding CreateBoard.
 class CHCP65Mainboard
 {
 protected:
@@ -69,7 +70,7 @@ public:
 protected:
 	bool			LoadProcessor(CMarkupTag* pcTag, const char* szDirectory, bool* pbSeen, CChars* pszError);
 	bool			LoadBoard(CMarkupTag* pcTag, int iProcessor, const char* szDirectory, CChars* pszError);
-	CHCP65Device*	CreateBoard(const char* szType, const char** pszType);
+	virtual CHCP65Device*	CreateBoard(const char* szType, const char** pszType);
 };
 
 

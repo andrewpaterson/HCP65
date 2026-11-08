@@ -336,7 +336,8 @@ bool CHCP65Mainboard::LoadBoard(CMarkupTag* pcTag, int iProcessor, const char* s
 //////////////////////////////////////////////////////////////////////////
 //
 // A new board whose device ROM names it szType (its Init'd), and the type's
-// own name in pszType; NULL if there's no such board.
+// own name in pszType (a string that lasts as long as the mainboard); NULL
+// if there's no such board.
 //
 //////////////////////////////////////////////////////////////////////////
 CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszType)

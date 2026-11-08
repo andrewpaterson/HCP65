@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TestHCP65KernalNoMainMemory's Small Mainboard: no Memory Board, only a private board (the test's own), whose -->
+<!-- memory isn't main memory.  Files are relative to this one. -->
+<Mainboard Type="Small">
+	<Processor Index="0">
+		<Board Socket="3" Type="Test Private Board"/>
+		<Board Socket="4" Type="SD Card Board">
+			<Card Socket="2" File="../Output/SDCard.img"/>
+		</Board>
+	</Processor>
+</Mainboard>
