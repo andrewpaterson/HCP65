@@ -10,7 +10,7 @@
 #include "SupportLib/MeshFixReversed.h"
 #include "SupportLib/MeshModifierStack.h"
 #include "SupportLib/MeshReader.h"
-#include "SupportLib/MeshSimplify.h"
+#include "SupportLib/MeshCornerMerge.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65MemoryBoard.h"
@@ -350,7 +350,7 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 		{
 			cModifiers.Init(pMesh);
 			cModifiers.AddModifier<CMeshFixReversed>()->Init();
-			cModifiers.AddModifier<CMeshSimplify>()->Init((float32)(BOARD_SCENE_CELL_MM / psModel->fMillimetresPerUnit));
+			cModifiers.AddModifier<CMeshCornerMerge>()->Init((float32)(BOARD_SCENE_CELL_MM / psModel->fMillimetresPerUnit));
 			pOutput = cModifiers.GetOutput();
 			pcModel->Build(&pOutput, BoardSceneUnits(psModel->fMillimetresPerUnit));
 			pOutput = NULL;
