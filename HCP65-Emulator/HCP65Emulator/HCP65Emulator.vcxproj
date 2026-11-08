@@ -242,6 +242,8 @@
     <ClCompile Include="HCP65EmulatorTick.cpp" />
     <ClCompile Include="HCP65EmulatorDebugger.cpp" />
     <ClCompile Include="FileMenuListener.cpp" />
+    <ClCompile Include="HCP65MenuListener.cpp" />
+    <ClCompile Include="BoardConfigurationDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HCP65Emulator.h" />
@@ -249,6 +251,8 @@
     <ClInclude Include="HCP65EmulatorDebugger.h" />
     <ClInclude Include="HCP65SoundVoice.h" />
     <ClInclude Include="FileMenuListener.h" />
+    <ClInclude Include="HCP65MenuListener.h" />
+    <ClInclude Include="BoardConfigurationDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">

@@ -35,6 +35,7 @@ public:
 	void	Class(void) override;
 	void	Free(void) override;
 	void	Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMillieconds, int64 iTotalTimeInMillieconds) override;
+	void	SetAudio(CHCP65Audio* pcAudio);
 
 protected:
 	void	Run(int64 iTotalTimeInMillieconds);

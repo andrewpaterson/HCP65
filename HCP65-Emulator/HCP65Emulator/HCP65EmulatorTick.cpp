@@ -89,6 +89,18 @@ void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMilliecon
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The sound board that is heard has changed, NULL if there is none.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorTick::SetAudio(CHCP65Audio* pcAudio)
+{
+	mpcAudio = pcAudio;
+	mpSoundVoice->SetAudio(pcAudio);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The HCP65 runs to where its clock should be by now, at most
 // HCP65_EMULATOR_MAX_TICK_MS of its time.
 //

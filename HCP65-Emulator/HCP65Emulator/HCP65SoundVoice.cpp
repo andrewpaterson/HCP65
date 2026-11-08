@@ -1,4 +1,5 @@
 #include "StandardLib/ClassDefines.h"
+#include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65SoundVoice.h"
 
@@ -12,7 +13,7 @@
 void CHCP65SoundVoice::Init(CHCP65Audio* pcAudio)
 {
 	PreInit();
-	CSoundStreamVoice::Init(pcAudio->GetSampleRate(), HCP65_SOUND_VOICE_BUFFER_FRAMES, PT_uint8, true);
+	CSoundStreamVoice::Init(pcAudio ? pcAudio->GetSampleRate() : HCP65_CRYSTAL_RATE, HCP65_SOUND_VOICE_BUFFER_FRAMES, PT_uint8, true);
 	mpcAudio = pcAudio;
 	PostInit();
 }
@@ -31,10 +32,30 @@ void CHCP65SoundVoice::Class(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The board to play from now on, or NULL for none.  What another board
+// played while no one was listening isn't played.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65SoundVoice::SetAudio(CHCP65Audio* pcAudio)
+{
+	if ((pcAudio != mpcAudio) && pcAudio)
+	{
+		pcAudio->ClearFrames();
+	}
+	mpcAudio = pcAudio;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 lsize CHCP65SoundVoice::Fill(Ptr<CSound> pBuffer)
 {
+	if (mpcAudio == NULL)
+	{
+		return 0;
+	}
 	return mpcAudio->ReadFrames((uint8*)pBuffer->GetData(), (uint32)pBuffer->GetNumFrames());
 }
 
@@ -42,10 +63,11 @@ lsize CHCP65SoundVoice::Fill(Ptr<CSound> pBuffer)
 //////////////////////////////////////////////////////////////////////////
 //
 // The rate the board's flags select, which changing restarts the stream.
+// With no board the stream isn't playing.
 //
 //////////////////////////////////////////////////////////////////////////
 uint32 CHCP65SoundVoice::GetStreamSampleRate(void)
 {
-	return mpcAudio->GetSampleRate();
+	return mpcAudio ? mpcAudio->GetSampleRate() : 0;
 }
 

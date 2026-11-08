@@ -134,6 +134,8 @@ void CHCP65EmulatorApp::Init(void)
 	mcHCP65.Init();
 	mcMainboard.Init();
 	mcDebugger.Init();
+	memset(&msDialogLook, 0, sizeof(msDialogLook));
+	mszMachine.Init();
 	mbValid = false;
 	mbInputs = false;
 
@@ -152,11 +154,10 @@ void CHCP65EmulatorApp::Init(void)
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory* pcSoundFactory, CNativeInput* pcNativeInput, const char* szInputDirectory, int argc, char* argv[])
 {
-	Ptr<CHCP65SoundVoice>	pSoundVoice;
 	Ptr<CMenuContainer>		pFileMenu;
+	Ptr<CMenuContainer>		pHCP65Menu;
 	Ptr<CCanvas>			pScreen;
 	Ptr<CGridContainer>		pMain;
-	Ptr<CWindowTheme>		pTheme;
 	Ptr<CClearCanvasDraw>	pBackground;
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
@@ -202,6 +203,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	{
 		szMachine = HCP65_EMULATOR_MACHINE;
 	}
+	mszMachine.Set(szMachine);
 	szError.Init();
 	if (!mcMainboard.Read(szMachine, &szError))
 	{
@@ -231,22 +233,17 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 
 	if (mbValid)
 	{
-		if (pcAudio)
-		{
-			pSoundVoice = OMalloc<CHCP65SoundVoice>(pcAudio);
-		}
+		mpSoundVoice = OMalloc<CHCP65SoundVoice>(pcAudio);  //Even with no Sound Board: one may be plugged in.
+		mpTick = OMalloc<CHCP65EmulatorTick>(&mcHCP65, pcAudio, mpSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL);
 		pBackground = OMalloc<CClearCanvasDraw>(0);  //Coloured once there is a theme.
-		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, pcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, mpTick, pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		mpWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
 
 		//Only what changed is drawn.  HCP65_EMULATOR_VERIFY_REDRAW checks every partial paint against drawing all of
 		//the window and logs where they differ, for finding a component that changes without being invalidated.
 		mpWindow->SetPartialRedraw(true);
 		mpWindow->SetVerifyRedraw(getenv("HCP65_EMULATOR_VERIFY_REDRAW") != NULL);
-		if (pSoundVoice.IsNotNull())
-		{
-			mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
-		}
+		mpWindow->GetSoundMixer()->AddVoice(mpSoundVoice);
 
 		//The font is white and coloured as it is drawn.
 		pWhite = GenerateFont("Resources/InterVariable.ttf", "Inter 13px", 13.0f, mpWindow->GetColourOrder());
@@ -256,15 +253,19 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	if (mbValid)
 	{
 		pFontColours = OMalloc<CFontColours>(pWhite);
-		pTheme = CJewelTheme::CreateDarkTheme(mpWindow, pFontColours);
-		pBackground->SetColour(pTheme->GetColour(TC_Panel));
+		mpTheme = CJewelTheme::CreateDarkTheme(mpWindow, pFontColours);
+		pBackground->SetColour(mpTheme->GetColour(TC_Panel));
+		msDialogLook.pcTheme = &mpTheme;
+		msDialogLook.pcDimFont = &mpTheme->GetFont();
 
 		//The menu bar along the top over the HCP65's screen, which is only a blank canvas so far.
-		mpMenuBar = OMalloc<CMenuBar>(mpWindow, pTheme);
+		mpMenuBar = OMalloc<CMenuBar>(mpWindow, mpTheme);
 		mpMenuBar->SetAlignment(CSH_Stretch, CSV_Stretch);
-		pFileMenu = OMalloc<CMenuContainer>(mpWindow, pTheme);
+		pFileMenu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 		mpMenuBar->AddMenu("File", pFileMenu);
-		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(pTheme->GetColour(TC_Editor)));
+		pHCP65Menu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
+		mpMenuBar->AddMenu("HCP65", pHCP65Menu);
+		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Editor)));
 		pScreen->SetDrawnEveryPaint(true);  //The emulated screen changes every tick without telling the canvas.
 		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pMain = OMalloc<CGridContainer>(mpWindow);
@@ -274,6 +275,8 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 
 		mcFileMenuListener.Init(mpWindow, pFileMenu, &mcHCP65, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL);
 		mpMenuBar->GetItemClickEvent()->Add(&mcFileMenuListener, &CFileMenuListener::MenuItemClicked);
+		mcHCP65MenuListener.Init(mpWindow, pHCP65Menu, this);
+		mpMenuBar->GetItemClickEvent()->Add(&mcHCP65MenuListener, &CHCP65MenuListener::MenuItemClicked);
 
 		mpInput = OMalloc<CInput>((CNativeInput*)NULL);
 		mbValid = mpInput->Read((char*)szInputDirectory);
@@ -302,6 +305,14 @@ void CHCP65EmulatorApp::Class(void)
 	M_Pointer(mpWindow);
 	M_Pointer(mpMenuBar);
 	U_Unknown(CFileMenuListener, mcFileMenuListener);
+	U_Unknown(CHCP65MenuListener, mcHCP65MenuListener);
+	M_Pointer(mpTick);
+	M_Pointer(mpSoundVoice);
+	M_Pointer(mpTheme);
+	U_Pointer(msDialogLook.pcTheme);
+	U_Pointer(msDialogLook.pcDimFont);
+	M_Pointer(mpBoardDialog);
+	U_String(mszMachine);
 	M_Pointer(mpInput);
 	M_Pointer(mpInputSource);
 	U_Unknown(CComponentInput, mcComponentInput);
@@ -323,10 +334,14 @@ void CHCP65EmulatorApp::Free(void)
 		if (mpMenuBar.IsNotNull())
 		{
 			mpMenuBar->GetItemClickEvent()->Remove(&mcFileMenuListener);
+			mpMenuBar->GetItemClickEvent()->Remove(&mcHCP65MenuListener);
 		}
+		mcHCP65MenuListener.Kill();
 		mcFileMenuListener.Kill();
 		mcComponentInput.Kill();
 	}
+	msDialogLook.Kill();
+	mszMachine.Kill();
 	mcDebugger.Kill();
 	mcHCP65.Kill();
 	mcMainboard.Kill();
@@ -368,10 +383,63 @@ bool CHCP65EmulatorApp::Run(void)
 
 	if (mbInputs)
 	{
+		mpWindow->CancelPosted(this);
 		mpMenuBar->GetItemClickEvent()->Remove(&mcFileMenuListener);
+		mpMenuBar->GetItemClickEvent()->Remove(&mcHCP65MenuListener);
 		mpWindow->SetComponentInput(NULL);
 	}
 	return mbValid;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The Board Configuration dialog, from a tick.  OK writes the boards to
+// the description and resets the HCP65; Cancel leaves everything as it
+// was.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::ShowBoardConfiguration(void)
+{
+	const char*	aszTypes[HCP65_NUM_DEVICE_SLOTS];
+
+	mpBoardDialog = OMalloc<CBoardConfigurationDialog>(mpWindow, &msDialogLook, &mcMainboard);
+	if (mpBoardDialog->Show())
+	{
+		mpBoardDialog->GetTypes(aszTypes);
+		ChangeBoards(aszTypes);
+	}
+	mpBoardDialog = NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The sockets hold aszTypes, the description says so, the first Sound
+// Board is heard and the HCP65 is reset (through the debugger, if there
+// is one, so it can tell its client).  The reset happens whatever failed.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes)
+{
+	CChars	szError;
+
+	szError.Init();
+	if (!mcMainboard.ChangeBoards(&mcHCP65, aszTypes, &szError) || !mcMainboard.Write(mszMachine.Text(), &szError))
+	{
+		gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
+	}
+	szError.Kill();
+
+	mpTick->SetAudio((CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME));
+	if (mcDebugger.IsEnabled())
+	{
+		mcDebugger.Reset();
+	}
+	else
+	{
+		mcHCP65.Reset();
+	}
 }
 
 

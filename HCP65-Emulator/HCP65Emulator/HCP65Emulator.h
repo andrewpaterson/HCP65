@@ -24,6 +24,10 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
+#include "HCP65MenuListener.h"
+#include "BoardConfigurationDialog.h"
+#include "HCP65SoundVoice.h"
+#include "HCP65EmulatorTick.h"
 #include "HCP65EmulatorDebugger.h"
 
 
@@ -31,6 +35,9 @@
 //sockets; --card's image replaces the first SD Card Board's card in its card socket 0) in a window with a menu bar, and
 //the input that drives it.  The first Sound Board is heard.  HCP65EmulatorRun makes it, adds it to the root, runs it and
 //removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
+//
+//The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
+//doesn't run while the dialog is up, as the window isn't ticked.
 class CHCP65EmulatorApp : public CObject
 {
 CONSTRUCTABLE(CHCP65EmulatorApp);
@@ -42,6 +49,13 @@ protected:
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;
 	CFileMenuListener		mcFileMenuListener;
+	CHCP65MenuListener		mcHCP65MenuListener;
+	Ptr<CHCP65EmulatorTick>	mpTick;
+	Ptr<CHCP65SoundVoice>	mpSoundVoice;
+	Ptr<CWindowTheme>		mpTheme;
+	SDialogLook				msDialogLook;
+	Ptr<CBoardConfigurationDialog>	mpBoardDialog;	//While it's shown.
+	CChars					mszMachine;		//The mainboard description the boards were read from.
 	Ptr<CInput>				mpInput;
 	Ptr<CWindowInputSource>	mpInputSource;
 	CComponentInput			mcComponentInput;
@@ -58,6 +72,10 @@ public:
 	bool	Load(CObjectReader* pcFile) override;
 
 	bool	Run(void);
+	void	ShowBoardConfiguration(void);
+
+protected:
+	void	ChangeBoards(const char** aszTypes);
 };
 
 
