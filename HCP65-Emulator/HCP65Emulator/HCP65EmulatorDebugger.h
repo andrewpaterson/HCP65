@@ -54,6 +54,7 @@ public:
 	bool	Start(CHCP65* pcHCP65);
 	bool	Tick(uint64 uiCycles);
 	bool	IsRunning(void);
+	void	Reset(void);
 
 protected:
 	void	Accept(void);

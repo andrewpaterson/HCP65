@@ -272,7 +272,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
 		mpWindow->SetContainer(pMain);
 
-		mcFileMenuListener.Init(mpWindow, pFileMenu);
+		mcFileMenuListener.Init(mpWindow, pFileMenu, &mcHCP65, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL);
 		mpMenuBar->GetItemClickEvent()->Add(&mcFileMenuListener, &CFileMenuListener::MenuItemClicked);
 
 		mpInput = OMalloc<CInput>((CNativeInput*)NULL);
