@@ -7,10 +7,11 @@
 #include "StandardLib/Objects.h"
 #include "SupportLib/ImageCel.h"
 #include "SupportLib/Mesh.h"
+#include "SupportLib/MeshEdgeCollapse.h"
 #include "SupportLib/MeshFixReversed.h"
 #include "SupportLib/MeshModifierStack.h"
 #include "SupportLib/MeshReader.h"
-#include "SupportLib/MeshCornerMerge.h"
+#include "SupportLib/MeshWeldCorners.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65MemoryBoard.h"
@@ -22,11 +23,12 @@
 //All of a scene is in one scale, whatever its models' files are in.
 #define BOARD_SCENE_UNITS_PER_MM	4096
 
-//Everything closer than this goes when a model is simplified.  A millimetre is a little under two pixels here.
-#define BOARD_SCENE_CELL_MM			0.75
+//The error allowed when a model is simplified.  Surfaces move far less than this on average, but with more of it dark
+//streaks start to show across a card's edge connector pads.  A millimetre is a little under two pixels here.
+#define BOARD_SCENE_MAX_ERROR_MM	0.25
 
 //Change this when what's done to a model changes, so a model saved by the old way isn't loaded.
-#define BOARD_SCENE_MODEL_VERSION	2
+#define BOARD_SCENE_MODEL_VERSION	3
 
 //Turned from looking straight down on the board (the camera's start) to 30 degrees up from its plane: 60 degrees, taking
 //its back edge away from the eye.
@@ -350,7 +352,8 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 		{
 			cModifiers.Init(pMesh);
 			cModifiers.AddModifier<CMeshFixReversed>()->Init();
-			cModifiers.AddModifier<CMeshCornerMerge>()->Init((float32)(BOARD_SCENE_CELL_MM / psModel->fMillimetresPerUnit));
+			cModifiers.AddModifier<CMeshWeldCorners>()->Init();
+			cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(BOARD_SCENE_MAX_ERROR_MM / psModel->fMillimetresPerUnit));
 			pOutput = cModifiers.GetOutput();
 			pcModel->Build(&pOutput, BoardSceneUnits(psModel->fMillimetresPerUnit));
 			pOutput = NULL;
