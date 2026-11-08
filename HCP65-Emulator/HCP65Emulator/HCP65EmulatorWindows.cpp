@@ -21,6 +21,10 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 {
 	_CrtSetBreakAlloc(0);
 
+	//Reading a board's model stops the window's loop for seconds.  Windows would put a ghost in place of a window that
+	//stops answering, and when it took the ghost away the Board Configuration dialog was left behind its disabled owner.
+	DisableProcessWindowsGhosting();
+
 	gcLogger.Init();
 	TypesInit();
 	TypeConverterInit();
