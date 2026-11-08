@@ -23,6 +23,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
+#include "HCP65Lib/HCP65DebugPort.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65Emulator.h"
 #include "HCP65EmulatorTick.h"
@@ -132,11 +133,7 @@ void CHCP65EmulatorApp::Init(void)
 	PreInit();
 
 	mcHCP65.Init();
-	mcAudio.Init();
-	mcSDCard.Init();
-	mcDebugPort.Init();
-	mcUART.Init();
-	mcMemory.Init();
+	mcMainboard.Init();
 	mcDebugger.Init();
 	mbValid = false;
 	mbInputs = false;
@@ -165,6 +162,9 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CFont>				pWhite;
 	Ptr<CFontColours>		pFontColours;
 	const char*				szCard;
+	const char*				szMachine;
+	CChars					szError;
+	CHCP65Audio*			pcAudio;
 	int						i;
 
 	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.  A
@@ -181,27 +181,41 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 			mbValid = false;
 		}
 	}
-	//The SD card is --card's disk image, or its own.
+	//The boards are --machine's description's, or HCP65_EMULATOR_MACHINE's.  --card's disk image replaces the first SD
+	//Card Board's card.
 	szCard = DebugLaunchValue(argc, argv, DEBUG_ARGUMENT_CARD);
 	if (szCard && (szCard[0] == '\0'))
 	{
 		gcLogger.Error2(__METHOD__, " " DEBUG_ARGUMENT_CARD " needs a disk image file.", NULL);
 		mbValid = false;
 	}
-	if (!szCard || (szCard[0] == '\0'))
+	else if (szCard)
 	{
-		szCard = HCP65_EMULATOR_SD_CARD_IMAGE;
+		mcMainboard.SetCard(szCard);
 	}
-	if (!mcSDCard.InsertCard(szCard, false))
+	szMachine = DebugLaunchValue(argc, argv, HCP65_EMULATOR_ARGUMENT_MACHINE);
+	if (szMachine && (szMachine[0] == '\0'))
 	{
-		gcLogger.Error2(__METHOD__, " Could not insert the SD card [", szCard, "].", NULL);
+		gcLogger.Error2(__METHOD__, " " HCP65_EMULATOR_ARGUMENT_MACHINE " needs a mainboard description file.", NULL);
 		mbValid = false;
 	}
-	mcHCP65.SetDevice(HCP65_EMULATOR_SD_SOCKET, &mcSDCard);
-	mcHCP65.SetDevice(HCP65_EMULATOR_AUDIO_SOCKET, &mcAudio);
-	mcHCP65.SetDevice(HCP65_EMULATOR_DEBUG_SOCKET, &mcDebugPort);
-	mcHCP65.SetDevice(HCP65_EMULATOR_UART_SOCKET, &mcUART);
-	mcHCP65.SetDevice(HCP65_EMULATOR_MEMORY_SOCKET, &mcMemory);
+	if (!szMachine || (szMachine[0] == '\0'))
+	{
+		szMachine = HCP65_EMULATOR_MACHINE;
+	}
+	szError.Init();
+	if (!mcMainboard.Read(szMachine, &szError))
+	{
+		gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
+		mbValid = false;
+	}
+	else if (!mcMainboard.PlugIn(&mcHCP65))
+	{
+		gcLogger.Error2(__METHOD__, " Could not plug in the boards of [", szMachine, "].", NULL);
+		mbValid = false;
+	}
+	szError.Kill();
+	pcAudio = (CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME);
 	for (i = 1; i < argc; i++)
 	{
 		if (strcmp(argv[i], HCP65_EMULATOR_ARGUMENT_FILL) == 0)
@@ -213,21 +227,27 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 
 	if (mbValid && mcDebugger.IsEnabled())
 	{
-		mbValid = mcDebugger.Start(&mcHCP65, &mcDebugPort);
+		mbValid = mcDebugger.Start(&mcHCP65, (CHCP65DebugPort*)mcMainboard.FindBoard(HCP65_DEBUG_PORT_NAME));
 	}
 
 	if (mbValid)
 	{
-		pSoundVoice = OMalloc<CHCP65SoundVoice>(&mcAudio);
+		if (pcAudio)
+		{
+			pSoundVoice = OMalloc<CHCP65SoundVoice>(pcAudio);
+		}
 		pBackground = OMalloc<CClearCanvasDraw>(0);  //Coloured once there is a theme.
-		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, &mcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
+		mpWindow = OMalloc<CWindow>("HCP65 Emulator", pcNativeFactory, pcSoundFactory, OMalloc<CHCP65EmulatorTick>(&mcHCP65, pcAudio, pSoundVoice, mcDebugger.IsEnabled() ? &mcDebugger : (CHCP65EmulatorDebugger*)NULL), pBackground, CFT_RGBX, CCO_BGR, CRGB_24bit, ARGB_8bit);
 		mpWindow->SetContinuous(true);  //The emulator runs and its screen changes every tick.
 
 		//Only what changed is drawn.  HCP65_EMULATOR_VERIFY_REDRAW checks every partial paint against drawing all of
 		//the window and logs where they differ, for finding a component that changes without being invalidated.
 		mpWindow->SetPartialRedraw(true);
 		mpWindow->SetVerifyRedraw(getenv("HCP65_EMULATOR_VERIFY_REDRAW") != NULL);
-		mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
+		if (pSoundVoice.IsNotNull())
+		{
+			mpWindow->GetSoundMixer()->AddVoice(pSoundVoice);
+		}
 
 		//The font is white and coloured as it is drawn.
 		pWhite = GenerateFont("Resources/InterVariable.ttf", "Inter 13px", 13.0f, mpWindow->GetColourOrder());
@@ -278,11 +298,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 void CHCP65EmulatorApp::Class(void)
 {
 	U_Unknown(CHCP65, mcHCP65);
-	U_Unknown(CHCP65Audio, mcAudio);
-	U_Unknown(CHCP65SDCard, mcSDCard);
-	U_Unknown(CHCP65DebugPort, mcDebugPort);
-	U_Unknown(CHCP65UARTBoard, mcUART);
-	U_Unknown(CHCP65MemoryBoard, mcMemory);
+	U_Unknown(CHCP65Mainboard, mcMainboard);
 	U_Unknown(CHCP65EmulatorDebugger, mcDebugger);
 	M_Pointer(mpWindow);
 	M_Pointer(mpMenuBar);
@@ -314,11 +330,7 @@ void CHCP65EmulatorApp::Free(void)
 	}
 	mcDebugger.Kill();
 	mcHCP65.Kill();
-	mcMemory.Kill();
-	mcUART.Kill();
-	mcDebugPort.Kill();
-	mcSDCard.Kill();
-	mcAudio.Kill();
+	mcMainboard.Kill();
 }
 
 

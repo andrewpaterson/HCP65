@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Small Mainboard: device 1 (main memory channel), 2 (status and clock) and 7 (processor reset) are on the board, -->
+<!-- leaving sockets 3 and 4 (32KB) and 16 to 19 (128KB).  The Debug Port is the emulator's own board.  Files are -->
+<!-- relative to this one. -->
+<Mainboard Type="Small">
+	<Processor Index="0">
+		<Board Socket="3" Type="SD Card Board" Card="../../TestHCP65Lib/TestHCP65Lib/Output/SDCard.img"/>
+		<Board Socket="4" Type="UART Board"/>
+		<Board Socket="16" Type="Sound Board"/>
+		<Board Socket="17" Type="Debug Port"/>
+		<Board Socket="18" Type="Memory Board"/>
+	</Processor>
+</Mainboard>

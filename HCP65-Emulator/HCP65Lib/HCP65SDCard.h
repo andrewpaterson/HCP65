@@ -118,6 +118,7 @@ protected:
 public:
 	void	Init(void);
 	void	Kill(void) override;
+	bool	LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError) override;
 
 	bool	InsertCard(const char* szImageFilename, bool bWriteBack, int iSocket = 0);
 	bool	InsertCard(uint8* puiImage, uint32 uiSize, int iSocket = 0);

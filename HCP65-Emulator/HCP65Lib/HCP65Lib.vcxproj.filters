@@ -19,6 +19,9 @@
     <ClCompile Include="HCP65MemoryBoard.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="HCP65Mainboard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="HCP65SDCard.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -49,6 +52,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65MemoryBoard.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="HCP65Mainboard.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65SDCard.h">

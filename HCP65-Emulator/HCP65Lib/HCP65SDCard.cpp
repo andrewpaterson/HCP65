@@ -3,7 +3,9 @@
 #include <string.h>
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/PointerFunctions.h"
+#include "BaseLib/MarkupTag.h"
 #include "HCP65.h"
+#include "HCP65Mainboard.h"
 #include "HCP65SDCard.h"
 
 
@@ -85,6 +87,41 @@ void CHCP65SDCard::Kill(void)
 		masSockets[i].szFilename.Kill();
 	}
 	CHCP65Device::Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Card is the disk image in socket 0 (relative to szDirectory), unless a
+// card is in it already (the emulator's --card).  It isn't written back.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65SDCard::LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError)
+{
+	CFileUtil	cFileUtil;
+	CChars		szPath;
+	char*		szCard;
+	bool		bResult;
+
+	szCard = pcTag->GetStringAttribute("Card");
+	if ((szCard == NULL) || (szCard[0] == '\0') || (masSockets[0].puiImage != NULL))
+	{
+		return true;
+	}
+
+	szPath.Init();
+	if (!cFileUtil.IsAbsolutePath(szCard))
+	{
+		szPath.Set(szDirectory);
+	}
+	cFileUtil.AppendToPath(&szPath, szCard);
+	bResult = InsertCard(szPath.Text(), false);
+	if (!bResult)
+	{
+		HCP65XMLError(pszError, pcTag, "Could not insert the SD card ", szPath.Text());
+	}
+	szPath.Kill();
+	return bResult;
 }
 
 

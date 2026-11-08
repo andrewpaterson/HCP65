@@ -12,6 +12,8 @@
 
 
 class CHCP65;
+class CMarkupTag;
+class CChars;
 
 
 //A board in one of the HCP65's device sockets (or the processor board's own registers in slot 0).
@@ -20,6 +22,8 @@ class CHCP65;
 //its own time: CatchUp is called before every access with the CPU cycle being accessed, and at the end of
 //every run chunk.  NextEvent says when the device's interrupt will next change on its own, so that the
 //computer can stop the processor then and raise it on time.
+//
+//LoadXML sets the board up from its <Board> tag in a mainboard description (CHCP65Mainboard), after Init.
 class CHCP65Device
 {
 protected:
@@ -33,6 +37,7 @@ public:
 
 	void			Attach(CHCP65* pcHCP65);
 	uint32			GetMinimumSlotSize(void);
+	virtual bool	LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError);
 
 	virtual uint8	Read(uint32 uiOffset) = 0;
 	virtual void	Write(uint32 uiOffset, uint8 uiValue) = 0;

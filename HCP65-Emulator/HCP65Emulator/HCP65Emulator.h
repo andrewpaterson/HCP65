@@ -4,14 +4,10 @@
 
 //Relative to the emulator's directory (HCP65Emulator/HCP65Emulator), as Visual Studio runs it.  TestHCP65Lib's
 //TestHCP65Kernal builds the ROM, and the SD card image (a copy of the blank Input/SDCard.img with boot.exe, modplay.exe
-//and SpaceDebris.mod on it), into its Output: run it first.
+//and SpaceDebris.mod on it) the machine descriptions name, into its Output: run it first.
 #define HCP65_EMULATOR_KERNAL_ROM		"../TestHCP65Lib/TestHCP65Lib/Output/Kernal.rom"
-#define HCP65_EMULATOR_SD_CARD_IMAGE	"../TestHCP65Lib/TestHCP65Lib/Output/SDCard.img"
-#define HCP65_EMULATOR_SD_SOCKET		2			//Socket 1 is the main memory channel.
-#define HCP65_EMULATOR_AUDIO_SOCKET		16
-#define HCP65_EMULATOR_DEBUG_SOCKET		7			//The debug port: the kernal tells it of its processes.
-#define HCP65_EMULATOR_UART_SOCKET		4			//The UART Board; nothing is on the far end of its ports yet.
-#define HCP65_EMULATOR_MEMORY_SOCKET	18			//The Memory Board: main memory, window 1 once the kernal has set it.
+#define HCP65_EMULATOR_MACHINE			"Machines/SmallMainboard.xml"	//The boards (CHCP65Mainboard) without --machine.
+#define HCP65_EMULATOR_ARGUMENT_MACHINE	"--machine"		//The mainboard description: which boards are in which sockets.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
 
 
@@ -26,29 +22,22 @@
 #include "WindowLib/NativeWindowFactory.h"
 #include "WindowLib/NativeSoundFactory.h"
 #include "HCP65Lib/HCP65.h"
-#include "HCP65Lib/HCP65Audio.h"
-#include "HCP65Lib/HCP65SDCard.h"
-#include "HCP65Lib/HCP65DebugPort.h"
-#include "HCP65Lib/HCP65UART.h"
+#include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
 #include "HCP65EmulatorDebugger.h"
 
 
-//The emulator: the HCP65 (its kernal ROM, the sound board, the UART Board and an SD card board with
-//HCP65_EMULATOR_SD_CARD_IMAGE, or the card given with --card) in a
-//window with a menu bar, and the input that drives it.  HCP65EmulatorRun makes it, adds it to the root, runs it and removes
-//it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
+//The emulator: the HCP65 (its kernal ROM, and the boards HCP65_EMULATOR_MACHINE or --machine's description puts in its
+//sockets; --card's image replaces the first SD Card Board's card) in a window with a menu bar, and the input that drives
+//it.  The first Sound Board is heard and the first Debug Port is the debugger's.  HCP65EmulatorRun makes it, adds it to
+//the root, runs it and removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
 class CHCP65EmulatorApp : public CObject
 {
 CONSTRUCTABLE(CHCP65EmulatorApp);
 DESTRUCTABLE(CHCP65EmulatorApp);
 protected:
 	CHCP65					mcHCP65;
-	CHCP65Audio				mcAudio;
-	CHCP65SDCard			mcSDCard;
-	CHCP65DebugPort			mcDebugPort;
-	CHCP65UARTBoard			mcUART;
-	CHCP65MemoryBoard		mcMemory;
+	CHCP65Mainboard			mcMainboard;
 	CHCP65EmulatorDebugger	mcDebugger;
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;

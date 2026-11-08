@@ -29,6 +29,7 @@
     <ClCompile Include="HCP65Audio.cpp" />
     <ClCompile Include="HCP65UART.cpp" />
     <ClCompile Include="HCP65MemoryBoard.cpp" />
+    <ClCompile Include="HCP65Mainboard.cpp" />
     <ClCompile Include="HCP65SDCard.cpp" />
     <ClCompile Include="HCP65DebugTarget.cpp" />
     <ClCompile Include="HCP65DebugPort.cpp" />
@@ -41,6 +42,7 @@
     <ClInclude Include="HCP65Audio.h" />
     <ClInclude Include="HCP65UART.h" />
     <ClInclude Include="HCP65MemoryBoard.h" />
+    <ClInclude Include="HCP65Mainboard.h" />
     <ClInclude Include="HCP65SDCard.h" />
     <ClInclude Include="HCP65DebugTarget.h" />
     <ClInclude Include="HCP65DebugPort.h" />
