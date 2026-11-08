@@ -57,12 +57,13 @@ uint16 BootCheckDevices(void)
 		return 2;
 	}
 
-	//A handle that isn't open, a board the kernal keeps, one there isn't and a unit there isn't.
+	//A handle that isn't open, a board the kernal keeps (the SD Card Board boot.exe was loaded from, which every HCP65
+	//has, unlike the emulator's Debug Port), one there isn't and a unit there isn't.
 	if (KernalDeviceClose(1) != KERNAL_DEVICE_BAD_HANDLE)
 	{
 		return 3;
 	}
-	if (KernalDeviceOpen("HCP65", "Debug Port", 0, 0, &uiHandle) != KERNAL_DEVICE_NOT_SUPPORTED)
+	if (KernalDeviceOpen("HCP65", "SD Card Board", 0, 0, &uiHandle) != KERNAL_DEVICE_NOT_SUPPORTED)
 	{
 		return 4;
 	}
