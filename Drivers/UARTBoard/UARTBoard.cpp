@@ -6,10 +6,11 @@
 #define UART_DEFAULT_IER	(UART_IER_RECEIVED | UART_IER_LINE_STATUS)
 #define UART_DEFAULT_FCR	(UART_FCR_ENABLE | UART_FCR_TRIGGER_8)
 
-//UART_WAIT_*'s kinds, its high word; the low word is the count.
-#define UART_WAIT_KIND_RX			(UART_WAIT_RX >> 16)
-#define UART_WAIT_KIND_TX_SPACE		(UART_WAIT_TX_SPACE >> 16)
-#define UART_WAIT_KIND_TX_EMPTY		(UART_WAIT_TX_EMPTY >> 16)
+//UART_WAIT_*'s kinds, its high word; the low word is the count.  Shifted as 32 bits: UART_WAIT_RX is a 16 bit int on the
+//W65C816, which can't be shifted by 16.
+#define UART_WAIT_KIND_RX			((uint32)UART_WAIT_RX >> 16)
+#define UART_WAIT_KIND_TX_SPACE		((uint32)UART_WAIT_TX_SPACE >> 16)
+#define UART_WAIT_KIND_TX_EMPTY		((uint32)UART_WAIT_TX_EMPTY >> 16)
 
 
 //////////////////////////////////////////////////////////////////////////
