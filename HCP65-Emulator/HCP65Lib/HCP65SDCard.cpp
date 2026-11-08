@@ -4,6 +4,7 @@
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/PointerFunctions.h"
 #include "BaseLib/MarkupTag.h"
+#include "BaseLib/XMLWriter.h"
 #include "HCP65.h"
 #include "HCP65Mainboard.h"
 #include "HCP65SDCard.h"
@@ -60,6 +61,7 @@ void CHCP65SDCard::Init(void)
 		masSockets[i].uiNumSectors = 0;
 		masSockets[i].bWriteBack = false;
 		masSockets[i].szFilename.Init();
+		masSockets[i].szXMLFile.Init();
 	}
 	mpsCard = &masSockets[0];
 	mpsReading = NULL;
@@ -85,6 +87,7 @@ void CHCP65SDCard::Kill(void)
 	{
 		RemoveCard(i);
 		masSockets[i].szFilename.Kill();
+		masSockets[i].szXMLFile.Kill();
 	}
 	CHCP65Device::Kill();
 }
@@ -129,8 +132,37 @@ bool CHCP65SDCard::LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* p
 		{
 			return false;
 		}
+
+		//Remembered even when a card is in the socket already: --card's image only lasts this run.
+		if (pcCard->GetStringAttribute("File"))
+		{
+			masSockets[uiSocket].szXMLFile.Kill();
+			masSockets[uiSocket].szXMLFile.Init(pcCard->GetStringAttribute("File"));
+		}
 	}
 	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A <Card> for each card that came from one, its File as it was written.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65SDCard::SaveXML(CXMLWriter* pcWriter)
+{
+	int		i;
+
+	for (i = 0; i < HCP65_SD_NUM_SOCKETS; i++)
+	{
+		if (!masSockets[i].szXMLFile.Empty())
+		{
+			pcWriter->Begin(HCP65_SD_CARD_XML_TAG);
+			pcWriter->Attribute("Socket", (int32)i);
+			pcWriter->Attribute("File", masSockets[i].szXMLFile.Text());
+			pcWriter->End();
+		}
+	}
 }
 
 
@@ -307,6 +339,8 @@ void CHCP65SDCard::RemoveCard(int iSocket)
 	SafeFree(psCard->puiImage);
 	psCard->uiNumSectors = 0;
 	psCard->bWriteBack = false;
+	psCard->szXMLFile.Kill();
+	psCard->szXMLFile.Init();
 	ResetCard(psCard);
 }
 

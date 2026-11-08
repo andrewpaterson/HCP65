@@ -76,6 +76,7 @@ public:
 	uint32	GetSampleRate(void);
 	uint32	NumFrames(void);
 	uint32	ReadFrames(uint8* puiDest, uint32 uiMaxFrames);
+	void	ClearFrames(void);
 	uint64	NumDroppedFrames(void);
 	uint8*	GetRAMA(void);
 	uint8*	GetRAMB(void);

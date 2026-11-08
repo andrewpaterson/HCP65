@@ -6,6 +6,7 @@
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/XMLFile.h"
 #include "BaseLib/MarkupTag.h"
+#include "BaseLib/XMLWriter.h"
 #include "HCP65Audio.h"
 #include "HCP65SDCard.h"
 #include "HCP65UART.h"
@@ -15,6 +16,9 @@
 
 //The mainboards' Type attributes, in EHCP65Mainboard order from HMB_Any.
 static const char*	gaszHCP65MainboardTypes[] = { "Any", "Small", "Full" };
+
+//The boards CreateBoard makes.
+static const char*	gaszHCP65BoardTypes[] = { HCP65_SD_NAME, HCP65_UART_NAME, HCP65_AUDIO_NAME, HCP65_MEMORY_BOARD_NAME };
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,6 +89,7 @@ void CHCP65Mainboard::Init(void)
 		mapcBoards[i] = NULL;
 		maszTypes[i] = NULL;
 	}
+	masSpares.Init();
 	mszCard.Init();
 }
 
@@ -98,12 +103,18 @@ void CHCP65Mainboard::Init(void)
 void CHCP65Mainboard::Kill(void)
 {
 	int		i;
+	size	uiSpare;
 
 	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
 		SafeKill(mapcBoards[i]);
 		maszTypes[i] = NULL;
 	}
+	for (uiSpare = 0; uiSpare < masSpares.NumElements(); uiSpare++)
+	{
+		SafeKill(masSpares.Get(uiSpare)->pcBoard);
+	}
+	masSpares.Kill();
 	mszCard.Kill();
 	meType = HMB_Unknown;
 }
@@ -334,6 +345,61 @@ bool CHCP65Mainboard::LoadBoard(CMarkupTag* pcTag, int iProcessor, const char* s
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The boards in their sockets as a description to szFilename.  Its cards'
+// files stay relative to where they were read from, so it should be the
+// file that was read or one beside it.  False, with pszError saying why,
+// if it can't be written.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65Mainboard::Write(const char* szFilename, CChars* pszError)
+{
+	CXMLWriter	cWriter;
+	bool		bResult;
+
+	cWriter.Init();
+	SaveXML(&cWriter);
+	bResult = cWriter.Write(szFilename);
+	cWriter.Kill();
+	if (!bResult)
+	{
+		pszError->Set("Could not write the mainboard description ");
+		pszError->Append(szFilename);
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What LoadXML reads.  Only one processor is emulated.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65Mainboard::SaveXML(CXMLWriter* pcWriter)
+{
+	int		i;
+
+	pcWriter->Begin(HCP65_MAINBOARD_XML_TAG);
+	pcWriter->Attribute("Type", gaszHCP65MainboardTypes[meType - HMB_Any]);
+	pcWriter->Begin(HCP65_MAINBOARD_PROCESSOR_TAG);
+	pcWriter->Attribute("Index", (int32)0);
+	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	{
+		if (mapcBoards[i])
+		{
+			pcWriter->Begin(HCP65_MAINBOARD_BOARD_TAG);
+			pcWriter->Attribute("Socket", (int32)i);
+			pcWriter->Attribute("Type", maszTypes[i]);
+			mapcBoards[i]->SaveXML(pcWriter);
+			pcWriter->End();
+		}
+	}
+	pcWriter->End();
+	pcWriter->End();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A new board whose device ROM names it szType (its Init'd), and the type's
 // own name in pszType (a string that lasts as long as the mainboard); NULL
 // if there's no such board.
@@ -399,6 +465,162 @@ bool CHCP65Mainboard::PlugIn(CHCP65* pcHCP65)
 		}
 	}
 	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Makes the sockets hold aszTypes (HCP65_NUM_DEVICE_SLOTS of them, NULL
+// for empty).  If a type won't go in its socket nothing changes and it's
+// false, with pszError saying why.  Every board leaving is out before any
+// goes in, so one can move to another socket, or two swap, and keep what
+// is on them.  A board that isn't changing isn't touched.  Reset the
+// HCP65 straight after (see the class).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65Mainboard::ChangeBoards(CHCP65* pcHCP65, const char** aszTypes, CChars* pszError)
+{
+	int		i;
+	bool	bResult;
+
+	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	{
+		if (aszTypes[i] && !CanHold(i, aszTypes[i]))
+		{
+			pszError->Set("Socket ");
+			pszError->Append(i);
+			pszError->Append(" can't hold a ");
+			pszError->Append(aszTypes[i]);
+			return false;
+		}
+	}
+
+	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	{
+		if (mapcBoards[i] && (!aszTypes[i] || (strcmp(aszTypes[i], maszTypes[i]) != 0)))
+		{
+			TakeOutBoard(pcHCP65, i);
+		}
+	}
+
+	bResult = true;
+	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
+	{
+		if (aszTypes[i] && !mapcBoards[i] && !PlugInBoard(pcHCP65, i, aszTypes[i]))
+		{
+			pszError->Set("Could not plug a ");
+			pszError->Append(aszTypes[i]);
+			pszError->Append(" into socket ");
+			pszError->Append(i);
+			bResult = false;
+		}
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The board in iSocket goes out, as it is, to be used again.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65Mainboard::TakeOutBoard(CHCP65* pcHCP65, int iSocket)
+{
+	SHCP65SpareBoard*	psSpare;
+
+	pcHCP65->SetDevice(iSocket, NULL);
+	psSpare = masSpares.Add();
+	psSpare->pcBoard = mapcBoards[iSocket];
+	psSpare->szType = maszTypes[iSocket];
+	mapcBoards[iSocket] = NULL;
+	maszTypes[iSocket] = NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A board of szType into the empty iSocket: one that was taken out, or
+// else a new one.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65Mainboard::PlugInBoard(CHCP65* pcHCP65, int iSocket, const char* szType)
+{
+	CHCP65Device*	pcBoard;
+	const char*		szKnownType;
+	size			i;
+
+	pcBoard = NULL;
+	for (i = 0; i < masSpares.NumElements(); i++)
+	{
+		if (strcmp(masSpares.Get(i)->szType, szType) == 0)
+		{
+			pcBoard = masSpares.Get(i)->pcBoard;
+			szKnownType = masSpares.Get(i)->szType;
+			masSpares.RemoveAt(i);
+			break;
+		}
+	}
+	if (pcBoard == NULL)
+	{
+		pcBoard = CreateBoard(szType, &szKnownType);
+		if (pcBoard == NULL)
+		{
+			return false;
+		}
+	}
+
+	mapcBoards[iSocket] = pcBoard;
+	maszTypes[iSocket] = szKnownType;
+	return pcHCP65->SetDevice(iSocket, pcBoard);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the emulated processor's iSocket can hold a board of szType: it
+// is one of the mainboard's sockets and big enough.  The board's size is
+// its own (CHCP65Device::Init), so one is made to ask it.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65Mainboard::CanHold(int iSocket, const char* szType)
+{
+	CHCP65Device*	pcBoard;
+	const char*		szKnownType;
+	bool			bResult;
+
+	if (!HasSocket(meType, 0, iSocket))
+	{
+		return false;
+	}
+	pcBoard = CreateBoard(szType, &szKnownType);
+	if (pcBoard == NULL)
+	{
+		return false;
+	}
+	bResult = pcBoard->GetMinimumSlotSize() <= GetSocketSize(iSocket);
+	SafeKill(pcBoard);
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The boards there are, in the order to offer them.
+//
+//////////////////////////////////////////////////////////////////////////
+size CHCP65Mainboard::NumBoardTypes(void)
+{
+	return sizeof(gaszHCP65BoardTypes) / sizeof(gaszHCP65BoardTypes[0]);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+const char* CHCP65Mainboard::GetBoardTypeName(size uiIndex)
+{
+	return gaszHCP65BoardTypes[uiIndex];
 }
 
 

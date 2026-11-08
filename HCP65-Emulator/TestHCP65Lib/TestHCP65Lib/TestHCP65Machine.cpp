@@ -7,6 +7,7 @@
 #include "DeviceRomLib/DeviceROMSchematic.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
+#include "HCP65Lib/HCP65Mainboard.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
 #include "TestLib/Assert.h"
@@ -1063,6 +1064,177 @@ void TestHCP65DeviceTick(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// szFilename is written with uiSize bytes of nothing, or szText if it's
+// given.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65WriteFile(const char* szFilename, const char* szText, size uiSize)
+{
+	FILE*	pFile;
+	size	i;
+
+	pFile = fopen(szFilename, "wb");
+	AssertNotNull(pFile);
+	if (szText)
+	{
+		fputs(szText, pFile);
+	}
+	for (i = 0; i < uiSize; i++)
+	{
+		fputc(0, pFile);
+	}
+	fclose(pFile);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Changing the boards in the sockets, and writing what's in them.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65MainboardChangeBoards(void)
+{
+	CHCP65				cHCP65;
+	CHCP65Mainboard		cMainboard;
+	CHCP65Mainboard		cWritten;
+	CChars				szError;
+	CFileUtil			cFileUtil;
+	const char*			aszTypes[HCP65_NUM_DEVICE_SLOTS];
+	CHCP65Device*		pcSDCard;
+	CHCP65Device*		pcUART;
+	CHCP65Device*		pcAudio;
+	CHCP65Device*		pcMemory;
+	CHCP65Device*		pcNewAudio;
+
+	DataMemoryInit();
+	szError.Init();
+	cFileUtil.TouchDir("Output");
+	TestHCP65WriteFile("Output" _FS_ "MainboardCard.img", NULL, 1024);
+	TestHCP65WriteFile("Output" _FS_ "Mainboard.xml",
+		"<Mainboard Type=\"Small\"><Processor Index=\"0\">"
+		"<Board Socket=\"3\" Type=\"SD Card Board\"><Card Socket=\"1\" File=\"MainboardCard.img\"/></Board>"
+		"<Board Socket=\"4\" Type=\"UART Board\"/>"
+		"<Board Socket=\"16\" Type=\"Sound Board\"/>"
+		"<Board Socket=\"18\" Type=\"Memory Board\"/>"
+		"</Processor></Mainboard>", 0);
+
+	//--card's image is in card socket 0: it isn't in the description, so it won't be written.
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	cMainboard.Init();
+	cMainboard.SetCard("Output" _FS_ "MainboardCard.img");
+	AssertTrue(cMainboard.Read("Output" _FS_ "Mainboard.xml", &szError));
+	AssertString("", szError.Text());
+	AssertTrue(cMainboard.PlugIn(&cHCP65));
+	pcSDCard = cMainboard.GetBoard(3);
+	pcUART = cMainboard.GetBoard(4);
+	pcAudio = cMainboard.GetBoard(16);
+	pcMemory = cMainboard.GetBoard(18);
+	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(0));
+	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
+
+	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
+	AssertSize(4, CHCP65Mainboard::NumBoardTypes());
+	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
+	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
+	AssertFalse(cMainboard.CanHold(3, HCP65_AUDIO_NAME));
+	AssertTrue(cMainboard.CanHold(16, HCP65_AUDIO_NAME));
+	AssertFalse(cMainboard.CanHold(5, HCP65_SD_NAME));
+	AssertFalse(cMainboard.CanHold(1, HCP65_SD_NAME));
+	AssertFalse(cMainboard.CanHold(16, "No Such Board"));
+
+	//One that won't fit stops all of them, before anything changes.
+	memset(aszTypes, 0, sizeof(aszTypes));
+	aszTypes[3] = HCP65_AUDIO_NAME;
+	AssertFalse(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	AssertFalse(szError.Empty());
+	AssertTrue(pcSDCard == cMainboard.GetBoard(3));
+	AssertTrue(pcUART == cMainboard.GetBoard(4));
+	AssertTrue(pcAudio == cMainboard.GetBoard(16));
+	AssertTrue(pcMemory == cHCP65.GetDevice(18));
+
+	//The same boards again: nothing moves.
+	memset(aszTypes, 0, sizeof(aszTypes));
+	aszTypes[3] = HCP65_SD_NAME;
+	aszTypes[4] = HCP65_UART_NAME;
+	aszTypes[16] = HCP65_AUDIO_NAME;
+	aszTypes[18] = HCP65_MEMORY_BOARD_NAME;
+	AssertTrue(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	AssertTrue(pcSDCard == cMainboard.GetBoard(3));
+	AssertTrue(pcMemory == cMainboard.GetBoard(18));
+
+	//Two swap and one moves: they are the same boards, and the SD Card Board has its cards.
+	aszTypes[3] = HCP65_UART_NAME;
+	aszTypes[4] = HCP65_SD_NAME;
+	aszTypes[16] = NULL;
+	aszTypes[17] = HCP65_AUDIO_NAME;
+	AssertTrue(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	AssertTrue(pcUART == cMainboard.GetBoard(3));
+	AssertTrue(pcUART == cHCP65.GetDevice(3));
+	AssertTrue(pcSDCard == cMainboard.GetBoard(4));
+	AssertTrue(pcSDCard == cHCP65.GetDevice(4));
+	AssertNull(cMainboard.GetBoard(16));
+	AssertNull(cHCP65.GetDevice(16));
+	AssertTrue(cMainboard.GetBoardType(16) == NULL);
+	AssertTrue(pcAudio == cMainboard.GetBoard(17));
+	AssertTrue(pcAudio == cHCP65.GetDevice(17));
+	AssertTrue(pcAudio == cMainboard.FindBoard(HCP65_AUDIO_NAME));
+	AssertTrue(pcMemory == cMainboard.GetBoard(18));
+	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
+
+	//The Memory Board taken out leaves no main memory, and comes back with what was on it.
+	AssertNotNull(cHCP65.MainMemoryAt(0x123456));
+	*cHCP65.MainMemoryAt(0x123456) = 0x5A;
+	aszTypes[18] = NULL;
+	AssertTrue(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	AssertNull(cHCP65.MainMemoryAt(0x123456));
+	cHCP65.Reset();
+	aszTypes[18] = HCP65_MEMORY_BOARD_NAME;
+	AssertTrue(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	cHCP65.Reset();
+	AssertTrue(pcMemory == cMainboard.GetBoard(18));
+	AssertNotNull(cHCP65.MainMemoryAt(0x123456));
+	AssertInt(0x5A, *cHCP65.MainMemoryAt(0x123456));
+
+	//With none out, a new board is made; the one that was out goes in first.
+	aszTypes[17] = NULL;
+	AssertTrue(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	aszTypes[17] = HCP65_AUDIO_NAME;
+	aszTypes[19] = HCP65_AUDIO_NAME;
+	AssertTrue(cMainboard.ChangeBoards(&cHCP65, aszTypes, &szError));
+	AssertTrue(pcAudio == cMainboard.GetBoard(17));
+	pcNewAudio = cMainboard.GetBoard(19);
+	AssertNotNull(pcNewAudio);
+	AssertTrue(pcNewAudio != pcAudio);
+	AssertTrue(pcNewAudio == cHCP65.GetDevice(19));
+	AssertString(HCP65_AUDIO_NAME, cMainboard.GetBoardType(19));
+
+	//Written, the description reads back to the same boards with the card from its own <Card> and not --card's.
+	szError.Set("");
+	AssertTrue(cMainboard.Write("Output" _FS_ "MainboardWritten.xml", &szError));
+	AssertString("", szError.Text());
+	cWritten.Init();
+	AssertTrue(cWritten.Read("Output" _FS_ "MainboardWritten.xml", &szError));
+	AssertString("", szError.Text());
+	AssertInt(HMB_Small, cWritten.GetType());
+	AssertString(HCP65_UART_NAME, cWritten.GetBoardType(3));
+	AssertString(HCP65_SD_NAME, cWritten.GetBoardType(4));
+	AssertTrue(cWritten.GetBoardType(16) == NULL);
+	AssertString(HCP65_AUDIO_NAME, cWritten.GetBoardType(17));
+	AssertString(HCP65_MEMORY_BOARD_NAME, cWritten.GetBoardType(18));
+	AssertString(HCP65_AUDIO_NAME, cWritten.GetBoardType(19));
+	AssertInt(0, ((CHCP65SDCard*)cWritten.GetBoard(4))->NumSectors(0));
+	AssertInt(2, ((CHCP65SDCard*)cWritten.GetBoard(4))->NumSectors(1));
+	cWritten.Kill();
+
+	cHCP65.Kill();
+	cMainboard.Kill();
+	szError.Kill();
+	DataMemoryKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -1082,6 +1254,7 @@ void TestHCP65Machine(void)
 	TestHCP65Contention();
 	TestHCP65MemoryFill();
 	TestHCP65MemoryBoard();
+	TestHCP65MainboardChangeBoards();
 
 	TestStatistics();
 }

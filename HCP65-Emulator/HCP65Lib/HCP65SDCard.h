@@ -54,6 +54,7 @@ struct SHCP65SDCardSocket
 	uint32				uiNumSectors;
 	bool				bWriteBack;
 	CChars				szFilename;
+	CChars				szXMLFile;			//What its <Card> tag's File said, as written; empty if it didn't come from one.
 	EHCP65SDCardState	eState;
 	bool				bApplicationCommand;
 	uint16				uiRCA;
@@ -120,6 +121,7 @@ public:
 	void	Init(void);
 	void	Kill(void) override;
 	bool	LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError) override;
+	void	SaveXML(CXMLWriter* pcWriter) override;
 
 	bool	InsertCard(const char* szImageFilename, bool bWriteBack, int iSocket = 0);
 	bool	InsertCard(uint8* puiImage, uint32 uiSize, int iSocket = 0);

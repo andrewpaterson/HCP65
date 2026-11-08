@@ -1,5 +1,6 @@
 #ifndef __HCP65_MAINBOARD_H__
 #define __HCP65_MAINBOARD_H__
+#include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/Chars.h"
 #include "HCP65.h"
 
@@ -11,6 +12,18 @@
 
 
 class CMarkupTag;
+class CXMLWriter;
+
+
+//A board out of its socket.
+struct SHCP65SpareBoard
+{
+	CHCP65Device*	pcBoard;
+	const char*		szType;
+};
+
+
+typedef CArrayTemplate<SHCP65SpareBoard>	CArrayHCP65SpareBoards;
 
 
 //Which mainboard the HCP65's boards are plugged into, which says which device sockets there are.
@@ -41,12 +54,18 @@ enum EHCP65Mainboard
 //
 //The mainboard makes and owns the boards: Kill them after the HCP65 they are plugged into.  A subclass can make more
 //kinds of board (a test's own) by overriding CreateBoard.
+//
+//ChangeBoards changes which boards are in the sockets, and is only for the moment of a system reset: reset the HCP65
+//straight after it.  A board taken out is kept as it is, with its memory and cards, and is what goes in next when a
+//board of its Type is asked for; a new board is only made when there is none.  Write saves the description, without
+//the boards that are out, and without --card's image.
 class CHCP65Mainboard
 {
 protected:
 	EHCP65Mainboard	meType;
 	CHCP65Device*	mapcBoards[HCP65_NUM_DEVICE_SLOTS];		//The emulated processor's sockets, NULL where empty.
 	const char*		maszTypes[HCP65_NUM_DEVICE_SLOTS];		//Each board's Type.
+	CArrayHCP65SpareBoards	masSpares;						//The boards taken out.
 	CChars			mszCard;								//SetCard's, put in the first SD Card Board.
 
 public:
@@ -56,20 +75,28 @@ public:
 	void			SetCard(const char* szImageFilename);
 	bool			Read(const char* szFilename, CChars* pszError);
 	bool			LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError);
+	bool			Write(const char* szFilename, CChars* pszError);
+	void			SaveXML(CXMLWriter* pcWriter);
 	bool			PlugIn(CHCP65* pcHCP65);
+	bool			ChangeBoards(CHCP65* pcHCP65, const char** aszTypes, CChars* pszError);
 
 	EHCP65Mainboard	GetType(void);
 	CHCP65Device*	GetBoard(int iSocket);
 	const char*		GetBoardType(int iSocket);
 	CHCP65Device*	FindBoard(const char* szType);
+	bool			CanHold(int iSocket, const char* szType);
 
 	static int		NumProcessors(EHCP65Mainboard eType);
 	static bool		HasSocket(EHCP65Mainboard eType, int iProcessor, int iSocket);
 	static uint32	GetSocketSize(int iSocket);
+	static size		NumBoardTypes(void);
+	static const char*	GetBoardTypeName(size uiIndex);
 
 protected:
 	bool			LoadProcessor(CMarkupTag* pcTag, const char* szDirectory, bool* pbSeen, CChars* pszError);
 	bool			LoadBoard(CMarkupTag* pcTag, int iProcessor, const char* szDirectory, CChars* pszError);
+	bool			PlugInBoard(CHCP65* pcHCP65, int iSocket, const char* szType);
+	void			TakeOutBoard(CHCP65* pcHCP65, int iSocket);
 	virtual CHCP65Device*	CreateBoard(const char* szType, const char** pszType);
 };
 
