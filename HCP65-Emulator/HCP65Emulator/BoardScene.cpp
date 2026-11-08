@@ -9,6 +9,7 @@
 #include "SupportLib/Mesh.h"
 #include "SupportLib/MeshEdgeCollapse.h"
 #include "SupportLib/MeshFixReversed.h"
+#include "SupportLib/MeshMergeNormals.h"
 #include "SupportLib/MeshModifierStack.h"
 #include "SupportLib/MeshReader.h"
 #include "SupportLib/MeshWeldCorners.h"
@@ -28,7 +29,7 @@
 #define BOARD_SCENE_MAX_ERROR_MM	0.25
 
 //Change this when what's done to a model changes, so a model saved by the old way isn't loaded.
-#define BOARD_SCENE_MODEL_VERSION	3
+#define BOARD_SCENE_MODEL_VERSION	4
 
 //Turned from looking straight down on the board (the camera's start) to 30 degrees up from its plane: 60 degrees, taking
 //its back edge away from the eye.
@@ -354,6 +355,7 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 			cModifiers.AddModifier<CMeshFixReversed>()->Init();
 			cModifiers.AddModifier<CMeshWeldCorners>()->Init();
 			cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(BOARD_SCENE_MAX_ERROR_MM / psModel->fMillimetresPerUnit));
+			cModifiers.AddModifier<CMeshMergeNormals>()->Init(0.0f);
 			pOutput = cModifiers.GetOutput();
 			pcModel->Build(&pOutput, BoardSceneUnits(psModel->fMillimetresPerUnit));
 			pOutput = NULL;
