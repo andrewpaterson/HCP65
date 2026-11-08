@@ -55,6 +55,7 @@ protected:
 	Ptr<CWindowTheme>		mpTheme;
 	SDialogLook				msDialogLook;
 	Ptr<CBoardConfigurationDialog>	mpBoardDialog;	//While it's shown.
+	Ptr<CBoardSceneDraw>	mpBoardScene;	//Made when the dialog is first shown and kept, as it holds the models.  NULL if there's no model.
 	CChars					mszMachine;		//The mainboard description the boards were read from.
 	Ptr<CInput>				mpInput;
 	Ptr<CWindowInputSource>	mpInputSource;

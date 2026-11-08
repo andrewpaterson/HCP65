@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "BaseLib/Timer.h"
 #include "StandardLib/ClassDefines.h"
 #include "StandardLib/Objects.h"
 #include "BoardConfigurationDialog.h"
@@ -7,10 +8,10 @@
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The mainboard isn't held.
+// The mainboard isn't held.  pScene can be NULL, for no picture.
 //
 //////////////////////////////////////////////////////////////////////////
-void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, CHCP65Mainboard* pcMainboard)
+void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, CHCP65Mainboard* pcMainboard, Ptr<CBoardSceneDraw> pScene)
 {
 	int		i;
 
@@ -18,7 +19,18 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 
 	maCombos.Init();
 	mpcMainboard = pcMainboard;
+	mpScene = pScene;
+	mbPainted = false;
+	miStartTime = -1;
 	mpDialog = OMalloc<CDialog>(pOwner, psLook, "Board Configuration");
+	if (pScene.IsNotNull())
+	{
+		mpSceneCanvas = OMalloc<CCanvas>(mpDialog->GetWindow(), pScene);
+		mpSceneCanvas->SetDesiredSize(BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT);
+		mpSceneCanvas->SetAlignment(CSH_Center, CSV_Center);
+		mpDialog->AddEditor(NULL, mpSceneCanvas);
+		mpDialog->SetTicker(this, &CBoardConfigurationDialog::TickScene);
+	}
 	for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
 	{
 		if (CHCP65Mainboard::HasSocket(pcMainboard->GetType(), 0, i))
@@ -40,6 +52,10 @@ void CBoardConfigurationDialog::Class(void)
 	M_Pointer(mpDialog);
 	M_Embedded(maCombos);
 	U_Pointer(mpcMainboard);
+	M_Pointer(mpSceneCanvas);
+	M_Pointer(mpScene);
+	U_Bool(mbPainted);
+	U_Int64(miStartTime);
 }
 
 
@@ -49,6 +65,10 @@ void CBoardConfigurationDialog::Class(void)
 //////////////////////////////////////////////////////////////////////////
 void CBoardConfigurationDialog::Free(void)
 {
+	if (mpDialog.IsNotNull())
+	{
+		mpDialog->ClearTicker();
+	}
 }
 
 
@@ -69,6 +89,50 @@ bool CBoardConfigurationDialog::Save(CObjectWriter* pcFile)
 bool CBoardConfigurationDialog::Load(CObjectReader* pcFile)
 {
 	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The dialog's ticker.  Nothing reaches the screen while a model is being
+// read, so the first tick paints the dialog and the window's messages are
+// handled before the next tick.  After that each tick loads a model that's
+// wanted and isn't yet, or else moves the picture on.  So what's chosen
+// appears in its socket as soon as it can be.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardConfigurationDialog::TickScene(void)
+{
+	const char*	aszTypes[HCP65_NUM_DEVICE_SLOTS];
+	int64		iNow;
+
+	if (!mbPainted)
+	{
+		mbPainted = true;
+		mpDialog->GetWindow()->Paint();
+		mpDialog->GetWindow()->RequestTick(BOARD_CONFIGURATION_FRAME_MS);
+		return;
+	}
+
+	GetTypes(aszTypes);
+	if (mpScene->LoadNext(aszTypes))
+	{
+		mpScene->SetBoards(aszTypes);
+		mpSceneCanvas->Invalidate();
+		mpDialog->GetWindow()->Paint();
+		mpDialog->GetWindow()->RequestTick(1);
+		return;
+	}
+
+	iNow = GetDebugTickCount();
+	if (miStartTime < 0)
+	{
+		miStartTime = iNow;
+	}
+	mpScene->SetBoards(aszTypes);
+	mpScene->SetYaw((float32)((iNow - miStartTime) % BOARD_CONFIGURATION_TURN_MS) * 6.28318530718f / BOARD_CONFIGURATION_TURN_MS);
+	mpSceneCanvas->Invalidate();
+	mpDialog->GetWindow()->RequestTick(BOARD_CONFIGURATION_FRAME_MS);
 }
 
 

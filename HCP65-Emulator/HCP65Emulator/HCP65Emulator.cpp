@@ -312,6 +312,7 @@ void CHCP65EmulatorApp::Class(void)
 	U_Pointer(msDialogLook.pcTheme);
 	U_Pointer(msDialogLook.pcDimFont);
 	M_Pointer(mpBoardDialog);
+	M_Pointer(mpBoardScene);
 	U_String(mszMachine);
 	M_Pointer(mpInput);
 	M_Pointer(mpInputSource);
@@ -403,7 +404,12 @@ void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 {
 	const char*	aszTypes[HCP65_NUM_DEVICE_SLOTS];
 
-	mpBoardDialog = OMalloc<CBoardConfigurationDialog>(mpWindow, &msDialogLook, &mcMainboard);
+	//Only the Small Mainboard has a model.
+	if (mpBoardScene.IsNull() && (mcMainboard.GetType() == HMB_Small) && CBoardSceneDraw::HasMainboardModel())
+	{
+		mpBoardScene = OMalloc<CBoardSceneDraw>(mpTheme);
+	}
+	mpBoardDialog = OMalloc<CBoardConfigurationDialog>(mpWindow, &msDialogLook, &mcMainboard, mpBoardScene);
 	if (mpBoardDialog->Show())
 	{
 		mpBoardDialog->GetTypes(aszTypes);

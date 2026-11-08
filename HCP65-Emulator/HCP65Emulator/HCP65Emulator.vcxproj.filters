@@ -19,6 +19,9 @@
     <ClCompile Include="BoardConfigurationDialog.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="BoardScene.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="HCP65EmulatorWindows.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -40,6 +43,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="BoardConfigurationDialog.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="BoardScene.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65Emulator.h">
