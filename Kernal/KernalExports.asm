@@ -102,15 +102,15 @@ _gauiKernalExports:
 		.long _KernalGetDriver__Ft
 		.long Export_KernalGetDriver__Ft_a
 		.long _KernalGetDriver__Ft.a
-		.long Export_KernalFindDriver__FPcPct
-		.long _KernalFindDriver__FPcPct
-		.long Export_KernalFindDriver__FPcPct_axssy
-		.long _KernalFindDriver__FPcPct.axssy
+		.long Export_KernalFindDriver__FPKcPKct
+		.long _KernalFindDriver__FPKcPKct
+		.long Export_KernalFindDriver__FPKcPKct_axssy
+		.long _KernalFindDriver__FPKcPKct.axssy
 		; Interrupts and time (KernalInterrupts.h).
-		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPhb
-		.long _KernalSetInterruptHandler__FtPFvPvEPvPhb
-		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPhb_axy
-		.long _KernalSetInterruptHandler__FtPFvPvEPvPhb.axy
+		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb
+		.long _KernalSetInterruptHandler__FtPFvPvEPvPVhb
+		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb_axy
+		.long _KernalSetInterruptHandler__FtPFvPvEPvPVhb.axy
 		.long Export_KernalClearInterruptHandler__Ft
 		.long _KernalClearInterruptHandler__Ft
 		.long Export_KernalClearInterruptHandler__Ft_a
@@ -134,10 +134,10 @@ _gauiKernalExports:
 		.long _KernalUserPointer__FjPj
 		.long Export_KernalUserPointer__FjPj_ax
 		.long _KernalUserPointer__FjPj.ax
-		.long Export_KernalCopyToUser__FjPhj
-		.long _KernalCopyToUser__FjPhj
-		.long Export_KernalCopyToUser__FjPhj_ax
-		.long _KernalCopyToUser__FjPhj.ax
+		.long Export_KernalCopyToUser__FjPKhj
+		.long _KernalCopyToUser__FjPKhj
+		.long Export_KernalCopyToUser__FjPKhj_ax
+		.long _KernalCopyToUser__FjPKhj.ax
 		.long Export_KernalCopyFromUser__FPhjj
 		.long _KernalCopyFromUser__FPhjj
 		.long Export_KernalCopyFromUser__FPhjj_ax
@@ -236,14 +236,14 @@ Export_KernalGetDriver__Ft:
 		.byte "_KernalGetDriver__Ft", 0
 Export_KernalGetDriver__Ft_a:
 		.byte "_KernalGetDriver__Ft.a", 0
-Export_KernalFindDriver__FPcPct:
-		.byte "_KernalFindDriver__FPcPct", 0
-Export_KernalFindDriver__FPcPct_axssy:
-		.byte "_KernalFindDriver__FPcPct.axssy", 0
-Export_KernalSetInterruptHandler__FtPFvPvEPvPhb:
-		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPhb", 0
-Export_KernalSetInterruptHandler__FtPFvPvEPvPhb_axy:
-		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPhb.axy", 0
+Export_KernalFindDriver__FPKcPKct:
+		.byte "_KernalFindDriver__FPKcPKct", 0
+Export_KernalFindDriver__FPKcPKct_axssy:
+		.byte "_KernalFindDriver__FPKcPKct.axssy", 0
+Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb:
+		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPVhb", 0
+Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb_axy:
+		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPVhb.axy", 0
 Export_KernalClearInterruptHandler__Ft:
 		.byte "_KernalClearInterruptHandler__Ft", 0
 Export_KernalClearInterruptHandler__Ft_a:
@@ -266,10 +266,10 @@ Export_KernalUserPointer__FjPj:
 		.byte "_KernalUserPointer__FjPj", 0
 Export_KernalUserPointer__FjPj_ax:
 		.byte "_KernalUserPointer__FjPj.ax", 0
-Export_KernalCopyToUser__FjPhj:
-		.byte "_KernalCopyToUser__FjPhj", 0
-Export_KernalCopyToUser__FjPhj_ax:
-		.byte "_KernalCopyToUser__FjPhj.ax", 0
+Export_KernalCopyToUser__FjPKhj:
+		.byte "_KernalCopyToUser__FjPKhj", 0
+Export_KernalCopyToUser__FjPKhj_ax:
+		.byte "_KernalCopyToUser__FjPKhj.ax", 0
 Export_KernalCopyFromUser__FPhjj:
 		.byte "_KernalCopyFromUser__FPhjj", 0
 Export_KernalCopyFromUser__FPhjj_ax:

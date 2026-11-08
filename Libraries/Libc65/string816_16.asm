@@ -549,7 +549,7 @@ Difference:
 
 
 		.section text.MemSwp816_16
-		.global _MemSwp16__FPvPvt, _MemSwp16__FPvPvt.axssy
+		.global _MemSwp16__FPKvPKvt, _MemSwp16__FPKvPKvt.axssy
 
 ; void MemSwp16(const void* pv1, const void* pv2, size uiLength) (BaseLib's StringHelper.h; MemSwp,
 ; with an lsize length, is string816.asm's): a word at a time, then the byte left,
@@ -560,7 +560,7 @@ MemSwp16P1	= 3
 MemSwp16Length	= 7
 MemSwp16P2	= 12
 
-_MemSwp16__FPvPvt.axssy:
+_MemSwp16__FPKvPKvt.axssy:
 		.width (A, X), 16
 		phy
 		phx
@@ -609,7 +609,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 again under its return address, loads pv1 and uiLength
 ; into A, X and Y and calls the register entry.
-_MemSwp16__FPvPvt:
+_MemSwp16__FPKvPKvt:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -620,7 +620,7 @@ _MemSwp16__FPvPvt:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _MemSwp16__FPvPvt.axssy
+		jsl _MemSwp16__FPKvPKvt.axssy
 		ply
 		ply
 		rtl

@@ -1343,7 +1343,7 @@ MoreNone:
 
 
 		.section text.MemSwp816
-		.global _MemSwp__FPvPvj, _MemSwp__FPvPvj.ax
+		.global _MemSwp__FPKvPKvj, _MemSwp__FPKvPKvj.ax
 
 ; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
 ; out for the W65C816; string816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
@@ -1354,7 +1354,7 @@ MemSwpP1	= 3
 MemSwpP2	= 10
 MemSwpLength	= 14
 
-_MemSwp__FPvPvj.ax:
+_MemSwp__FPKvPKvj.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -1404,7 +1404,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 and the length again under its return address, loads pv1
 ; into A and X and calls the register entry.
-_MemSwp__FPvPvj:
+_MemSwp__FPKvPKvj:
 		.width (A, X), 16
 		lda [S + 14]
 		pha
@@ -1417,7 +1417,7 @@ _MemSwp__FPvPvj:
 		lda [S + 14]
 		tax
 		lda [S + 12]
-		jsl _MemSwp__FPvPvj.ax
+		jsl _MemSwp__FPKvPKvj.ax
 		tsc
 		clc
 		adc 8
