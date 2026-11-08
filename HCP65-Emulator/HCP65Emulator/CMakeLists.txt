@@ -155,6 +155,9 @@ target_compile_definitions(baselib_options INTERFACE
 # -Wno-unused-parameter: virtual overrides and callbacks often ignore parameters.
 target_compile_options(baselib_options INTERFACE -m64 -fno-strict-aliasing -Wall -Wextra -Wno-ignored-attributes -Wno-write-strings -Wno-multichar -Wno-class-memaccess -Wno-overloaded-virtual -Wno-comment -Wno-unused-parameter)
 target_link_options(baselib_options INTERFACE -m64)
+# The Visual Studio configurations all use /arch:AVX2, which defines __AVX2__ (RasterLib tests rows of small triangles and
+# PNGWriter.cpp writes with AVX2 paths).  -march=haswell is the same set of instructions.
+target_compile_options(baselib_options INTERFACE -march=haswell)
 if(BASELIB_ASAN)
 	target_compile_options(baselib_options INTERFACE -fsanitize=address -fno-omit-frame-pointer)
 	target_link_options(baselib_options INTERFACE -fsanitize=address)
