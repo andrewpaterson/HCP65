@@ -38,7 +38,7 @@
 #define BOARD_SCENE_MAX_NORMAL_ANGLE	1.3962634f
 
 //Change this when what's done to a model changes, so a model saved by the old way isn't loaded.
-#define BOARD_SCENE_MODEL_VERSION	5
+#define BOARD_SCENE_MODEL_VERSION	6
 
 //Turned from looking straight down on the board (the camera's start) to 30 degrees up from its plane: 60 degrees, taking
 //its back edge away from the eye.
