@@ -362,7 +362,7 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 	if (!bResult)
 	{
 		pMesh = OMalloc<CMesh>();
-		bResult = ReadMesh(pMesh, (char*)psModel->szFile, MT_VRML);
+		bResult = ReadMesh(pMesh, psModel->szFile, MT_VRML);
 		if (bResult)
 		{
 			cModifiers.Init(pMesh);
