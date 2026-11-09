@@ -3,6 +3,8 @@
 #include <sys/stat.h>
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/Logger.h"
+#include "BaseLib/LogString.h"
+#include "BaseLib/Timer.h"
 #include "StandardLib/ClassDefines.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/ImageCel.h"
@@ -13,6 +15,7 @@
 #include "SupportLib/MeshModifierStack.h"
 #include "SupportLib/MeshReader.h"
 #include "SupportLib/MeshWeldCorners.h"
+#include "SupportLib/SceneFileMesh.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65MemoryBoard.h"
@@ -37,14 +40,13 @@
 //tenth of the pixels are clearly wrong.
 #define BOARD_SCENE_MAX_NORMAL_ANGLE	1.3962634f
 
-//Change this when what's done to a model changes, so a model saved by the old way isn't loaded.
-#define BOARD_SCENE_MODEL_VERSION	6
-
 //Turned from looking straight down on the board (the camera's start) to 30 degrees up from its plane: 60 degrees, taking
 //its back edge away from the eye.
 #define BOARD_SCENE_PITCH			-1.04719755f
 #define BOARD_SCENE_MARGIN			8
 
+//Where each model's mesh is saved, as a scene file of one mesh with the model's name.  It's used for as long as it's at least
+//as new as the model's export.  Nothing else says it's out of date, so delete them when what's done to a model changes.
 #define BOARD_SCENE_MODEL_DIRECTORY	"Output/Models"
 #define BOARD_SCENE_MAINBOARD		0
 #define BOARD_SCENE_PROCESSOR		1
@@ -322,65 +324,75 @@ bool CBoardSceneDraw::LoadNext(const char** aszTypes)
 }
 
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// The mesh is saved to a scene file once its modifiers have run, without
+// materials, as a board only has colours.  False if it couldn't be, when the
+// writer leaves no file.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool SaveBoardSceneModel(const char* szSaved, const char* szName, Ptr<CMesh> pMesh)
+{
+	CSceneFileWriter		cWriter;
+	CArraySceneFileIndex	aiMaterials;
+	Ptr<CMeshEditor>		pEditor;
+	bool					bResult;
+
+	pEditor = OMalloc<CMeshEditor>(pMesh);
+	pEditor->mszName.Set(szName);
+	aiMaterials.Init();
+	cWriter.Init(szSaved);
+	bResult = cWriter.Open();
+	if (bResult)
+	{
+		bResult = WriteSceneFileMesh(&cWriter, &pEditor, &aiMaterials);
+		bResult = cWriter.Close() && bResult;
+	}
+	cWriter.Kill();
+	aiMaterials.Kill();
+	pEditor = NULL;
+	return bResult;
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
-// From what was saved of it, if that was made from the file as it is now.
-// Otherwise the file is read, its modifiers run, and what comes out is built
-// and saved for next time.  It is scaled once and for all, and all the models are at one scale.
+// From its saved mesh, if that's at least as new as its export.  Otherwise
+// the export is read, its modifiers run, and what comes out is saved for next
+// time.  Either way the mesh is built once and for all, at the one scale all
+// the models are at.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::LoadModel(int iModel)
 {
 	const SBoardSceneModel*	psModel;
-	CRasterMesh*			pcModel;
 	CFileUtil				cFileUtil;
-	CMeshModifierStack		cModifiers;
-	Ptr<CMesh>				pMesh;
-	Ptr<CMesh>				pOutput;
 	CChars					szSaved;
 	struct stat				sFile;
-	uint64					uiSource;
+	struct stat				sSaved;
+	int64					iStart;
+	bool					bFromSaved;
 	bool					bResult;
 
 	psModel = &gasBoardSceneModels[iModel];
-	pcModel = &macModels[iModel];
 	mabTried[iModel] = true;
 	if (stat(psModel->szFile, &sFile) != 0)
 	{
 		return false;
 	}
 
-	//Which export this is, and what's done to it.
-	uiSource = ((uint64)sFile.st_mtime << 24) ^ (uint64)sFile.st_size ^ ((uint64)BOARD_SCENE_MODEL_VERSION << 48);
-
 	cFileUtil.TouchDir("Output");
 	cFileUtil.TouchDir(BOARD_SCENE_MODEL_DIRECTORY);
 	szSaved.Init(BOARD_SCENE_MODEL_DIRECTORY "/");
 	szSaved.Append(psModel->szSaved);
-	szSaved.Append(".rastermesh");
-	bResult = pcModel->Load(szSaved.Text(), uiSource);
-	if (!bResult)
+	szSaved.Append(".DRG");
+
+	iStart = GetDebugTickCount();
+	bFromSaved = (stat(szSaved.Text(), &sSaved) == 0) && (sSaved.st_mtime >= sFile.st_mtime) && LoadSavedModel(iModel, szSaved.Text());
+	bResult = bFromSaved || LoadSourceModel(iModel, szSaved.Text());
+	if (bResult)
 	{
-		pMesh = OMalloc<CMesh>();
-		bResult = ReadMesh(pMesh, psModel->szFile, MT_VRML);
-		if (bResult)
-		{
-			cModifiers.Init(pMesh);
-			cModifiers.AddModifier<CMeshFixReversed>()->Init();
-			cModifiers.AddModifier<CMeshWeldCorners>()->Init();
-			cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(psModel->fMaxErrorMillimetres / psModel->fMillimetresPerUnit));
-			cModifiers.AddModifier<CMeshMergeNormals>()->Init(BOARD_SCENE_MAX_NORMAL_ANGLE);
-			pOutput = cModifiers.GetOutput();
-			pcModel->Build(&pOutput, BoardSceneUnits(psModel->fMillimetresPerUnit));
-			pOutput = NULL;
-			cModifiers.Kill();
-			pMesh = NULL;
-			pcModel->RemoveDegenerate();
-			if (!pcModel->Save(szSaved.Text(), uiSource))
-			{
-				gcLogger.Warning2(__METHOD__, " Could not save [", szSaved.Text(), "].", NULL);
-			}
-		}
+		gcLogger.Info2(__METHOD__, " [", psModel->szSaved, "] from [", bFromSaved ? szSaved.Text() : psModel->szFile, "] in ", IntToString((int32)(GetDebugTickCount() - iStart)), "ms.", NULL);
 	}
 	szSaved.Kill();
 
@@ -389,6 +401,102 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 		FitCamera();
 	}
 	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// False if szSaved can't be read or isn't this model's: one mesh with the
+// model's name.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CBoardSceneDraw::LoadSavedModel(int iModel, const char* szSaved)
+{
+	const SBoardSceneModel*	psModel;
+	CSceneFileReader		cReader;
+	CArrayMaterial			apMaterials;
+	Ptr<CMeshEditor>		pEditor;
+	bool					bResult;
+
+	psModel = &gasBoardSceneModels[iModel];
+	pEditor = OMalloc<CMeshEditor>(OMalloc<CMesh>());
+	apMaterials.Init();
+	cReader.Init(szSaved);
+	bResult = cReader.Open();
+	if (bResult)
+	{
+		if (cReader.NumMeshes() != 1)
+		{
+			gcLogger.Warning2(__METHOD__, " [", szSaved, "] holds ", IntToString((int32)cReader.NumMeshes()), " meshes, not 1.", NULL);
+			bResult = false;
+		}
+		bResult = bResult && ReadSceneFileMesh(&cReader, 0, &pEditor, &apMaterials);
+		cReader.Close();
+	}
+	cReader.Kill();
+
+	if (bResult && !pEditor->mszName.Equals(psModel->szSaved))
+	{
+		gcLogger.Warning2(__METHOD__, " [", szSaved, "] holds [", pEditor->mszName.Text(), "], not [", psModel->szSaved, "].", NULL);
+		bResult = false;
+	}
+	if (bResult)
+	{
+		BuildModel(iModel, &pEditor->mpMesh);
+	}
+	pEditor = NULL;
+	apMaterials.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Reads the model's export, cleans it up and simplifies it, builds what comes
+// out, and saves it to szSaved.  Not being able to save it doesn't stop it
+// being drawn.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CBoardSceneDraw::LoadSourceModel(int iModel, const char* szSaved)
+{
+	const SBoardSceneModel*	psModel;
+	CMeshModifierStack		cModifiers;
+	Ptr<CMesh>				pMesh;
+	Ptr<CMesh>				pOutput;
+
+	psModel = &gasBoardSceneModels[iModel];
+	pMesh = OMalloc<CMesh>();
+	if (!ReadMesh(pMesh, psModel->szFile, MT_VRML))
+	{
+		return false;
+	}
+
+	cModifiers.Init(pMesh);
+	cModifiers.AddModifier<CMeshFixReversed>()->Init();
+	cModifiers.AddModifier<CMeshWeldCorners>()->Init();
+	cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(psModel->fMaxErrorMillimetres / psModel->fMillimetresPerUnit));
+	cModifiers.AddModifier<CMeshMergeNormals>()->Init(BOARD_SCENE_MAX_NORMAL_ANGLE);
+	pOutput = cModifiers.GetOutput();
+	BuildModel(iModel, &pOutput);
+	if (!SaveBoardSceneModel(szSaved, psModel->szSaved, pOutput))
+	{
+		gcLogger.Warning2(__METHOD__, " Could not save [", szSaved, "].", NULL);
+	}
+	pOutput = NULL;
+	cModifiers.Kill();
+	pMesh = NULL;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardSceneDraw::BuildModel(int iModel, CMesh* pcMesh)
+{
+	macModels[iModel].Build(pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
+	macModels[iModel].RemoveDegenerate();
 }
 
 

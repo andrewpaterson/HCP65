@@ -21,9 +21,9 @@
 //sockets is one model drawn twice (SRasterInstance).
 //
 //The models are KiCad's VRML exports, which take seconds to read.  One is only needed when it is shown, when it's read,
-//cleaned up and simplified to about what a pixel is here, and saved to Output/Models (CRasterMesh::Save), from where it
-//loads at once from then on, until its export changes.  LoadNext does one at a time so that the window can paint between
-//them.  They stay in memory, so make this once.
+//cleaned up and simplified to about what a pixel is here, and its mesh saved to Output/Models as a scene file (.DRG), from
+//where it loads in under a second from then on, until its export is newer.  LoadNext does one at a time so that the window
+//can paint between them.  They stay in memory, so make this once.
 //
 //Where a board goes comes from the KiCad boards: see gasBoardSceneSockets and gasBoardSceneModels.
 class CBoardSceneDraw : public CCanvasDraw
@@ -64,6 +64,9 @@ public:
 
 protected:
 	bool		LoadModel(int iModel);
+	bool		LoadSavedModel(int iModel, const char* szSaved);
+	bool		LoadSourceModel(int iModel, const char* szSaved);
+	void		BuildModel(int iModel, CMesh* pcMesh);
 	void		AddInstance(int iModel, SInt32Vec3* psOffset, bool bStanding);
 	void		AddStandingBoard(int iModel, float64 fFootprintY);
 	void		FitCamera(void);
