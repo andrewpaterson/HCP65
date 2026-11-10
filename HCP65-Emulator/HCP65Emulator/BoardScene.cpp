@@ -545,6 +545,7 @@ void CBoardSceneDraw::AddInstance(int iModel, SInt32Vec3* psOffset, bool bStandi
 		psInstance->asAxes[1].Init(0, 1 << RASTER_AXIS_BITS, 0);
 		psInstance->asAxes[2].Init(0, 0, 1 << RASTER_AXIS_BITS);
 	}
+	psInstance->OnlyTurns();
 }
 
 
