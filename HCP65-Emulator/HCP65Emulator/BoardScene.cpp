@@ -12,11 +12,11 @@
 #include "SupportLib/MeshEdgeCollapse.h"
 #include "SupportLib/MeshFixReversed.h"
 #include "SupportLib/MeshMergeNormals.h"
-#include "SupportLib/MeshModifierStack.h"
 #include "SupportLib/MeshReader.h"
+#include "SupportLib/MeshRemoveDegenerate.h"
 #include "SupportLib/MeshWeldCorners.h"
 #include "SupportLib/SceneFileMesh.h"
-#include "RasterRenderLib/RasterMeshBuild.h"
+#include "RasterRenderLib/RasterRenderMesh.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65MemoryBoard.h"
@@ -25,7 +25,7 @@
 #include "BoardScene.h"
 
 
-//All of a scene is in one scale, whatever its models' files are in.
+//The renderer's units in a millimetre, which the scene is in.
 #define BOARD_SCENE_UNITS_PER_MM	4096
 
 //The error allowed when a card is simplified.  Surfaces move far less than this on average, but with more of it dark
@@ -46,16 +46,20 @@
 #define BOARD_SCENE_PITCH			-1.04719755f
 #define BOARD_SCENE_MARGIN			8
 
-//Where each model's mesh is saved, as a scene file of one mesh with the model's name.  It's used for as long as it's at least
-//as new as the model's export.  Nothing else says it's out of date, so delete them when what's done to a model changes.
+//Where each model's mesh is saved, as a scene file of one mesh with the model's name, in millimetres.  It's used for as long
+//as it's at least as new as the model's export.  Nothing else says it's out of date, so delete them when what's done to a
+//model changes.
 #define BOARD_SCENE_MODEL_DIRECTORY	"Output/Models"
 #define BOARD_SCENE_MAINBOARD		0
 #define BOARD_SCENE_PROCESSOR		1
 #define BOARD_SCENE_FIRST_CARD		2
 
+//The mainboard instance's first connection is its own, and each socket's follows.
+#define BOARD_SCENE_FIRST_SOCKET_CONNECTION	1
 
-//A socket on the Small Mainboard: the device it is and the y of its footprint (DEV3, say) in the PCB.  A socket's row A is
-//5.08mm less than that and its row D is at it, along x from 0 to 129.54mm.
+
+//A socket on the Small Mainboard: the device it is, -1 for the Processor Board's (MPU0), and the y of its footprint (DEV3,
+//say) in the PCB.  A socket's row A is 5.08mm less than that and its row D is at it, along x from 0 to 129.54mm.
 struct SBoardSceneSocket
 {
 	int			iSocket;
@@ -63,8 +67,9 @@ struct SBoardSceneSocket
 };
 
 
-static const SBoardSceneSocket gasBoardSceneSockets[] =
+static const SBoardSceneSocket gasBoardSceneSockets[BOARD_SCENE_NUM_SOCKETS] =
 {
+	{ -1,	68.58 },
 	{ 3,	203.3362 },
 	{ 4,	172.8562 },
 	{ 16,	5.08 },
@@ -72,10 +77,6 @@ static const SBoardSceneSocket gasBoardSceneSockets[] =
 	{ 18,	147.4562 },
 	{ 19,	101.6 },
 };
-
-
-//The y of the Processor Board's socket's footprint (MPU0), which is like the others'.
-#define BOARD_SCENE_PROCESSOR_FOOTPRINT_Y	68.58
 
 
 //A board's model.  KiCad's exports are in the PCB's coordinates with y negated, but in what units depends on how they were
@@ -144,11 +145,10 @@ void CBoardSceneDraw::Init(Ptr<CWindowTheme> pTheme)
 	mapModels.Init();
 	for (i = 0; i < BOARD_SCENE_NUM_MODELS; i++)
 	{
-		mapModels.Add(OMalloc<CRasterMesh>());
+		mapModels.Add(OMalloc<CMeshEditor>(OMalloc<CMesh>()));
 		mabTried[i] = false;
 	}
-	muiNumInstances = 0;
-	mcCamera.Init();
+	InitScene();
 	mcRasteriser.Init();
 	mcJobs.Init(BOARD_SCENE_WORKERS);
 	mcRasteriser.SetJobs(&mcJobs);
@@ -165,6 +165,47 @@ void CBoardSceneDraw::Init(Ptr<CWindowTheme> pTheme)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The mainboard and its sockets, which stay, and a camera.  Nothing is in
+// the scene until SetBoards puts the mainboard there.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardSceneDraw::InitScene(void)
+{
+	Ptr<CConnection>	pBoard;
+	Ptr<CConnection>	pSocket;
+	Ptr<CCamera>		pCamera;
+	size				uiSocket;
+
+	mpScene = OMalloc<CScene>();
+
+	mpMainboard = OMalloc<CInstance>();
+	mpMainboard->mszName.Set(gasBoardSceneModels[BOARD_SCENE_MAINBOARD].szSaved);
+	pBoard = OMalloc<CConnection>();
+	mpMainboard->mapConnections.Add(pBoard);
+	for (uiSocket = 0; uiSocket < BOARD_SCENE_NUM_SOCKETS; uiSocket++)
+	{
+		pSocket = OMalloc<CConnection>();
+		pSocket->mpParent = pBoard;
+		pSocket->msLocalMatrix.pos.Init(0.0f, (float32)(BOARD_SCENE_SLOT_MIDDLE - gasBoardSceneSockets[uiSocket].fFootprintY), (float32)BOARD_SCENE_SEAT, 1.0f);
+		mpMainboard->mapConnections.Add(pSocket);
+		maiShown[uiSocket] = -1;
+	}
+	mbMainboardShown = false;
+
+	pCamera = OMalloc<CCamera>();
+	pCamera->meCameraType = CAT_Perspective;
+	pCamera->mpConnection = OMalloc<CConnection>();
+	mpScene->mapCameras.Add(pCamera);
+	mpScene->UpdateConnections();
+
+	mcFactory.Init(BOARD_SCENE_UNITS_PER_MM);
+	mpRenderScene = OMalloc<CRenderScene>(mpScene, &mcFactory, mcFactory.CreateRenderer());
+	mpFrame = OMalloc<CRasterFrame>(mpRenderScene, pCamera);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::Class(void)
@@ -172,11 +213,15 @@ void CBoardSceneDraw::Class(void)
 	CCanvasDraw::Class();
 	M_Pointer(mpCelDraw);
 	M_Pointer(mpImage);
+	M_Pointer(mpScene);
+	M_Pointer(mpMainboard);
 	M_Embedded(mapModels);
 	U_Data(bool[BOARD_SCENE_NUM_MODELS], mabTried);
-	U_Data(SRasterInstance[BOARD_SCENE_NUM_INSTANCES], masInstances);
-	U_Data(size, muiNumInstances);
-	U_Data(CRasterCamera, mcCamera);
+	U_Data(int[BOARD_SCENE_NUM_SOCKETS], maiShown);
+	U_Bool(mbMainboardShown);
+	U_Unknown(CRasterRenderFactory, mcFactory);
+	M_Pointer(mpRenderScene);
+	M_Pointer(mpFrame);
 	U_Data(CRasteriser, mcRasteriser);
 	U_Data(CWorkerThreadJobs, mcJobs);
 	U_Data(CRasterTarget, mcTarget);
@@ -199,6 +244,7 @@ void CBoardSceneDraw::Free(void)
 	}
 	mcRasteriser.Kill();
 	mcJobs.Kill();
+	mcFactory.Kill();
 	CCanvasDraw::Free();
 }
 
@@ -253,12 +299,31 @@ SInt32Vec2 CBoardSceneDraw::GetDesiredSize(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// B, G, R, X is what the rasteriser writes and what the window's canvas
-// holds.  It is only drawn again when something has changed.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::Draw(Ptr<CCanvas> pCanvas)
 {
+	if (!Render())
+	{
+		return false;
+	}
+	return mpCelDraw->Draw(pCanvas);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// B, G, R, X is what the rasteriser writes and what the window's canvas
+// holds.  It is only drawn again when something has changed.  The scene
+// is extracted first, which builds the raster mesh of a model that's new
+// to it, so the camera can be fitted once the mainboard's is there.  The
+// next extract writes where the camera turned to back to the scene camera.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CBoardSceneDraw::Render(void)
+{
+	CRasterCamera*	pcCamera;
+
 	if (mpImage.IsNull())
 	{
 		mpImage = OMalloc<CImage>(BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT, PT_uint8, IMAGE_DIFFUSE_BLUE, IMAGE_DIFFUSE_GREEN, IMAGE_DIFFUSE_RED, IMAGE_IGNORED, CHANNEL_STOP);
@@ -273,23 +338,29 @@ bool CBoardSceneDraw::Draw(Ptr<CCanvas> pCanvas)
 	if (mbDirty)
 	{
 		mcTarget.Clear(muiBackground);
+		mpFrame->Extract(&mcRasteriser, BOARD_SCENE_WIDTH);
+		if (!mbFitted)
+		{
+			FitCamera();
+		}
 		if (mbFitted)
 		{
-			mcCamera.SetOrbit(mfYaw, BOARD_SCENE_PITCH);
-			mcRasteriser.Draw(masInstances, muiNumInstances, &mcCamera, &mcTarget);
+			pcCamera = mpFrame->GetCamera();
+			pcCamera->SetOrbit(mfYaw, BOARD_SCENE_PITCH);
+			mcRasteriser.Draw(mpFrame->GetInstances(), mpFrame->NumInstances(), pcCamera, &mcTarget);
 		}
 		mbDirty = false;
 	}
-	return mpCelDraw->Draw(pCanvas);
+	return true;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Loads the mainboard's model, the Processor Board's, or else one of the
-// boards in aszTypes (for each of HCP65_NUM_DEVICE_SLOTS sockets, NULL for
-// empty), that hasn't been tried.  False if there are none to load.  It can
-// take seconds.
+// Loads the mainboard's model, or else the model of a board in a socket
+// (the Processor Board's, or one of aszTypes, for each of
+// HCP65_NUM_DEVICE_SLOTS sockets, NULL for empty), that hasn't been tried.
+// False if there are none to load.  It can take seconds.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::LoadNext(const char** aszTypes)
@@ -297,45 +368,78 @@ bool CBoardSceneDraw::LoadNext(const char** aszTypes)
 	size	uiSocket;
 	int		iModel;
 
-	for (iModel = 0; iModel < BOARD_SCENE_FIRST_CARD; iModel++)
+	if (!mabTried[BOARD_SCENE_MAINBOARD])
 	{
-		if (!mabTried[iModel])
+		LoadModel(BOARD_SCENE_MAINBOARD);
+		return true;
+	}
+	for (uiSocket = 0; uiSocket < BOARD_SCENE_NUM_SOCKETS; uiSocket++)
+	{
+		iModel = FindModel(uiSocket, aszTypes);
+		if ((iModel >= 0) && !mabTried[iModel])
 		{
 			LoadModel(iModel);
 			return true;
-		}
-	}
-	for (uiSocket = 0; uiSocket < sizeof(gasBoardSceneSockets) / sizeof(SBoardSceneSocket); uiSocket++)
-	{
-		for (iModel = BOARD_SCENE_FIRST_CARD; iModel < BOARD_SCENE_NUM_MODELS; iModel++)
-		{
-			if (!mabTried[iModel] && aszTypes[gasBoardSceneSockets[uiSocket].iSocket] && (strcmp(aszTypes[gasBoardSceneSockets[uiSocket].iSocket], gasBoardSceneModels[iModel].szType) == 0))
-			{
-				LoadModel(iModel);
-				return true;
-			}
 		}
 	}
 	return false;
 }
 
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 //
-// The mesh is saved to a scene file once its modifiers have run, without
-// materials, as a board only has colours.  False if it couldn't be, when the
-// writer leaves no file.
+// The model of the board in a socket, whether or not it's loaded, or -1
+// for an empty socket.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool SaveBoardSceneModel(const char* szSaved, const char* szName, Ptr<CMesh> pMesh)
+int CBoardSceneDraw::FindModel(size uiSocket, const char** aszTypes)
+{
+	const char*	szType;
+	int			iModel;
+
+	if (gasBoardSceneSockets[uiSocket].iSocket < 0)
+	{
+		return BOARD_SCENE_PROCESSOR;
+	}
+
+	szType = aszTypes[gasBoardSceneSockets[uiSocket].iSocket];
+	if (szType == NULL)
+	{
+		return -1;
+	}
+	for (iModel = BOARD_SCENE_FIRST_CARD; iModel < BOARD_SCENE_NUM_MODELS; iModel++)
+	{
+		if (strcmp(szType, gasBoardSceneModels[iModel].szType) == 0)
+		{
+			return iModel;
+		}
+	}
+	return -1;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CBoardSceneDraw::IsLoaded(int iModel)
+{
+	return mapModels.Get(iModel)->mpMesh->NumFaces() > 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The mesh is saved to a scene file, without materials, as a board only
+// has colours.  False if it couldn't be, when the writer leaves no file.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool SaveBoardSceneModel(const char* szSaved, Ptr<CMeshEditor> pEditor)
 {
 	CSceneFileWriter		cWriter;
 	CArraySceneFileIndex	aiMaterials;
-	Ptr<CMeshEditor>		pEditor;
 	bool					bResult;
 
-	pEditor = OMalloc<CMeshEditor>(pMesh);
-	pEditor->mszName.Set(szName);
 	aiMaterials.Init();
 	cWriter.Init(szSaved);
 	bResult = cWriter.Open();
@@ -346,7 +450,6 @@ static bool SaveBoardSceneModel(const char* szSaved, const char* szName, Ptr<CMe
 	}
 	cWriter.Kill();
 	aiMaterials.Kill();
-	pEditor = NULL;
 	return bResult;
 }
 
@@ -355,8 +458,7 @@ static bool SaveBoardSceneModel(const char* szSaved, const char* szName, Ptr<CMe
 //
 // From its saved mesh, if that's at least as new as its export.  Otherwise
 // the export is read, its modifiers run, and what comes out is saved for next
-// time.  Either way the mesh is built once and for all, at the one scale all
-// the models are at.
+// time.  Either way the model's editor is replaced by one of what's loaded.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::LoadModel(int iModel)
@@ -391,11 +493,6 @@ bool CBoardSceneDraw::LoadModel(int iModel)
 		gcLogger.Info2(__METHOD__, " [", psModel->szSaved, "] from [", bFromSaved ? szSaved.Text() : psModel->szFile, "] in ", IntToString((int32)(GetDebugTickCount() - iStart)), "ms.", NULL);
 	}
 	szSaved.Kill();
-
-	if (bResult && (iModel == BOARD_SCENE_MAINBOARD))
-	{
-		FitCamera();
-	}
 	return bResult;
 }
 
@@ -438,9 +535,8 @@ bool CBoardSceneDraw::LoadSavedModel(int iModel, const char* szSaved)
 	}
 	if (bResult)
 	{
-		BuildModel(iModel, &pEditor->mpMesh);
+		mapModels.Set(iModel, pEditor);
 	}
-	pEditor = NULL;
 	apMaterials.Kill();
 	return bResult;
 }
@@ -448,17 +544,18 @@ bool CBoardSceneDraw::LoadSavedModel(int iModel, const char* szSaved)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Reads the model's export, cleans it up and simplifies it, builds what comes
-// out, and saves it to szSaved.  Not being able to save it doesn't stop it
-// being drawn.
+// Reads the model's export, scales it to millimetres, cleans it up and
+// simplifies it, and saves what comes out to szSaved.  The model is an
+// editor of that alone, so the export is let go.  Not being able to save it
+// doesn't stop it being drawn.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::LoadSourceModel(int iModel, const char* szSaved)
 {
 	const SBoardSceneModel*	psModel;
-	CMeshModifierStack		cModifiers;
 	Ptr<CMesh>				pMesh;
-	Ptr<CMesh>				pOutput;
+	Ptr<CMeshEditor>		pSource;
+	Ptr<CMeshEditor>		pEditor;
 
 	psModel = &gasBoardSceneModels[iModel];
 	pMesh = OMalloc<CMesh>();
@@ -467,140 +564,147 @@ bool CBoardSceneDraw::LoadSourceModel(int iModel, const char* szSaved)
 		return false;
 	}
 
-	cModifiers.Init(pMesh);
-	cModifiers.AddModifier<CMeshFixReversed>()->Init();
-	cModifiers.AddModifier<CMeshWeldCorners>()->Init();
-	cModifiers.AddModifier<CMeshEdgeCollapse>()->Init((float32)(psModel->fMaxErrorMillimetres / psModel->fMillimetresPerUnit));
-	cModifiers.AddModifier<CMeshMergeNormals>()->Init(BOARD_SCENE_MAX_NORMAL_ANGLE);
-	pOutput = cModifiers.GetOutput();
-	BuildModel(iModel, &pOutput);
-	if (!SaveBoardSceneModel(szSaved, psModel->szSaved, pOutput))
+	pSource = OMalloc<CMeshEditor>(pMesh);
+	pSource->Scale((float32)psModel->fMillimetresPerUnit);
+	pSource->AddModifier<CMeshFixReversed>()->Init();
+	pSource->AddModifier<CMeshWeldCorners>()->Init();
+	pSource->AddModifier<CMeshEdgeCollapse>()->Init((float32)psModel->fMaxErrorMillimetres);
+	pSource->AddModifier<CMeshRemoveDegenerate>()->Init();
+	pSource->AddModifier<CMeshMergeNormals>()->Init(BOARD_SCENE_MAX_NORMAL_ANGLE);
+
+	pEditor = OMalloc<CMeshEditor>(pSource->GetOutput());
+	pEditor->mszName.Set(psModel->szSaved);
+	pSource = NULL;
+	pMesh = NULL;
+
+	mapModels.Set(iModel, pEditor);
+	if (!SaveBoardSceneModel(szSaved, pEditor))
 	{
 		gcLogger.Warning2(__METHOD__, " Could not save [", szSaved, "].", NULL);
 	}
-	pOutput = NULL;
-	cModifiers.Kill();
-	pMesh = NULL;
 	return true;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-//
-//////////////////////////////////////////////////////////////////////////
-void CBoardSceneDraw::BuildModel(int iModel, CMesh* pcMesh)
-{
-	Ptr<CRasterMesh>	pModel;
-
-	pModel = mapModels.Get(iModel);
-	BuildRasterMesh(&pModel, pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // To the mainboard and the tallest board there could be, wherever it is, so
-// that the view stays the same whichever boards are in it.
+// that the view stays the same whichever boards are in it.  It waits for the
+// mainboard's raster mesh, which the scene's first extract after the
+// mainboard is in it builds.  Fit puts the eye back where FitOrbit expects it,
+// as the frame set the camera from the scene camera when it first extracted.
 //
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::FitCamera(void)
 {
-	Ptr<CRasterMesh>	pMainboard;
-	SInt32Vec3			sMax;
+	Ptr<CRasterRenderMesh>	pRenderMesh;
+	Ptr<CRasterMesh>		pMainboard;
+	CRasterCamera*			pcCamera;
+	SInt32Vec3				sMax;
 
-	pMainboard = mapModels.Get(BOARD_SCENE_MAINBOARD);
+	pRenderMesh = mpRenderScene->GetMesh(mapModels.Get(BOARD_SCENE_MAINBOARD));
+	if (pRenderMesh.IsNull())
+	{
+		return;
+	}
+	pMainboard = pRenderMesh->GetRasterMesh();
+	if (pMainboard->NumTriangles() == 0)
+	{
+		return;
+	}
+
 	sMax = pMainboard->msMax;
 	sMax.z = BoardSceneUnits(BOARD_SCENE_SEAT + BOARD_SCENE_TALLEST_CARD);
-	mcCamera.FitOrbit(&pMainboard->msMin, &sMax, BOARD_SCENE_PITCH, BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT, BOARD_SCENE_MARGIN);
+	pcCamera = mpFrame->GetCamera();
+	pcCamera->Fit(BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT);
+	pcCamera->FitOrbit(&pMainboard->msMin, &sMax, BOARD_SCENE_PITCH, BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT, BOARD_SCENE_MARGIN);
 	mbFitted = true;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A model that's standing has its x along the mainboard's x, its y (from
-// the bottom of the board to the top) up the mainboard's z and its z (out of
-// its components' side) along the mainboard's -y.  That side faces the socket's
-// row D, as its edge connector's row D is on its F.Cu.
+// A board standing in a socket has its x along the mainboard's x, its y
+// (from the bottom of the board to the top) up the mainboard's z and its z
+// (out of its components' side) along the mainboard's -y.  That side faces
+// the socket's row D, as its edge connector's row D is on its F.Cu.  Its
+// bottom edge sits on the floor of the socket's slot.
 //
 //////////////////////////////////////////////////////////////////////////
-void CBoardSceneDraw::AddInstance(int iModel, SInt32Vec3* psOffset, bool bStanding)
+void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket)
 {
-	SRasterInstance*	psInstance;
+	Ptr<CInstance>		pInstance;
+	Ptr<CInstanceMesh>	pInstanceMesh;
+	Ptr<CConnection>	pConnection;
+	SFloat4x4*			psLocal;
 
-	psInstance = &masInstances[muiNumInstances];
-	muiNumInstances++;
-	psInstance->pcMesh = &mapModels.Get(iModel);
-	psInstance->sOffset = *psOffset;
-	psInstance->asAxes[0].Init(1 << RASTER_AXIS_BITS, 0, 0);
-	if (bStanding)
-	{
-		psInstance->asAxes[1].Init(0, 0, -(1 << RASTER_AXIS_BITS));
-		psInstance->asAxes[2].Init(0, 1 << RASTER_AXIS_BITS, 0);
-	}
-	else
-	{
-		psInstance->asAxes[1].Init(0, 1 << RASTER_AXIS_BITS, 0);
-		psInstance->asAxes[2].Init(0, 0, 1 << RASTER_AXIS_BITS);
-	}
-	psInstance->OnlyTurns();
+	pConnection = OMalloc<CConnection>();
+	pConnection->mpParent = mpMainboard->mapConnections.Get(BOARD_SCENE_FIRST_SOCKET_CONNECTION + uiSocket);
+	psLocal = &pConnection->msLocalMatrix;
+	psLocal->y.Init(0.0f, 0.0f, 1.0f, 0.0f);
+	psLocal->z.Init(0.0f, -1.0f, 0.0f, 0.0f);
+	psLocal->pos.Init((float32)BOARD_SCENE_CARD_X, 0.0f, (float32)gasBoardSceneModels[iModel].fEdgeY, 1.0f);
+
+	pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(iModel));
+	pInstanceMesh->maiConnectionSlots.Add(0);
+	pInstance = OMalloc<CInstance>();
+	pInstance->mszName.Set(gasBoardSceneModels[iModel].szSaved);
+	pInstance->mapConnections.Add(pConnection);
+	pInstance->mapMeshes.Add(pInstanceMesh);
+	mpScene->mapInstances.Add(pInstance);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// iModel in the socket whose footprint is at y fFootprintY.
-//
-//////////////////////////////////////////////////////////////////////////
-void CBoardSceneDraw::AddStandingBoard(int iModel, float64 fFootprintY)
-{
-	SInt32Vec3	sOffset;
-
-	sOffset.Init(BoardSceneUnits(BOARD_SCENE_CARD_X),
-				 BoardSceneUnits(BOARD_SCENE_SLOT_MIDDLE - fFootprintY),
-				 BoardSceneUnits(BOARD_SCENE_SEAT + gasBoardSceneModels[iModel].fEdgeY));
-	AddInstance(iModel, &sOffset, true);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The mainboard, the Processor Board in its socket, and in each of the other
-// sockets the board of aszTypes (HCP65_NUM_DEVICE_SLOTS of them, NULL for
-// empty), each if its model is loaded.
+// The mainboard, and the board of each socket standing in it, each if its
+// model is loaded: the Processor Board in its socket and in each of the
+// others the board of aszTypes (HCP65_NUM_DEVICE_SLOTS of them, NULL for
+// empty).  The scene is only made again when that's changed.
 //
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::SetBoards(const char** aszTypes)
 {
-	const SBoardSceneSocket*	psSocket;
-	SInt32Vec3					sOffset;
-	const char*					szType;
-	size						uiSocket;
-	int							iModel;
+	Ptr<CInstanceMesh>	pInstanceMesh;
+	int					aiShown[BOARD_SCENE_NUM_SOCKETS];
+	bool				bMainboard;
+	bool				bChanged;
+	size				uiSocket;
+	int					iModel;
 
-	muiNumInstances = 0;
-	if (mapModels.Get(BOARD_SCENE_MAINBOARD)->NumTriangles() > 0)
+	bMainboard = IsLoaded(BOARD_SCENE_MAINBOARD);
+	bChanged = bMainboard != mbMainboardShown;
+	for (uiSocket = 0; uiSocket < BOARD_SCENE_NUM_SOCKETS; uiSocket++)
 	{
-		sOffset.Init(0, 0, 0);
-		AddInstance(BOARD_SCENE_MAINBOARD, &sOffset, false);
+		iModel = FindModel(uiSocket, aszTypes);
+		aiShown[uiSocket] = ((iModel >= 0) && IsLoaded(iModel)) ? iModel : -1;
+		bChanged |= aiShown[uiSocket] != maiShown[uiSocket];
 	}
-	if (mapModels.Get(BOARD_SCENE_PROCESSOR)->NumTriangles() > 0)
+	if (!bChanged)
 	{
-		AddStandingBoard(BOARD_SCENE_PROCESSOR, BOARD_SCENE_PROCESSOR_FOOTPRINT_Y);
+		return;
 	}
-	for (uiSocket = 0; uiSocket < sizeof(gasBoardSceneSockets) / sizeof(SBoardSceneSocket); uiSocket++)
+
+	mpScene->mapInstances.RemoveAll();
+	mpMainboard->mapMeshes.RemoveAll();
+	if (bMainboard)
 	{
-		psSocket = &gasBoardSceneSockets[uiSocket];
-		szType = aszTypes[psSocket->iSocket];
-		for (iModel = BOARD_SCENE_FIRST_CARD; szType && (iModel < BOARD_SCENE_NUM_MODELS); iModel++)
+		pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(BOARD_SCENE_MAINBOARD));
+		pInstanceMesh->maiConnectionSlots.Add(0);
+		mpMainboard->mapMeshes.Add(pInstanceMesh);
+	}
+	mpScene->mapInstances.Add(mpMainboard);
+	mbMainboardShown = bMainboard;
+
+	for (uiSocket = 0; uiSocket < BOARD_SCENE_NUM_SOCKETS; uiSocket++)
+	{
+		maiShown[uiSocket] = aiShown[uiSocket];
+		if (aiShown[uiSocket] >= 0)
 		{
-			if ((strcmp(szType, gasBoardSceneModels[iModel].szType) == 0) && (mapModels.Get(iModel)->NumTriangles() > 0))
-			{
-				AddStandingBoard(iModel, psSocket->fFootprintY);
-			}
+			AddStandingBoard(aiShown[uiSocket], uiSocket);
 		}
 	}
+	mpScene->UpdateConnections();
 	mbDirty = true;
 }
 
