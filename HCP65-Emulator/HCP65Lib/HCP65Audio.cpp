@@ -31,6 +31,7 @@ void CHCP65Audio::Init(void)
 	muiFirstFrame = 0;
 	muiNumFrames = 0;
 	muiDroppedFrames = 0;
+	mcFramesMutex.Init();
 
 	muiStart = 0;
 	muiEnd = HCP65_AUDIO_ADDRESS_MASK;
@@ -46,6 +47,7 @@ void CHCP65Audio::Init(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65Audio::Kill(void)
 {
+	mcFramesMutex.Kill();
 	SafeFree(mpuiFrames);
 	SafeFree(mpuiRAMB);
 	SafeFree(mpuiRAMA);
@@ -390,6 +392,7 @@ void CHCP65Audio::AddFrame(uint8 uiLeft, uint8 uiRight)
 {
 	uint32	uiIndex;
 
+	mcFramesMutex.Lock();
 	if (muiNumFrames == HCP65_AUDIO_BUFFER_FRAMES)
 	{
 		muiFirstFrame = (muiFirstFrame + 1) % HCP65_AUDIO_BUFFER_FRAMES;
@@ -400,6 +403,7 @@ void CHCP65Audio::AddFrame(uint8 uiLeft, uint8 uiRight)
 	mpuiFrames[uiIndex * 2] = uiLeft;
 	mpuiFrames[uiIndex * 2 + 1] = uiRight;
 	muiNumFrames++;
+	mcFramesMutex.Unlock();
 }
 
 
@@ -413,6 +417,7 @@ uint32 CHCP65Audio::ReadFrames(uint8* puiDest, uint32 uiMaxFrames)
 	uint32	uiCount;
 	uint32	i;
 
+	mcFramesMutex.Lock();
 	uiCount = (uiMaxFrames < muiNumFrames) ? uiMaxFrames : muiNumFrames;
 	for (i = 0; i < uiCount; i++)
 	{
@@ -421,6 +426,7 @@ uint32 CHCP65Audio::ReadFrames(uint8* puiDest, uint32 uiMaxFrames)
 		muiFirstFrame = (muiFirstFrame + 1) % HCP65_AUDIO_BUFFER_FRAMES;
 	}
 	muiNumFrames -= uiCount;
+	mcFramesMutex.Unlock();
 	return uiCount;
 }
 
@@ -433,8 +439,10 @@ uint32 CHCP65Audio::ReadFrames(uint8* puiDest, uint32 uiMaxFrames)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65Audio::ClearFrames(void)
 {
+	mcFramesMutex.Lock();
 	muiFirstFrame = 0;
 	muiNumFrames = 0;
+	mcFramesMutex.Unlock();
 }
 
 
@@ -444,7 +452,12 @@ void CHCP65Audio::ClearFrames(void)
 //////////////////////////////////////////////////////////////////////////
 uint32 CHCP65Audio::NumFrames(void)
 {
-	return muiNumFrames;
+	uint32	uiNumFrames;
+
+	mcFramesMutex.Lock();
+	uiNumFrames = muiNumFrames;
+	mcFramesMutex.Unlock();
+	return uiNumFrames;
 }
 
 
@@ -454,7 +467,12 @@ uint32 CHCP65Audio::NumFrames(void)
 //////////////////////////////////////////////////////////////////////////
 uint64 CHCP65Audio::NumDroppedFrames(void)
 {
-	return muiDroppedFrames;
+	uint64	uiDropped;
+
+	mcFramesMutex.Lock();
+	uiDropped = muiDroppedFrames;
+	mcFramesMutex.Unlock();
+	return uiDropped;
 }
 
 

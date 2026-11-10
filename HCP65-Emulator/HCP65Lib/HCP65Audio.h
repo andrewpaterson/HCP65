@@ -1,5 +1,6 @@
 #ifndef __HCP65_AUDIO_H__
 #define __HCP65_AUDIO_H__
+#include "BaseLib/Mutex.h"
 #include "HCP65Device.h"
 
 
@@ -37,7 +38,8 @@
 //Start, so playback starts with the sample at Start.  Addresses are 15 bits.
 //
 //The DAC's frames are kept in a buffer as unsigned 8 bit stereo pairs for the host to play.  Frames are
-//only made while the board is enabled; when the buffer is full the oldest are dropped.
+//only made while the board is enabled; when the buffer is full the oldest are dropped.  The host may take them on a
+//thread other than the one the HCP65 runs on, so the buffer is under a lock.
 class CHCP65Audio : public CHCP65Device
 {
 protected:
@@ -60,6 +62,7 @@ protected:
 	uint32		muiFirstFrame;
 	uint32		muiNumFrames;
 	uint64		muiDroppedFrames;
+	CMutex		mcFramesMutex;		//Over the four above.
 
 public:
 	void	Init(void);
