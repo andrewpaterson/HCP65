@@ -646,7 +646,7 @@ void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket)
 	psLocal->pos.Init((float32)BOARD_SCENE_CARD_X, 0.0f, (float32)gasBoardSceneModels[iModel].fEdgeY, 1.0f);
 
 	pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(iModel));
-	pInstanceMesh->maiConnectionSlots.Add(0);
+	pInstanceMesh->mapConnections.Add(pConnection);
 	pInstance = OMalloc<CInstance>();
 	pInstance->mszName.Set(gasBoardSceneModels[iModel].szSaved);
 	pInstance->mapConnections.Add(pConnection);
@@ -690,7 +690,7 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 	if (bMainboard)
 	{
 		pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(BOARD_SCENE_MAINBOARD));
-		pInstanceMesh->maiConnectionSlots.Add(0);
+		pInstanceMesh->mapConnections.Add(mpMainboard->mapConnections.Get(0));
 		mpMainboard->mapMeshes.Add(pInstanceMesh);
 	}
 	mpScene->mapInstances.Add(mpMainboard);
