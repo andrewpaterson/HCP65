@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- Board agnostic: one processor with every device socket, 2 to 7 (32KB) and 16 to 19 (128KB).  Socket 1 is the main -->
 <!-- memory channel.  Files are relative to this one. -->
 <Mainboard Type="Any">

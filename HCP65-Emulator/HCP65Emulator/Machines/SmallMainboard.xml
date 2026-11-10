@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- The Small Mainboard: device 1 (main memory channel), 2 (status and clock) and 7 (processor reset) are on the board, -->
 <!-- leaving sockets 3 and 4 (32KB) and 16 to 19 (128KB).  Files are relative to this one. -->
 <Mainboard Type="Small">
