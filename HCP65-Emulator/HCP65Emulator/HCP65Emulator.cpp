@@ -432,7 +432,8 @@ void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 // The sockets hold aszTypes, the description says so, the first Sound
 // Board is heard and the HCP65 is reset (through the debugger, if there
 // is one, so it can tell its client).  The reset happens whatever failed.
-// The HCP65 is paused while its boards change.
+// The HCP65 is paused while its boards change, and the sound mixer, whose
+// thread plays the board, is locked while the board heard changes.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes)
@@ -447,7 +448,9 @@ void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes)
 	}
 	szError.Kill();
 
+	mpWindow->GetSoundMixer()->Lock();
 	mpTick->SetAudio((CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME));
+	mpWindow->GetSoundMixer()->Unlock();
 	mcRunner.Reset();
 	mcRunner.Resume();
 }

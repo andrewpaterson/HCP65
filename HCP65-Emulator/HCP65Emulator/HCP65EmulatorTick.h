@@ -10,9 +10,10 @@ class CHCP65EmulatorRunner;
 
 
 //The HCP65 runs on CHCP65EmulatorRunner's thread, not in the ticks, so that it keeps running while a dialog is shown over
-//the window, which stops them.  Each tick the window paints, and mixes what the HCP65's sound board played, a voice in its
-//sound mixer.  The tick stops the window when the runner has finished, as the debugger said to close, and after
-//HCP65_EMULATOR_SECONDS.  HCP65_EMULATOR_TRACE's report reads the HCP65 while it runs, which is only for printing.
+//the window, which stops them.  What the HCP65's sound board played is a voice in the window's sound mixer, which plays
+//it on a thread of its own for the same reason.  The tick stops the window when the runner has finished, as the
+//debugger said to close, and after HCP65_EMULATOR_SECONDS.  HCP65_EMULATOR_TRACE's report reads the HCP65 while it runs,
+//which is only for printing.
 class CHCP65EmulatorTick : public CWindowTick
 {
 CONSTRUCTABLE(CHCP65EmulatorTick);

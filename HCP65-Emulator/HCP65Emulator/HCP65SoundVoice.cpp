@@ -50,13 +50,13 @@ void CHCP65SoundVoice::SetAudio(CHCP65Audio* pcAudio)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-lsize CHCP65SoundVoice::Fill(Ptr<CSound> pBuffer)
+lsize CHCP65SoundVoice::Fill(CSound* pcBuffer)
 {
 	if (mpcAudio == NULL)
 	{
 		return 0;
 	}
-	return mpcAudio->ReadFrames((uint8*)pBuffer->GetData(), (uint32)pBuffer->GetNumFrames());
+	return mpcAudio->ReadFrames((uint8*)pcBuffer->GetData(), (uint32)pcBuffer->GetNumFrames());
 }
 
 

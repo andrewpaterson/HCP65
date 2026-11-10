@@ -11,7 +11,7 @@ class CHCP65Audio;
 
 //What the HCP65's sound board played, as a voice in the window's sound mixer: its 8 bit unsigned left and right
 //frames at the board's sample rate.  The board makes no frames while it is disabled, so the voice is silent, and so
-//it is with no board (NULL).
+//it is with no board (NULL).  It plays on the mixer's thread, and SetAudio is called under the mixer's lock.
 class CHCP65SoundVoice : public CSoundStreamVoice
 {
 CONSTRUCTABLE(CHCP65SoundVoice);
@@ -25,7 +25,7 @@ public:
 
 	void	SetAudio(CHCP65Audio* pcAudio);
 
-	lsize	Fill(Ptr<CSound> pBuffer) override;
+	lsize	Fill(CSound* pcBuffer) override;
 	uint32	GetStreamSampleRate(void) override;
 };
 
