@@ -16,6 +16,9 @@
 #define BOARD_SCENE_NUM_INSTANCES	(HCP65_NUM_DEVICE_SLOTS + 2)	//The mainboard, the Processor Board and a board for each socket.
 
 
+class CMesh;
+
+
 //The Small Mainboard's 3D model with the Processor Board in its socket and the boards chosen for its other sockets
 //standing in them, turning, in perspective with the eye 30 degrees up from the mainboard's plane.  The same board in two
 //sockets is one model drawn twice (SRasterInstance).

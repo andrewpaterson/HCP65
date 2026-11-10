@@ -39,6 +39,7 @@ set(BASELIB_DIR "${COMMON_DIR}/BaseLib")
 set(STANDARDLIB_DIR "${COMMON_DIR}/StandardLib")
 set(SUPPORTLIB_DIR "${COMMON_DIR}/SupportLib")
 set(RASTERLIB_DIR "${COMMON_DIR}/RasterLib")
+set(RASTERRENDERLIB_DIR "${COMMON_DIR}/RasterRenderLib")
 set(INPUTLIB_DIR "${COMMON_DIR}/InputLib")
 set(WINDOWLIB_DIR "${COMMON_DIR}/WindowLib")
 set(X11LIB_DIR "${COMMON_DIR}/X11Lib")
@@ -102,6 +103,7 @@ vcxproj_sources(STANDARDLIB_SOURCES "${STANDARDLIB_DIR}/StandardLib.vcxproj")
 vcxproj_sources(SUPPORTLIB_SOURCES "${SUPPORTLIB_DIR}/SupportLib.vcxproj")
 
 vcxproj_sources(RASTERLIB_SOURCES "${RASTERLIB_DIR}/RasterLib.vcxproj")
+vcxproj_sources(RASTERRENDERLIB_SOURCES "${RASTERRENDERLIB_DIR}/RasterRenderLib.vcxproj")
 
 vcxproj_sources(INPUTLIB_SOURCES "${INPUTLIB_DIR}/InputLib.vcxproj")
 
@@ -179,7 +181,10 @@ add_library(SupportLib STATIC ${SUPPORTLIB_SOURCES})
 target_link_libraries(SupportLib PUBLIC StandardLib BaseLib)
 
 add_library(RasterLib STATIC ${RASTERLIB_SOURCES})
-target_link_libraries(RasterLib PUBLIC SupportLib StandardLib BaseLib)
+target_link_libraries(RasterLib PUBLIC StandardLib BaseLib)
+
+add_library(RasterRenderLib STATIC ${RASTERRENDERLIB_SOURCES})
+target_link_libraries(RasterRenderLib PUBLIC RasterLib SupportLib StandardLib BaseLib)
 
 add_library(InputLib STATIC ${INPUTLIB_SOURCES})
 target_link_libraries(InputLib PUBLIC StandardLib BaseLib)
@@ -217,4 +222,4 @@ target_link_libraries(HCP65Lib PUBLIC DeviceRomLib EmulatorDebugLib Assembler65L
 
 add_executable(HCP65Emulator ${EMULATOR_SOURCES})
 target_include_directories(HCP65Emulator PRIVATE "${EMULATOR_DIR}")
-target_link_libraries(HCP65Emulator PRIVATE HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib X11Lib PulseAudioLib WindowLib InputLib RasterLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
+target_link_libraries(HCP65Emulator PRIVATE HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib X11Lib PulseAudioLib WindowLib InputLib RasterRenderLib RasterLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})

@@ -21,6 +21,7 @@
 #include "HCP65Lib/HCP65MemoryBoard.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
+#include "RasterRenderLib/RasterMeshBuild.h"
 #include "BoardScene.h"
 
 
@@ -495,7 +496,7 @@ bool CBoardSceneDraw::LoadSourceModel(int iModel, const char* szSaved)
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::BuildModel(int iModel, CMesh* pcMesh)
 {
-	macModels[iModel].Build(pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
+	BuildRasterMesh(&macModels[iModel], pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
 	macModels[iModel].RemoveDegenerate();
 }
 
