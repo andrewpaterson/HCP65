@@ -29,15 +29,17 @@
 #include "HCP65SoundVoice.h"
 #include "HCP65EmulatorTick.h"
 #include "HCP65EmulatorDebugger.h"
+#include "HCP65EmulatorRunner.h"
 
 
 //The emulator: the HCP65 (its kernal ROM, and the boards HCP65_EMULATOR_MACHINE or --machine's description puts in its
 //sockets; --card's image replaces the first SD Card Board's card in its card socket 0) in a window with a menu bar, and
 //the input that drives it.  The first Sound Board is heard.  HCP65EmulatorRun makes it, adds it to the root, runs it and
-//removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).
+//removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).  The HCP65 runs on a
+//thread of its own (CHCP65EmulatorRunner) while the window shows, and anything else that changes it pauses that first.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
-//doesn't run while the dialog is up, as the window isn't ticked.
+//runs on while the dialog is up.
 class CHCP65EmulatorApp : public CObject
 {
 CONSTRUCTABLE(CHCP65EmulatorApp);
@@ -46,6 +48,7 @@ protected:
 	CHCP65					mcHCP65;
 	CHCP65Mainboard			mcMainboard;
 	CHCP65EmulatorDebugger	mcDebugger;
+	CHCP65EmulatorRunner	mcRunner;
 	Ptr<CWindow>			mpWindow;
 	Ptr<CMenuBar>			mpMenuBar;
 	CFileMenuListener		mcFileMenuListener;

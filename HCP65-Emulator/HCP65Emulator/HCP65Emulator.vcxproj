@@ -240,6 +240,7 @@
     <ClCompile Include="HCP65EmulatorWindows.cpp" />
     <ClCompile Include="HCP65SoundVoice.cpp" />
     <ClCompile Include="HCP65EmulatorTick.cpp" />
+    <ClCompile Include="HCP65EmulatorRunner.cpp" />
     <ClCompile Include="HCP65EmulatorDebugger.cpp" />
     <ClCompile Include="FileMenuListener.cpp" />
     <ClCompile Include="HCP65MenuListener.cpp" />
@@ -249,6 +250,7 @@
   <ItemGroup>
     <ClInclude Include="HCP65Emulator.h" />
     <ClInclude Include="HCP65EmulatorTick.h" />
+    <ClInclude Include="HCP65EmulatorRunner.h" />
     <ClInclude Include="HCP65EmulatorDebugger.h" />
     <ClInclude Include="HCP65SoundVoice.h" />
     <ClInclude Include="FileMenuListener.h" />

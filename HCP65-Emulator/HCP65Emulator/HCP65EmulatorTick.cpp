@@ -5,7 +5,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65SoundVoice.h"
-#include "HCP65EmulatorDebugger.h"
+#include "HCP65EmulatorRunner.h"
 #include "HCP65EmulatorTick.h"
 
 
@@ -13,7 +13,7 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::Init(CHCP65* pcHCP65, CHCP65Audio* pcAudio, Ptr<CHCP65SoundVoice> pSoundVoice, CHCP65EmulatorDebugger* pcDebugger)
+void CHCP65EmulatorTick::Init(CHCP65* pcHCP65, CHCP65Audio* pcAudio, Ptr<CHCP65SoundVoice> pSoundVoice, CHCP65EmulatorRunner* pcRunner)
 {
 	PreInit();
 
@@ -21,9 +21,7 @@ void CHCP65EmulatorTick::Init(CHCP65* pcHCP65, CHCP65Audio* pcAudio, Ptr<CHCP65S
 	mpcHCP65 = pcHCP65;
 	mpcAudio = pcAudio;
 	mpSoundVoice = pSoundVoice;
-	mpcDebugger = pcDebugger;
-	miStartTime = -1;
-	muiStartCycles = 0;
+	mpcRunner = pcRunner;
 	miStopTime = getenv("HCP65_EMULATOR_SECONDS") ? (int64)atoi(getenv("HCP65_EMULATOR_SECONDS")) * 1000 : -1;
 	miReportTime = getenv("HCP65_EMULATOR_TRACE") ? 0 : -1;
 
@@ -41,9 +39,7 @@ void CHCP65EmulatorTick::Class(void)
 	U_Pointer(mpcHCP65);
 	U_Pointer(mpcAudio);
 	M_Pointer(mpSoundVoice);
-	U_Pointer(mpcDebugger);
-	U_Int64(miStartTime);
-	U_UInt64(muiStartCycles);
+	U_Pointer(mpcRunner);
 	U_Int64(miStopTime);
 	U_Int64(miReportTime);
 }
@@ -65,16 +61,9 @@ void CHCP65EmulatorTick::Free(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMillieconds, int64 iTotalTimeInMillieconds)
 {
-	if (mpcDebugger)
+	if (mpcRunner->IsFinished())
 	{
-		if (!RunDebugged(iTotalTimeInMillieconds))
-		{
-			pWindow->Stop();
-		}
-	}
-	else if (mpcHCP65 && !mpcHCP65->IsStopped())
-	{
-		Run(iTotalTimeInMillieconds);
+		pWindow->Stop();
 	}
 	if (miReportTime >= 0)
 	{
@@ -89,88 +78,14 @@ void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMilliecon
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The sound board that is heard has changed, NULL if there is none.
+// The sound board that is heard has changed, NULL if there is none.  The
+// HCP65 is paused, as its boards have changed.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65EmulatorTick::SetAudio(CHCP65Audio* pcAudio)
 {
 	mpcAudio = pcAudio;
 	mpSoundVoice->SetAudio(pcAudio);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The HCP65 runs to where its clock should be by now, at most
-// HCP65_EMULATOR_MAX_TICK_MS of its time.
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::Run(int64 iTotalTimeInMillieconds)
-{
-	uint64	uiCycles;
-
-	uiCycles = CyclesDue(iTotalTimeInMillieconds);
-	if (uiCycles != 0)
-	{
-		mpcHCP65->Run(uiCycles);
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The debugger reads its messages and runs the HCP65 for the cycles due,
-// if it is running it.  While it isn't the HCP65's time stands still: the
-// clock starts again from where it was when it runs again.  False when the
-// emulator should close.
-//
-//////////////////////////////////////////////////////////////////////////
-bool CHCP65EmulatorTick::RunDebugged(int64 iTotalTimeInMillieconds)
-{
-	if (!mpcDebugger->IsRunning())
-	{
-		miStartTime = -1;
-		return mpcDebugger->Tick(0);
-	}
-	return mpcDebugger->Tick(CyclesDue(iTotalTimeInMillieconds));
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The cycles to run for the HCP65's clock to be where it should be by now,
-// at most HCP65_EMULATOR_MAX_TICK_MS of its time.
-//
-//////////////////////////////////////////////////////////////////////////
-uint64 CHCP65EmulatorTick::CyclesDue(int64 iTotalTimeInMillieconds)
-{
-	uint64	uiClockRate;
-	uint64	uiTarget;
-	uint64	uiCycles;
-	uint64	uiMaxCycles;
-
-	uiClockRate = mpcHCP65->GetClockRate();
-	if (miStartTime < 0)
-	{
-		miStartTime = iTotalTimeInMillieconds;
-		muiStartCycles = mpcHCP65->NumCycles();
-	}
-
-	uiTarget = muiStartCycles + (uiClockRate * (uint64)(iTotalTimeInMillieconds - miStartTime)) / 1000;
-	if (uiTarget <= mpcHCP65->NumCycles())
-	{
-		return 0;
-	}
-	uiCycles = uiTarget - mpcHCP65->NumCycles();
-	uiMaxCycles = (uiClockRate * HCP65_EMULATOR_MAX_TICK_MS) / 1000;
-	if (uiCycles > uiMaxCycles)
-	{
-		//The host can't keep up: the HCP65's time falls behind the window's (the start goes back by the cycles not run,
-		//so the next target is from where it got to; it may wrap, but the targets made from it don't).
-		muiStartCycles -= uiCycles - uiMaxCycles;
-		uiCycles = uiMaxCycles;
-	}
-	return uiCycles;
 }
 
 

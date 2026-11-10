@@ -1,5 +1,4 @@
-#include "HCP65Lib/HCP65.h"
-#include "HCP65EmulatorDebugger.h"
+#include "HCP65EmulatorRunner.h"
 #include "FileMenuListener.h"
 
 
@@ -8,11 +7,10 @@
 // Adds the menu's items to pFileMenu.
 //
 //////////////////////////////////////////////////////////////////////////
-void CFileMenuListener::Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pFileMenu, CHCP65* pcHCP65, CHCP65EmulatorDebugger* pcDebugger)
+void CFileMenuListener::Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pFileMenu, CHCP65EmulatorRunner* pcRunner)
 {
 	mpcWindow = &pWindow;
-	mpcHCP65 = pcHCP65;
-	mpcDebugger = pcDebugger;
+	mpcRunner = pcRunner;
 	mpcReset = &pFileMenu->AddItem("Reset");
 	pFileMenu->AddSeparator();
 	mpcExit = &pFileMenu->AddItem("Exit");
@@ -27,29 +25,22 @@ void CFileMenuListener::Kill(void)
 {
 	mpcExit = NULL;
 	mpcReset = NULL;
-	mpcDebugger = NULL;
-	mpcHCP65 = NULL;
+	mpcRunner = NULL;
 	mpcWindow = NULL;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Called between the window's ticks, so never during the HCP65's Run.
+// Called between the window's ticks.  The HCP65 runs on its own thread,
+// which the runner pauses to reset it.
 //
 //////////////////////////////////////////////////////////////////////////
 void CFileMenuListener::MenuItemClicked(CMenuItem* pcItem)
 {
 	if (mpcReset == pcItem)
 	{
-		if (mpcDebugger)
-		{
-			mpcDebugger->Reset();
-		}
-		else
-		{
-			mpcHCP65->Reset();
-		}
+		mpcRunner->Reset();
 	}
 	else if (mpcExit == pcItem)
 	{
