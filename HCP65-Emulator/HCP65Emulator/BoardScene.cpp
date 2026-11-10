@@ -16,12 +16,12 @@
 #include "SupportLib/MeshReader.h"
 #include "SupportLib/MeshWeldCorners.h"
 #include "SupportLib/SceneFileMesh.h"
+#include "RasterRenderLib/RasterMeshBuild.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65MemoryBoard.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
-#include "RasterRenderLib/RasterMeshBuild.h"
 #include "BoardScene.h"
 
 
@@ -141,9 +141,10 @@ void CBoardSceneDraw::Init(Ptr<CWindowTheme> pTheme)
 
 	CCanvasDraw::Init();
 	mpCelDraw = OMalloc<CImageCanvasDraw>(Ptr<CImageCel>(), false);
+	mapModels.Init();
 	for (i = 0; i < BOARD_SCENE_NUM_MODELS; i++)
 	{
-		macModels[i].Init();
+		mapModels.Add(OMalloc<CRasterMesh>());
 		mabTried[i] = false;
 	}
 	muiNumInstances = 0;
@@ -171,7 +172,7 @@ void CBoardSceneDraw::Class(void)
 	CCanvasDraw::Class();
 	M_Pointer(mpCelDraw);
 	M_Pointer(mpImage);
-	U_Data(CRasterMesh[BOARD_SCENE_NUM_MODELS], macModels);
+	M_Embedded(mapModels);
 	U_Data(bool[BOARD_SCENE_NUM_MODELS], mabTried);
 	U_Data(SRasterInstance[BOARD_SCENE_NUM_INSTANCES], masInstances);
 	U_Data(size, muiNumInstances);
@@ -192,18 +193,12 @@ void CBoardSceneDraw::Class(void)
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::Free(void)
 {
-	int		i;
-
 	if (mcTarget.mpiDepths != NULL)
 	{
 		mcTarget.Kill();
 	}
 	mcRasteriser.Kill();
 	mcJobs.Kill();
-	for (i = 0; i < BOARD_SCENE_NUM_MODELS; i++)
-	{
-		macModels[i].Kill();
-	}
 	CCanvasDraw::Free();
 }
 
@@ -496,8 +491,11 @@ bool CBoardSceneDraw::LoadSourceModel(int iModel, const char* szSaved)
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::BuildModel(int iModel, CMesh* pcMesh)
 {
-	BuildRasterMesh(&macModels[iModel], pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
-	macModels[iModel].RemoveDegenerate();
+	Ptr<CRasterMesh>	pModel;
+
+	pModel = mapModels.Get(iModel);
+	BuildRasterMesh(&pModel, pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
+	pModel->RemoveDegenerate();
 }
 
 
@@ -509,11 +507,13 @@ void CBoardSceneDraw::BuildModel(int iModel, CMesh* pcMesh)
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneDraw::FitCamera(void)
 {
-	SInt32Vec3	sMax;
+	Ptr<CRasterMesh>	pMainboard;
+	SInt32Vec3			sMax;
 
-	sMax = macModels[BOARD_SCENE_MAINBOARD].msMax;
+	pMainboard = mapModels.Get(BOARD_SCENE_MAINBOARD);
+	sMax = pMainboard->msMax;
 	sMax.z = BoardSceneUnits(BOARD_SCENE_SEAT + BOARD_SCENE_TALLEST_CARD);
-	mcCamera.FitOrbit(&macModels[BOARD_SCENE_MAINBOARD].msMin, &sMax, BOARD_SCENE_PITCH, BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT, BOARD_SCENE_MARGIN);
+	mcCamera.FitOrbit(&pMainboard->msMin, &sMax, BOARD_SCENE_PITCH, BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT, BOARD_SCENE_MARGIN);
 	mbFitted = true;
 }
 
@@ -532,7 +532,7 @@ void CBoardSceneDraw::AddInstance(int iModel, SInt32Vec3* psOffset, bool bStandi
 
 	psInstance = &masInstances[muiNumInstances];
 	muiNumInstances++;
-	psInstance->pcMesh = &macModels[iModel];
+	psInstance->pcMesh = &mapModels.Get(iModel);
 	psInstance->sOffset = *psOffset;
 	psInstance->asAxes[0].Init(1 << RASTER_AXIS_BITS, 0, 0);
 	if (bStanding)
@@ -580,12 +580,12 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 	int							iModel;
 
 	muiNumInstances = 0;
-	if (macModels[BOARD_SCENE_MAINBOARD].NumTriangles() > 0)
+	if (mapModels.Get(BOARD_SCENE_MAINBOARD)->NumTriangles() > 0)
 	{
 		sOffset.Init(0, 0, 0);
 		AddInstance(BOARD_SCENE_MAINBOARD, &sOffset, false);
 	}
-	if (macModels[BOARD_SCENE_PROCESSOR].NumTriangles() > 0)
+	if (mapModels.Get(BOARD_SCENE_PROCESSOR)->NumTriangles() > 0)
 	{
 		AddStandingBoard(BOARD_SCENE_PROCESSOR, BOARD_SCENE_PROCESSOR_FOOTPRINT_Y);
 	}
@@ -595,7 +595,7 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 		szType = aszTypes[psSocket->iSocket];
 		for (iModel = BOARD_SCENE_FIRST_CARD; szType && (iModel < BOARD_SCENE_NUM_MODELS); iModel++)
 		{
-			if ((strcmp(szType, gasBoardSceneModels[iModel].szType) == 0) && (macModels[iModel].NumTriangles() > 0))
+			if ((strcmp(szType, gasBoardSceneModels[iModel].szType) == 0) && (mapModels.Get(iModel)->NumTriangles() > 0))
 			{
 				AddStandingBoard(iModel, psSocket->fFootprintY);
 			}

@@ -1,5 +1,6 @@
 #ifndef __BOARD_SCENE_H__
 #define __BOARD_SCENE_H__
+#include "StandardLib/Array.h"
 #include "RasterLib/Rasteriser.h"
 #include "SupportLib/Image.h"
 #include "ThreadLib/WorkerThreadJobs.h"
@@ -36,7 +37,7 @@ DESTRUCTABLE(CBoardSceneDraw);
 protected:
 	Ptr<CImageCanvasDraw>	mpCelDraw;
 	Ptr<CImage>				mpImage;		//What the rasteriser draws on.
-	CRasterMesh				macModels[BOARD_SCENE_NUM_MODELS];
+	CArray<CRasterMesh>		mapModels;		//BOARD_SCENE_NUM_MODELS of them, empty until loaded.
 	bool					mabTried[BOARD_SCENE_NUM_MODELS];	//It has been loaded, or couldn't be.
 	SRasterInstance			masInstances[BOARD_SCENE_NUM_INSTANCES];
 	size					muiNumInstances;
