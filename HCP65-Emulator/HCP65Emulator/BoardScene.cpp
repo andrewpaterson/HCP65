@@ -495,7 +495,6 @@ void CBoardSceneDraw::BuildModel(int iModel, CMesh* pcMesh)
 
 	pModel = mapModels.Get(iModel);
 	BuildRasterMesh(&pModel, pcMesh, BoardSceneUnits(gasBoardSceneModels[iModel].fMillimetresPerUnit));
-	pModel->RemoveDegenerate();
 }
 
 
