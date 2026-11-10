@@ -550,6 +550,7 @@ bool CHCP65Mainboard::PlugInBoard(CHCP65* pcHCP65, int iSocket, const char* szTy
 	size			i;
 
 	pcBoard = NULL;
+	szKnownType = NULL;
 	for (i = 0; i < masSpares.NumElements(); i++)
 	{
 		if (strcmp(masSpares.Get(i)->szType, szType) == 0)
