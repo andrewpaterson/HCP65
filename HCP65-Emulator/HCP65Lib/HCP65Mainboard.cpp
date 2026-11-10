@@ -91,6 +91,7 @@ void CHCP65Mainboard::Init(void)
 	}
 	masSpares.Init();
 	mszCard.Init();
+	maszComments.Init();
 }
 
 
@@ -116,6 +117,7 @@ void CHCP65Mainboard::Kill(void)
 	}
 	masSpares.Kill();
 	mszCard.Kill();
+	maszComments.Kill();
 	meType = HMB_Unknown;
 }
 
@@ -134,8 +136,9 @@ void CHCP65Mainboard::SetCard(const char* szImageFilename)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The boards described by the XML file szFilename (see HCP65Mainboard.h).
-// False, with pszError saying why, if it can't be read or is wrong.
+// The boards described by the XML file szFilename (see HCP65Mainboard.h),
+// and the comments before them.  False, with pszError saying why, if it
+// can't be read or is wrong.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65Mainboard::Read(const char* szFilename, CChars* pszError)
@@ -147,6 +150,7 @@ bool CHCP65Mainboard::Read(const char* szFilename, CChars* pszError)
 	CChars		szError;
 	CMarkupTag*	pcRoot;
 	bool		bResult;
+	size		i;
 
 	szName.Init();
 	szDirectory.Init();
@@ -170,6 +174,11 @@ bool CHCP65Mainboard::Read(const char* szFilename, CChars* pszError)
 	}
 	else
 	{
+		maszComments.ReInit();
+		for (i = 0; i < cFile.mcMarkup.mpcDoc->NumComments(); i++)
+		{
+			maszComments.Add(cFile.mcMarkup.mpcDoc->GetComment(i));
+		}
 		szError.Init();
 		bResult = LoadXML(pcRoot, szDirectory.Text(), &szError);
 		if (!bResult)
@@ -345,18 +354,24 @@ bool CHCP65Mainboard::LoadBoard(CMarkupTag* pcTag, int iProcessor, const char* s
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The boards in their sockets as a description to szFilename.  Its cards'
-// files stay relative to where they were read from, so it should be the
-// file that was read or one beside it.  False, with pszError saying why,
-// if it can't be written.
+// The boards in their sockets as a description to szFilename, after the
+// comments Read read, indented with tabs.  Its cards' files stay relative
+// to where they were read from, so it should be the file that was read or
+// one beside it.  False, with pszError saying why, if it can't be written.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65Mainboard::Write(const char* szFilename, CChars* pszError)
 {
 	CXMLWriter	cWriter;
 	bool		bResult;
+	size		i;
 
 	cWriter.Init();
+	cWriter.SetIndent("\t");
+	for (i = 0; i < maszComments.NumElements(); i++)
+	{
+		cWriter.Comment(maszComments.GetText(i));
+	}
 	SaveXML(&cWriter);
 	bResult = cWriter.Write(szFilename);
 	cWriter.Kill();

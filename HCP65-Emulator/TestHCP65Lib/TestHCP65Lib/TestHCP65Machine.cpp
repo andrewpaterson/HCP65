@@ -3,6 +3,7 @@
 #include "BaseLib/Chars.h"
 #include "BaseLib/DataMemory.h"
 #include "BaseLib/FileUtil.h"
+#include "BaseLib/TextFile.h"
 #include "BaseLib/XMLFile.h"
 #include "DeviceRomLib/DeviceROMSchematic.h"
 #include "HCP65Lib/HCP65.h"
@@ -1105,12 +1106,16 @@ void TestHCP65MainboardChangeBoards(void)
 	CHCP65Device*		pcAudio;
 	CHCP65Device*		pcMemory;
 	CHCP65Device*		pcNewAudio;
+	CTextFile			cText;
 
 	DataMemoryInit();
 	szError.Init();
 	cFileUtil.TouchDir("Output");
 	TestHCP65WriteFile("Output" _FS_ "MainboardCard.img", NULL, 1024);
 	TestHCP65WriteFile("Output" _FS_ "Mainboard.xml",
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<!-- The test's Small Mainboard. -->\n"
+		"<!-- Files are relative to this one. -->\n"
 		"<Mainboard Type=\"Small\"><Processor Index=\"0\">"
 		"<Board Socket=\"3\" Type=\"SD Card Board\"><Card Socket=\"1\" File=\"MainboardCard.img\"/></Board>"
 		"<Board Socket=\"4\" Type=\"UART Board\"/>"
@@ -1208,10 +1213,28 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertTrue(pcNewAudio == cHCP65.GetDevice(19));
 	AssertString(HCP65_AUDIO_NAME, cMainboard.GetBoardType(19));
 
-	//Written, the description reads back to the same boards with the card from its own <Card> and not --card's.
+	//Written, the description reads back to the same boards with the card from its own <Card> and not --card's.  It
+	//keeps the comments that were before <Mainboard>, and is indented with tabs, as descriptions are written by hand.
 	szError.Set("");
 	AssertTrue(cMainboard.Write("Output" _FS_ "MainboardWritten.xml", &szError));
 	AssertString("", szError.Text());
+	cText.Init();
+	AssertTrue(cText.Read("Output" _FS_ "MainboardWritten.xml"));
+	AssertString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<!-- The test's Small Mainboard. -->\n"
+		"<!-- Files are relative to this one. -->\n"
+		"<Mainboard Type=\"Small\">\n"
+		"\t<Processor Index=\"0\">\n"
+		"\t\t<Board Socket=\"3\" Type=\"UART Board\"/>\n"
+		"\t\t<Board Socket=\"4\" Type=\"SD Card Board\">\n"
+		"\t\t\t<Card Socket=\"1\" File=\"MainboardCard.img\"/>\n"
+		"\t\t</Board>\n"
+		"\t\t<Board Socket=\"17\" Type=\"Sound Board\"/>\n"
+		"\t\t<Board Socket=\"18\" Type=\"Memory Board\"/>\n"
+		"\t\t<Board Socket=\"19\" Type=\"Sound Board\"/>\n"
+		"\t</Processor>\n"
+		"</Mainboard>\n", cText.Text());
+	cText.Kill();
 	cWritten.Init();
 	AssertTrue(cWritten.Read("Output" _FS_ "MainboardWritten.xml", &szError));
 	AssertString("", szError.Text());

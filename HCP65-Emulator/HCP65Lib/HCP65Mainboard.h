@@ -1,6 +1,7 @@
 #ifndef __HCP65_MAINBOARD_H__
 #define __HCP65_MAINBOARD_H__
 #include "BaseLib/ArrayTemplate.h"
+#include "BaseLib/ArrayChars.h"
 #include "BaseLib/Chars.h"
 #include "HCP65.h"
 
@@ -58,7 +59,8 @@ enum EHCP65Mainboard
 //ChangeBoards changes which boards are in the sockets, and is only for the moment of a system reset: reset the HCP65
 //straight after it.  A board taken out is kept as it is, with its memory and cards, and is what goes in next when a
 //board of its Type is asked for; a new board is only made when there is none.  Write saves the description, without
-//the boards that are out, and without --card's image.
+//the boards that are out, and without --card's image.  It keeps the comments before <Mainboard> that Read read, and
+//indents with tabs, as the descriptions are written by hand too.
 class CHCP65Mainboard
 {
 protected:
@@ -67,6 +69,7 @@ protected:
 	const char*		maszTypes[HCP65_NUM_DEVICE_SLOTS];		//Each board's Type.
 	CArrayHCP65SpareBoards	masSpares;						//The boards taken out.
 	CChars			mszCard;								//SetCard's, put in the first SD Card Board.
+	CArrayChars		maszComments;							//Before <Mainboard> in the description read, for Write.
 
 public:
 	void			Init(void);
