@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 			cX11Input.Init();
 			cNativeFactory.SetInput(&cX11Input);
 
-			bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cX11Input, "../../../commonlibraries/Libraries/WinInputLib/xml", argc, argv);
+			bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cX11Input, "../../../CommonLibraries/Libraries/WinInputLib/xml", argc, argv);
 
 			cNativeFactory.SetInput(NULL);
 			cX11Input.Kill();

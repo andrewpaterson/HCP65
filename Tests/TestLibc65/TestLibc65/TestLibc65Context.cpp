@@ -11,7 +11,7 @@
 
 
 #define TEST_LIBC65_DIRECTORY		".." _FS_ ".." _FS_ ".." _FS_ "Libraries" _FS_ "Libc65"
-#define TEST_LIBC65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ ".." _FS_ "commonlibraries" _FS_ "Libraries"
+#define TEST_LIBC65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ ".." _FS_ "CommonLibraries" _FS_ "Libraries"
 
 
 //The W65C816 runs more instructions for the same C++ (a 16 bit int, soft float in C++ rather than softfloat.asm):
@@ -78,7 +78,7 @@ static void TestLibc65Unit816(const char* szDirectory, const char* szUnit, const
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Compiles szSource and the Libc65 units (file names in commonlibraries/Libc65, NULL terminated) and links
+// Compiles szSource and the Libc65 units (file names in CommonLibraries/Libc65, NULL terminated) and links
 // the start up and szSource with the Libc65 units as a library (a unit is linked when something needs it).
 // BaseLib's TrueMallocator.cpp, which malloc uses, is in the library too.
 // Loads the program at reset.  On the W65C816 a unit in 65C64 assembly (X.asm) is its W65C816 assembly (X816.asm,
