@@ -6,7 +6,7 @@
 //The code only uses integers so it also compiles for a host, to be checked against its hardware.
 //On the 65C64 every function here is softfloat.asm's, and on the W65C816 softfloat816.asm's, which give the same
 //results much faster, so this file compiles to nothing there; it is kept as their reference (TestLibc65 compiles it
-//natively).  A W65C816 build without its assembly (CCPP65Generator::SetW65C816Assembly(false), no
+//natively).  A W65C816 build without its assembly (CCPPCompileOptions::SetAssemblyUnits(false), no
 //__W65C816_ASSEMBLY__) compiles this file instead of linking softfloat816.asm.
 #include <stdint.h>
 #if !defined(__65C64__) && !defined(__W65C816_ASSEMBLY__)
