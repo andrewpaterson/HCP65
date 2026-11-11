@@ -179,7 +179,7 @@ bool TestLibc65Run(STestLibc65Run* psRun, size uiMaxInstructions)
 	{
 		if (geTestLibc65Target == CPPT_W65C816)
 		{
-			return psRun->cMPU816.GetS() == GetCPPTarget(CPPT_W65C816)->uiStackTop;
+			return psRun->cMPU816.GetS() == GetCPPTarget(CPPT_W65C816)->GetStackTop();
 		}
 		return psRun->cMPU.GetS() == CPP65_STACK_TOP;
 	}
