@@ -3,7 +3,7 @@
 ; low then a store with CLK high (the card takes CMD as CLK rises and changes it as CLK falls); a bit is read once CLK
 ; has risen.  The GPIO values are D0 CLK, D1 CMD, D4 drive CLK, D5 drive CMD.
 ;
-; C functions with the W65C816 compiler's register arguments (CppParserLib/W65C816.txt): a pointer in A (low word) and
+; C functions with the W65C816 compiler's register arguments (CppCompilerLib/W65C816.txt): a pointer in A (low word) and
 ; X (bank), a 16 bit value in the next free register.  The plain labels are the stack entries.  m and x are 16 bit on
 ; entry and on return; D and DBR are kept.  The GPIO pointer and the locals are copied to a direct page frame on the
 ; stack so the stores are [D + n] long indirect.

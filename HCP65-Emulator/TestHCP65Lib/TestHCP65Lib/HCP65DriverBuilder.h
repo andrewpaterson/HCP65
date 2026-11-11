@@ -1,7 +1,7 @@
 #ifndef __HCP65_DRIVER_BUILDER_H__
 #define __HCP65_DRIVER_BUILDER_H__
 #include "BaseLib/Chars.h"
-#include "CppParserLib/CPP65Builder.h"
+#include "CppCompilerLib/CPP65Builder.h"
 #include "Assembler65Lib/Asm65Module.h"
 
 

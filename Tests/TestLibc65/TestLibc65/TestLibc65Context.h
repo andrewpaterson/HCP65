@@ -4,7 +4,7 @@
 #include "MicroprocessorLib/Fast65C816.h"
 #include "BaseLib/PrimitiveTypes.h"
 #include "Assembler65Lib/Asm65Memory.h"
-#include "CppParserLib/CPPTarget.h"
+#include "CppCompilerLib/CPPTarget.h"
 
 
 #define TEST_LIBC65_RESULTS			0x100000

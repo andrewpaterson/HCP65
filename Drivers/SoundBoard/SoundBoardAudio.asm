@@ -1,7 +1,7 @@
 ; The sound board driver's assembly (SoundBoard.cpp; HCP65Lib/HCP65Audio.h has the board): these talk to the board.
 ; C functions with the W65C816 compiler's calling convention:
 ; arguments from S + 4 after the jsl (pointers 4 bytes, 16 bit values 2), m and x 16 bit, D kept.  The compiler calls
-; them with register arguments (CppParserLib/W65C816.txt): the suffixed entries push the words again, in order, and
+; them with register arguments (CppCompilerLib/W65C816.txt): the suffixed entries push the words again, in order, and
 ; call the stack entries.
 
 AUDIO_COUNTER_LOW	= 2			; Reading it snapshots the counter.

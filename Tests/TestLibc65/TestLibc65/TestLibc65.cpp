@@ -19,7 +19,7 @@ void TestLibc65SoftFloat(void);
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Libc65 is compiled with CppParserLib's 65C64 generator and run on MicroprocessorLib's 65C64, or with "816" for
+// Libc65 is compiled with CppCompilerLib's 65C64 generator and run on MicroprocessorLib's 65C64, or with "816" for
 // the W65C816 compiler and run on its fast core.
 //
 //////////////////////////////////////////////////////////////////////////

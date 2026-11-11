@@ -2,7 +2,7 @@
 ; where the caller pushed them: the first at S + 4 after the jsl).  The kernal reads them through the process's remap
 ; page and returns a result in A, or A (low) and X (high).  COP 0 is exit (UserStart.asm).
 ;
-; The compiler passes extern "C" arguments in registers too (CppParserLib/W65C816.txt): a call with arguments goes to
+; The compiler passes extern "C" arguments in registers too (CppCompilerLib/W65C816.txt): a call with arguments goes to
 ; the label with its register suffix.  Those entries push the register words again, and copy the caller's pushed
 ; words below them, so the stack holds every argument in order; then they call the stack entry and pop what they
 ; pushed (ply keeps the result in A and X).  The caller removes its own pushed words.

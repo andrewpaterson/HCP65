@@ -2,7 +2,7 @@ W65C816 assembler
 =================
 
 Approved by the user (2026-10-25, see the rulings at the end).  The user chose Assembler65Lib's style for the
-W65C816 assembler (CppParserLib/W65C816.txt question 4).  So: the W65C816's own mnemonics
+W65C816 assembler (CppCompilerLib/W65C816.txt question 4).  So: the W65C816's own mnemonics
 (lda, sta, adc, jsl, rep ...), with Assembler65C64Syntax.txt's conventions: upper case
 registers, lower case flags, memory in square brackets, a bare value is a constant, :
 suffixes for widths, and the same lines, labels, numbers, expressions, directives,

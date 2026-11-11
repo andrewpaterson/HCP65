@@ -2,7 +2,7 @@
 ; a relocatable module (Assembler65Lib's CAsm65Module) whose imports are the kernal names it uses: the loader finds
 ; each here when it puts the driver in MPU RAM, and a name that isn't here stops the driver loading.
 ;
-; A C++ function has two entries (CppParserLib/W65C816.txt): its name, which takes its arguments on the stack (a
+; A C++ function has two entries (CppCompilerLib/W65C816.txt): its name, which takes its arguments on the stack (a
 ; virtual call's), and its name with a suffix for the registers it takes its first arguments in (a direct call's).
 ; Both are exported when drivers make direct calls to it.  CKernalDriver's virtuals are exported because a driver's
 ; vtables have the ones it doesn't override.  Add to the table as drivers need more of the kernal.

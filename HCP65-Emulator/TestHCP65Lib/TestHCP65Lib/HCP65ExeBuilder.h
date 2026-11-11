@@ -2,7 +2,7 @@
 #define __HCP65_EXE_BUILDER_H__
 #include "BaseLib/Chars.h"
 #include "BaseLib/ArrayUint8.h"
-#include "CppParserLib/CPP65Builder.h"
+#include "CppCompilerLib/CPP65Builder.h"
 #include "Assembler65Lib/Asm65Executable.h"
 
 

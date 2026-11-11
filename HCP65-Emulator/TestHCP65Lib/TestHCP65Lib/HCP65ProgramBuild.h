@@ -1,6 +1,6 @@
 #ifndef __HCP65_PROGRAM_BUILD_H__
 #define __HCP65_PROGRAM_BUILD_H__
-#include "CppParserLib/CPP65Builder.h"
+#include "CppCompilerLib/CPP65Builder.h"
 
 
 //Adds what the HCP65 kernal or one of its programs is built from to pcBuilder, as HCP65-IDE builds the program's

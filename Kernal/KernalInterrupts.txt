@@ -49,7 +49,7 @@ Constraints
    So a DMA can only run while the CPU is in kernel mode in MPU RAM and ROM, and no process can run during it.  An IRQ
    taken during a DMA must not run code that reaches main memory.
 2. No compiler support for interrupt handlers (__attribute__((interrupt)) is only planned in
-   CppParserLib/W65C816.txt step 8).  The entry and exit are assembly in Start.asm, like KernalCop; C++ is reached with
+   CppCompilerLib/W65C816.txt step 8).  The entry and exit are assembly in Start.asm, like KernalCop; C++ is reached with
    jsl after the registers are saved.  Each C++ function sets its own D (the frame is the direct page), and DBR is not
    used by compiled code, so the entry only has to save and restore them.
 3. ROM space: the kernal image is close to its 192KB.  The dispatch must be small.

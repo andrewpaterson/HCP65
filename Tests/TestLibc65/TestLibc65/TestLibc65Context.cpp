@@ -4,8 +4,8 @@
 #include "BaseLib/ConstructorCall.h"
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/ArrayChars.h"
-#include "CppParserLib/CPP65Generator.h"
-#include "CppParserLib/CPP65Builder.h"
+#include "CppCompilerLib/CPP65Generator.h"
+#include "CppCompilerLib/CPP65Builder.h"
 #include "TestLib/Assert.h"
 #include "TestLibc65Context.h"
 
