@@ -1,7 +1,7 @@
 65C64 assembler
 ===============
 
-Assembles 65C64 source (658-Computer/W65C64/65C64 Instruction Architecture.xlsx)
+Assembles 65C64 source (HCP65/W65C64/65C64 Instruction Architecture.xlsx)
 into bytes.  Encodings follow the Opcode encoding sheet as decoded by Decode65C64
 in MicroprocessorLib.  Usage:
 
@@ -180,8 +180,8 @@ Instructions
 	cpy and or xor tst add sub cmp
 		op R1, R2{:s}
 		op R, value{:width | :s | :swidth}
-		op R, [address]{:s}
-		op [address], R{:s}
+		op R, [address]{:s}		:s only for add, sub and cmp: cpy and the logical
+		op [address], R{:s}		instructions cannot sign extend with memory
 		op [address], value		-8 to 8 (0 is the zero register)
 	cpyx R, [address]:bits		cpyx [address]:bits, R		cpyx R, [address]:sbits
 		R is A, B, X or Y; bits is 8, 16, 32 or 64 (:s8, :s16 or :s32 sign extend,
