@@ -4,7 +4,7 @@
 |---|---|---|---|
 | `sep` | Set state bits | P ∨ E → P | the flags named |
 | `cep` | Clear state bits | P ∧ !E → P | the flags named |
-| `stat` | Status to status | p → p | the flag written |
+| `stat` | Status to status | p2 → p1 | the flag written |
 | `bist` | Bit to status | R:b[N] → p | the flag written |
 | `stab` | Status to bit | p → R:b[N]; {p → R:b[N±1] … R:b[N±(count-1)]} | |
 
@@ -12,7 +12,7 @@ Set, clear and copy the status flags, and move them to and from register bits.
 
 ## sep and cep
 
-```asm
+```text
 	sep flag
 	sep (flag, flag, …)
 	cep flag
@@ -33,7 +33,7 @@ instead.
 
 ## stat
 
-```asm
+```text
 	stat destination, source
 ```
 
@@ -47,7 +47,7 @@ or 1.
 
 ## bist
 
-```asm
+```text
 	bist flag, (R, index)
 ```
 
@@ -66,7 +66,7 @@ S, V, W, X and Y.  The index is:
 
 ## stab
 
-```asm
+```text
 	stab (R, index), flag
 	stab (R, index, count), flag
 	stab (R, index, count, +1), flag
@@ -91,3 +91,9 @@ can also set or clear a run of bits.
 	stab (A, 2, 10), 1	; set bits 2 to 11
 	stab (A, Y, X, -1), n	; copy n into X bits from bit Y down
 ```
+
+## Encoding
+
+`sep` and `cep` are instruction code 11.  `stat`, `bist` and `stab` are instruction code 15.  See
+[Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for
+the words and cycles.

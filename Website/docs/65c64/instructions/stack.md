@@ -22,7 +22,7 @@ subtracts n from S.  Pulling n bytes adds n to S, then reads S-n+1 to S.  After 
 
 ## Registers
 
-```asm
+```text
 	psh R
 	psh (R, R, …)
 	pul R
@@ -48,7 +48,7 @@ n and z are set from the last register pushed or pulled.
 
 ## Operands
 
-```asm
+```text
 	psh value
 	psh value:width
 	psh [address]
@@ -93,3 +93,10 @@ register widths.
 	psh C, V
 	pul P
 ```
+
+## Encoding
+
+`psh` and `pul` of registers and operands are instruction code 13.  `psh` of P and C is
+instruction code 10, and `pul P` instruction code 11.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

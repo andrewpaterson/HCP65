@@ -83,3 +83,8 @@ Dividing by 0 gives quotient nybbles of 15 (all ones) and leaves the dividend in
 	cpy W, 0
 	div			; Y = 142, B = 6
 ```
+
+## Encoding
+
+`mul` and `div` are instruction code 14, extend 0.  See [Opcode Encoding](../opcode-encoding.md)
+for the bits, and [Sizes and Timing](../timing.md) for the words and cycles.

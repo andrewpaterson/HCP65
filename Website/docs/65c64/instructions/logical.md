@@ -73,3 +73,9 @@ Set and clear bits in memory, like the W65C816's `tsb` and `trb`:
 	xor A, -1		; trb: invert A ...
 	and [$40], A		; ... and clear its bits in [$40]
 ```
+
+## Encoding
+
+`and` is instruction code 1, `or` 2, `xor` 3 and `tst` 4.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

@@ -8,22 +8,25 @@ spreadsheet.
 | Symbol | Meaning |
 |---|---|
 | A, B, S, V, W, X, Y | The contents of that register |
-| a, b, x, y | The width of A, B, X or Y in bits |
+| a, b, x, y | The width of A, B, X or Y in bytes |
 | C | The program counter |
 | P | The status register |
 | R | The contents of a register |
-| r | The width of a register |
+| r | The width of a register in bytes |
 | H | The contents of a hardware register |
-| h | The width of a hardware register |
+| h | The width of a hardware register in bytes |
 | DI, D, DJ | The internal data registers |
 | O | An operand: a register, an address, or an embedded or immediate value (see [Operands and Addressing](operands.md)) |
 | O1 | The first (left) operand, the destination |
 | O2 | The second (right) operand, the source |
 | O:s | The operand, sign extended |
-| o | The length of an operand in bytes |
+| o | The length of an operand in bytes.  For `cpyx` and the vector instructions, the width of the value in memory |
 | N | An operand count or index |
+| E | The status flags named by `sep` or `cep`, as bits of P |
 | i | The length of the instruction in bytes |
-| p | A status flag |
+| p, p1, p2 | A status flag: the first (p1) and second (p2) when an instruction names two |
+| vector | The interrupt vector a `brk` names |
+| Clock | The processor clock: `1 → Clock` holds it, stopping the processor |
 
 ## Memory and parts of registers
 
@@ -46,12 +49,28 @@ Byte, bit and nybble 0 are the least significant.
 | ∧ | Bitwise AND |
 | ∨ | Bitwise OR |
 | ⊻ | Bitwise XOR |
-| ! | Bitwise NOT |
+| ! | Bitwise NOT, or of a flag, the flag clear |
+| × | Multiplication |
+| ÷ | Division |
+| = | Equal |
+| ≠ | Not equal |
 | ‹‹ | Shift left |
 | ›› | Shift right |
 | ››› | Signed shift right |
-| { … } | Optional: done only in some forms of the instruction |
+| { … } | Optional: done only in some forms of the instruction.  After `if`, done only when the condition holds |
 | ( … ) | Grouping |
+| … | The steps or elements in between, in order |
+| ; | Separates steps, done in order |
+
+## Words
+
+| Word | Meaning |
+|---|---|
+| if Q { … } | The steps in the braces are done when Q holds |
+| while Q, … | The step is repeated for as long as Q holds |
+| abs(Q) | The absolute value of Q |
+| extend(R) | R widened from its old width to its new one, with zeros or (with `:s`) its sign |
+| wait Q | Q cycles in which nothing is done |
 
 ## Assembly syntax
 

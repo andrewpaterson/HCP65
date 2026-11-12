@@ -45,7 +45,7 @@ R, R1 and R2 are any of A, B, S, V, W, X and Y.
 
 ## Register → register
 
-```asm
+```text
 	cpy R1, R2
 	cpy R1, R2:s
 ```
@@ -63,7 +63,7 @@ when R2 is followed by `:s`.  If R1 is narrower, R2's high bits are dropped.
 
 ## Value → register
 
-```asm
+```text
 	cpy R, val
 	cpy R, val:width
 	cpy R, val:s
@@ -95,7 +95,7 @@ value is negative or has an `:s` suffix.  If R is narrower, the value's high bit
 
 ## Memory and registers
 
-```asm
+```text
 	cpy R, [address]
 	cpy [address], R
 ```
@@ -192,7 +192,7 @@ RA is any of A, B, S, V, W, X and Y.  RA1 is A, B, S or V, and RA2 is V, W, X or
 
 ## Small value → memory
 
-```asm
+```text
 	cpy [address], val
 ```
 
@@ -229,3 +229,8 @@ Every addressing mode but 11, 13 and 14 (the two register modes) can take a smal
 	cpy [V], 5
 	cpy [[S]], -2
 ```
+
+## Encoding
+
+`cpy` is instruction code 0.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and
+[Sizes and Timing](../timing.md) for the words and cycles.

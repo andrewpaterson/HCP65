@@ -79,3 +79,9 @@ carry:
 	shr A, 1
 	stab (A, X), f
 ```
+
+## Encoding
+
+`shl` is instruction code 14, extend 2, and `shr` extend 3.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

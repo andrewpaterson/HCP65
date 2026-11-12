@@ -10,7 +10,7 @@ None of them change the flags.
 
 ## brk
 
-```asm
+```text
 	brk vector
 ```
 
@@ -35,13 +35,17 @@ hardware:
 | 1015 | `FFFF:FFDC` | Hardware interrupt 2 |
 | 0 to 1014 | `FFFF:F000`–`FFFF:FFD8` | Software |
 
+The hardware interrupts 0 to 2 are raised through the
+[hardware registers](hardware.md), which aren't simulated, so the simulator never takes them.
+See [Interrupts and Modes](../interrupts.md) for what happens when an interrupt is taken.
+
 ```asm
 	brk 5
 ```
 
 ## stp
 
-```asm
+```text
 	stp
 	stp wake
 	stp (wake, wake, …)
@@ -64,7 +68,7 @@ The wake bits are `l` (the level interrupt) and `e0` to `e3` (the edge interrupt
 
 ## nop
 
-```asm
+```text
 	nop
 	nop cycles
 ```
@@ -76,3 +80,9 @@ and `wdm`.  A `nop n` takes 1 + n cycles.
 	nop
 	nop 3
 ```
+
+## Encoding
+
+`brk` and `stp` are instruction code 11.  `nop` is instruction code 12, extend 1.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

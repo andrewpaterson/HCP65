@@ -87,13 +87,19 @@ Only one suffix is allowed: `:s:16`, `:16:s` and `:16s` are errors.
 A small value held in the opcode itself, with no immediate word, like the W65C816's `inc` and
 `dec`.  The assembler embeds any value that fits.
 
-| Used with | Values |
-|---|---|
-| A register | -16 to 16 |
-| Memory | -8 to 8 |
+| Instruction | With a register | With memory |
+|---|---|---|
+| `cpy`, `and`, `or`, `xor`, `tst` | -16 to 16 | -8 to 8 |
+| `add`, `sub`, `cmp` | -8 to 8 | -8 to 8 |
+| `shl`, `shr` | 1 to 8 | 1 to 8 |
 
 Embedded values are signed and sign extend to the operation's width.  0 is the zero register
-(mode 0), not an embedded value.
+(mode 0), not an embedded value.  In the opcode a field of n bits holds 1 to 2<sup>n-1</sup>
+as the value less one, and -2<sup>n-1</sup> to -1 as the value plus 2<sup>n</sup>: a 4 bit
+field holds 1 to 8 as 0 to 7 and -8 to -1 as 8 to 15.
+
+The branches, `bist`, `stab`, `nop`, `scp` and `scb` embed values of their own, described on
+their pages.
 
 A value used with memory must be embedded: there's no form that writes an immediate to
 memory.  Copy a larger value into a register first.  A small value written to memory is
@@ -159,6 +165,7 @@ suffix on the address picks one:
 	cpy A, [$5e6f7081]	; absolute, 2 words
 	cpy A, [$7081:32]	; absolute, 2 words
 	cpy A, [Table + X]	; offset or absolute, depending on where Table is
+Table:
 ```
 
 A negative address, down to -$80000000, is absolute and is 32 bit two's complement.  Addresses
@@ -199,8 +206,16 @@ Some instructions narrow these choices.
 
 - `add`, `sub`, `cmp`, `shl`, `shr` and `cpyx` take only V, X or Y (or no register) as the
   register in a single register address (`[addr + R]`, `[offs + R]`, `[R]` …).  W isn't
-  allowed: by the calling convention W is 0, so write `[n]` for `[n + W]`.  The logical
-  instructions take any register.
+  allowed: by the [calling convention](calling-convention.md) W is 0, so write `[n]` for
+  `[n + W]`.  `cpy` and the logical instructions take any register.
+- In a two register address (`[R1 + R2]`, `[[R1 + R2]]`, `[[R1] + R2]`), `add`, `sub`, `cmp`,
+  `shl`, `shr`, `jmp` and `jsr` take only X or Y as R2.  `cpy` and the logical instructions
+  take V, W, X or Y.
+- `shl` and `shr` with a memory operand take only A, B, S or V as the register operand.
+- `cpyx` takes only the modes `[addr]`, `[addr + R]`, `[[addr]]`, `[[addr + R]]`, `[R]` and
+  `[[R]]`.
+- `psh` and `pul` of a value in memory, and a small value copied or combined into memory, can't
+  use a two register address.
 - `cpy`, `and`, `or`, `xor` and `tst` can't sign extend a value read from memory: `cpy A,
   [$1000]:s` is an error.  `add`, `sub` and `cmp` can.
 

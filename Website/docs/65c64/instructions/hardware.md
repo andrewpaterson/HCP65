@@ -45,3 +45,9 @@ The opcode holds the hardware register index (0 to 63).  The operand is A, B, X 
 !!! note
     The hardware register instructions are in the architecture spreadsheet, but they aren't
     assembled or simulated yet.  The assembler reports them as unsupported.
+
+## Encoding
+
+The hardware register instructions are instruction code 15, extend 0 to 3.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

@@ -5,7 +5,7 @@
 | `wth` | Set register width | O → r | a, b, x, y |
 | `wtth` | Set two register widths | O2 → r1; O2 → r2 | a, b, x, y |
 | `gwth` | Get register width | 8r → R; {8r - 1 → R} | |
-| `wthx` | Extend register width | xR:[O-r…O] → R; O → r | a, b, x, y |
+| `wthx` | Extend register width | extend(R) → R; O → r | a, b, x, y |
 
 A, B, X and Y are each 8, 16, 32 or 64 bits wide (see [Register widths](../registers.md#register-widths)).
 These instructions set, read and extend the widths, in place of the W65C816's `rep` and `sep`
@@ -13,7 +13,7 @@ on m and x.  Widths are written in bits.
 
 ## wth and wtth
 
-```asm
+```text
 	wth R, bits
 	wth R, register
 	wtth (R1, R2), bits
@@ -43,7 +43,7 @@ before, so use `wthx` to widen a value.
 
 ## gwth
 
-```asm
+```text
 	gwth R, Q
 	gwth R, (Q, -1)
 ```
@@ -58,7 +58,7 @@ it's one less: the index of Q's top bit.
 
 ## wthx
 
-```asm
+```text
 	wthx R, bits
 	wthx R, bits:s
 ```
@@ -72,3 +72,9 @@ with zeros or, with `:s`, its sign.
 	wthx A, 32:s		; A = $FFFFFF80, 32 bits
 	wthx A, 64		; A = $00000000FFFFFF80, 64 bits
 ```
+
+## Encoding
+
+`wth`, `wtth`, `gwth` and `wthx` are instruction code 11.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

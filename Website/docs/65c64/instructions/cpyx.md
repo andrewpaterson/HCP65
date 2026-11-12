@@ -31,7 +31,7 @@ width when storing.
 
 ## Forms
 
-```asm
+```text
 	cpyx R, [address]:bits
 	cpyx R, [address]:sbits
 	cpyx [address]:bits, R
@@ -76,5 +76,13 @@ Loop:
 	add X, 1
 	bra Loop
 Done:
+	stp
 String:
+	.byte "Hello", 0
 ```
+
+## Encoding
+
+`cpyx` is instruction code 12, extend 3.  The sign extending load is instruction code 15, extend
+6.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and
+Timing](../timing.md) for the words and cycles.

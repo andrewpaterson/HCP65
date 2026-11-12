@@ -39,7 +39,7 @@ One cycle.
 
 ## Forms
 
-```asm
+```text
 	fsbi R, N
 	fsbi R, N, +1
 	fsbi R, N, -1
@@ -70,3 +70,8 @@ Loop:
 	bra Loop
 Done:
 ```
+
+## Encoding
+
+The finds are instruction code 14, extend 1.  See [Opcode Encoding](../opcode-encoding.md) for the
+bits, and [Sizes and Timing](../timing.md) for the words and cycles.

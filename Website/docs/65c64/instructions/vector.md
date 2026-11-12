@@ -42,7 +42,7 @@ it's written, as the [block pre forms](block.md#the-pre-forms) do.
 
 ## Forms
 
-```asm
+```text
 	op W, V, direction, A, width
 	op W, V, direction, A, width, stop
 	op W, V, direction-W, direction-V, A, width
@@ -70,7 +70,6 @@ One word.
 Copy A + 1 64 bit values from [W] to [V] (the spreadsheet's block move: 1.13 cycles a byte):
 
 ```asm
-	wtth (X, Y), 32
 	wth A, 32
 	pul (A, V, W), S
 	vcpy W, V, +1, A, 64
@@ -86,9 +85,15 @@ Add a table of four 16 bit values to another:
 	vadd W, V, +1, A, 16
 ```
 
-The W65C816's `mvn` and `mvp`, copying bytes down or up:
+The W65C816's `mvn` and `mvp`, copying bytes up or down:
 
 ```asm
-	vcpy W, V, -1, A, 8	; mvn
-	vcpy W, V, +1, A, 8	; mvp
+	vcpy W, V, +1, A, 8	; mvn
+	vcpy W, V, -1, A, 8	; mvp
 ```
+
+## Encoding
+
+The vector instructions are instruction code 8, with bit 4 set.  Bits 5 to 8 are the sub
+instruction.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and
+Timing](../timing.md) for the words and cycles.

@@ -4,8 +4,8 @@
 |---|---|---|
 | `bras` | Branch on set | C+i → C; if p {C + O2 → C} |
 | `brac` | Branch on clear | C+i → C; if !p {C + O2 → C} |
-| `brasa` | Branch on set and set | C+i → C; if {p1 ∧ p2} {C + O2 → C} |
-| `braso` | Branch on set xor set | C+i → C; if {p1 ⊻ p2} {C + O2 → C} |
+| `brasa` | Branch on set and set | C+i → C; if (p1 ∧ p2) {C + O2 → C} |
+| `braso` | Branch on set xor set | C+i → C; if (p1 ⊻ p2) {C + O2 → C} |
 | `brae` | Branch on equal | C+i → C; if (p1 = p2) {C + O2 → C} |
 | `brane` | Branch on not equal | C+i → C; if (p1 ≠ p2) {C + O2 → C} |
 
@@ -14,7 +14,7 @@ flags, holds.  No flags are changed.
 
 ## Forms
 
-```asm
+```text
 	bras flag, target
 	brac flag, target
 	brasa (flag1, flag2), target
@@ -87,3 +87,10 @@ Loop:
 	sub W, 8
 	brac z, Loop		; brac z, -8
 ```
+
+## Encoding
+
+The branches are instruction code 12: `bras`, `brac`, `brasa` and `braso` are extend 0 with an
+embedded offset and extend 1 with an immediate, and `brae` and `brane` are extend 2.  See [Opcode
+Encoding](../opcode-encoding.md) for the bits, and [Sizes and Timing](../timing.md) for the words
+and cycles.

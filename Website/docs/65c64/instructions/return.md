@@ -15,7 +15,7 @@ Pulling P sets every flag in it, including the register widths a, b, x and y.
 
 ## Forms
 
-```asm
+```text
 	ret
 	ret P
 	ret stack
@@ -45,3 +45,8 @@ Sub:
 	cpy A, V
 	ret P, V
 ```
+
+## Encoding
+
+`ret` and `rti` are instruction code 11.  See [Opcode Encoding](../opcode-encoding.md) for the
+bits, and [Sizes and Timing](../timing.md) for the words and cycles.

@@ -39,19 +39,20 @@ width (8, 16, 32 or 64 bits) between memory and A, B, X or Y.
 | [`scb`](subcopy.md) | Subcopy bits | R1:b[O1]…R1:b[O1+N] → R2:b[O2]…R2:b[O2+N] | n, z | |
 | [`neg`](arithmetic.md#neg-and-abs) | Negate | 0 - R2:s → R1 | n, z | |
 | [`abs`](arithmetic.md#neg-and-abs) | Absolute | abs(R2:s) → R1 | n, z | |
-| [`mul`](multiply-divide.md#mul) | Multiply (partial) | A × B → Y, a byte of B a step | v, z | |
-| [`div`](multiply-divide.md#div) | Divide (partial) | Y ÷ A → Y, remainder B, a nybble a step | v, z, c | |
+| [`mul`](multiply-divide.md#mul) | Multiply (partial) | A × B → Y | v, z | |
+| [`div`](multiply-divide.md#div) | Divide (partial) | Y ÷ A → Y, remainder B | v, z, c | |
 | [`fsbi`](find.md) | Find set bit | if c {N+1 → N}; while R:b[N] = 0, N+1 → N | v, c | |
 | [`fcbi`](find.md) | Find clear bit | if c {N+1 → N}; while R:b[N] = 1, N+1 → N | v, c | |
-| [`fscr`](find.md) | Find set crumb | As `fsbi`, for 2 bit crumbs | v, c | |
-| [`fccr`](find.md) | Find clear crumb | As `fcbi`, for 2 bit crumbs | v, c | |
+| [`fscr`](find.md) | Find set crumb | As `fsbi`, for 2 bit crumbs with any bit set | v, c | |
+| [`fccr`](find.md) | Find clear crumb | As `fcbi`, for 2 bit crumbs with any bit clear | v, c | |
 | [`fsny`](find.md) | Find non-zero nybble | if c {N+1 → N}; while ∨R:n[N] = 0, N+1 → N | v, c | |
 | [`fcny`](find.md) | Find zero nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c | |
 | [`fsby`](find.md) | Find non-zero byte | if c {N+1 → N}; while ∨R:[N] = 0, N+1 → N | v, c | |
 | [`fcby`](find.md) | Find zero byte | if c {N+1 → N}; while ∧R:[N] = 1, N+1 → N | v, c | |
 
-`mul` and `div` do one step each time they run and leave C on their opcode until the result
-is done (v set), so they repeat on their own and can be interrupted between steps.
+`mul` does a byte of B a step and `div` a nybble of Y.  They do one step each time they run
+and leave C on their opcode until the result is done (v set), so they repeat on their own and
+can be interrupted between steps.
 
 ## Flow
 
@@ -59,12 +60,12 @@ is done (v set), so they repeat on their own and can be interrupted between step
 |---|---|---|---|---|
 | [`jmp`](jump.md) | Jump absolute | {P → [S]; S-2 → S}; O2 → C | | jmp |
 | [`jsr`](jump.md) | Jump absolute subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; O2 → C | | jsr |
-| [`bra`](jump.md#relative-targets) | Branch always / jump relative | C+i → C; {P → [S]; S-2 → S}; C + O2 → C | | bra brl |
+| [`bra`](jump.md#relative-targets) | Jump relative (branch always) | C+i → C; {P → [S]; S-2 → S}; C + O2 → C | | bra brl |
 | [`brsr`](jump.md#relative-targets) | Jump relative subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; C + O2 → C | | |
 | [`bras`](branch.md) | Branch on set | C+i → C; if p {C + O2 → C} | | bcs beq bvs bmi |
 | [`brac`](branch.md) | Branch on clear | C+i → C; if !p {C + O2 → C} | | bcc bne bvc bpl |
-| [`brasa`](branch.md) | Branch on set and set | C+i → C; if {p ∧ p} {C + O2 → C} | | |
-| [`braso`](branch.md) | Branch on set xor set | C+i → C; if {p ⊻ p} {C + O2 → C} | | |
+| [`brasa`](branch.md) | Branch on set and set | C+i → C; if (p1 ∧ p2) {C + O2 → C} | | |
+| [`braso`](branch.md) | Branch on set xor set | C+i → C; if (p1 ⊻ p2) {C + O2 → C} | | |
 | [`brae`](branch.md) | Branch on equal | C+i → C; if (p1 = p2) {C + O2 → C} | | |
 | [`brane`](branch.md) | Branch on not equal | C+i → C; if (p1 ≠ p2) {C + O2 → C} | | |
 | [`ret`](return.md) | Return | {S+2 → S; [S] → P}; S+4 → S; [S] → C | all, if P is pulled | rts rtl |
@@ -80,11 +81,11 @@ can push P after C on any stack.
 
 | Mnemonic | Name | Operation | Flags | W65C816 |
 |---|---|---|---|---|
-| [`psh`](stack.md) | Push registers | {A → [S]; S-a → S}; … {Y → [S]; S-y → S} | n, z | pha phx phy phd |
+| [`psh`](stack.md) | Push registers | {A → [S]; S-a → S}; {B → [S]; S-b → S}; … {Y → [S]; S-y → S} | n, z | pha phx phy phd |
 | [`psh`](stack.md) | Push operand | O2 → [S]; S-o → S | | pea pei per |
 | [`psh`](stack.md) | Push processor state | P → [S]; S-2 → S | | php |
 | [`psh`](stack.md) | Push program count | C → [S]; S-4 → S | | |
-| [`pul`](stack.md) | Pull registers | {S+a → S; [S] → A}; … {S+y → S; [S] → Y} | n, z | pla plx ply pld |
+| [`pul`](stack.md) | Pull registers | {S+a → S; [S] → A}; {S+b → S; [S] → B}; … {S+y → S; [S] → Y} | n, z | pla plx ply pld |
 | [`pul`](stack.md) | Pull into address | S+4 → S; [S] → O2 | | |
 | [`pul`](stack.md) | Pull processor state | S+2 → S; [S] → P | all | plp |
 
@@ -100,10 +101,10 @@ reverse order.  The stack can be any of A, B, S, V, W, X and Y.
 | [`wth`](width.md#wth-and-wtth) | Set register width | O → r | a, b, x, y | rep sep |
 | [`wtth`](width.md#wth-and-wtth) | Set two register widths | O2 → r1; O2 → r2 | a, b, x, y | |
 | [`gwth`](width.md#gwth) | Get register width | 8r → R; {8r - 1 → R} | | |
-| [`wthx`](width.md#wthx) | Extend register width | xR:[O-r…O] → R; O → r | | |
-| [`bist`](status.md#bist) | Bit to status | R:b[N] → p | the flag named | |
+| [`wthx`](width.md#wthx) | Extend register width | extend(R) → R; O → r | a, b, x, y | |
+| [`bist`](status.md#bist) | Bit to status | R:b[N] → p | the flag written | |
 | [`stab`](status.md#stab) | Status to bit | p → R:b[N]; {p → R:b[N±1] … R:b[N±(count-1)]} | | |
-| [`stat`](status.md#stat) | Status to status | p → p | the flag named | |
+| [`stat`](status.md#stat) | Status to status | p2 → p1 | the flag written | |
 
 ## Block and vector
 
@@ -155,6 +156,36 @@ condition sees the original value.  The `vcpy` instructions replace the W65C816'
 The hardware register instructions are in the spreadsheet but aren't assembled or simulated
 yet.
 
+## Encoding
+
+Every instruction is one 16 bit opcode, followed by up to four 16 bit operand words.  The low
+four bits of the opcode are the *instruction code*.  Codes 0 to 7 are one instruction each, with
+the rest of the opcode for their operands.  The others share a code between several
+instructions, told apart by an *extend* or *sub instruction* field.  The
+[Opcode Encoding](../opcode-encoding.md) page has every bit.
+
+| Code | Instructions |
+|---|---|
+| 0 | `cpy` |
+| 1 | `and` |
+| 2 | `or` |
+| 3 | `xor` |
+| 4 | `tst` |
+| 5 | `add` |
+| 6 | `sub` |
+| 7 | `cmp` |
+| 8 | The block and vector instructions |
+| 9 | `scp`, `scb` |
+| 10 | `jmp`, `jsr`, `bra`, `brsr`, and `psh` of P and C |
+| 11 | `ret`, `rti`, `pul P`, `sep`, `cep`, `wth`, `wtth`, `gwth`, `wthx`, `brk`, `stp` |
+| 12 | `bras`, `brac`, `brasa`, `braso`, `brae`, `brane`, the one word `bra`, `nop`, `cpyx` |
+| 13 | `psh`, `pul` |
+| 14 | `mul`, `div`, `neg`, `abs`, the finds, `shl`, `shr` |
+| 15 | `hws`, `hwg`, `hwsp`, `hwcp`, `bist`, `stab`, `stat`, the sign extending `cpyx` |
+
+An opcode that isn't an instruction is *illegal*.  The simulator runs it as a one cycle
+instruction that does nothing.
+
 ## W65C816 instructions without a match
 
 Some W65C816 instructions have no single 65C64 instruction, but can be built from a few:
@@ -163,8 +194,8 @@ Some W65C816 instructions have no single 65C64 instruction, but can be built fro
 |---|---|---|
 | `rol` | `stat f, c`<br>`shl A, 1`<br>`stab (A, 0), f` | Copy c into f, shift A left, copy f into bit 0. |
 | `ror` | `stat f, c`<br>`gwth X, (A, -1)`<br>`shr A, 1`<br>`stab (A, X), f` | Copy c into f, put A's width less one in X, shift A right, copy f into bit X. |
-| `mvn` | `vcpy W, V, -1, A, 8` | Copy bytes from [W] to [V], moving down. |
-| `mvp` | `vcpy W, V, +1, A, 8` | Copy bytes from [W] to [V], moving up. |
+| `mvn` | `vcpy W, V, +1, A, 8` | Copy bytes from [W] to [V], moving up. |
+| `mvp` | `vcpy W, V, -1, A, 8` | Copy bytes from [W] to [V], moving down. |
 | `trb` | `xor A, -1`<br>`and [M], A` | Invert A, then and it into memory. |
 
 `cld` and `sed` (decimal mode) have to be written in software.  `phb`, `phk`, `plb` and `xce`

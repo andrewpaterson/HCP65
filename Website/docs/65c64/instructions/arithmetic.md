@@ -49,6 +49,8 @@ it with `braso (n, v)` or `brane (n, v)` (see [Branches](branch.md)):
 	cmp A, B
 	braso (n, v), Less	; A < B, signed
 	brac c, Lower		; A < B, unsigned
+Less:
+Lower:
 ```
 
 ## Forms
@@ -84,7 +86,7 @@ These are the operands of [`cpy`](cpy.md#forms), with these differences:
 
 ## neg and abs
 
-```asm
+```text
 	neg R1, R2
 	neg R
 	abs R1, R2
@@ -105,3 +107,9 @@ n and z are set from R1, except that `abs` sets n when R2 was negative.
 
 `neg` and `abs` are support for signed [multiply and divide](multiply-divide.md), which are
 unsigned.
+
+## Encoding
+
+`add` is instruction code 5, `sub` 6 and `cmp` 7.  `neg` and `abs` are instruction code 14, extend
+0.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and
+Timing](../timing.md) for the words and cycles.

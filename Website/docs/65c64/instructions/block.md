@@ -52,7 +52,7 @@ even if a character ands to zero.
 
 ## Forms
 
-```asm
+```text
 	op R, V, direction, A
 	op R, V, direction, A, stop
 ```
@@ -96,3 +96,9 @@ Upper case a zero terminated string of up to 10 characters, stopping after the t
 	bpand B, V, +1, A, z
 String = $3000
 ```
+
+## Encoding
+
+The block instructions are instruction code 8, with bit 4 clear.  Bits 5 to 8 are the sub
+instruction.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and
+Timing](../timing.md) for the words and cycles.

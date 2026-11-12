@@ -19,7 +19,7 @@ They replace the W65C816's `jmp`, `jml`, `jsr`, `jsl`, `bra` and `brl`.
 
 ## Forms
 
-```asm
+```text
 	jmp target
 	jmp target, P
 	jmp target, stack
@@ -97,3 +97,9 @@ virtual program counter at `PC`:
 	jmp A			; jump to the opcode's handler
 PC = $40
 ```
+
+## Encoding
+
+`jmp`, `jsr`, `bra` and `brsr` are instruction code 10.  The one word `bra` is instruction code
+12, extend 1.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and
+Timing](../timing.md) for the words and cycles.

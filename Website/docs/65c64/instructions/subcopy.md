@@ -31,7 +31,7 @@ the index word.
 
 ## Forms
 
-```asm
+```text
 	scp (R1, index1), (R2, index2), count
 	scb (R1, index1), (R2, index2), count
 ```
@@ -66,3 +66,8 @@ Copy the low byte of X into the third byte of A, leaving A's other bytes alone:
 ```asm
 	scp (X, 0), (A, 2), 1
 ```
+
+## Encoding
+
+`scp` and `scb` are instruction code 9.  See [Opcode Encoding](../opcode-encoding.md) for the
+bits, and [Sizes and Timing](../timing.md) for the words and cycles.
