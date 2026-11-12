@@ -234,6 +234,7 @@
     <ClCompile Include="TestAsm65Tokeniser.cpp" />
     <ClCompile Include="TestAsm65C64Encoding.cpp" />
     <ClCompile Include="TestAsm65C64Fast.cpp" />
+    <ClCompile Include="TestAsm65C64Website.cpp" />
     <ClCompile Include="TestAsm65IncHex.cpp" />
     <ClCompile Include="TestAsm65Image.cpp" />
     <ClCompile Include="TestAsm65816.cpp" />

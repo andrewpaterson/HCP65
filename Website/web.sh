@@ -24,9 +24,11 @@ case "${1:-serve}" in
         exec .venv/bin/mkdocs serve --dev-addr "127.0.0.1:${PORT}"
         ;;
     build)
+        python3 tools/check_instruction_tables.py
         .venv/bin/mkdocs build --strict
         ;;
     serve)
+        python3 tools/check_instruction_tables.py
         .venv/bin/mkdocs build --strict
         echo "Serving site/ on http://127.0.0.1:${PORT}/ (Ctrl+C to stop)"
         exec python3 -m http.server "${PORT}" --bind 127.0.0.1 --directory site
