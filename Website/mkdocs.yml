@@ -42,6 +42,10 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.highlight
   - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path:
+        - ../Tests/TestAssembler65Lib/TestAssembler65Lib/Input
+      check_paths: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -69,7 +73,6 @@ nav:
       - Registers: 65c64/registers.md
       - Notation: 65c64/notation.md
       - Operands and Addressing: 65c64/operands.md
-      - Opcode Encoding: 65c64/opcode-encoding.md
       - Instructions:
           - 65c64/instructions/index.md
           - Copy: 65c64/instructions/cpy.md
@@ -90,6 +93,15 @@ nav:
           - Block: 65c64/instructions/block.md
           - Vector: 65c64/instructions/vector.md
           - Hardware Registers: 65c64/instructions/hardware.md
+      - Opcode Encoding: 65c64/opcode-encoding.md
+      - Sizes and Timing: 65c64/timing.md
+      - Interrupts and Modes: 65c64/interrupts.md
+      - Bus and Signals: 65c64/bus.md
+      - Memory Map: 65c64/memory-map.md
+      - Assembler: 65c64/assembler.md
+      - Objects and Linking: 65c64/linking.md
+      - Calling Convention: 65c64/calling-convention.md
+      - Worked Examples: 65c64/examples.md
       - Emulator: 65c64/emulator.md
   - C++ Software Libraries:
       - libraries/index.md
