@@ -2,6 +2,7 @@
 #include "BaseLib/PointerFunctions.h"
 #include "TestLib/Assert.h"
 #include "Assembler65Lib/Asm65Module.h"
+#include "Assembler65Lib/Asm65Executable.h"
 #include "BaseLib/FileUtil.h"
 #include "TestAsm65C64Context.h"
 
@@ -516,10 +517,12 @@ void TestAsm65LinkerErrors(void)
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65LinkerRemoveUnused(void)
 {
-	SLinkTest		sTest;
-	STestAsm65Run	sRun;
-	const char*		szSource;
-	int64			iValue;
+	SLinkTest			sTest;
+	STestAsm65Run		sRun;
+	const char*			szSource;
+	int64				iValue;
+	CAsm65Executable	cExecutable;
+	CChars				szErrors;
 
 	szSource =
 		"	.section text, keep\n"
@@ -586,6 +589,18 @@ void TestAsm65LinkerRemoveUnused(void)
 	AssertSize(0, sTest.cLinker.NumMissing());
 	AssertTrue(sTest.cLinker.GetSymbol("Used", &iValue));
 	AssertFalse(sTest.cLinker.GetSymbol("Unused", &iValue));
+
+	//An executable whose entry was removed, or never defined, says which.
+	cExecutable.Init("unused.exe", "Unused", 0);
+	szErrors.Init();
+	AssertFalse(cExecutable.Make(sTest.cLinker.GetOutput(), &sTest.cLinker, &szErrors));
+	AssertString("The entry Unused was removed: nothing in the link uses it.\n", szErrors.Text());
+	szErrors.Kill();
+	cExecutable.Kill();
+	szErrors.Init();
+	sTest.cLinker.DescribeMissing("The entry", "Nowhere", &szErrors);
+	AssertString("The entry Nowhere is not defined.\n", szErrors.Text());
+	szErrors.Kill();
 	AssertTrue(strstr(sTest.cLinker.GetMap(),
 		"Removed unused sections\n"
 		"  0x0000000e text.Unused (a)\n"

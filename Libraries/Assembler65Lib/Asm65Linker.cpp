@@ -1998,6 +1998,31 @@ bool CAsm65Linker::GetSymbol(const char* szName, int64* piValue)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Why szName, which the link's output needs (szWhat: "The entry"), has no
+// address: nothing defines it, or its section was removed because
+// nothing in the link uses it (SetRemoveUnused; KeepSymbol keeps it).
+// One line, appended to pszDest.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Linker::DescribeMissing(const char* szWhat, const char* szName, CChars* pszDest)
+{
+	SAsm65LinkSymbol*	psGlobal;
+
+	psGlobal = GetGlobal(szName);
+	pszDest->Append(szWhat)->Append(' ')->Append(szName);
+	if (psGlobal == NULL)
+	{
+		pszDest->Append(" is not defined.\n");
+	}
+	else
+	{
+		pszDest->Append(" was removed: nothing in the link uses it.\n");
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The names nothing defined (stp stubs with SetStubMissing).
 //
 //////////////////////////////////////////////////////////////////////////

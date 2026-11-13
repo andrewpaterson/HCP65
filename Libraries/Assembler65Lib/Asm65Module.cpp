@@ -168,7 +168,7 @@ bool CAsm65Module::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* 
 	}
 	if (!pcLinker->GetSymbol(mszEntry.Text(), &iEntry))
 	{
-		pszErrors->Append("No ")->Append(mszEntry)->Append(".\n");
+		pcLinker->DescribeMissing("The entry", mszEntry.Text(), pszErrors);
 		return false;
 	}
 	if (iEnd - iBase > ASM65_MODULE_MAX_SIZE)

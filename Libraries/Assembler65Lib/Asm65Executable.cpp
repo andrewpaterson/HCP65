@@ -191,7 +191,7 @@ bool CAsm65Executable::Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CCha
 	macBytes.Init();
 	if (!pcLinker->GetSymbol(mszEntry.Text(), &lliEntry))
 	{
-		pszErrors->Append("No ")->Append(mszEntry)->Append(".\n");
+		pcLinker->DescribeMissing("The entry", mszEntry.Text(), pszErrors);
 		return false;
 	}
 

@@ -225,6 +225,7 @@ public:
 	char*				GetErrors(void);
 	size				NumErrors(void);
 	bool				GetSymbol(const char* szName, int64* piValue);
+	void				DescribeMissing(const char* szWhat, const char* szName, CChars* pszDest);
 	size				NumMissing(void);
 	char*				GetMissing(size uiIndex);
 	size				NumFixups(void);
