@@ -37,7 +37,7 @@
 ; at the top of the dividend are skipped 16 steps at a time (the remainder stays 0 through them) and the rest is a bit
 ; at a time.  The result is written through the pointer, and the remainder is left at the caller's D + 5 to D + 12 (its
 ; scratch bytes), where a urem or srem of the same operands written straight after the divide takes it
-; (CIR816Backend::RemainderLeft).
+; (CIRW65C816Backend::RemainderLeft).
 		.section text.R816_Div64
 		.global R816_UDiv64
 		.global R816_URem64
@@ -1371,7 +1371,7 @@ R816_BcdSubtract_Done:
 ; the steps 8 bits wide (the remainder fits a byte; a byte rotates in 5 cycles, a word in 7), a byte of n at a time.
 ; The quotient is left at D + 15 and X is 0 at the end, so the 32 bit divide can return through them.  R816_UDiv16 also
 ; leaves the remainder at D + 5, where a urem of the same operands written straight after it takes it
-; (CIR816Backend::RemainderLeft).
+; (CIRW65C816Backend::RemainderLeft).
 		.section text.R816_UDiv16
 		.global R816_UDiv16
 		.global R816_URem16
@@ -1653,7 +1653,7 @@ R816_UDiv16_Zero:
 ; R816_UDiv32 (on the same D) leaves the magnitudes' quotient at D + 15 (and D + 17) and remainder at D + 5 (and D +
 ; 7).  The quotient is negated when the signs differ and the remainder when a is negative (C rounds towards 0: the
 ; remainder has the dividend's sign).  Both routines leave the signed remainder at D + 5, where a srem of the same
-; operands written straight after them takes it (CIR816Backend::RemainderLeft).  The most negative value divided by -1
+; operands written straight after them takes it (CIRW65C816Backend::RemainderLeft).  The most negative value divided by -1
 ; wraps, as the magnitudes do.
 		.section text.R816_SDiv16
 		.global R816_SDiv16
@@ -1783,7 +1783,7 @@ R816_SDiv32_RPositive:
 ; with 8 steps for a byte's quotient), and unrolled steps on the remainder at D + 5 and D + 7 take the dividend's low
 ; word, the quotient bit (C) rotated into it as its next bit comes out; a divisor of 2^31 or more (whose remainder can
 ; overflow) loops with the guard.  Every path leaves the remainder at D + 5 and D + 7 (the short one clears D + 7 before
-; R816_UDiv16 writes D + 5), for a urem straight after R816_UDiv32 (CIR816Backend::RemainderLeft).
+; R816_UDiv16 writes D + 5), for a urem straight after R816_UDiv32 (CIRW65C816Backend::RemainderLeft).
 		.section text.R816_UDiv32
 		.global R816_UDiv32
 		.global R816_URem32

@@ -4,10 +4,10 @@
 //operation gives the default NaN (sign set, quiet), a NaN operand is returned quietened (the first if both
 //are NaNs), and a conversion to an integer that is out of range or a NaN gives the most negative integer.
 //The code only uses integers so it also compiles for a host, to be checked against its hardware.
-//On the 65C64 every function here is softfloat.asm's, and on the W65C816 softfloat816.asm's, which give the same
+//On the 65C64 every function here is softfloat.asm's, and on the W65C816 softfloatW65C816.asm's, which give the same
 //results much faster, so this file compiles to nothing there; it is kept as their reference (TestLibc65 compiles it
 //natively).  A W65C816 build without its assembly (CCPPCompileOptions::SetAssemblyUnits(false), no
-//__W65C816_ASSEMBLY__) compiles this file instead of linking softfloat816.asm.
+//__W65C816_ASSEMBLY__) compiles this file instead of linking softfloatW65C816.asm.
 #include <stdint.h>
 #if !defined(__65C64__) && !defined(__W65C816_ASSEMBLY__)
 
@@ -647,7 +647,7 @@ static uint64_t SquareRoot(uint64_t ulliBits, int iFraction)
 }
 
 
-//C linkage: softfloat.asm and softfloat816.asm define the same names on the 65C64 and the W65C816.
+//C linkage: softfloat.asm and softfloatW65C816.asm define the same names on the 65C64 and the W65C816.
 extern "C"
 {
 uint32_t SoftFloatAdd(uint32_t uiA, uint32_t uiB)						{ return (uint32_t)Add(uiA, uiB, false, FLOAT_FRACTION); }

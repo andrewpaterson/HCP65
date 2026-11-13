@@ -174,7 +174,7 @@ void TestLibc65StringRandomCases(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// memcpy, memmove and memset across 64KB boundaries (the W65C816's banks: string816.asm's block moves stop at the
+// memcpy, memmove and memset across 64KB boundaries (the W65C816's banks: stringW65C816.asm's block moves stop at the
 // end of a bank and go on in the next), the source and destination crossing at different places: a copy up, an
 // overlapping copy down and a fill.
 //
@@ -229,7 +229,7 @@ void TestLibc65StringBanks(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// memset of every length from 0 to 80 at four alignments (string816.asm
+// memset of every length from 0 to 80 at four alignments (stringW65C816.asm
 // stores 16 bytes at a time, then words, then a byte), the bytes round each
 // fill unchanged.  Returns the bytes wrong.
 //
@@ -280,7 +280,7 @@ void TestLibc65StringFills(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // The W65C816's 16 bit count memcpy16, memmove16, memset16, memcmp16, strlen16 and
-// BaseLib's MemSwp16 (string816_16.asm, for BaseLib's natural arrays)
+// BaseLib's MemSwp16 (stringW65C816_16.asm, for BaseLib's natural arrays)
 // across 64KB boundaries: a copy up, overlapping moves down and up, a fill
 // across a bank and one within it, a fill of 0 bytes, compares that are
 // equal or differ in a word's first or second byte, and a swap.  The program

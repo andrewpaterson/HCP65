@@ -91,7 +91,7 @@ constant that an implicit conversion cuts short.
 | `__W65C816__` | Compiling for the W65C816. |
 | `__65C64__` | Compiling for the 65C64. |
 | `__LIBC65__` | Either: the program is built against Libc65. |
-| `__W65C816_ASSEMBLY__` | The W65C816 build uses the hand written assembly units beside their C++ (`string816.asm`, `softfloat816.asm` ...). |
+| `__W65C816_ASSEMBLY__` | The W65C816 build uses the hand written assembly units beside their C++ (`stringW65C816.asm`, `softfloatW65C816.asm` ...). |
 
 ## What isn't supported yet
 

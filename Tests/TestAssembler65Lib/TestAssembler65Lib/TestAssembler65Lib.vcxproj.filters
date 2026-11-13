@@ -33,10 +33,10 @@
     <ClCompile Include="TestAsm65Image.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="TestAsm65816.cpp">
+    <ClCompile Include="TestAsmW65C816.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="TestAsm65816Disassembler.cpp">
+    <ClCompile Include="TestAsmW65C816Disassembler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="TestAsm65C64Labels.cpp">

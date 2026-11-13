@@ -29,8 +29,8 @@ There is no C++ standard library beyond `<new>`.
 
 | Unit | Written in |
 |---|---|
-| `string.cpp` | C++.  On the W65C816, `string816.asm` and `string816_16.asm` replace the block and vector functions (`memcpy`, `memset`, `memmove`, `strlen`, `strcmp` ...), using `mvn` and `mvp`.  On the 65C64, `string.asm`. |
-| `softfloat.cpp` | C++, the bit exact reference.  `softfloat816.asm` and `softfloat.asm` replace it on each processor, so the C++ compiles to nothing there. |
+| `string.cpp` | C++.  On the W65C816, `stringW65C816.asm` and `stringW65C816_16.asm` replace the block and vector functions (`memcpy`, `memset`, `memmove`, `strlen`, `strcmp` ...), using `mvn` and `mvp`.  On the 65C64, `string.asm`. |
+| `softfloat.cpp` | C++, the bit exact reference.  `softfloatW65C816.asm` and `softfloat.asm` replace it on each processor, so the C++ compiles to nothing there. |
 | `stdlib.cpp`, `stdio.cpp`, `math.cpp`, `ctype.cpp`, `time.cpp`, `new.cpp`, `signal.cpp`, `host.cpp` | C++. |
 | `IRW65C816Runtime-*.asm` | The W65C816's multiply, divide, shift and BCD routines (see [W65C816 Runtime](../hcp65/runtime/w65c816.md)). |
 | `MathTbls/` | Garth Wilson's maths tables; the W65C816's multiplies use `MULT`. |
@@ -80,7 +80,7 @@ SoftFloatToDouble  SoftDoubleToFloat  SoftFloatSqrt  SoftDoubleSqrt
 `softfloat.cpp` was checked bit for bit against SSE on millions of values, and each processor's
 assembly against `softfloat.cpp`.  On the 65C64 the assembly takes 25 to 220 cycles a call for
 normal operands, 20 to 96 times faster than the compiled C++.  On the W65C816 the compiler calls
-`softfloat816.asm`'s *frame operand* entries: the operands stay in the caller's frame and their
+`softfloatW65C816.asm`'s *frame operand* entries: the operands stay in the caller's frame and their
 places are passed in X and Y, so nothing is pushed or removed.
 
 ## The maths library

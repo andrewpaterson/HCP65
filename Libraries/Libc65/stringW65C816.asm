@@ -5,8 +5,8 @@
 ; source's or the destination's bank and the next goes on from there.  memset stores the
 ; first byte and moves the rest up from one byte below, so each byte copies the one before
 ; it.  string.cpp has the other string functions (and these, for the 65C64's reference).
-; string816_16.asm has memcpy16 and the like, with 16 bit counts, for BaseLib's natural arrays.
-; The bit array finders (with lsize counts) and the tables they share with string816_16.asm's are at the end.
+; stringW65C816_16.asm has memcpy16 and the like, with 16 bit counts, for BaseLib's natural arrays.
+; The bit array finders (with lsize counts) and the tables they share with stringW65C816_16.asm's are at the end.
 ; The code changes itself, so it isn't reentrant: an interrupt handler mustn't call these.
 ; The calling convention is the compiler's register arguments (IR816Backend.h, W65C816.txt):
 ; the C functions here take the first argument (a pointer) in A (low) and X (high) and an int
@@ -1346,7 +1346,7 @@ MoreNone:
 		.global _MemSwp__FPKvPKvj, _MemSwp__FPKvPKvj.ax
 
 ; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
-; out for the W65C816; string816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
+; out for the W65C816; stringW65C816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
 ; (carrying into the next bank), 64KB at a time.  The register entry (the compiler's register arguments: pv1 in A and
 ; X, pv2 and uiLength pushed) pushes pv1 and points D at the stack: pv1 is at D + 3 (MemSwpP1), then the return
 ; address, pv2 at D + 10 and the length at D + 14.
@@ -1442,13 +1442,13 @@ MemSwpWords:
 
 ; The bit array functions (BaseLib's IntegerHelper.h) with lsize (32 bit) counts and results:
 ; FindFirstSetBitLarge, FindFirstClearBitLarge, FindLastSetBitLarge and FindLastClearBitLarge
-; (FindNextSetBitLarge and FindNextClearBitLarge are C++ on them).  string816_16.asm has the
+; (FindNextSetBitLarge and FindNextClearBitLarge are C++ on them).  stringW65C816_16.asm has the
 ; ones with size counts, and the uint32 and uint64 FindFirstClearBit and FindFirstSetBit.  Bit
 ; n is bit n % 8 of byte n / 8, so a word read from the array has its bits in order.  The
 ; arrays are read a word at a time (xored with Invert, 0 or $FFFF: set or clear bits),
 ; through their 24 bit pointer + Y; the pointer's bank moves on when Y wraps.  The last
 ; word's bits past the count are masked off (BitsMasks16); its other byte is read even when
-; it is past the array's end.  BitsCtz16 and BitsLog2_16 (also string816_16.asm's) find the
+; it is past the array's end.  BitsCtz16 and BitsLog2_16 (also stringW65C816_16.asm's) find the
 ; lowest and the highest set bit of a word through a table of a byte's.  ARRAY_LARGE_ELEMENT_NOT_FOUND
 ; ($FFFFFFFF) when there is none.  Each takes the compiler's register arguments (the array in A
 ; and X, the count pushed), pushes the array and 6 bytes of locals and D, and points D at the

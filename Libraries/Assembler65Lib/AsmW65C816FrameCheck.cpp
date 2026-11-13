@@ -19,7 +19,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 ** ------------------------------------------------------------------------ **/
 #include <stdio.h>
-#include "Asm65816Opcodes.h"
+#include "AsmW65C816Opcodes.h"
 #include "AsmW65C816FrameCheck.h"
 
 

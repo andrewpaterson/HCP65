@@ -280,7 +280,7 @@ static uint64 TestSoftFloatRandomDoubleNear(uint64 ulliNear)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Double pairs whose products the W65C816's truncated multiply (softfloat816.asm,
+// Double pairs whose products the W65C816's truncated multiply (softfloatW65C816.asm,
 // MultiplyRows7Truncated) would round wrongly without its fall back: a carry from the products
 // left out reaches the round bit.  Random cases almost never find one.
 //
@@ -431,7 +431,7 @@ static void TestSoftFloatMakeCases(STestSoftFloatCases* psCases, ETestSoftFloatK
 
 //////////////////////////////////////////////////////////////////////////
 //
-// math.cpp's functions that Libc65/softfloat816.asm has on the W65C816, as math.cpp has them, with
+// math.cpp's functions that Libc65/softfloatW65C816.asm has on the W65C816, as math.cpp has them, with
 // the native soft float for their arithmetic (so the results are the 65C64's and must be the
 // W65C816's, bit for bit).  frexp's and modf's second results go to gulliTestMathSecond.
 //
@@ -984,7 +984,7 @@ void TestLibc65SoftFloatOperators(void)
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //
-// math.cpp's functions that only take bits apart (softfloat816.asm's on the W65C816).
+// math.cpp's functions that only take bits apart (softfloatW65C816.asm's on the W65C816).
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65SoftFloatMath(void)

@@ -1,7 +1,7 @@
 #include "BaseLib/Chars.h"
 #include "Assembler65Lib/AsmW65C816Assembler.h"
-#include "Assembler65Lib/Asm65816Disassembler.h"
-#include "Assembler65Lib/Asm65816Opcodes.h"
+#include "Assembler65Lib/AsmW65C816Disassembler.h"
+#include "Assembler65Lib/AsmW65C816Opcodes.h"
 #include "TestLib/Assert.h"
 
 

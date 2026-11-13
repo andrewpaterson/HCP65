@@ -623,7 +623,7 @@ _SoftDoubleToUnsignedLongLong:
 
 
 ;-----------------------------------------------------------------------------------------------
-; The frame operand entries (name.dp) the compiler's float instructions call (CIR816Backend::
+; The frame operand entries (name.dp) the compiler's float instructions call (CIRW65C816Backend::
 ; FrameOperandCall): the operands stay in the caller's frame, X and Y their places (from the
 ; caller's D: a, then b), and a 64 bit result's place is in A; the result is written there (or
 ; returned in A, and X, as above).  Nothing is pushed by the caller or removed after.  Each pushes

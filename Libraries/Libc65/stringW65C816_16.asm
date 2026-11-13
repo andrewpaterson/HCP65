@@ -1,9 +1,9 @@
 ; memcpy, memmove, memset, memcmp and strlen with 16 bit counts for the W65C816, and BaseLib's MemSwp16
 ; (MemSwp with a size length): what BaseLib's natural arrays (counted with size, so at most
-; 65535 bytes) call through ARRAY_MEMCPY and the like (ArraySizeNatural.inl).  string816.asm
+; 65535 bytes) call through ARRAY_MEMCPY and the like (ArraySizeNatural.inl).  stringW65C816.asm
 ; has the C library's, with size_t (32 bit) counts.  The count is pushed as 2 bytes and kept
 ; in a word, but the pointers are 24 bit and a block can still cross into the next bank:
-; the moves (mvn and mvp) stop at a bank's end as string816.asm's do.  Y never wraps in the
+; the moves (mvn and mvp) stop at a bank's end as stringW65C816.asm's do.  Y never wraps in the
 ; others ([[D + n]:24 + Y] adds Y to all 24 bits).  The code changes itself (the moves'
 ; banks), so it isn't reentrant: an interrupt handler mustn't call these.
 ; The calling convention is the compiler's register arguments (IR816Backend.h, W65C816.txt):
@@ -147,7 +147,7 @@ ToUp:
 		.width (A, X), 16
 		brl MoveUp
 
-; void* memset16(void* pvDest, int iValue, unsigned short uiBytes): as string816.asm's memset.
+; void* memset16(void* pvDest, int iValue, unsigned short uiBytes): as stringW65C816.asm's memset.
 ; Within one bank, without a frame (the arguments are read from S), the data bank set to the
 ; destination's and the value's byte twice in a word stored 16 bytes at a time, then the
 ; words and the byte left; otherwise (or for 0 bytes) the first byte, then each from the one
@@ -552,7 +552,7 @@ Difference:
 		.global _MemSwp16__FPKvPKvt, _MemSwp16__FPKvPKvt.axssy
 
 ; void MemSwp16(const void* pv1, const void* pv2, size uiLength) (BaseLib's StringHelper.h; MemSwp,
-; with an lsize length, is string816.asm's): a word at a time, then the byte left,
+; with an lsize length, is stringW65C816.asm's): a word at a time, then the byte left,
 ; Y running up from both pointers.  The register entry (the compiler's register arguments: pv1
 ; in A and X, pv2 pushed, uiLength in Y) pushes uiLength and pv1 and points D at the stack: pv1
 ; is at D + 3, the length at D + 7, then the return address, and pv2 at D + 12.
@@ -669,7 +669,7 @@ Strlen16Done:
 
 ; The bit array functions (BaseLib's IntegerHelper.h) with size (16 bit) counts and results:
 ; FindFirstSetBit, FindFirstClearBit, FindLastSetBit and FindLastClearBit (FindNextSetBit and
-; FindNextClearBit are C++ on them), as string816.asm's Large ones but with the count of words
+; FindNextClearBit are C++ on them), as stringW65C816.asm's Large ones but with the count of words
 ; in X (first) or Y the byte offset (last) only: a size count of bits is at most 8KB.  And
 ; FindFirstClearBit(uint32) and FindFirstSetBit(uint64): the lowest clear (set) bit's index, or
 ; the width when there is none (as __builtin_ctzl and ctzll).  ARRAY_ELEMENT_NOT_FOUND ($FFFF)

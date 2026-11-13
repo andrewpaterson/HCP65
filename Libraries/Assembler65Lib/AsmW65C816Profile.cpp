@@ -22,7 +22,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include <stdlib.h>
 #include <string.h>
 #include "BaseLib/TextFile.h"
-#include "Asm65816Opcodes.h"
+#include "AsmW65C816Opcodes.h"
 #include "AsmW65C816Profile.h"
 
 

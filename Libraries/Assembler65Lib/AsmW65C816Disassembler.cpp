@@ -20,7 +20,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 ** ------------------------------------------------------------------------ **/
 #include <stdio.h>
 #include "AsmW65C816Assembler.h"
-#include "Asm65816Disassembler.h"
+#include "AsmW65C816Disassembler.h"
 
 
 #define ASM65816_REP	0xC2

@@ -52,7 +52,7 @@ static bool TestLibc65IsAssembly(const char* szUnit)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The W65C816's unit for a 65C64 assembly unit: X<szSuffix> (X816.asm or X816_16.asm) for X.asm when there is
+// The W65C816's unit for a 65C64 assembly unit: X<szSuffix> (XW65C816.asm or XW65C816_16.asm) for X.asm when there is
 // one (in szDirectory), else empty.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -81,8 +81,8 @@ static void TestLibc65Unit816(const char* szDirectory, const char* szUnit, const
 // Compiles szSource and the Libc65 units (file names in CommonLibraries/Libc65, NULL terminated) and links
 // the start up and szSource with the Libc65 units as a library (a unit is linked when something needs it).
 // BaseLib's TrueMallocator.cpp, which malloc uses, is in the library too.
-// Loads the program at reset.  On the W65C816 a unit in 65C64 assembly (X.asm) is its W65C816 assembly (X816.asm,
-// and X816_16.asm) when there is some, else left out: their .cpp units have the other functions for it.  The labels in szStubs (space separated, sorted) must be exactly the ones
+// Loads the program at reset.  On the W65C816 a unit in 65C64 assembly (X.asm) is its W65C816 assembly (XW65C816.asm,
+// and XW65C816_16.asm) when there is some, else left out: their .cpp units have the other functions for it.  The labels in szStubs (space separated, sorted) must be exactly the ones
 // used but defined by no linked unit; the linker makes each a stp so a call to one stops the program.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -97,7 +97,7 @@ bool TestLibc65Begin(STestLibc65Run* psRun, const char** aszUnits, const char* s
 	size			i;
 	size			j;
 	bool			bResult;
-	const char*		aszSuffixes[] = { "816.asm", "816_16.asm", NULL };
+	const char*		aszSuffixes[] = { "W65C816.asm", "W65C816_16.asm", NULL };
 
 	TestLibc65FullPath(&szLibc65, TEST_LIBC65_DIRECTORY);
 	TestLibc65FullPath(&szLibraries, TEST_LIBC65_LIBRARIES);

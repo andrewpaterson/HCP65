@@ -146,7 +146,7 @@ protected:
 	bool			AddField(SAsmW65C816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, bool bSigned, uint8 uiForm, SAsm65Token* psToken);
 	bool			AddRelative(SAsmW65C816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, uint8 uiLength, SAsm65Token* psToken);
 
-	//Asm65816Instructions.cpp: choosing the opcode and writing its operand.
+	//AsmW65C816Instructions.cpp: choosing the opcode and writing its operand.
 	bool			ChooseMode(int iMnemonic, SAsmW65C816Operand* psOperand, SAsm65Token* psMnemonic, uint8* puiMode);
 	bool			IsLongBranch(SAsm65Value* psTarget);
 	bool			AbsoluteOrLong(int iMnemonic, SAsmW65C816Operand* psOperand, uint8 uiAbsolute, uint8 uiLong, uint8* puiMode);

@@ -51,7 +51,7 @@ static bool IsNaNOrInfinity(double d)
 }
 
 
-//On the W65C816 these are Libc65/softfloat816.asm's: fabs, sqrt, trunc, floor, ceil, round (and their float and long
+//On the W65C816 these are Libc65/softfloatW65C816.asm's: fabs, sqrt, trunc, floor, ceil, round (and their float and long
 //double forms), ldexp, frexp, modf and fmod, the same bit for bit.  A W65C816 build without its assembly
 //(CCPPCompileOptions::SetAssemblyUnits(false), no __W65C816_ASSEMBLY__) compiles these instead.
 #if !defined(__W65C816_ASSEMBLY__)

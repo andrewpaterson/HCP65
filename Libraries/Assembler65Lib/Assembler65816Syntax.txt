@@ -8,7 +8,7 @@ registers, lower case flags, memory in square brackets, a bare value is a consta
 suffixes for widths, and the same lines, labels, numbers, expressions, directives,
 sections and objects.  It writes the same CAsm65Object, so CAsm65Linker links both.
 
-Class CAsmW65C816Assembler (AsmW65C816Assembler.h/.cpp and Asm65816Instructions.cpp) derives from
+Class CAsmW65C816Assembler (AsmW65C816Assembler.h/.cpp and AsmW65C816Instructions.cpp) derives from
 CAsm65BaseAssembler (as CAsm65C64Assembler, the 65C64's, does) and shares its passes,
 tokeniser, expressions, symbols, errors, sections, object and output; it supplies the
 instructions, operands, widths and two directives (CAsm65BaseAssembler's virtual
@@ -17,7 +17,7 @@ SectionStarted).  Usage is CAsm65BaseAssembler's: Assemble (.org) or
 AssembleObject.  The opcode table is checked against MicroprocessorLib's
 CW65C816InstructionFactory by TestAsm65816Opcodes (the simulator calls jml JMP and puts per
 with the stack instructions; those two are allowed).  Tests: test/TestAssembler65Lib
-TestAsm65816.cpp (every mode, widths, errors, relocations through CAsm65Linker, and a
+TestAsmW65C816.cpp (every mode, widths, errors, relocations through CAsm65Linker, and a
 program run on CFastW65C816).
 
 

@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#include "Asm65816Opcodes.h"
+#include "AsmW65C816Opcodes.h"
 
 
 //////////////////////////////////////////////////////////////////////////

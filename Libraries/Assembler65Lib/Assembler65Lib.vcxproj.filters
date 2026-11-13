@@ -24,7 +24,7 @@
     <ClCompile Include="AsmW65C816Assembler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Asm65816Instructions.cpp">
+    <ClCompile Include="AsmW65C816Instructions.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="AsmW65C816FrameCheck.cpp">
@@ -33,10 +33,10 @@
     <ClCompile Include="AsmW65C816Lockstep.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Asm65816Opcodes.cpp">
+    <ClCompile Include="AsmW65C816Opcodes.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Asm65816Disassembler.cpp">
+    <ClCompile Include="AsmW65C816Disassembler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="AsmW65C816Profile.cpp">
@@ -119,10 +119,10 @@
     <ClInclude Include="AsmW65C816Lockstep.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Asm65816Opcodes.h">
+    <ClInclude Include="AsmW65C816Opcodes.h">
       <Filter>Header</Filter>
     </ClInclude>
-    <ClInclude Include="Asm65816Disassembler.h">
+    <ClInclude Include="AsmW65C816Disassembler.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="AsmW65C816Profile.h">

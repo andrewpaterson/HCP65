@@ -237,8 +237,8 @@
     <ClCompile Include="TestAsm65C64Website.cpp" />
     <ClCompile Include="TestAsm65IncHex.cpp" />
     <ClCompile Include="TestAsm65Image.cpp" />
-    <ClCompile Include="TestAsm65816.cpp" />
-    <ClCompile Include="TestAsm65816Disassembler.cpp" />
+    <ClCompile Include="TestAsmW65C816.cpp" />
+    <ClCompile Include="TestAsmW65C816Disassembler.cpp" />
     <ClCompile Include="TestAsm65C64Labels.cpp" />
     <ClCompile Include="TestAsm65C64Errors.cpp" />
     <ClCompile Include="TestAsm65C64Programs.cpp" />
