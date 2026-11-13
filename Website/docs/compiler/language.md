@@ -57,7 +57,8 @@ constant that an implicit conversion cuts short.
 |---|---|
 | Statements | Everything in C: `if`, `while`, `do`, `for`, `switch`, `break`, `continue`, `return`, `goto`.  Declarations in conditions (`if (int x = f())`). |
 | Functions | Overloading, default arguments, recursion, variadic functions (`stdarg.h`), pointers to functions. |
-| Classes | Structs, classes and unions, named or not, local and anonymous; multiple inheritance with several polymorphic bases; virtual functions, pure virtuals, virtual destructors; `override` and `final`; constructors, destructors, member initialisers, default member initialisers; `= default` and `= delete`; static members; friends; nested classes. |
+| Classes | Structs, classes and unions, named or not, local and anonymous; multiple inheritance with several polymorphic bases; virtual functions, pure virtuals, virtual destructors; `override` and `final`; constructors, destructors, member initialisers, default member initialisers, delegating constructors; `= default` and `= delete`; static members; friends; nested classes. |
+| Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one. |
 | Objects by value | Passed and returned by value; temporaries destroyed at the end of their full expression; results made in place (as C++17 requires). |
 | Operators | Member and free operator functions, conversion functions, `operator->`, pointers to members (`.*` and `->*`). |
 | Templates | Class, function and member templates; explicit and partial specialisation; non-type and default arguments; deduction from `T`, `T*`, `T&` and `X<..., T, N, ...>`; explicit instantiation; variadic templates with a function parameter pack expanded in a call's arguments. |
@@ -117,13 +118,6 @@ compiler's own file and line, which says which construct it was.
 | Wide, Unicode and raw string literals | |
 | `thread_local` | |
 | The C++ standard library | Libc65 has the C library and `<new>` only. |
-
-Two constructs compile without an error but are **wrong**, so they must not be used:
-
-!!! warning "Silently wrong"
-    - **Bit-fields** are laid out and stored as whole fields: the width is ignored, so a value
-      is never cut down to it.
-    - **Delegating constructors** (`C() : C(7) {}`) don't call the constructor they name.
 
 Overload resolution is a simplified form of the standard's ranking: exact match, then promotion,
 then conversion, then a user defined conversion.  It gives the standard's answer for the code it
