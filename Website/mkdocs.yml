@@ -68,6 +68,16 @@ nav:
       - Emulator: hcp65/emulator.md
   - HCP65 C++ Compiler:
       - compiler/index.md
+      - Building Programs: compiler/building.md
+      - Supported C++: compiler/language.md
+      - Inside the Compiler: compiler/inside.md
+      - Intermediate Representation: compiler/ir.md
+      - W65C816 Code: compiler/w65c816.md
+      - 65C64 Code: compiler/65c64.md
+      - W65C816 Assembler: compiler/assembler-w65c816.md
+      - Linker and Outputs: compiler/linker.md
+      - Libc65: compiler/libc65.md
+      - Listings, Profiling and Testing: compiler/testing.md
   - 65C64 Microprocessor Proposal:
       - 65c64/index.md
       - Registers: 65c64/registers.md
