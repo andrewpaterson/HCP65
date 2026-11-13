@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "BaseLib/LeakDetector.h"
 #include "BaseLib/Logger.h"
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/TypeNames.h"
@@ -122,7 +123,7 @@ bool TestBoardLoop(char* szComPort, size uiBoardPins)
 //////////////////////////////////////////////////////////////////////////
 int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
-	_CrtSetBreakAlloc(0);
+	BreakOnAllocation(0);
 
 	gcLogger.Init();
 	TypesInit();
@@ -169,7 +170,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 	gcLogger.Kill();
 
-	_CrtDumpMemoryLeaks();
+	LeakDetection();
 
 	if (bResult)
 	{

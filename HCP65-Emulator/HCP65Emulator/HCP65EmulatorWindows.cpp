@@ -1,4 +1,5 @@
 #include <windows.h>
+#include "BaseLib/LeakDetector.h"
 #include "BaseLib/Logger.h"
 #include "BaseLib/TypeNames.h"
 #include "BaseLib/TypeConverter.h"
@@ -19,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////
 int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLine, int nCmdShow)
 {
-	_CrtSetBreakAlloc(0);
+	BreakOnAllocation(0);
 
 	//Reading a board's model stops the window's loop for seconds.  Windows would put a ghost in place of a window that
 	//stops answering, and when it took the ghost away the Board Configuration dialog was left behind its disabled owner.
@@ -67,7 +68,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 
 	gcLogger.Kill();
 
-	_CrtDumpMemoryLeaks();
+	LeakDetection();
 
 	return bResult ? 0 : 1;
 }
