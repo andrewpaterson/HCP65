@@ -1,0 +1,147 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- Libc65: the C library and runtime the W65C816 programs link.  The HCP65 build adds it to every program itself
+       (CCPP65Builder::AddLibc65, the units in CCPPTargetW65C816::GetLibc65Units), found by its directory, so this
+       project builds nothing: a Makefile project with no commands, in the solutions without being built, so HCP65-IDE
+       indexes its code and assembly (Go to Definition, Find Usages, Rename).  Its headers are the programs' system
+       headers (<stdio.h>): never compile it for the host. -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{CA1B1434-5C0B-4861-8B1A-12E7F890C5DF}</ProjectGuid>
+    <RootNamespace>Libc65</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakeIncludeSearchPath>.;..\..\..\CommonLibraries\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeIncludeSearchPath>.;..\..\..\CommonLibraries\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakeIncludeSearchPath>.;..\..\..\CommonLibraries\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeIncludeSearchPath>.;..\..\..\CommonLibraries\Libraries</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\..\..\CommonLibraries\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\..\..\CommonLibraries\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\..\..\CommonLibraries\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>.;..\..\..\CommonLibraries\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ctype.cpp" />
+    <ClCompile Include="host.cpp" />
+    <ClCompile Include="math.cpp" />
+    <ClCompile Include="new.cpp" />
+    <ClCompile Include="signal.cpp" />
+    <ClCompile Include="softfloat.cpp" />
+    <ClCompile Include="stdio.cpp" />
+    <ClCompile Include="stdlib.cpp" />
+    <ClCompile Include="string.cpp" />
+    <ClCompile Include="time.cpp" />
+    <ClCompile Include="IRW65C816Runtime-Common.asm" />
+    <ClCompile Include="IRW65C816Runtime-MathSafe.asm" />
+    <ClCompile Include="IRW65C816Runtime-MathTables.asm" />
+    <ClCompile Include="softfloat.asm" />
+    <ClCompile Include="softfloatW65C816.asm" />
+    <ClCompile Include="string.asm" />
+    <ClCompile Include="stringW65C816.asm" />
+    <ClCompile Include="stringW65C816_16.asm" />
+    <ClCompile Include="MathTbls\MathInvert.asm" />
+    <ClCompile Include="MathTbls\MathMult.asm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="assert.h" />
+    <ClInclude Include="ctype.h" />
+    <ClInclude Include="errno.h" />
+    <ClInclude Include="host.h" />
+    <ClInclude Include="inttypes.h" />
+    <ClInclude Include="limits.h" />
+    <ClInclude Include="malloc.h" />
+    <ClInclude Include="math.h" />
+    <ClInclude Include="memory.h" />
+    <ClInclude Include="signal.h" />
+    <ClInclude Include="stdarg.h" />
+    <ClInclude Include="stdbool.h" />
+    <ClInclude Include="stddef.h" />
+    <ClInclude Include="stdint.h" />
+    <ClInclude Include="stdio.h" />
+    <ClInclude Include="stdlib.h" />
+    <ClInclude Include="string.h" />
+    <ClInclude Include="time.h" />
+    <ClInclude Include="new" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MathTbls\ALOG2-A.HEX" />
+    <None Include="MathTbls\ALOG2-B.HEX" />
+    <None Include="MathTbls\ALOG2.HEX" />
+    <None Include="MathTbls\ASIN.HEX" />
+    <None Include="MathTbls\ATAN.HEX" />
+    <None Include="MathTbls\BITREV.HEX" />
+    <None Include="MathTbls\BITREV15.HEX" />
+    <None Include="MathTbls\INVERT.HEX" />
+    <None Include="MathTbls\LOG2-A.HEX" />
+    <None Include="MathTbls\LOG2-B.HEX" />
+    <None Include="MathTbls\LOG2.HEX" />
+    <None Include="MathTbls\MULT.HEX" />
+    <None Include="MathTbls\MathTables.txt" />
+    <None Include="MathTbls\SIN.HEX" />
+    <None Include="MathTbls\SQRT1.HEX" />
+    <None Include="MathTbls\SQRT2.HEX" />
+    <None Include="MathTbls\SQRT3.HEX" />
+    <None Include="MathTbls\SQUARE.HEX" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

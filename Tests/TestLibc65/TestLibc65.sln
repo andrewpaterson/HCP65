@@ -20,6 +20,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Assembler65Lib", "..\..\Lib
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TestLibc65", "TestLibc65\TestLibc65.vcxproj", "{6078C2B7-87F5-44E4-9390-6FCA2B064002}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Libc65", "..\..\Libraries\Libc65\Libc65.vcxproj", "{CA1B1434-5C0B-4861-8B1A-12E7F890C5DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -84,6 +86,10 @@ Global
 		{6078C2B7-87F5-44E4-9390-6FCA2B064002}.Release|Win32.Build.0 = Release|Win32
 		{6078C2B7-87F5-44E4-9390-6FCA2B064002}.Release|x64.ActiveCfg = Release|x64
 		{6078C2B7-87F5-44E4-9390-6FCA2B064002}.Release|x64.Build.0 = Release|x64
+		{CA1B1434-5C0B-4861-8B1A-12E7F890C5DF}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CA1B1434-5C0B-4861-8B1A-12E7F890C5DF}.Debug|x64.ActiveCfg = Debug|x64
+		{CA1B1434-5C0B-4861-8B1A-12E7F890C5DF}.Release|Win32.ActiveCfg = Release|Win32
+		{CA1B1434-5C0B-4861-8B1A-12E7F890C5DF}.Release|x64.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

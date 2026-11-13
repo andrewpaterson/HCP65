@@ -1,0 +1,194 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{6d4aa36d-5602-4cbf-a97a-f2511aaff2a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{fa15733f-3dce-4792-a4d5-abfbcadfba77}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assembly">
+      <UniqueIdentifier>{2e841dbd-cd1a-4335-abfc-b12c1a022c69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MathTbls">
+      <UniqueIdentifier>{378b10cc-2902-4be5-bd0a-37b9c350f4db}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="ctype.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="host.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="math.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="new.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="signal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="softfloat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdio.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdlib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="string.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="time.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IRW65C816Runtime-Common.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="IRW65C816Runtime-MathSafe.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="IRW65C816Runtime-MathTables.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="softfloat.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="softfloatW65C816.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="string.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="stringW65C816.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="stringW65C816_16.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
+    <ClCompile Include="MathTbls\MathInvert.asm">
+      <Filter>MathTbls</Filter>
+    </ClCompile>
+    <ClCompile Include="MathTbls\MathMult.asm">
+      <Filter>MathTbls</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="assert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ctype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="errno.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="host.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inttypes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="limits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="malloc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="math.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="memory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="signal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdarg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdbool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stddef.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdint.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdlib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="string.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="new">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MathTbls\ALOG2-A.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\ALOG2-B.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\ALOG2.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\ASIN.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\ATAN.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\BITREV.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\BITREV15.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\INVERT.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\LOG2-A.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\LOG2-B.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\LOG2.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\MULT.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\MathTables.txt">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\SIN.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\SQRT1.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\SQRT2.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\SQRT3.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+    <None Include="MathTbls\SQUARE.HEX">
+      <Filter>MathTbls</Filter>
+    </None>
+  </ItemGroup>
+</Project>
