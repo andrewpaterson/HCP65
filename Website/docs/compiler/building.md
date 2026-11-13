@@ -95,7 +95,7 @@ units are linked only when something uses them.  Sources can be `.cpp` or `.asm`
 | `-program <name>`, `-lib <name>` | Start a project.  Its sources follow. |
 | `-dir <dir>` | The project's directory.  Its sources are relative to it (default: the current directory). |
 | `-D <name>[=<value>]` | A define for the project's units. |
-| `-I <dir>`, `-I+ <dir>` | An include directory; `-I+` takes its sub directories too.  Before the first `-program` or `-lib` it's every unit's; after, that project's. |
+| `-I <dir>`, `-I+ <dir>` | An include directory; `-I+` lists all the headers in its sub directories when the build starts.  Before the first `-program` or `-lib` it's every unit's; after, that project's. |
 | <code>-target W65C816&#124;65C64</code> | The processor (default `W65C816`). |
 | `-nofloats` | Floating point is an error. |
 | `-no-mathtables` | Build without the maths tables. |
@@ -144,10 +144,10 @@ The `Process (...)` lines are each unit being preprocessed, Libc65's among them.
 way to get a working command line for a real program is to let `-show-plain` write it from a
 solution.
 
-!!! note
-    Give sources as paths relative to the project's `-dir`: an absolute path is joined onto the
-    directory.  Use `-I+` for `CommonLibraries/Libraries`: with `-I` Libc65's units don't find
-    BaseLib's headers.
+Sources can be relative to the project's `-dir` or full paths.  An include directory given with
+`-I` finds headers in its sub directories by their path (`#include "BaseLib/Chars.h"`), as a C++
+compiler's does; `-I+` lists every header below it when the build starts.  An executable's or
+module's entry is always kept, even when nothing in the program calls it.
 
 Without `-exe`, `-image` or `-module` the units are compiled but not linked, which is a quick way
 to see what the compiler writes for a file:
