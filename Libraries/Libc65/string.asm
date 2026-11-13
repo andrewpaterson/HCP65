@@ -15,11 +15,18 @@
 ; that makes A negative or that meets the stop condition, so A is one less than the
 ; count and V is one element past where it stopped.
 ;
-; The calling convention is the generator's: the arguments are on the stack (the first at
-; [5 + S] above the return address, then 4 bytes each), the result is in A, A, B, X and Y
-; are 32 bits wide on the way in and out and V, W and S are kept: each function pushes V
-; and W first, so its arguments are at [13 + S], [17 + S] and [21 + S].  A, B, X, Y and
-; the status flags change.
+; The calling convention is the compiler's (CPP65Generator.txt): a function's first
+; three arguments are in A, B and Y at its register label (_memcpy.aby: a letter for
+; each argument's register), where compiled code calls it; at its plain label they are
+; all on the stack (the first at [5 + S] above the return address, then 4 bytes each),
+; for calls through pointers and from assembly.  The result is in A, A, B, X and Y are 32
+; bits wide on the way in and out and V, W and S are kept.  A, B, X, Y and the status
+; flags change.
+;
+; memcpy, memmove, memset, memcmp and strlen work from the registers: their plain labels
+; load them from the stack and go on into the register entries.  The others work from
+; the stack (each pushes V and W first, so its arguments are at [13 + S], [17 + S] and
+; [21 + S]): their register labels push the registers and call them.
 ;
 ; Cycles: a step is its opcode cycle and a cycle for each 16 bit word read or written.
 ; For 1000 bytes on the simulator, with string.cpp's compiled code in brackets: memcpy
@@ -31,15 +38,21 @@
 ; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes) and memmove, which
 ; copies from the end down when the destination overlaps the source above it.
 		.section text.MemCopy
-		.global _memcpy, _memmove
+		.global _memcpy, _memmove, _memcpy.aby, _memmove.aby
 
 _memcpy:
+		cpy Y, [13 + S]
+		cpy B, [9 + S]
+		cpy A, [5 + S]
+_memcpy.aby:
 		psh (V, W)
-		cpy V, [13 + S]
-		cpy W, [17 + S]
-		cpy A, [21 + S]
+		cpy X, A
+		cpy V, A
+		cpy W, B
+		cpy A, Y
 
-; V destination, W source, A bytes: 8 bytes a step, then the bytes left.
+; V destination, W source, A bytes, X the destination for the result: 8 bytes a step, then
+; the bytes left.
 CopyUp:
 		cpy B, A
 		shr A, 3
@@ -53,21 +66,26 @@ CopyUpBytes:
 		cpy A, B
 		vcpy W, V, +1, A, 8
 CopyDone:
-		cpy A, [13 + S]
+		cpy A, X
 		pul (V, W)
 		ret
 
 _memmove:
+		cpy Y, [13 + S]
+		cpy B, [9 + S]
+		cpy A, [5 + S]
+_memmove.aby:
 		psh (V, W)
-		cpy V, [13 + S]
-		cpy W, [17 + S]
-		cpy A, [21 + S]
+		cpy X, A
+		cpy V, A
+		cpy W, B
+		cpy A, Y
 
 		; Destination - source is below the count only when the destination is in the
 		; source (above its start): then copy down from the end.
-		cpy X, V
-		sub X, W
-		cmp X, A
+		cpy Y, V
+		sub Y, W
+		cmp Y, A
 		bras c, CopyUp
 
 		cpy B, A
@@ -97,16 +115,21 @@ CopyDownTail:
 ; void* memset(void* pvDest, int iValue, size_t uiBytes): the byte made 8 bytes wide fills
 ; 8 bytes a step, then the bytes left.
 		.section text._memset
-		.global _memset
+		.global _memset, _memset.aby
 
 _memset:
+		cpy Y, [13 + S]
+		cpy B, [9 + S]
+		cpy A, [5 + S]
+_memset.aby:
 		psh (V, W)
-		cpy V, [13 + S]
-		cpy Y, [21 + S]
+		psh B
+		psh A
+		cpy V, A
 		wtth (B, X), 64
 		cpy X, 0
 		wth X, 8
-		cpy X, [17 + S]
+		cpy X, [5 + S]
 		wth X, 64
 		cpy B, X
 		shl X, 8
@@ -132,7 +155,8 @@ SetBytes:
 		bcpy B, V, +1, A
 SetDone:
 		wtth (B, X), 32
-		cpy A, [13 + S]
+		pul A
+		add S, 4
 		pul (V, W)
 		ret
 
@@ -142,13 +166,17 @@ SetDone:
 ; then compare them as memcmp does.  Equal memory is passed 8 bytes a step; the 8 bytes
 ; that differ are compared again a byte a step to find the first byte that differs.
 		.section text.MemCompare
-		.global _memcmp, _strcmp, _strncmp
+		.global _memcmp, _strcmp, _strncmp, _memcmp.aby, _strcmp.ab, _strncmp.aby
 
 _memcmp:
+		cpy Y, [13 + S]
+		cpy B, [9 + S]
+		cpy A, [5 + S]
+_memcmp.aby:
 		psh (V, W)
-		cpy V, [13 + S]
-		cpy W, [17 + S]
-		cpy B, [21 + S]
+		cpy V, A
+		cpy W, B
+		cpy B, Y
 
 ; V and W the memory, B bytes.
 Compare:
@@ -187,6 +215,21 @@ CompareSame:
 		pul (V, W)
 		ret
 
+_strcmp.ab:
+		psh B
+		psh A
+		jsr _strcmp
+		add S, 8
+		ret
+
+_strncmp.aby:
+		psh Y
+		psh B
+		psh A
+		jsr _strncmp
+		add S, 12
+		ret
+
 _strcmp:
 		psh (V, W)
 		cpy V, [13 + S]
@@ -223,7 +266,15 @@ _strncmp:
 
 ; void* memchr(const void* pv, int iValue, size_t uiBytes): bcmp stops at the byte.
 		.section text._memchr
-		.global _memchr
+		.global _memchr, _memchr.aby
+
+_memchr.aby:
+		psh Y
+		psh B
+		psh A
+		jsr _memchr
+		add S, 12
+		ret
 
 _memchr:
 		psh (V, W)
@@ -249,18 +300,20 @@ FindNone:
 
 ; size_t strlen(const char* sz): btst stops at the zero.
 		.section text._strlen
-		.global _strlen
+		.global _strlen, _strlen.a
 
 _strlen:
+		cpy A, [5 + S]
+_strlen.a:
 		psh (V, W)
-		cpy V, [13 + S]
+		cpy X, A
+		cpy V, A
 		cpy A, $7FFFFFFF
 		wth B, 8
 		cpy B, $FF
 		btst B, V, +1, A, z
 		wth B, 32
 		cpy A, V
-		cpy X, [13 + S]
 		sub A, X
 		sub A, 1
 		pul (V, W)
@@ -270,7 +323,14 @@ _strlen:
 ; char* strcpy(char* szDest, const char* szSource): vcpy stops once it has copied the
 ; zero.
 		.section text._strcpy
-		.global _strcpy
+		.global _strcpy, _strcpy.ab
+
+_strcpy.ab:
+		psh B
+		psh A
+		jsr _strcpy
+		add S, 8
+		ret
 
 _strcpy:
 		psh (V, W)
@@ -286,7 +346,15 @@ _strcpy:
 ; char* strncpy(char* szDest, const char* szSource, size_t uiChars): copies up to and
 ; with the zero, at most uiChars bytes, then fills the rest of the uiChars with zeros.
 		.section text._strncpy
-		.global _strncpy
+		.global _strncpy, _strncpy.aby
+
+_strncpy.aby:
+		psh Y
+		psh B
+		psh A
+		jsr _strncpy
+		add S, 12
+		ret
 
 _strncpy:
 		psh (V, W)
@@ -313,7 +381,14 @@ CopyNDone:
 ; char* strcat(char* szDest, const char* szSource): btst finds the end of szDest, then
 ; vcpy copies szSource and its zero there.
 		.section text._strcat
-		.global _strcat
+		.global _strcat, _strcat.ab
+
+_strcat.ab:
+		psh B
+		psh A
+		jsr _strcat
+		add S, 8
+		ret
 
 _strcat:
 		psh (V, W)
@@ -336,7 +411,15 @@ _strcat:
 ; uiChars characters of szSource to the end of szDest, and a zero after them if the zero
 ; was not copied.
 		.section text._strncat
-		.global _strncat
+		.global _strncat, _strncat.aby
+
+_strncat.aby:
+		psh Y
+		psh B
+		psh A
+		jsr _strncat
+		add S, 12
+		ret
 
 _strncat:
 		psh (V, W)
@@ -366,7 +449,21 @@ CatNDone:
 ; for c in the string with its zero (so c can be the zero), forwards for strchr and back
 ; from the zero for strrchr.
 		.section text.StringFind
-		.global _strchr, _strrchr
+		.global _strchr, _strrchr, _strchr.ab, _strrchr.ab
+
+_strchr.ab:
+		psh B
+		psh A
+		jsr _strchr
+		add S, 8
+		ret
+
+_strrchr.ab:
+		psh B
+		psh A
+		jsr _strrchr
+		add S, 8
+		ret
 
 _strchr:
 		psh (V, W)

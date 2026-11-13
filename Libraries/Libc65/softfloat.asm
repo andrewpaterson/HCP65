@@ -2328,3 +2328,108 @@ SqrtTable:
 		.long $1DCCA0E, $1DEEEA2, $1E110C4, $1E3307D, $1E54DD5, $1E768D4
 		.long $1E98181, $1EB97E5, $1EDAC06, $1EFBDEC, $1F1CD9D, $1F3DB22
 		.long $1F5E680, $1F7EFBF, $1F9F6E5, $1FBFBF8, $1FDFEFF, $2000000
+
+
+; The register entries (CPP65Generator.txt: a function's first arguments of 32 bits or less are in A, B and Y at its
+; label and a letter for each, where compiled code calls it by name): the routines work from the stack, so each pushes
+; its registers, calls the routine and removes them.  The routines whose arguments are all 64 bits wide have none (those
+; are pushed), and the compiler's own float instructions push their operands and call the plain labels.
+		.section text.SoftFloatRegisterEntries
+		.global _SoftFloatAdd.ab, _SoftFloatSubtract.ab, _SoftFloatMultiply.ab, _SoftFloatDivide.ab, _SoftFloatCompare.ab
+		.global _SoftFloatSqrt.a, _SoftFloatFromInt.a, _SoftFloatFromUnsigned.a, _SoftFloatToInt.a, _SoftFloatToUnsigned.a
+		.global _SoftFloatToLongLong.a, _SoftFloatToUnsignedLongLong.a, _SoftFloatToDouble.a, _SoftDoubleFromInt.a, _SoftDoubleFromUnsigned.a
+
+_SoftFloatAdd.ab:
+		psh B
+		psh A
+		jsr _SoftFloatAdd
+		add S, 8
+		ret
+
+_SoftFloatSubtract.ab:
+		psh B
+		psh A
+		jsr _SoftFloatSubtract
+		add S, 8
+		ret
+
+_SoftFloatMultiply.ab:
+		psh B
+		psh A
+		jsr _SoftFloatMultiply
+		add S, 8
+		ret
+
+_SoftFloatDivide.ab:
+		psh B
+		psh A
+		jsr _SoftFloatDivide
+		add S, 8
+		ret
+
+_SoftFloatCompare.ab:
+		psh B
+		psh A
+		jsr _SoftFloatCompare
+		add S, 8
+		ret
+
+_SoftFloatSqrt.a:
+		psh A
+		jsr _SoftFloatSqrt
+		add S, 4
+		ret
+
+_SoftFloatFromInt.a:
+		psh A
+		jsr _SoftFloatFromInt
+		add S, 4
+		ret
+
+_SoftFloatFromUnsigned.a:
+		psh A
+		jsr _SoftFloatFromUnsigned
+		add S, 4
+		ret
+
+_SoftFloatToInt.a:
+		psh A
+		jsr _SoftFloatToInt
+		add S, 4
+		ret
+
+_SoftFloatToUnsigned.a:
+		psh A
+		jsr _SoftFloatToUnsigned
+		add S, 4
+		ret
+
+_SoftFloatToLongLong.a:
+		psh A
+		jsr _SoftFloatToLongLong
+		add S, 4
+		ret
+
+_SoftFloatToUnsignedLongLong.a:
+		psh A
+		jsr _SoftFloatToUnsignedLongLong
+		add S, 4
+		ret
+
+_SoftFloatToDouble.a:
+		psh A
+		jsr _SoftFloatToDouble
+		add S, 4
+		ret
+
+_SoftDoubleFromInt.a:
+		psh A
+		jsr _SoftDoubleFromInt
+		add S, 4
+		ret
+
+_SoftDoubleFromUnsigned.a:
+		psh A
+		jsr _SoftDoubleFromUnsigned
+		add S, 4
+		ret
