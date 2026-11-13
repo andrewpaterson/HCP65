@@ -26,7 +26,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "MicroprocessorLib/65C64Meta.h"
 #include "MicroprocessorLib/Fast65C64.h"
 #include "MicroprocessorLib/W65C816Meta.h"
-#include "MicroprocessorLib/Fast65C816.h"
+#include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Output.h"
 #include "Asm65HostFiles.h"
 
@@ -72,7 +72,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //
 //It is the W65C816's test memory too: the devices' page 00FF:0000 is the W65C816's bank $FF, so the memory at 0000:0000
 //can be up to $FF0000 bytes.  TickHigh65816 and TickLow65816 are CW65C816Meta's callbacks; InitFast65816 connects a
-//CFast65C816 (ReadByte and WriteByte).
+//CFastW65C816 (ReadByte and WriteByte).
 class CAsm65Memory
 {
 protected:
@@ -122,7 +122,7 @@ public:
 
 	static void		TickHigh65816(CW65C816Meta* pcMPU, void* pvMemory);
 	static void		TickLow65816(CW65C816Meta* pcMPU, void* pvMemory);
-	void			InitFast65816(CFast65C816* pcMPU);
+	void			InitFast65816(CFastW65C816* pcMPU);
 	static uint8	ReadByte(void* pvMemory, uint32 uiAddress);
 
 protected:

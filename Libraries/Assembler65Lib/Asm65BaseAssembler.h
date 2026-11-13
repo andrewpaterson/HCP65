@@ -62,7 +62,7 @@ struct SAsm65Value
 
 //The parts of an assembler every processor shares: the passes, statements, labels,
 //expressions, directives, sections and objects.  CAsm65C64Assembler (the 65C64) and
-//CAsm65816Assembler (the W65C816S) provide the instructions and their operands.
+//CAsmW65C816Assembler (the W65C816S) provide the instructions and their operands.
 //
 //Passes repeat until every label has settled.  An instruction never gets shorter in a
 //later pass so the passes always settle.  Errors are only reported by the final pass.

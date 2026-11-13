@@ -19,7 +19,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 ** ------------------------------------------------------------------------ **/
 #include <string.h>
-#include "Asm65816Assembler.h"
+#include "AsmW65C816Assembler.h"
 
 
 //The status bits rep and sep name.
@@ -30,7 +30,7 @@ static const char	gacAsm65816Flags[8] = { 'c', 'z', 'i', 'd', 'x', 'm', 'v', 'n'
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Assembler::Init(void)
+void CAsmW65C816Assembler::Init(void)
 {
 	CAsm65BaseAssembler::Init();
 	muiWidthA = ASM65816_WIDTH_UNKNOWN;
@@ -44,7 +44,7 @@ void CAsm65816Assembler::Init(void)
 // A, X, Y, S and D.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::IsRegisterName(SAsm65Token* psToken)
+bool CAsmW65C816Assembler::IsRegisterName(SAsm65Token* psToken)
 {
 	if ((psToken->eType != AT65_Identifier) || (psToken->uiLength != 1))
 	{
@@ -59,7 +59,7 @@ bool CAsm65816Assembler::IsRegisterName(SAsm65Token* psToken)
 // W65C816S instructions are bytes.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CAsm65816Assembler::InstructionAlignment(void)
+uint32 CAsmW65C816Assembler::InstructionAlignment(void)
 {
 	return 1;
 }
@@ -70,7 +70,7 @@ uint32 CAsm65816Assembler::InstructionAlignment(void)
 // .width and .word24.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::ProcessorDirective(SAsm65Token* psDirective, bool* pbResult)
+bool CAsmW65C816Assembler::ProcessorDirective(SAsm65Token* psDirective, bool* pbResult)
 {
 	if (psDirective->IsIdentifierIgnoreCase(".width"))
 	{
@@ -98,7 +98,7 @@ bool CAsm65816Assembler::ProcessorDirective(SAsm65Token* psDirective, bool* pbRe
 // branches aren't relaxed until .relax.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Assembler::SectionStarted(void)
+void CAsmW65C816Assembler::SectionStarted(void)
 {
 	muiWidthA = ASM65816_WIDTH_UNKNOWN;
 	muiWidthX = ASM65816_WIDTH_UNKNOWN;
@@ -111,7 +111,7 @@ void CAsm65816Assembler::SectionStarted(void)
 // .width A, 16  .width X, 8  .width (A, X), 16
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Width(void)
+bool CAsmW65C816Assembler::Width(void)
 {
 	SAsm65Token*	psOpen;
 	SAsm65Token*	psToken;
@@ -200,7 +200,7 @@ bool CAsm65816Assembler::Width(void)
 // rep and sep's operand: flags (rep m, rep (m, x)) or a value (rep $30).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::StatusBits(uint8* puiBits)
+bool CAsmW65C816Assembler::StatusBits(uint8* puiBits)
 {
 	SAsm65Token*	psToken;
 	SAsm65Value		sValue;
@@ -272,7 +272,7 @@ bool CAsm65816Assembler::StatusBits(uint8* puiBits)
 // rep (bSet false) or sep (bSet true) of uiBits changes m and x.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Assembler::ChangeWidths(bool bSet, uint8 uiBits)
+void CAsmW65C816Assembler::ChangeWidths(bool bSet, uint8 uiBits)
 {
 	if (uiBits & 0x20)
 	{
@@ -290,7 +290,7 @@ void CAsm65816Assembler::ChangeWidths(bool bSet, uint8 uiBits)
 // A :8, :16 or :24 suffix (bAllow24 for addresses).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Bits65816(uint8* puiBits, bool bAllow24)
+bool CAsmW65C816Assembler::Bits65816(uint8* puiBits, bool bAllow24)
 {
 	SAsm65Token*	psToken;
 
@@ -318,7 +318,7 @@ bool CAsm65816Assembler::Bits65816(uint8* puiBits, bool bAllow24)
 // + X or + Y after an address.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Index65816(char* pcIndex, bool bAllowY)
+bool CAsmW65C816Assembler::Index65816(char* pcIndex, bool bAllowY)
 {
 	SAsm65Token*	psToken;
 
@@ -343,7 +343,7 @@ bool CAsm65816Assembler::Index65816(char* pcIndex, bool bAllowY)
 // What is inside the brackets: D + value, S + value or value, then + X or + Y.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Inner65816(SAsm65816Operand* psOperand)
+bool CAsmW65C816Assembler::Inner65816(SAsmW65C816Operand* psOperand)
 {
 	SAsm65Token*	psToken;
 
@@ -390,13 +390,13 @@ bool CAsm65816Assembler::Inner65816(SAsm65816Operand* psOperand)
 // A, value{:bits}, [inner]{:24} or [[inner]{:24} {+ Y}].
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Operand65816(SAsm65816Operand* psOperand)
+bool CAsmW65C816Assembler::Operand65816(SAsmW65C816Operand* psOperand)
 {
 	SAsm65Token*	psToken;
 	char			cIndex;
 	uint8			uiBits;
 
-	memset(psOperand, 0, sizeof(SAsm65816Operand));
+	memset(psOperand, 0, sizeof(SAsmW65C816Operand));
 	psToken = Peek();
 	psOperand->psToken = psToken;
 
@@ -475,7 +475,7 @@ bool CAsm65816Assembler::Operand65816(SAsm65816Operand* psOperand)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Assembler::AddByte(SAsm65816Instruction* psInstruction, uint8 uiByte)
+void CAsmW65C816Assembler::AddByte(SAsmW65C816Instruction* psInstruction, uint8 uiByte)
 {
 	psInstruction->auiBytes[psInstruction->uiBytes] = uiByte;
 	psInstruction->uiBytes++;
@@ -488,9 +488,9 @@ void CAsm65816Assembler::AddByte(SAsm65816Instruction* psInstruction, uint8 uiBy
 // uiForm, a value written >> 16 or & $FFFF keeps its own).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::AddField(SAsm65816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, bool bSigned, uint8 uiForm, SAsm65Token* psToken)
+bool CAsmW65C816Assembler::AddField(SAsmW65C816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, bool bSigned, uint8 uiForm, SAsm65Token* psToken)
 {
-	SAsm65816Relocation*	psRelocation;
+	SAsmW65C816Relocation*	psRelocation;
 	uint8				i;
 
 	if (IsRelocatable(psValue))
@@ -533,9 +533,9 @@ bool CAsm65816Assembler::AddField(SAsm65816Instruction* psInstruction, SAsm65Val
 // label, C + offset, or a raw offset written without a label.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::AddRelative(SAsm65816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, uint8 uiLength, SAsm65Token* psToken)
+bool CAsmW65C816Assembler::AddRelative(SAsmW65C816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, uint8 uiLength, SAsm65Token* psToken)
 {
-	SAsm65816Relocation*	psRelocation;
+	SAsmW65C816Relocation*	psRelocation;
 	SAsm65Value			sOffset;
 	uint8				i;
 
@@ -595,10 +595,10 @@ bool CAsm65816Assembler::AddRelative(SAsm65816Instruction* psInstruction, SAsm65
 // An instruction's length can only grow from pass to pass (see AbsoluteOrLong).
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Assembler::Emit65816(SAsm65816Instruction* psInstruction)
+void CAsmW65C816Assembler::Emit65816(SAsmW65C816Instruction* psInstruction)
 {
 	uint8				i;
-	SAsm65816Relocation*	psRelocation;
+	SAsmW65C816Relocation*	psRelocation;
 
 	RecordLength(psInstruction->uiBytes);
 

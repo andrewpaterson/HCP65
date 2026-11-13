@@ -3,7 +3,7 @@
 #include "Assembler65Lib/Asm65816Disassembler.h"
 #include "Assembler65Lib/Asm65816Opcodes.h"
 #include "EmulatorDebugLib/W65C816DebugRegisters.h"
-#include "Asm65816DebugDecoder.h"
+#include "AsmW65C816DebugDecoder.h"
 
 
 #define ASM65816_DEBUG_M_FLAG	0x20
@@ -32,9 +32,9 @@ static EDebugInstruction Asm65816DebugKind(EAsm65816Flow eFlow)
 // Stops where memory ends (an instruction must be all there).
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65816DebugDecoder::Decode(CDebugTarget* pcTarget, uint32 uiAddress, size uiCount, SDebugInstruction* asDest)
+size CAsmW65C816DebugDecoder::Decode(CDebugTarget* pcTarget, uint32 uiAddress, size uiCount, SDebugInstruction* asDest)
 {
-	SAsm65816Widths		sWidths;
+	SAsmW65C816Widths		sWidths;
 	uint64				uiP;
 	uint8				auiBytes[4];
 	size				uiAvailable;

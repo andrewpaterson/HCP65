@@ -3,10 +3,10 @@
 #include "MicroprocessorLib/W65C816InstructionFactory.h"
 #include "MicroprocessorLib/W65Instruction.h"
 #include "MicroprocessorLib/W65InstructionCycles.h"
-#include "MicroprocessorLib/Fast65C816.h"
-#include "Assembler65Lib/Asm65816Assembler.h"
+#include "MicroprocessorLib/FastW65C816.h"
+#include "Assembler65Lib/AsmW65C816Assembler.h"
 #include "Assembler65Lib/Asm65Linker.h"
-#include "Assembler65Lib/Asm65816Lockstep.h"
+#include "Assembler65Lib/AsmW65C816Lockstep.h"
 #include "TestLib/Assert.h"
 
 
@@ -112,7 +112,7 @@ void TestAsm65816Opcodes(void)
 //////////////////////////////////////////////////////////////////////////
 static void TestAsm65816Bytes(CChars* psz, const char* szSource)
 {
-	CAsm65816Assembler	cAssembler;
+	CAsmW65C816Assembler	cAssembler;
 	CChars				szFull;
 	size				uiBytes;
 	size				i;
@@ -320,7 +320,7 @@ static void AssertAsm65816Error(const char* szExpected, const char* szSource)
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65816Errors(void)
 {
-	CAsm65816Assembler	cAssembler;
+	CAsmW65C816Assembler	cAssembler;
 	CAsm65Object		cObject;
 
 	AssertAsm65816Error("The width of A is not known here", "lda 1");
@@ -389,7 +389,7 @@ static const char* gszTestAsm65816Far =
 //////////////////////////////////////////////////////////////////////////
 static bool TestAsm65816Link(CAsm65Linker* pcLinker, CAsm65Object* pcCode, CAsm65Object* pcFar, uint32 uiData)
 {
-	CAsm65816Assembler	cAssembler;
+	CAsmW65C816Assembler	cAssembler;
 
 	pcCode->Init("code");
 	pcFar->Init("far");
@@ -516,14 +516,14 @@ static void TestAsm65816Write(void* pvMemory, uint32 uiAddress, uint8 uiValue)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A program in three banks run on CFast65C816: a 16 bit loop with the direct page,
+// A program in three banks run on CFastW65C816: a 16 bit loop with the direct page,
 // jsl to another bank, a 24 bit pointer and a block move.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65816Run(void)
 {
-	CAsm65816Assembler	cAssembler;
-	CFast65C816			cFast;
+	CAsmW65C816Assembler	cAssembler;
+	CFastW65C816			cFast;
 	uint8*				puiMemory;
 	SAsm65Segment*		psSegment;
 	size				i;
@@ -641,7 +641,7 @@ static const char* gszTestAsm65816Banks =
 //////////////////////////////////////////////////////////////////////////
 static bool TestAsm65816LinkBanks(CAsm65Linker* pcLinker, CAsm65Object* pcObject, const char* szSource, uint32 uiText)
 {
-	CAsm65816Assembler	cAssembler;
+	CAsmW65C816Assembler	cAssembler;
 
 	pcObject->Init("banks");
 	cAssembler.Init();
@@ -665,7 +665,7 @@ void TestAsm65816Banks(void)
 {
 	CAsm65Object		cObject;
 	CAsm65Linker		cLinker;
-	CFast65C816			cFast;
+	CFastW65C816			cFast;
 	uint8*				puiMemory;
 	SAsm65Segment*		psSegment;
 	int64				iStart;
@@ -673,7 +673,7 @@ void TestAsm65816Banks(void)
 	int64				iResult;
 	size				i;
 	CAsm65Memory		cMemory;
-	CAsm65816Lockstep		cLockstep;
+	CAsmW65C816Lockstep		cLockstep;
 	CChars				szConsole;
 
 	AssertTrue(TestAsm65816LinkBanks(&cLinker, &cObject, gszTestAsm65816Banks, 0x010000));
@@ -687,7 +687,7 @@ void TestAsm65816Banks(void)
 	AssertTrue(strstr(cLinker.GetMap(), "text.Fixed") != NULL);
 	AssertInt(0x020000, (int)iInBig);
 
-	//On CFast65C816 and the CW65C816 simulator in lockstep, with CAsm65Memory's console.
+	//On CFastW65C816 and the CW65C816 simulator in lockstep, with CAsm65Memory's console.
 	szConsole.Init();
 	cMemory.Init(TEST_ASM65816_RUN_MEMORY);
 	cMemory.SetConsole(&szConsole);

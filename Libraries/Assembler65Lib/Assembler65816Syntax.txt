@@ -8,7 +8,7 @@ registers, lower case flags, memory in square brackets, a bare value is a consta
 suffixes for widths, and the same lines, labels, numbers, expressions, directives,
 sections and objects.  It writes the same CAsm65Object, so CAsm65Linker links both.
 
-Class CAsm65816Assembler (Asm65816Assembler.h/.cpp and Asm65816Instructions.cpp) derives from
+Class CAsmW65C816Assembler (AsmW65C816Assembler.h/.cpp and Asm65816Instructions.cpp) derives from
 CAsm65BaseAssembler (as CAsm65C64Assembler, the 65C64's, does) and shares its passes,
 tokeniser, expressions, symbols, errors, sections, object and output; it supplies the
 instructions, operands, widths and two directives (CAsm65BaseAssembler's virtual
@@ -18,7 +18,7 @@ AssembleObject.  The opcode table is checked against MicroprocessorLib's
 CW65C816InstructionFactory by TestAsm65816Opcodes (the simulator calls jml JMP and puts per
 with the stack instructions; those two are allowed).  Tests: test/TestAssembler65Lib
 TestAsm65816.cpp (every mode, widths, errors, relocations through CAsm65Linker, and a
-program run on CFast65C816).
+program run on CFastW65C816).
 
 
 Registers and flags
@@ -135,8 +135,8 @@ Running and testing
 
 CAsm65Memory is the W65C816's test memory too: its devices (console, drive, host
 files, memory size register) are at 00FF:0000, the W65C816's bank $FF.
-InitFast65816 connects a CFast65C816, TickHigh65816 / TickLow65816 a CW65C816Meta, and
-CAsm65816Lockstep runs both side by side (as CAsm65C64Lockstep does for the 65C64).
+InitFast65816 connects a CFastW65C816, TickHigh65816 / TickLow65816 a CW65C816Meta, and
+CAsmW65C816Lockstep runs both side by side (as CAsm65C64Lockstep does for the 65C64).
 
 Bank 0 holds only the stack, the direct page, the vectors and a jml stub per vector:
 

@@ -33,7 +33,7 @@
     <ClCompile Include="HCP65SDCard.cpp" />
     <ClCompile Include="HCP65DebugTarget.cpp" />
     <ClCompile Include="HCP65DebugPort.cpp" />
-    <ClCompile Include="Asm65816DebugDecoder.cpp" />
+    <ClCompile Include="AsmW65C816DebugDecoder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HCP65.h" />
@@ -46,7 +46,7 @@
     <ClInclude Include="HCP65SDCard.h" />
     <ClInclude Include="HCP65DebugTarget.h" />
     <ClInclude Include="HCP65DebugPort.h" />
-    <ClInclude Include="Asm65816DebugDecoder.h" />
+    <ClInclude Include="AsmW65C816DebugDecoder.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

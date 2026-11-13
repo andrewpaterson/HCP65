@@ -22,30 +22,30 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define __ASM65816_LOCKSTEP_H__
 #include "BaseLib/Chars.h"
 #include "MicroprocessorLib/W65C816Meta.h"
-#include "MicroprocessorLib/Fast65C816.h"
+#include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Memory.h"
-#include "Asm65816FrameCheck.h"
+#include "AsmW65C816FrameCheck.h"
 
 
-//Runs a program on CFast65C816 and on the CW65C816 simulator side by side, each with its own memory, and finds where
+//Runs a program on CFastW65C816 and on the CW65C816 simulator side by side, each with its own memory, and finds where
 //they first differ: the registers and cycles after every step, memory every so often and at the end.  As
 //CAsm65C64Lockstep is for the 65C64.
-class CAsm65816Lockstep
+class CAsmW65C816Lockstep
 {
 protected:
 	CAsm65Memory*	mpcFastMemory;
-	CFast65C816*	mpcFast;
+	CFastW65C816*	mpcFast;
 	CAsm65Memory*	mpcSimMemory;
 	CW65C816Meta	mcMeta;
-	CAsm65816FrameCheck*	mpcFrameCheck;
+	CAsmW65C816FrameCheck*	mpcFrameCheck;
 	size			muiSteps;
 	bool			mbStopped;
 	CChars			mszDifferences;
 
 public:
-	void	Init(CAsm65Memory* pcFastMemory, CFast65C816* pcFast);
+	void	Init(CAsm65Memory* pcFastMemory, CFastW65C816* pcFast);
 	void	Kill(void);
-	void	SetFrameCheck(CAsm65816FrameCheck* pcFrameCheck);
+	void	SetFrameCheck(CAsmW65C816FrameCheck* pcFrameCheck);
 
 	size	Run(size uiMaxSteps, size uiMemoryInterval);
 	bool	Step(void);

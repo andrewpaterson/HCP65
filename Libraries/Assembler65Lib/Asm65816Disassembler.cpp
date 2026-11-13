@@ -19,7 +19,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 ** ------------------------------------------------------------------------ **/
 #include <stdio.h>
-#include "Asm65816Assembler.h"
+#include "AsmW65C816Assembler.h"
 #include "Asm65816Disassembler.h"
 
 
@@ -33,7 +33,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size Asm65816InstructionLength(uint8 uiOpcode, SAsm65816Widths* psWidths)
+size Asm65816InstructionLength(uint8 uiOpcode, SAsmW65C816Widths* psWidths)
 {
 	uint8	uiMode;
 
@@ -94,7 +94,7 @@ static void Asm65816AppendHex(CChars* pszDest, uint32 uiValue, int iDigits)
 // rep and sep make the widths 16 and 8.
 //
 //////////////////////////////////////////////////////////////////////////
-static void Asm65816ChangeWidths(uint8 uiOpcode, uint8 uiFlags, SAsm65816Widths* psWidths)
+static void Asm65816ChangeWidths(uint8 uiOpcode, uint8 uiFlags, SAsmW65C816Widths* psWidths)
 {
 	bool	bSet;
 
@@ -118,7 +118,7 @@ static void Asm65816ChangeWidths(uint8 uiOpcode, uint8 uiFlags, SAsm65816Widths*
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SAsm65816Widths* psWidths, CChars* pszDest)
+size Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SAsmW65C816Widths* psWidths, CChars* pszDest)
 {
 	const char*	szMnemonic;
 	uint8		uiMode;

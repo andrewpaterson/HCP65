@@ -19,7 +19,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 ** ------------------------------------------------------------------------ **/
 #include <string.h>
-#include "Asm65816Assembler.h"
+#include "AsmW65C816Assembler.h"
 
 
 #define ASM65816_MAX_MNEMONICS	96
@@ -151,7 +151,7 @@ static int Asm65816MnemonicKey(const char* sz)
 // made when first needed otherwise).
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Assembler::IndexMnemonics(void)
+void CAsmW65C816Assembler::IndexMnemonics(void)
 {
 	int		i;
 	int		j;
@@ -192,7 +192,7 @@ static int Asm65816FindMnemonic(SAsm65Token* psToken)
 {
 	int		iKey;
 
-	CAsm65816Assembler::IndexMnemonics();
+	CAsmW65C816Assembler::IndexMnemonics();
 	if ((psToken->eType != AT65_Identifier) || (psToken->uiLength != 3))
 	{
 		return -1;
@@ -243,11 +243,11 @@ const char* Asm65816Mnemonic(uint8 uiOpcode, uint8* puiMode)
 // mnemonic {operand {, operand}}
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Instruction(SAsm65Token* psMnemonic)
+bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 {
 	int				iMnemonic;
-	SAsm65816Operand	sOperand;
-	SAsm65816Operand	sSecond;
+	SAsmW65C816Operand	sOperand;
+	SAsmW65C816Operand	sSecond;
 	uint8			uiMode;
 	uint8			uiBits;
 	bool			bOperand;
@@ -259,8 +259,8 @@ bool CAsm65816Assembler::Instruction(SAsm65Token* psMnemonic)
 		return Error(psMnemonic, "Unknown instruction");
 	}
 
-	memset(&sOperand, 0, sizeof(SAsm65816Operand));
-	memset(&sSecond, 0, sizeof(SAsm65816Operand));
+	memset(&sOperand, 0, sizeof(SAsmW65C816Operand));
+	memset(&sSecond, 0, sizeof(SAsmW65C816Operand));
 	bOperand = !Peek()->IsEndOfStatement();
 	if (Asm65816Has(iMnemonic, A65816M_Immediate8) && (psMnemonic->IsIdentifierIgnoreCase("rep") || psMnemonic->IsIdentifierIgnoreCase("sep")))
 	{
@@ -315,7 +315,7 @@ bool CAsm65816Assembler::Instruction(SAsm65Token* psMnemonic)
 // The addressing mode an operand is written in, if the instruction has it.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::ChooseMode(int iMnemonic, SAsm65816Operand* psOperand, SAsm65Token* psMnemonic, uint8* puiMode)
+bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOperand, SAsm65Token* psMnemonic, uint8* puiMode)
 {
 	uint8			uiMode;
 	SAsm65Token*	psToken;
@@ -470,7 +470,7 @@ bool CAsm65816Assembler::ChooseMode(int iMnemonic, SAsm65816Operand* psOperand, 
 // or it is known to be too far.  A branch to C + offset never is.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::IsLongBranch(SAsm65Value* psTarget)
+bool CAsmW65C816Assembler::IsLongBranch(SAsm65Value* psTarget)
 {
 	int64	lliOffset;
 
@@ -501,7 +501,7 @@ bool CAsm65816Assembler::IsLongBranch(SAsm65Value* psTarget)
 // doesn't fit 16 bits, then long.  An instruction once long stays long in later passes.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::AbsoluteOrLong(int iMnemonic, SAsm65816Operand* psOperand, uint8 uiAbsolute, uint8 uiLong, uint8* puiMode)
+bool CAsmW65C816Assembler::AbsoluteOrLong(int iMnemonic, SAsmW65C816Operand* psOperand, uint8 uiAbsolute, uint8 uiLong, uint8* puiMode)
 {
 	bool	bLong;
 
@@ -536,7 +536,7 @@ bool CAsm65816Assembler::AbsoluteOrLong(int iMnemonic, SAsm65816Operand* psOpera
 // An immediate of the width m or x gives, or its :8 / :16 suffix.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Immediate(SAsm65816Instruction* psInstruction, SAsm65816Operand* psOperand, uint8 uiWidth, const char* szRegister)
+bool CAsmW65C816Assembler::Immediate(SAsmW65C816Instruction* psInstruction, SAsmW65C816Operand* psOperand, uint8 uiWidth, const char* szRegister)
 {
 	CChars	sz;
 	bool	bResult;
@@ -578,7 +578,7 @@ bool CAsm65816Assembler::Immediate(SAsm65816Instruction* psInstruction, SAsm6581
 // A direct page or stack offset: a constant from 0 to 255.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::DirectOffset(SAsm65816Instruction* psInstruction, SAsm65816Operand* psOperand)
+bool CAsmW65C816Assembler::DirectOffset(SAsmW65C816Instruction* psInstruction, SAsmW65C816Operand* psOperand)
 {
 	if (IsRelocatable(&psOperand->sValue) || (psOperand->sValue.uiForm != ASM65RF_Plain))
 	{
@@ -601,13 +601,13 @@ bool CAsm65816Assembler::DirectOffset(SAsm65816Instruction* psInstruction, SAsm6
 // be the program bank; write :24 otherwise.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsm65816Operand* psOperand, SAsm65816Operand* psSecond, SAsm65Token* psMnemonic)
+bool CAsmW65C816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsmW65C816Operand* psOperand, SAsmW65C816Operand* psSecond, SAsm65Token* psMnemonic)
 {
-	SAsm65816Instruction	sInstruction;
+	SAsmW65C816Instruction	sInstruction;
 	SAsm65Value			sValue;
 	bool				bResult;
 
-	memset(&sInstruction, 0, sizeof(SAsm65816Instruction));
+	memset(&sInstruction, 0, sizeof(SAsmW65C816Instruction));
 	AddByte(&sInstruction, (uint8)gaaiAsm65816Opcodes[iMnemonic][uiMode]);
 	sValue = psOperand->sValue;
 

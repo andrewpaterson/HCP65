@@ -31,7 +31,7 @@
     <ClCompile Include="HCP65DebugPort.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="Asm65816DebugDecoder.cpp">
+    <ClCompile Include="AsmW65C816DebugDecoder.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,7 +66,7 @@
     <ClInclude Include="HCP65DebugPort.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="Asm65816DebugDecoder.h">
+    <ClInclude Include="AsmW65C816DebugDecoder.h">
       <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>

@@ -395,10 +395,10 @@ void CAsm65Memory::TickLow65816(CW65C816Meta* pcMPU, void* pvMemory)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// CFast65C816 reads and writes the memory at 0000:0000 directly, the devices through ReadByte and WriteByte.
+// CFastW65C816 reads and writes the memory at 0000:0000 directly, the devices through ReadByte and WriteByte.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65Memory::InitFast65816(CFast65C816* pcMPU)
+void CAsm65Memory::InitFast65816(CFastW65C816* pcMPU)
 {
 	pcMPU->Init(ReadByte, WriteByte, this, mpuiLow, (muiLowSize < ASM65_DEVICE_BASE) ? muiLowSize : ASM65_DEVICE_BASE);
 	pcMPU->SetHole(ASM65_DEVICE_BASE, ASM65_DEVICE_END);

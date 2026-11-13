@@ -21,7 +21,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include <string.h>
 #include "BaseLib/ConstructorCall.h"
 #include "BaseLib/PointerFunctions.h"
-#include "Asm65816Lockstep.h"
+#include "AsmW65C816Lockstep.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 // pcFast has run reset on pcFastMemory.  The simulator gets a copy of the memory and runs reset too.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Lockstep::Init(CAsm65Memory* pcFastMemory, CFast65C816* pcFast)
+void CAsmW65C816Lockstep::Init(CAsm65Memory* pcFastMemory, CFastW65C816* pcFast)
 {
 	mpcFastMemory = pcFastMemory;
 	mpcFast = pcFast;
@@ -51,7 +51,7 @@ void CAsm65816Lockstep::Init(CAsm65Memory* pcFastMemory, CFast65C816* pcFast)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Lockstep::Kill(void)
+void CAsmW65C816Lockstep::Kill(void)
 {
 	mcMeta.Kill();
 	SafeKill(mpcSimMemory);
@@ -65,7 +65,7 @@ void CAsm65816Lockstep::Kill(void)
 // none): its stores to callers' stacks.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816Lockstep::SetFrameCheck(CAsm65816FrameCheck* pcFrameCheck)
+void CAsmW65C816Lockstep::SetFrameCheck(CAsmW65C816FrameCheck* pcFrameCheck)
 {
 	mpcFrameCheck = pcFrameCheck;
 }
@@ -77,7 +77,7 @@ void CAsm65816Lockstep::SetFrameCheck(CAsm65816FrameCheck* pcFrameCheck)
 // steps (0 for only at the end).  Returns the number of steps.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65816Lockstep::Run(size uiMaxSteps, size uiMemoryInterval)
+size CAsmW65C816Lockstep::Run(size uiMaxSteps, size uiMemoryInterval)
 {
 	size	i;
 
@@ -105,7 +105,7 @@ size CAsm65816Lockstep::Run(size uiMaxSteps, size uiMemoryInterval)
 // One step on both.  Returns false if either stopped or they differ.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Lockstep::Step(void)
+bool CAsmW65C816Lockstep::Step(void)
 {
 	CW65C816*	pcSim;
 	uint32		uiAddress;
@@ -148,7 +148,7 @@ bool CAsm65816Lockstep::Step(void)
 // Returns false (and notes it) if the memories or their bad access counts differ.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Lockstep::CompareMemory(void)
+bool CAsmW65C816Lockstep::CompareMemory(void)
 {
 	bool	bSame;
 
@@ -169,7 +169,7 @@ bool CAsm65816Lockstep::CompareMemory(void)
 // What differed first, empty if nothing has.
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65816Lockstep::GetDifferences(void)
+char* CAsmW65C816Lockstep::GetDifferences(void)
 {
 	return mszDifferences.Text();
 }
@@ -179,7 +179,7 @@ char* CAsm65816Lockstep::GetDifferences(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65816Lockstep::IsStopped(void)
+bool CAsmW65C816Lockstep::IsStopped(void)
 {
 	return mbStopped;
 }

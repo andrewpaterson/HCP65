@@ -64,7 +64,7 @@ bool Asm65816HasDirectPageOperand(uint8 uiOpcode)
 // a pointer in the direct page ((dp), [dp], ...) writes elsewhere.
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816DirectPageWrite(uint8 uiOpcode, SAsm65816DirectPageWrite* psWrite)
+bool Asm65816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite)
 {
 	psWrite->cIndex = 0;
 	psWrite->bIndexWidth = false;

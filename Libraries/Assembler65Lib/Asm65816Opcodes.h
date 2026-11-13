@@ -25,7 +25,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 //How an instruction writes the direct page itself (not through a pointer there): the index register added to its
 //operand (0, 'X' or 'Y') and whether the X flag sets its width (stx, sty) rather than M.
-struct SAsm65816DirectPageWrite
+struct SAsmW65C816DirectPageWrite
 {
 	char	cIndex;
 	bool	bIndexWidth;
@@ -44,7 +44,7 @@ enum EAsm65816Flow
 
 
 bool	Asm65816HasDirectPageOperand(uint8 uiOpcode);
-bool	Asm65816DirectPageWrite(uint8 uiOpcode, SAsm65816DirectPageWrite* psWrite);
+bool	Asm65816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite);
 bool	Asm65816IsSubroutineCall(uint8 uiOpcode);
 bool	Asm65816IsCall(uint8 uiOpcode);
 bool	Asm65816IsReturn(uint8 uiOpcode);

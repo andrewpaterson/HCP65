@@ -24,7 +24,7 @@ Assemble is absolute mode: .org places the bytes.  AssembleObject(szSource,
 CAsm65Linker links objects (see Objects and linking below).
 
 Classes: CAsm65Tokeniser (text to tokens), CAsm65BaseAssembler (passes, statements,
-expressions; shared with CAsm65816Assembler), CAsm65C64Assembler (the 65C64's instructions
+expressions; shared with CAsmW65C816Assembler), CAsm65C64Assembler (the 65C64's instructions
 and operands), CAsm65Symbols, CAsm65Output, CAsm65Errors, CAsm65Object (an assembled
 translation unit), CAsm65Library and CAsm65Linker.  The assembler is split like
 CppParser: Asm65BaseAssembler.cpp (passes, labels, directives), Asm65BaseExpressions.cpp

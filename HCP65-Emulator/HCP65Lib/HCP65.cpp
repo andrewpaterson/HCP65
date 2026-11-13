@@ -1091,7 +1091,7 @@ bool CHCP65::IsNativeLatched(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-CFast65C816* CHCP65::GetMPU(void)
+CFastW65C816* CHCP65::GetMPU(void)
 {
 	return &mcMPU;
 }

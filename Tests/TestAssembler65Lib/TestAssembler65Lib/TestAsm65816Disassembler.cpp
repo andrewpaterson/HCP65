@@ -1,5 +1,5 @@
 #include "BaseLib/Chars.h"
-#include "Assembler65Lib/Asm65816Assembler.h"
+#include "Assembler65Lib/AsmW65C816Assembler.h"
 #include "Assembler65Lib/Asm65816Disassembler.h"
 #include "Assembler65Lib/Asm65816Opcodes.h"
 #include "TestLib/Assert.h"
@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////////////
 static void AssertAsm65816Disassembly(const char* szExpected, size uiExpectedLength, uint8* puiBytes, size uiAvailable, bool bMemory8, bool bIndex8)
 {
-	SAsm65816Widths	sWidths;
+	SAsmW65C816Widths	sWidths;
 	CChars			sz;
 
 	sWidths.bMemory8 = bMemory8;
@@ -32,8 +32,8 @@ static void AssertAsm65816Disassembly(const char* szExpected, size uiExpectedLen
 //////////////////////////////////////////////////////////////////////////
 static void TestAsm65816DisassembleRoundTrip(void)
 {
-	CAsm65816Assembler	cAssembler;
-	SAsm65816Widths		sWidths;
+	CAsmW65C816Assembler	cAssembler;
+	SAsmW65C816Widths		sWidths;
 	CChars				szSource;
 	CChars				szDifferences;
 	uint8				auiBytes[4];
@@ -93,7 +93,7 @@ static void TestAsm65816DisassembleRoundTrip(void)
 //////////////////////////////////////////////////////////////////////////
 static void TestAsm65816DisassembleModes(void)
 {
-	SAsm65816Widths		sWidths;
+	SAsmW65C816Widths		sWidths;
 	CChars				sz;
 	static uint8		auiLda[] = { 0xA9, 0x34, 0x12 };
 	static uint8		auiLdx[] = { 0xA2, 0x34, 0x12 };

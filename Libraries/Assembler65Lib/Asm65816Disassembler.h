@@ -25,7 +25,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 //The widths a W65C816's immediates are decoded with: m's (A and memory) and x's (X and Y).  In emulation mode both
 //are 8.  rep and sep change them as they are disassembled, so a run of code keeps them where it can.
-struct SAsm65816Widths
+struct SAsmW65C816Widths
 {
 	bool	bMemory8;
 	bool	bIndex8;
@@ -36,10 +36,10 @@ struct SAsm65816Widths
 //syntax: "lda [D + $04]".  It reassembles to the same bytes, except that a branch's operand (bra, brl, per) is
 //written as the address it goes to, not C plus an offset.  Returns the instruction's length, or 0 (nothing
 //appended) if there aren't that many bytes.
-size	Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SAsm65816Widths* psWidths, CChars* pszDest);
+size	Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SAsmW65C816Widths* psWidths, CChars* pszDest);
 
 //The length of the instruction starting with uiOpcode, with those widths.
-size	Asm65816InstructionLength(uint8 uiOpcode, SAsm65816Widths* psWidths);
+size	Asm65816InstructionLength(uint8 uiOpcode, SAsmW65C816Widths* psWidths);
 
 
 #endif // __ASM65816_DISASSEMBLER_H__

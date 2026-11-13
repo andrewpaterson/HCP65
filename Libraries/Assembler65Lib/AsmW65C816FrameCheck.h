@@ -22,13 +22,13 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define __ASM65816_FRAME_CHECK_H__
 #include "BaseLib/Chars.h"
 #include "BaseLib/ArrayTemplate.h"
-#include "MicroprocessorLib/Fast65C816.h"
+#include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Memory.h"
 
 
 //A call being run: S before the jsl (S is below it while the call runs), the caller's D then, the lowest byte of the
 //return address it pushed and the instruction it returns to.
-struct SAsm65816FrameCall
+struct SAsmW65C816FrameCall
 {
 	uint16	uiS;
 	uint16	uiD;
@@ -38,8 +38,8 @@ struct SAsm65816FrameCall
 
 
 //A store to a caller's stack: the instruction's address, the first byte it stores to, the lowest byte it may not
-//(CAsm65816FrameCheck::Limit) and D then.
-struct SAsm65816FrameWrite
+//(CAsmW65C816FrameCheck::Limit) and D then.
+struct SAsmW65C816FrameWrite
 {
 	uint32	uiAddress;
 	uint16	uiFirst;
@@ -48,25 +48,25 @@ struct SAsm65816FrameWrite
 };
 
 
-//Runs a program on CFast65C816 a step at a time and finds where a function writes its caller's stack through the
+//Runs a program on CFastW65C816 a step at a time and finds where a function writes its caller's stack through the
 //direct page: a store (or read-modify-write) to the direct page by a function that has pointed D at a frame of its
 //own, at or past the lower of its caller's frame (from the caller's D + 1) and its caller's return address, and
 //within the stack.  A function's pushed arguments are below both, so it may write those; code running on its
 //caller's D (a runtime routine, a stub) isn't checked; a store through a pointer isn't a direct page store.  As
-//CAsm65816Lockstep checks the emulator, which runs it too (SetFrameCheck): BeforeStep and AfterStep go round each
+//CAsmW65C816Lockstep checks the emulator, which runs it too (SetFrameCheck): BeforeStep and AfterStep go round each
 //step of whatever runs the program.
-class CAsm65816FrameCheck
+class CAsmW65C816FrameCheck
 {
 protected:
 	CAsm65Memory*						mpcMemory;
-	CFast65C816*						mpcFast;
-	CArrayTemplate<SAsm65816FrameCall>	masCalls;
+	CFastW65C816*						mpcFast;
+	CArrayTemplate<SAsmW65C816FrameCall>	masCalls;
 	uint16								muiStackTop;	//S at the first call: frames are below it.
-	CArrayTemplate<SAsm65816FrameWrite>	masWrites;		//The first few found.
+	CArrayTemplate<SAsmW65C816FrameWrite>	masWrites;		//The first few found.
 	CChars								mszWrites;
 
 public:
-	void	Init(CAsm65Memory* pcMemory, CFast65C816* pcFast);
+	void	Init(CAsm65Memory* pcMemory, CFastW65C816* pcFast);
 	void	Kill(void);
 
 	size	Run(size uiMaxSteps);
@@ -74,9 +74,9 @@ public:
 	void	AfterStep(uint8 uiOpcode);
 
 	size					NumWrites(void);
-	SAsm65816FrameWrite*	GetWrite(size uiIndex);
+	SAsmW65C816FrameWrite*	GetWrite(size uiIndex);
 	char*					GetWrites(void);
-	static void				AppendWrite(SAsm65816FrameWrite* psWrite, CChars* pszDest);
+	static void				AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest);
 
 protected:
 	void	Check(uint32 uiAddress, uint8 uiOpcode);

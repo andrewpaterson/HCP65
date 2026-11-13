@@ -1,6 +1,6 @@
 #include <string.h>
 #include "BaseLib/TextFile.h"
-#include "Assembler65Lib/Asm65816Assembler.h"
+#include "Assembler65Lib/AsmW65C816Assembler.h"
 #include "Assembler65Lib/Asm65Linker.h"
 #include "TestLib/Assert.h"
 #include "TestAsm65C64Context.h"
@@ -113,7 +113,7 @@ void TestAsm65IncHexErrors(void)
 void TestAsm65IncHexMathTable(void)
 {
 	CTextFile			cFile;
-	CAsm65816Assembler	cAssembler;
+	CAsmW65C816Assembler	cAssembler;
 	CAsm65Object		acObjects[2];
 	CAsm65Linker		cLinker;
 	SAsm65Section*		psSection;

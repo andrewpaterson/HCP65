@@ -1,7 +1,7 @@
 #ifndef __HCP65_H__
 #define __HCP65_H__
 #include "BaseLib/PrimitiveTypes.h"
-#include "MicroprocessorLib/Fast65C816.h"
+#include "MicroprocessorLib/FastW65C816.h"
 #include "HCP65Device.h"
 #include "HCP65Registers.h"
 #include "HCP65MemoryBoard.h"
@@ -19,7 +19,7 @@
 #define HCP65_DEBUG_FILL_BYTE		0xCC		//What memory nothing has written holds in fill mode.
 
 
-//The HCP65 computer: a CFast65C816, the processor board's memory and registers, and the devices in its
+//The HCP65 computer: a CFastW65C816, the processor board's memory and registers, and the devices in its
 //sockets.  See the HCP65 Computer pages of the documentation for the memory map.
 //
 //Kernel mode is a non-zero interrupt depth (counted up on each vector pull and down on each RTI), or the
@@ -28,7 +28,7 @@
 //replaced from the remap table.  Until the processor first goes native, MPU RAM and ROM are swapped so
 //that it boots from ROM.
 //
-//When the processor is in kernel mode and has been native, MPU RAM is the CFast65C816's flat block and
+//When the processor is in kernel mode and has been native, MPU RAM is the CFastW65C816's flat block and
 //costs nothing extra.  Everything else goes through the callbacks.
 //
 //Main memory is the memory boards' chips (CHCP65MemoryBoard), each socket's 4MB in the window the main memory
@@ -57,7 +57,7 @@
 class CHCP65
 {
 protected:
-	CFast65C816			mcMPU;
+	CFastW65C816			mcMPU;
 	uint8*				mpuiRAM;
 	uint8*				mpuiROM;
 	uint8*				mapuiMainBanks[HCP65_MAIN_MEMORY_BANKS];	//Each 64KB bank's memory, NULL if no chip answers it.
@@ -104,7 +104,7 @@ public:
 	void				StopRun(void);
 	void				SetBreak(int iBreak);
 
-	CFast65C816*		GetMPU(void);
+	CFastW65C816*		GetMPU(void);
 	CHCP65Registers*	GetRegisters(void);
 	CHCP65DebugPort*	GetDebugPort(void);
 	uint8*				GetMPURAM(void);

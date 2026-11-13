@@ -20,7 +20,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 ** ------------------------------------------------------------------------ **/
 #include <stdio.h>
 #include "Asm65816Opcodes.h"
-#include "Asm65816FrameCheck.h"
+#include "AsmW65C816FrameCheck.h"
 
 
 #define ASM65816_FRAME_CHECK_MOST	4		//The stores to callers' stacks kept (GetWrite): the first ones found.
@@ -31,7 +31,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 // pcFast has run reset on pcMemory.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816FrameCheck::Init(CAsm65Memory* pcMemory, CFast65C816* pcFast)
+void CAsmW65C816FrameCheck::Init(CAsm65Memory* pcMemory, CFastW65C816* pcFast)
 {
 	mpcMemory = pcMemory;
 	mpcFast = pcFast;
@@ -46,7 +46,7 @@ void CAsm65816FrameCheck::Init(CAsm65Memory* pcMemory, CFast65C816* pcFast)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816FrameCheck::Kill(void)
+void CAsmW65C816FrameCheck::Kill(void)
 {
 	mszWrites.Kill();
 	masWrites.Kill();
@@ -60,7 +60,7 @@ void CAsm65816FrameCheck::Kill(void)
 // and AfterStep).  Returns the steps run.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65816FrameCheck::Run(size uiMaxSteps)
+size CAsmW65C816FrameCheck::Run(size uiMaxSteps)
 {
 	size	uiSteps;
 	uint8	uiOpcode;
@@ -83,11 +83,11 @@ size CAsm65816FrameCheck::Run(size uiMaxSteps)
 // opcode, for AfterStep.
 //
 //////////////////////////////////////////////////////////////////////////
-uint8 CAsm65816FrameCheck::BeforeStep(void)
+uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 {
 	uint32				uiAddress;
 	uint8				uiOpcode;
-	SAsm65816FrameCall*	psCall;
+	SAsmW65C816FrameCall*	psCall;
 
 	uiAddress = mpcFast->GetProgramAddress();
 	uiOpcode = mpcMemory->GetByte(uiAddress);
@@ -116,7 +116,7 @@ uint8 CAsm65816FrameCheck::BeforeStep(void)
 // entry helper's jsr does, comes back with S below where it started).
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816FrameCheck::AfterStep(uint8 uiOpcode)
+void CAsmW65C816FrameCheck::AfterStep(uint8 uiOpcode)
 {
 	if (!Asm65816IsReturn(uiOpcode))
 	{
@@ -141,9 +141,9 @@ void CAsm65816FrameCheck::AfterStep(uint8 uiOpcode)
 // when it has neither (main, called by the start up).
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CAsm65816FrameCheck::Limit(void)
+uint32 CAsmW65C816FrameCheck::Limit(void)
 {
-	SAsm65816FrameCall*	psCall;
+	SAsmW65C816FrameCall*	psCall;
 	uint32				uiLimit;
 	uint32				uiReturn;
 
@@ -172,16 +172,16 @@ uint32 CAsm65816FrameCheck::Limit(void)
 // its caller's.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
+void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 {
-	SAsm65816DirectPageWrite	sWrite;
+	SAsmW65C816DirectPageWrite	sWrite;
 	uint32						uiLimit;
 	uint32						uiFirst;
 	uint32						uiLast;
 	uint16						uiD;
 	bool						bWide;
 	char						sz[16];
-	SAsm65816FrameWrite*		psWrite;
+	SAsmW65C816FrameWrite*		psWrite;
 
 	if ((masCalls.NumElements() == 0) || !Asm65816DirectPageWrite(uiOpcode, &sWrite))
 	{
@@ -230,7 +230,7 @@ void CAsm65816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 // The stores to callers' stacks kept (the first few found).
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65816FrameCheck::NumWrites(void)
+size CAsmW65C816FrameCheck::NumWrites(void)
 {
 	return masWrites.NumElements();
 }
@@ -240,7 +240,7 @@ size CAsm65816FrameCheck::NumWrites(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-SAsm65816FrameWrite* CAsm65816FrameCheck::GetWrite(size uiIndex)
+SAsmW65C816FrameWrite* CAsmW65C816FrameCheck::GetWrite(size uiIndex)
 {
 	return masWrites.Get(uiIndex);
 }
@@ -252,7 +252,7 @@ SAsm65816FrameWrite* CAsm65816FrameCheck::GetWrite(size uiIndex)
 // address and AppendWrite), or nothing.
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65816FrameCheck::GetWrites(void)
+char* CAsmW65C816FrameCheck::GetWrites(void)
 {
 	return mszWrites.Text();
 }
@@ -265,7 +265,7 @@ char* CAsm65816FrameCheck::GetWrites(void)
 // stack (from 0x...; D 0x...)" and a new line.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65816FrameCheck::AppendWrite(SAsm65816FrameWrite* psWrite, CChars* pszDest)
+void CAsmW65C816FrameCheck::AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest)
 {
 	char	sz[96];
 
