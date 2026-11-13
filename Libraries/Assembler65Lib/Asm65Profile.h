@@ -18,13 +18,13 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#ifndef __ASM65816_PROFILE_H__
-#define __ASM65816_PROFILE_H__
+#ifndef __ASM65_PROFILE_H__
+#define __ASM65_PROFILE_H__
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/ArrayChars.h"
 #include "BaseLib/MapStringTemplate.h"
-#include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Memory.h"
+#include "Asm65ProfiledCore.h"
 #include "Asm65LineTable.h"
 
 
@@ -33,7 +33,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //called while it was already running (recursion, directly or through others).  With a line table (CAsm65LineTable):
 //the cycles its own code ran for and the fingerprint of the code that was run (its hash and compile time, 0 for
 //none).
-struct SAsmW65C816FunctionProfile
+struct SAsm65FunctionProfile
 {
 	uint64	ulliDirectPage;
 	uint64	ulliCalls;
@@ -47,7 +47,7 @@ struct SAsmW65C816FunctionProfile
 //What a profiled run measured of a source line's code in a function (inlined code is the function's it is in): how
 //often its code was entered at its start (of its pieces, the most), the instructions and cycles run in it, and the
 //cycles of code with no line (runtime routines, assembly) run after it, before another line's (what it called).
-struct SAsmW65C816LineProfile
+struct SAsm65LineProfile
 {
 	uint64	ulliEntries;
 	uint64	ulliInstructions;
@@ -58,23 +58,23 @@ struct SAsmW65C816LineProfile
 
 //What profiled runs measured of the calls of a function from one source line: how many there were and the cycles
 //inside them (with everything they called; a recursive call's are counted again in the call it is in).
-struct SAsmW65C816CallSiteProfile
+struct SAsm65CallSiteProfile
 {
 	uint64	ulliCalls;
 	uint64	ulliCycles;
 };
 
 
-//The functions' profiles from runs of linked programs on CFastW65C816 (added up over runs), and the cycles they ran
-//for, and with the program's line table the profile of each line of each function; read and written as text (Write).
+//The functions' profiles from runs of linked programs on a processor (CAsm65ProfiledCore: the W65C816 or the 65C64),
+//added up over runs, and the cycles they ran for, and with the program's line table the profile of each line of each function; read and written as text (Write).
 //The W65C816 back end gives a function a page aligned frame (a cycle less each direct page access) only when its
 //profile says that is worth it (CIRW65C816Backend::AlignFrame).
-class CAsmW65C816Profile
+class CAsm65Profile
 {
 protected:
-	CMapStringTemplate<SAsmW65C816FunctionProfile>	mcFunctions;
-	CMapStringTemplate<SAsmW65C816LineProfile>		mcLines;		//By "label\tline\tfile".
-	CMapStringTemplate<SAsmW65C816CallSiteProfile>	mcCallSites;	//By "callee\tline\tfile" (the calling line's).
+	CMapStringTemplate<SAsm65FunctionProfile>	mcFunctions;
+	CMapStringTemplate<SAsm65LineProfile>		mcLines;		//By "label\tline\tfile".
+	CMapStringTemplate<SAsm65CallSiteProfile>	mcCallSites;	//By "callee\tline\tfile" (the calling line's).
 	CMapStringTemplate<uint64>					mcLineEntries;	//By "line\tfile": the entries in all functions (LineEntries), made when first needed.
 	bool										mbLineEntries;
 	uint64										mulliCycles;
@@ -83,26 +83,26 @@ public:
 	void					Init(void);
 	void					Kill(void);
 
-	uint64					Run(CAsm65Memory* pcMemory, CFastW65C816* pcFast, const char* szMap, uint64 uiMaxSteps, CAsm65LineTable* pcLines = NULL);
+	uint64					Run(CAsm65ProfiledCore* pcCore, const char* szMap, uint64 uiMaxSteps, CAsm65LineTable* pcLines = NULL);
 
 	bool					Read(const char* szFilename);
 	bool					Write(const char* szFilename);
 	bool					WriteReport(const char* szFilename, size uiMost);
 
-	SAsmW65C816FunctionProfile*	Get(const char* szLabel);
-	SAsmW65C816LineProfile*		GetLine(const char* szLabel, const char* szFile, uint32 uiLine);
-	SAsmW65C816CallSiteProfile*	GetCallSite(const char* szCallee, const char* szFile, uint32 uiLine);
+	SAsm65FunctionProfile*	Get(const char* szLabel);
+	SAsm65LineProfile*		GetLine(const char* szLabel, const char* szFile, uint32 uiLine);
+	SAsm65CallSiteProfile*	GetCallSite(const char* szCallee, const char* szFile, uint32 uiLine);
 	uint64					LineEntries(const char* szFile, uint32 uiLine);
 	uint64					NumCycles(void);
 
 protected:
-	SAsmW65C816FunctionProfile*	PutFunction(const char* szLabel);
-	SAsmW65C816LineProfile*		PutLine(const char* szLabel, const char* szFile, uint32 uiLine);
+	SAsm65FunctionProfile*	PutFunction(const char* szLabel);
+	SAsm65LineProfile*		PutLine(const char* szLabel, const char* szFile, uint32 uiLine);
 	void					ForgetLines(const char* szLabel);
 	void					Fingerprints(CAsm65LineTable* pcLines);
 	void					LineKey(CChars* pszKey, const char* szLabel, const char* szFile, uint32 uiLine);
 };
 
 
-#endif // __ASM65816_PROFILE_H__
+#endif // __ASM65_PROFILE_H__
 

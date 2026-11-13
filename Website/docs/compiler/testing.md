@@ -67,8 +67,9 @@ variables:
 
 ## Profiling
 
-`CAsm65816Profile` runs a program on the emulator and counts the cycles in each function and each
-source line, through the line table; its report also gives each line's *call sites*, the cycles
+`CAsm65Profile` runs a program on either processor's emulator (the W65C816 or the 65C64, through
+`CAsm65ProfiledCore`) and counts the cycles in each function and each source line, through the line
+table; its report also gives each line's *call sites*, the cycles
 inside the calls made from that line with everything they called.  The same profile, saved, guides
 the W65C816's [aligned frames](w65c816.md#aligned-frames).
 

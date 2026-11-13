@@ -192,7 +192,8 @@
     <ClCompile Include="AsmW65C816Lockstep.cpp" />
     <ClCompile Include="AsmW65C816Opcodes.cpp" />
     <ClCompile Include="AsmW65C816Disassembler.cpp" />
-    <ClCompile Include="AsmW65C816Profile.cpp" />
+    <ClCompile Include="Asm65Profile.cpp" />
+    <ClCompile Include="Asm65ProfiledCore.cpp" />
     <ClCompile Include="Asm65Errors.cpp" />
     <ClCompile Include="Asm65HostFiles.cpp" />
     <ClCompile Include="Asm65KeptTokens.cpp" />
@@ -223,7 +224,8 @@
     <ClInclude Include="AsmW65C816Lockstep.h" />
     <ClInclude Include="AsmW65C816Opcodes.h" />
     <ClInclude Include="AsmW65C816Disassembler.h" />
-    <ClInclude Include="AsmW65C816Profile.h" />
+    <ClInclude Include="Asm65Profile.h" />
+    <ClInclude Include="Asm65ProfiledCore.h" />
     <ClInclude Include="Asm65Errors.h" />
     <ClInclude Include="Asm65HostFiles.h" />
     <ClInclude Include="Asm65KeptTokens.h" />
