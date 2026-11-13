@@ -32,7 +32,7 @@ There is no C++ standard library beyond `<new>`.
 | `string.cpp` | C++.  On the W65C816, `string816.asm` and `string816_16.asm` replace the block and vector functions (`memcpy`, `memset`, `memmove`, `strlen`, `strcmp` ...), using `mvn` and `mvp`.  On the 65C64, `string.asm`. |
 | `softfloat.cpp` | C++, the bit exact reference.  `softfloat816.asm` and `softfloat.asm` replace it on each processor, so the C++ compiles to nothing there. |
 | `stdlib.cpp`, `stdio.cpp`, `math.cpp`, `ctype.cpp`, `time.cpp`, `new.cpp`, `signal.cpp`, `host.cpp` | C++. |
-| `IR816Runtime-*.asm` | The W65C816's multiply, divide, shift and BCD routines (see [W65C816 Runtime](../hcp65/runtime/w65c816.md)). |
+| `IRW65C816Runtime-*.asm` | The W65C816's multiply, divide, shift and BCD routines (see [W65C816 Runtime](../hcp65/runtime/w65c816.md)). |
 | `MathTbls/` | Garth Wilson's maths tables; the W65C816's multiplies use `MULT`. |
 
 ## Memory

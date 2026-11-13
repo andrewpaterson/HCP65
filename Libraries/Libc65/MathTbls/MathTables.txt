@@ -131,8 +131,8 @@ $420000 (all of INVERT, 256KB), banks $40-$45, which the kernal maps into every 
 (KERNAL_NUM_TABLE_BANKS 6; its heap now starts at $460000).  The kernal and boot.exe are
 built without the tables, the others with them: a linker/builder option,
 CCPP65Builder::SetMathTables (.hcp65build MathTables="false").  The runtime's assembly is
-now Libc65's IR816Runtime-Common.asm (no table), IR816Runtime-MathTables.asm (multiplies
-with MULT) and IR816Runtime-MathSafe.asm (multiplies without); see W65C816.txt.
+now Libc65's IRW65C816Runtime-Common.asm (no table), IRW65C816Runtime-MathTables.asm (multiplies
+with MULT) and IRW65C816Runtime-MathSafe.asm (multiplies without); see W65C816.txt.
 - Divide reads no table any more: an unrolled shift and subtract beats the slice's
   reciprocal everywhere (16/16 177 -> 110 cycles, 16/8 358 -> 274, 16/12 414 -> 210), and
   the full table doesn't help with only byte products (above, and checked again).  INVERT

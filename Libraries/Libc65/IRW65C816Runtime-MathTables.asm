@@ -19,10 +19,10 @@
 ;
 ; ** ------------------------------------------------------------------------ 
 ;
-; IR816Runtime-MathTables.asm: the W65C816 back end's multiplies with Garth Wilson's product table, MathMult (linked
+; IRW65C816Runtime-MathTables.asm: the W65C816 back end's multiplies with Garth Wilson's product table, MathMult (linked
 ; into the program by CCPP65Builder::AddMathTables, or in main memory where an HCP65 program finds it:
-; Libraries/UserLib/UserMathTables.asm).  IR816Runtime-MathSafe.asm has the same routines without the table
-; (CCPP65Builder::SetMathTables).  The others are in IR816Runtime-Common.asm.
+; Libraries/UserLib/UserMathTables.asm).  IRW65C816Runtime-MathSafe.asm has the same routines without the table
+; (CCPP65Builder::SetMathTables).  The others are in IRW65C816Runtime-Common.asm.
 ;
 
 

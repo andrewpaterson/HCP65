@@ -19,8 +19,8 @@
 ;
 ; ** ------------------------------------------------------------------------ 
 ;
-; IR816Runtime-Common.asm: the W65C816 back end's runtime routines that are the same with the math tables
-; (IR816Runtime-MathTables.asm) or without them (IR816Runtime-MathSafe.asm): the divides, the 64 bit multiply, the 32
+; IRW65C816Runtime-Common.asm: the W65C816 back end's runtime routines that are the same with the math tables
+; (IRW65C816Runtime-MathTables.asm) or without them (IRW65C816Runtime-MathSafe.asm): the divides, the 64 bit multiply, the 32
 ; and 64 bit shifts, the BCD adds and the leading and trailing zero counts.  CCPP65Builder links this and one of the
 ; math files as libraries (each routine in its own section, so only the ones a program uses are kept).  The compiler
 ; calls them (IR816Runtime.cpp says how each takes its operands).

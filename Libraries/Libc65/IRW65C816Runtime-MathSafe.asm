@@ -19,11 +19,11 @@
 ;
 ; ** ------------------------------------------------------------------------ 
 ;
-; IR816Runtime-MathSafe.asm: the W65C816 back end's multiplies without Garth Wilson's maths tables
+; IRW65C816Runtime-MathSafe.asm: the W65C816 back end's multiplies without Garth Wilson's maths tables
 ; (CCPP65Builder::SetMathTables(false)): for a program that can't count on the tables being in memory, such as the
-; HCP65's kernal and its operating system (which loads them).  IR816Runtime-MathTables.asm has the same routines with
+; HCP65's kernal and its operating system (which loads them).  IRW65C816Runtime-MathTables.asm has the same routines with
 ; MathMult; the others (the divides too: shift and subtract beats a reciprocal from MathInvert) are in
-; IR816Runtime-Common.asm.
+; IRW65C816Runtime-Common.asm.
 ;
 ; They run on the caller's D (a scratch routine, IR816ScratchRoutine): a is at D + 15 and b at D + 19 (the scratch
 ; arguments), and they may use the caller's D + 5 to D + 22 (and read D + 3 to D + 24).  A 16 bit result is left in A,
