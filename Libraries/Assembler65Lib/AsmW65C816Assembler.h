@@ -29,7 +29,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 //How an instruction's operand is addressed: the W65C816S's addressing modes as written
-//in Assembler65816Syntax.txt.
+//in AssemblerW65C816Syntax.txt.
 enum EAsm65816Mode
 {
 	A65816M_Implied,
@@ -111,7 +111,7 @@ struct SAsmW65C816Instruction
 };
 
 
-//Assembles W65C816S source text (see Assembler65816Syntax.txt).  The passes, labels,
+//Assembles W65C816S source text (see AssemblerW65C816Syntax.txt).  The passes, labels,
 //expressions, directives, sections and objects are CAsm65BaseAssembler's; the instructions,
 //operands and the tracking of the m and x widths are its own.
 class CAsmW65C816Assembler : public CAsm65BaseAssembler

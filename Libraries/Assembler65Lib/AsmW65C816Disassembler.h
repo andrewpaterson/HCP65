@@ -32,7 +32,7 @@ struct SAsmW65C816Widths
 };
 
 
-//Disassembles the instruction at puiBytes (uiAvailable of them), which is at uiAddress, in Assembler65816Syntax.txt's
+//Disassembles the instruction at puiBytes (uiAvailable of them), which is at uiAddress, in AssemblerW65C816Syntax.txt's
 //syntax: "lda [D + $04]".  It reassembles to the same bytes, except that a branch's operand (bra, brl, per) is
 //written as the address it goes to, not C plus an offset.  Returns the instruction's length, or 0 (nothing
 //appended) if there aren't that many bytes.

@@ -87,7 +87,7 @@ Status (2026-10-29, not committed)
 ----------------------------------
 Done: 1 (BaseLib/IntelHex.h/.cpp, test TestIntelHex), 2 (.inchex, SetDirectory; test
 TestAsm65IncHex checks every MULT product after linking), 3 for MULT (MathMult.asm),
-5 for multiply (R816_Mul16/R816_Mul32 in IR816Runtime.cpp; CCPP65Builder::AddMathTables
+5 for multiply (R816_Mul16/R816_Mul32 in IRW65C816Runtime.cpp; CCPP65Builder::AddMathTables
 links MathMult; test TestIR816BackendMultiply).  Divide done too: MathInvert.asm (the
 128KB slice, .inchex "INVERT.HEX", $60000, $20000), R816_UDiv16/URem16 with the
 reciprocal (checked for all 2^32 n, d in C: the estimate is never over and at most 1

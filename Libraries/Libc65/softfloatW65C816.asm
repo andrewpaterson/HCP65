@@ -71,7 +71,7 @@ SoftInfinity	= 2
 SoftNaN		= 3
 
 
-		.section text.SoftFloat816
+		.section text.SoftFloatW65C816
 		.relax
 		.global _SoftFloatAdd, _SoftFloatSubtract, _SoftFloatMultiply, _SoftFloatDivide, _SoftFloatCompare
 		.global _SoftFloatFromInt, _SoftFloatFromUnsigned, _SoftFloatFromLongLong, _SoftFloatFromUnsignedLongLong
@@ -7922,7 +7922,7 @@ FmodReturnA:
 ; are real; the others push their arguments again as the stack entries want them and call them (they cost
 ; hundreds of cycles or more, so the extra 30 or so don't count).  Made from the compiled math.cpp's labels.
 
-		.section text.MathRegisters816
+		.section text.MathRegistersW65C816
 		.global _SoftFloatAdd.ax, _SoftFloatSubtract.ax, _SoftFloatMultiply.ax, _SoftFloatDivide.ax, _SoftFloatCompare.ax, _SoftFloatSqrt.ax, _SoftFloatFromInt.ax, _SoftFloatFromUnsigned.ax
 		.global _SoftFloatToInt.ax, _SoftFloatToUnsigned.ax, _SoftFloatToLongLong.ax, _SoftFloatToUnsignedLongLong.ax, _SoftFloatToDouble.ax, _SoftDoubleAdd.ax, _SoftDoubleSubtract.ax, _SoftDoubleMultiply.ax
 		.global _SoftDoubleDivide.ax, _SoftDoubleSqrt.ax, _SoftDoubleFromInt.ax, _SoftDoubleFromUnsigned.ax, _SoftDoubleFromLongLong.ax, _SoftDoubleFromUnsignedLongLong.ax, _SoftDoubleToLongLong.ax, _SoftDoubleToUnsignedLongLong.ax

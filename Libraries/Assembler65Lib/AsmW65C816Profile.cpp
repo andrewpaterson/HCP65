@@ -258,7 +258,7 @@ uint64 CAsmW65C816Profile::Run(CAsm65Memory* pcMemory, CFastW65C816* pcFast, con
 	}
 
 	//A function's register argument entry (label.axy, after its stack argument stub) is called too, and so is any other
-	//global label in it (an assembly section's other entries: Libc65's _memcpy and _memmove in MemMove816).
+	//global label in it (an assembly section's other entries: Libc65's _memcpy and _memmove in MemMoveW65C816).
 	szLine = strstr(szMap, "\nSymbols\n");
 	for (szLine = szLine ? strchr(szLine + 1, '\n') : NULL; szLine; szLine = strchr(szLine + 1, '\n'))
 	{

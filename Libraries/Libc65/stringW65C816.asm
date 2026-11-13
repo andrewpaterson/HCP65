@@ -36,7 +36,7 @@ SetValue	= 22
 Pushed		= 27
 
 
-		.section text.MemMove816
+		.section text.MemMoveW65C816
 		.global _memcpy, _memmove, _memset, _memcpy.ax, _memmove.ax, _memset.axy
 
 _memcpy:
@@ -553,7 +553,7 @@ Second		= 18
 SizeArg		= 18
 
 
-		.section text.String816
+		.section text.StringW65C816
 		.global _memcmp, _memchr, _strlen, _strcpy, _strncpy, _strcat, _strncat
 		.global _strcmp, _strncmp, _strchr, _strrchr
 		.global _memcmp.ax, _memchr.axy, _strlen.ax, _strcpy.ax, _strncpy.ax, _strcat.ax, _strncat.ax
@@ -1342,7 +1342,7 @@ MoreNone:
 		rts
 
 
-		.section text.MemSwp816
+		.section text.MemSwpW65C816
 		.global _MemSwp__FPKvPKvj, _MemSwp__FPKvPKvj.ax
 
 ; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
@@ -1470,7 +1470,7 @@ BitArray	= 9
 BitBits		= 16
 
 
-		.section text.Bits816
+		.section text.BitsW65C816
 		.relax
 		.global BitsCtz16, BitsLog2_16
 		.global _FindFirstSetBitLarge__FPvj, _FindFirstClearBitLarge__FPvj
@@ -1783,7 +1783,7 @@ BitsLog2_16Low:
 		rtl
 
 
-		.section rodata.Bits816
+		.section rodata.BitsW65C816
 		.global BitsMasks16
 
 ; BitsMasks16: the low n bits set, for n from 0 to 15 (indexed by n * 2).
