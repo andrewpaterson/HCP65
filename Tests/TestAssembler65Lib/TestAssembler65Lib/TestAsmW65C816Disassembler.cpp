@@ -47,7 +47,7 @@ static void TestAsm65816DisassembleRoundTrip(void)
 	for (iOpcode = 0; iOpcode < 256; iOpcode++)
 	{
 		Asm65816Mnemonic((uint8)iOpcode, &uiMode);
-		if ((uiMode == A65816M_Relative) || (uiMode == A65816M_RelativeLong))
+		if ((uiMode == AW65C816M_Relative) || (uiMode == AW65C816M_RelativeLong))
 		{
 			continue;
 		}
@@ -155,13 +155,13 @@ static void TestAsm65816DisassembleFlow(void)
 	static uint8	auiJsl[] = { 0x22, 0x56, 0x34, 0x12 };
 	static uint8	auiJmpX[] = { 0x7C, 0x34, 0x12 };
 
-	AssertInt(A65816F_Call, Asm65816Flow(0x20));
-	AssertInt(A65816F_Call, Asm65816Flow(0x00));
-	AssertInt(A65816F_Return, Asm65816Flow(0x6B));
-	AssertInt(A65816F_Jump, Asm65816Flow(0x80));
-	AssertInt(A65816F_Branch, Asm65816Flow(0xD0));
-	AssertInt(A65816F_Other, Asm65816Flow(0x62));
-	AssertInt(A65816F_Other, Asm65816Flow(0xEA));
+	AssertInt(AW65C816F_Call, Asm65816Flow(0x20));
+	AssertInt(AW65C816F_Call, Asm65816Flow(0x00));
+	AssertInt(AW65C816F_Return, Asm65816Flow(0x6B));
+	AssertInt(AW65C816F_Jump, Asm65816Flow(0x80));
+	AssertInt(AW65C816F_Branch, Asm65816Flow(0xD0));
+	AssertInt(AW65C816F_Other, Asm65816Flow(0x62));
+	AssertInt(AW65C816F_Other, Asm65816Flow(0xEA));
 
 	AssertTrue(Asm65816FlowTarget(0x021000, auiBne, &uiTarget));
 	AssertIntHex(0x021000, uiTarget);

@@ -14,14 +14,14 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static EDebugInstruction Asm65816DebugKind(EAsm65816Flow eFlow)
+static EDebugInstruction Asm65816DebugKind(EAsmW65C816Flow eFlow)
 {
 	switch (eFlow)
 	{
-	case A65816F_Call:		return DI_Call;
-	case A65816F_Return:	return DI_Return;
-	case A65816F_Jump:		return DI_Jump;
-	case A65816F_Branch:	return DI_Branch;
+	case AW65C816F_Call:	return DI_Call;
+	case AW65C816F_Return:	return DI_Return;
+	case AW65C816F_Jump:	return DI_Jump;
+	case AW65C816F_Branch:	return DI_Branch;
 	default:				return DI_Other;
 	}
 }

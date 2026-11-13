@@ -35,70 +35,70 @@ struct SAsm65816Opcode
 //Each opcode's mnemonic and addressing mode (W65C816S datasheet table 5-4).  The
 //test TestAsm65816Opcodes checks it against MicroprocessorLib's instruction factory.
 static const SAsm65816Opcode	gasAsm65816Opcodes[256] = {
-	{ "brk", A65816M_Immediate8 },  { "ora", A65816M_DirectIndirectX },  { "cop", A65816M_Immediate8 },  { "ora", A65816M_Stack },
-	{ "tsb", A65816M_Direct },  { "ora", A65816M_Direct },  { "asl", A65816M_Direct },  { "ora", A65816M_DirectIndirectLong },
-	{ "php", A65816M_Implied },  { "ora", A65816M_ImmediateM },  { "asl", A65816M_Accumulator },  { "phd", A65816M_Implied },
-	{ "tsb", A65816M_Absolute },  { "ora", A65816M_Absolute },  { "asl", A65816M_Absolute },  { "ora", A65816M_Long },
-	{ "bpl", A65816M_Relative },  { "ora", A65816M_DirectIndirectY },  { "ora", A65816M_DirectIndirect },  { "ora", A65816M_StackIndirectY },
-	{ "trb", A65816M_Direct },  { "ora", A65816M_DirectX },  { "asl", A65816M_DirectX },  { "ora", A65816M_DirectIndirectLongY },
-	{ "clc", A65816M_Implied },  { "ora", A65816M_AbsoluteY },  { "inc", A65816M_Accumulator },  { "tcs", A65816M_Implied },
-	{ "trb", A65816M_Absolute },  { "ora", A65816M_AbsoluteX },  { "asl", A65816M_AbsoluteX },  { "ora", A65816M_LongX },
-	{ "jsr", A65816M_JumpAbsolute },  { "and", A65816M_DirectIndirectX },  { "jsl", A65816M_JumpLong },  { "and", A65816M_Stack },
-	{ "bit", A65816M_Direct },  { "and", A65816M_Direct },  { "rol", A65816M_Direct },  { "and", A65816M_DirectIndirectLong },
-	{ "plp", A65816M_Implied },  { "and", A65816M_ImmediateM },  { "rol", A65816M_Accumulator },  { "pld", A65816M_Implied },
-	{ "bit", A65816M_Absolute },  { "and", A65816M_Absolute },  { "rol", A65816M_Absolute },  { "and", A65816M_Long },
-	{ "bmi", A65816M_Relative },  { "and", A65816M_DirectIndirectY },  { "and", A65816M_DirectIndirect },  { "and", A65816M_StackIndirectY },
-	{ "bit", A65816M_DirectX },  { "and", A65816M_DirectX },  { "rol", A65816M_DirectX },  { "and", A65816M_DirectIndirectLongY },
-	{ "sec", A65816M_Implied },  { "and", A65816M_AbsoluteY },  { "dec", A65816M_Accumulator },  { "tsc", A65816M_Implied },
-	{ "bit", A65816M_AbsoluteX },  { "and", A65816M_AbsoluteX },  { "rol", A65816M_AbsoluteX },  { "and", A65816M_LongX },
-	{ "rti", A65816M_Implied },  { "eor", A65816M_DirectIndirectX },  { "wdm", A65816M_Immediate8 },  { "eor", A65816M_Stack },
-	{ "mvp", A65816M_BlockMove },  { "eor", A65816M_Direct },  { "lsr", A65816M_Direct },  { "eor", A65816M_DirectIndirectLong },
-	{ "pha", A65816M_Implied },  { "eor", A65816M_ImmediateM },  { "lsr", A65816M_Accumulator },  { "phk", A65816M_Implied },
-	{ "jmp", A65816M_JumpAbsolute },  { "eor", A65816M_Absolute },  { "lsr", A65816M_Absolute },  { "eor", A65816M_Long },
-	{ "bvc", A65816M_Relative },  { "eor", A65816M_DirectIndirectY },  { "eor", A65816M_DirectIndirect },  { "eor", A65816M_StackIndirectY },
-	{ "mvn", A65816M_BlockMove },  { "eor", A65816M_DirectX },  { "lsr", A65816M_DirectX },  { "eor", A65816M_DirectIndirectLongY },
-	{ "cli", A65816M_Implied },  { "eor", A65816M_AbsoluteY },  { "phy", A65816M_Implied },  { "tcd", A65816M_Implied },
-	{ "jml", A65816M_JumpLong },  { "eor", A65816M_AbsoluteX },  { "lsr", A65816M_AbsoluteX },  { "eor", A65816M_LongX },
-	{ "rts", A65816M_Implied },  { "adc", A65816M_DirectIndirectX },  { "per", A65816M_RelativeLong },  { "adc", A65816M_Stack },
-	{ "stz", A65816M_Direct },  { "adc", A65816M_Direct },  { "ror", A65816M_Direct },  { "adc", A65816M_DirectIndirectLong },
-	{ "pla", A65816M_Implied },  { "adc", A65816M_ImmediateM },  { "ror", A65816M_Accumulator },  { "rtl", A65816M_Implied },
-	{ "jmp", A65816M_JumpIndirect },  { "adc", A65816M_Absolute },  { "ror", A65816M_Absolute },  { "adc", A65816M_Long },
-	{ "bvs", A65816M_Relative },  { "adc", A65816M_DirectIndirectY },  { "adc", A65816M_DirectIndirect },  { "adc", A65816M_StackIndirectY },
-	{ "stz", A65816M_DirectX },  { "adc", A65816M_DirectX },  { "ror", A65816M_DirectX },  { "adc", A65816M_DirectIndirectLongY },
-	{ "sei", A65816M_Implied },  { "adc", A65816M_AbsoluteY },  { "ply", A65816M_Implied },  { "tdc", A65816M_Implied },
-	{ "jmp", A65816M_JumpIndirectX },  { "adc", A65816M_AbsoluteX },  { "ror", A65816M_AbsoluteX },  { "adc", A65816M_LongX },
-	{ "bra", A65816M_Relative },  { "sta", A65816M_DirectIndirectX },  { "brl", A65816M_RelativeLong },  { "sta", A65816M_Stack },
-	{ "sty", A65816M_Direct },  { "sta", A65816M_Direct },  { "stx", A65816M_Direct },  { "sta", A65816M_DirectIndirectLong },
-	{ "dey", A65816M_Implied },  { "bit", A65816M_ImmediateM },  { "txa", A65816M_Implied },  { "phb", A65816M_Implied },
-	{ "sty", A65816M_Absolute },  { "sta", A65816M_Absolute },  { "stx", A65816M_Absolute },  { "sta", A65816M_Long },
-	{ "bcc", A65816M_Relative },  { "sta", A65816M_DirectIndirectY },  { "sta", A65816M_DirectIndirect },  { "sta", A65816M_StackIndirectY },
-	{ "sty", A65816M_DirectX },  { "sta", A65816M_DirectX },  { "stx", A65816M_DirectY },  { "sta", A65816M_DirectIndirectLongY },
-	{ "tya", A65816M_Implied },  { "sta", A65816M_AbsoluteY },  { "txs", A65816M_Implied },  { "txy", A65816M_Implied },
-	{ "stz", A65816M_Absolute },  { "sta", A65816M_AbsoluteX },  { "stz", A65816M_AbsoluteX },  { "sta", A65816M_LongX },
-	{ "ldy", A65816M_ImmediateX },  { "lda", A65816M_DirectIndirectX },  { "ldx", A65816M_ImmediateX },  { "lda", A65816M_Stack },
-	{ "ldy", A65816M_Direct },  { "lda", A65816M_Direct },  { "ldx", A65816M_Direct },  { "lda", A65816M_DirectIndirectLong },
-	{ "tay", A65816M_Implied },  { "lda", A65816M_ImmediateM },  { "tax", A65816M_Implied },  { "plb", A65816M_Implied },
-	{ "ldy", A65816M_Absolute },  { "lda", A65816M_Absolute },  { "ldx", A65816M_Absolute },  { "lda", A65816M_Long },
-	{ "bcs", A65816M_Relative },  { "lda", A65816M_DirectIndirectY },  { "lda", A65816M_DirectIndirect },  { "lda", A65816M_StackIndirectY },
-	{ "ldy", A65816M_DirectX },  { "lda", A65816M_DirectX },  { "ldx", A65816M_DirectY },  { "lda", A65816M_DirectIndirectLongY },
-	{ "clv", A65816M_Implied },  { "lda", A65816M_AbsoluteY },  { "tsx", A65816M_Implied },  { "tyx", A65816M_Implied },
-	{ "ldy", A65816M_AbsoluteX },  { "lda", A65816M_AbsoluteX },  { "ldx", A65816M_AbsoluteY },  { "lda", A65816M_LongX },
-	{ "cpy", A65816M_ImmediateX },  { "cmp", A65816M_DirectIndirectX },  { "rep", A65816M_Immediate8 },  { "cmp", A65816M_Stack },
-	{ "cpy", A65816M_Direct },  { "cmp", A65816M_Direct },  { "dec", A65816M_Direct },  { "cmp", A65816M_DirectIndirectLong },
-	{ "iny", A65816M_Implied },  { "cmp", A65816M_ImmediateM },  { "dex", A65816M_Implied },  { "wai", A65816M_Implied },
-	{ "cpy", A65816M_Absolute },  { "cmp", A65816M_Absolute },  { "dec", A65816M_Absolute },  { "cmp", A65816M_Long },
-	{ "bne", A65816M_Relative },  { "cmp", A65816M_DirectIndirectY },  { "cmp", A65816M_DirectIndirect },  { "cmp", A65816M_StackIndirectY },
-	{ "pei", A65816M_Direct },  { "cmp", A65816M_DirectX },  { "dec", A65816M_DirectX },  { "cmp", A65816M_DirectIndirectLongY },
-	{ "cld", A65816M_Implied },  { "cmp", A65816M_AbsoluteY },  { "phx", A65816M_Implied },  { "stp", A65816M_Implied },
-	{ "jml", A65816M_JumpIndirectLong },  { "cmp", A65816M_AbsoluteX },  { "dec", A65816M_AbsoluteX },  { "cmp", A65816M_LongX },
-	{ "cpx", A65816M_ImmediateX },  { "sbc", A65816M_DirectIndirectX },  { "sep", A65816M_Immediate8 },  { "sbc", A65816M_Stack },
-	{ "cpx", A65816M_Direct },  { "sbc", A65816M_Direct },  { "inc", A65816M_Direct },  { "sbc", A65816M_DirectIndirectLong },
-	{ "inx", A65816M_Implied },  { "sbc", A65816M_ImmediateM },  { "nop", A65816M_Implied },  { "xba", A65816M_Implied },
-	{ "cpx", A65816M_Absolute },  { "sbc", A65816M_Absolute },  { "inc", A65816M_Absolute },  { "sbc", A65816M_Long },
-	{ "beq", A65816M_Relative },  { "sbc", A65816M_DirectIndirectY },  { "sbc", A65816M_DirectIndirect },  { "sbc", A65816M_StackIndirectY },
-	{ "pea", A65816M_Immediate16 },  { "sbc", A65816M_DirectX },  { "inc", A65816M_DirectX },  { "sbc", A65816M_DirectIndirectLongY },
-	{ "sed", A65816M_Implied },  { "sbc", A65816M_AbsoluteY },  { "plx", A65816M_Implied },  { "xce", A65816M_Implied },
-	{ "jsr", A65816M_JumpIndirectX },  { "sbc", A65816M_AbsoluteX },  { "inc", A65816M_AbsoluteX },  { "sbc", A65816M_LongX },
+	{ "brk", AW65C816M_Immediate8 },  { "ora", AW65C816M_DirectIndirectX },  { "cop", AW65C816M_Immediate8 },  { "ora", AW65C816M_Stack },
+	{ "tsb", AW65C816M_Direct },  { "ora", AW65C816M_Direct },  { "asl", AW65C816M_Direct },  { "ora", AW65C816M_DirectIndirectLong },
+	{ "php", AW65C816M_Implied },  { "ora", AW65C816M_ImmediateM },  { "asl", AW65C816M_Accumulator },  { "phd", AW65C816M_Implied },
+	{ "tsb", AW65C816M_Absolute },  { "ora", AW65C816M_Absolute },  { "asl", AW65C816M_Absolute },  { "ora", AW65C816M_Long },
+	{ "bpl", AW65C816M_Relative },  { "ora", AW65C816M_DirectIndirectY },  { "ora", AW65C816M_DirectIndirect },  { "ora", AW65C816M_StackIndirectY },
+	{ "trb", AW65C816M_Direct },  { "ora", AW65C816M_DirectX },  { "asl", AW65C816M_DirectX },  { "ora", AW65C816M_DirectIndirectLongY },
+	{ "clc", AW65C816M_Implied },  { "ora", AW65C816M_AbsoluteY },  { "inc", AW65C816M_Accumulator },  { "tcs", AW65C816M_Implied },
+	{ "trb", AW65C816M_Absolute },  { "ora", AW65C816M_AbsoluteX },  { "asl", AW65C816M_AbsoluteX },  { "ora", AW65C816M_LongX },
+	{ "jsr", AW65C816M_JumpAbsolute },  { "and", AW65C816M_DirectIndirectX },  { "jsl", AW65C816M_JumpLong },  { "and", AW65C816M_Stack },
+	{ "bit", AW65C816M_Direct },  { "and", AW65C816M_Direct },  { "rol", AW65C816M_Direct },  { "and", AW65C816M_DirectIndirectLong },
+	{ "plp", AW65C816M_Implied },  { "and", AW65C816M_ImmediateM },  { "rol", AW65C816M_Accumulator },  { "pld", AW65C816M_Implied },
+	{ "bit", AW65C816M_Absolute },  { "and", AW65C816M_Absolute },  { "rol", AW65C816M_Absolute },  { "and", AW65C816M_Long },
+	{ "bmi", AW65C816M_Relative },  { "and", AW65C816M_DirectIndirectY },  { "and", AW65C816M_DirectIndirect },  { "and", AW65C816M_StackIndirectY },
+	{ "bit", AW65C816M_DirectX },  { "and", AW65C816M_DirectX },  { "rol", AW65C816M_DirectX },  { "and", AW65C816M_DirectIndirectLongY },
+	{ "sec", AW65C816M_Implied },  { "and", AW65C816M_AbsoluteY },  { "dec", AW65C816M_Accumulator },  { "tsc", AW65C816M_Implied },
+	{ "bit", AW65C816M_AbsoluteX },  { "and", AW65C816M_AbsoluteX },  { "rol", AW65C816M_AbsoluteX },  { "and", AW65C816M_LongX },
+	{ "rti", AW65C816M_Implied },  { "eor", AW65C816M_DirectIndirectX },  { "wdm", AW65C816M_Immediate8 },  { "eor", AW65C816M_Stack },
+	{ "mvp", AW65C816M_BlockMove },  { "eor", AW65C816M_Direct },  { "lsr", AW65C816M_Direct },  { "eor", AW65C816M_DirectIndirectLong },
+	{ "pha", AW65C816M_Implied },  { "eor", AW65C816M_ImmediateM },  { "lsr", AW65C816M_Accumulator },  { "phk", AW65C816M_Implied },
+	{ "jmp", AW65C816M_JumpAbsolute },  { "eor", AW65C816M_Absolute },  { "lsr", AW65C816M_Absolute },  { "eor", AW65C816M_Long },
+	{ "bvc", AW65C816M_Relative },  { "eor", AW65C816M_DirectIndirectY },  { "eor", AW65C816M_DirectIndirect },  { "eor", AW65C816M_StackIndirectY },
+	{ "mvn", AW65C816M_BlockMove },  { "eor", AW65C816M_DirectX },  { "lsr", AW65C816M_DirectX },  { "eor", AW65C816M_DirectIndirectLongY },
+	{ "cli", AW65C816M_Implied },  { "eor", AW65C816M_AbsoluteY },  { "phy", AW65C816M_Implied },  { "tcd", AW65C816M_Implied },
+	{ "jml", AW65C816M_JumpLong },  { "eor", AW65C816M_AbsoluteX },  { "lsr", AW65C816M_AbsoluteX },  { "eor", AW65C816M_LongX },
+	{ "rts", AW65C816M_Implied },  { "adc", AW65C816M_DirectIndirectX },  { "per", AW65C816M_RelativeLong },  { "adc", AW65C816M_Stack },
+	{ "stz", AW65C816M_Direct },  { "adc", AW65C816M_Direct },  { "ror", AW65C816M_Direct },  { "adc", AW65C816M_DirectIndirectLong },
+	{ "pla", AW65C816M_Implied },  { "adc", AW65C816M_ImmediateM },  { "ror", AW65C816M_Accumulator },  { "rtl", AW65C816M_Implied },
+	{ "jmp", AW65C816M_JumpIndirect },  { "adc", AW65C816M_Absolute },  { "ror", AW65C816M_Absolute },  { "adc", AW65C816M_Long },
+	{ "bvs", AW65C816M_Relative },  { "adc", AW65C816M_DirectIndirectY },  { "adc", AW65C816M_DirectIndirect },  { "adc", AW65C816M_StackIndirectY },
+	{ "stz", AW65C816M_DirectX },  { "adc", AW65C816M_DirectX },  { "ror", AW65C816M_DirectX },  { "adc", AW65C816M_DirectIndirectLongY },
+	{ "sei", AW65C816M_Implied },  { "adc", AW65C816M_AbsoluteY },  { "ply", AW65C816M_Implied },  { "tdc", AW65C816M_Implied },
+	{ "jmp", AW65C816M_JumpIndirectX },  { "adc", AW65C816M_AbsoluteX },  { "ror", AW65C816M_AbsoluteX },  { "adc", AW65C816M_LongX },
+	{ "bra", AW65C816M_Relative },  { "sta", AW65C816M_DirectIndirectX },  { "brl", AW65C816M_RelativeLong },  { "sta", AW65C816M_Stack },
+	{ "sty", AW65C816M_Direct },  { "sta", AW65C816M_Direct },  { "stx", AW65C816M_Direct },  { "sta", AW65C816M_DirectIndirectLong },
+	{ "dey", AW65C816M_Implied },  { "bit", AW65C816M_ImmediateM },  { "txa", AW65C816M_Implied },  { "phb", AW65C816M_Implied },
+	{ "sty", AW65C816M_Absolute },  { "sta", AW65C816M_Absolute },  { "stx", AW65C816M_Absolute },  { "sta", AW65C816M_Long },
+	{ "bcc", AW65C816M_Relative },  { "sta", AW65C816M_DirectIndirectY },  { "sta", AW65C816M_DirectIndirect },  { "sta", AW65C816M_StackIndirectY },
+	{ "sty", AW65C816M_DirectX },  { "sta", AW65C816M_DirectX },  { "stx", AW65C816M_DirectY },  { "sta", AW65C816M_DirectIndirectLongY },
+	{ "tya", AW65C816M_Implied },  { "sta", AW65C816M_AbsoluteY },  { "txs", AW65C816M_Implied },  { "txy", AW65C816M_Implied },
+	{ "stz", AW65C816M_Absolute },  { "sta", AW65C816M_AbsoluteX },  { "stz", AW65C816M_AbsoluteX },  { "sta", AW65C816M_LongX },
+	{ "ldy", AW65C816M_ImmediateX },  { "lda", AW65C816M_DirectIndirectX },  { "ldx", AW65C816M_ImmediateX },  { "lda", AW65C816M_Stack },
+	{ "ldy", AW65C816M_Direct },  { "lda", AW65C816M_Direct },  { "ldx", AW65C816M_Direct },  { "lda", AW65C816M_DirectIndirectLong },
+	{ "tay", AW65C816M_Implied },  { "lda", AW65C816M_ImmediateM },  { "tax", AW65C816M_Implied },  { "plb", AW65C816M_Implied },
+	{ "ldy", AW65C816M_Absolute },  { "lda", AW65C816M_Absolute },  { "ldx", AW65C816M_Absolute },  { "lda", AW65C816M_Long },
+	{ "bcs", AW65C816M_Relative },  { "lda", AW65C816M_DirectIndirectY },  { "lda", AW65C816M_DirectIndirect },  { "lda", AW65C816M_StackIndirectY },
+	{ "ldy", AW65C816M_DirectX },  { "lda", AW65C816M_DirectX },  { "ldx", AW65C816M_DirectY },  { "lda", AW65C816M_DirectIndirectLongY },
+	{ "clv", AW65C816M_Implied },  { "lda", AW65C816M_AbsoluteY },  { "tsx", AW65C816M_Implied },  { "tyx", AW65C816M_Implied },
+	{ "ldy", AW65C816M_AbsoluteX },  { "lda", AW65C816M_AbsoluteX },  { "ldx", AW65C816M_AbsoluteY },  { "lda", AW65C816M_LongX },
+	{ "cpy", AW65C816M_ImmediateX },  { "cmp", AW65C816M_DirectIndirectX },  { "rep", AW65C816M_Immediate8 },  { "cmp", AW65C816M_Stack },
+	{ "cpy", AW65C816M_Direct },  { "cmp", AW65C816M_Direct },  { "dec", AW65C816M_Direct },  { "cmp", AW65C816M_DirectIndirectLong },
+	{ "iny", AW65C816M_Implied },  { "cmp", AW65C816M_ImmediateM },  { "dex", AW65C816M_Implied },  { "wai", AW65C816M_Implied },
+	{ "cpy", AW65C816M_Absolute },  { "cmp", AW65C816M_Absolute },  { "dec", AW65C816M_Absolute },  { "cmp", AW65C816M_Long },
+	{ "bne", AW65C816M_Relative },  { "cmp", AW65C816M_DirectIndirectY },  { "cmp", AW65C816M_DirectIndirect },  { "cmp", AW65C816M_StackIndirectY },
+	{ "pei", AW65C816M_Direct },  { "cmp", AW65C816M_DirectX },  { "dec", AW65C816M_DirectX },  { "cmp", AW65C816M_DirectIndirectLongY },
+	{ "cld", AW65C816M_Implied },  { "cmp", AW65C816M_AbsoluteY },  { "phx", AW65C816M_Implied },  { "stp", AW65C816M_Implied },
+	{ "jml", AW65C816M_JumpIndirectLong },  { "cmp", AW65C816M_AbsoluteX },  { "dec", AW65C816M_AbsoluteX },  { "cmp", AW65C816M_LongX },
+	{ "cpx", AW65C816M_ImmediateX },  { "sbc", AW65C816M_DirectIndirectX },  { "sep", AW65C816M_Immediate8 },  { "sbc", AW65C816M_Stack },
+	{ "cpx", AW65C816M_Direct },  { "sbc", AW65C816M_Direct },  { "inc", AW65C816M_Direct },  { "sbc", AW65C816M_DirectIndirectLong },
+	{ "inx", AW65C816M_Implied },  { "sbc", AW65C816M_ImmediateM },  { "nop", AW65C816M_Implied },  { "xba", AW65C816M_Implied },
+	{ "cpx", AW65C816M_Absolute },  { "sbc", AW65C816M_Absolute },  { "inc", AW65C816M_Absolute },  { "sbc", AW65C816M_Long },
+	{ "beq", AW65C816M_Relative },  { "sbc", AW65C816M_DirectIndirectY },  { "sbc", AW65C816M_DirectIndirect },  { "sbc", AW65C816M_StackIndirectY },
+	{ "pea", AW65C816M_Immediate16 },  { "sbc", AW65C816M_DirectX },  { "inc", AW65C816M_DirectX },  { "sbc", AW65C816M_DirectIndirectLongY },
+	{ "sed", AW65C816M_Implied },  { "sbc", AW65C816M_AbsoluteY },  { "plx", AW65C816M_Implied },  { "xce", AW65C816M_Implied },
+	{ "jsr", AW65C816M_JumpIndirectX },  { "sbc", AW65C816M_AbsoluteX },  { "inc", AW65C816M_AbsoluteX },  { "sbc", AW65C816M_LongX },
 };
 
 
@@ -110,7 +110,7 @@ static const SAsm65816Opcode	gasAsm65816Opcodes[256] = {
 //gasAsm65816Opcodes when first needed.  gaiAsm65816MnemonicByKey is each mnemonic's
 //index by its key (or -1).
 static const char*	gaszAsm65816Mnemonics[ASM65816_MAX_MNEMONICS];
-static int16		gaaiAsm65816Opcodes[ASM65816_MAX_MNEMONICS][A65816M_NumModes];
+static int16		gaaiAsm65816Opcodes[ASM65816_MAX_MNEMONICS][AW65C816M_NumModes];
 static int8			gaiAsm65816MnemonicByKey[ASM65816_MNEMONIC_KEYS];
 static int			giAsm65816Mnemonics = 0;
 static bool			gbAsm65816Indexed = false;
@@ -222,8 +222,8 @@ static bool Asm65816Has(int iMnemonic, uint8 uiMode)
 //////////////////////////////////////////////////////////////////////////
 static bool Asm65816IsJump(int iMnemonic)
 {
-	return Asm65816Has(iMnemonic, A65816M_JumpAbsolute) || Asm65816Has(iMnemonic, A65816M_JumpLong) || Asm65816Has(iMnemonic, A65816M_JumpIndirect) ||
-		   Asm65816Has(iMnemonic, A65816M_JumpIndirectX) || Asm65816Has(iMnemonic, A65816M_JumpIndirectLong);
+	return Asm65816Has(iMnemonic, AW65C816M_JumpAbsolute) || Asm65816Has(iMnemonic, AW65C816M_JumpLong) || Asm65816Has(iMnemonic, AW65C816M_JumpIndirect) ||
+		   Asm65816Has(iMnemonic, AW65C816M_JumpIndirectX) || Asm65816Has(iMnemonic, AW65C816M_JumpIndirectLong);
 }
 
 
@@ -262,7 +262,7 @@ bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 	memset(&sOperand, 0, sizeof(SAsmW65C816Operand));
 	memset(&sSecond, 0, sizeof(SAsmW65C816Operand));
 	bOperand = !Peek()->IsEndOfStatement();
-	if (Asm65816Has(iMnemonic, A65816M_Immediate8) && (psMnemonic->IsIdentifierIgnoreCase("rep") || psMnemonic->IsIdentifierIgnoreCase("sep")))
+	if (Asm65816Has(iMnemonic, AW65C816M_Immediate8) && (psMnemonic->IsIdentifierIgnoreCase("rep") || psMnemonic->IsIdentifierIgnoreCase("sep")))
 	{
 		sOperand.psToken = Peek();
 		if (!bOperand)
@@ -276,16 +276,16 @@ bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 		ChangeWidths(psMnemonic->IsIdentifierIgnoreCase("sep"), uiBits);
 		sOperand.sValue.iValue = uiBits;
 		sOperand.sValue.bResolved = true;
-		uiMode = A65816M_Immediate8;
+		uiMode = AW65C816M_Immediate8;
 	}
 	else
 	{
-		mbRelative = Asm65816Has(iMnemonic, A65816M_Relative) || Asm65816Has(iMnemonic, A65816M_RelativeLong);
+		mbRelative = Asm65816Has(iMnemonic, AW65C816M_Relative) || Asm65816Has(iMnemonic, AW65C816M_RelativeLong);
 		if (bOperand && !Operand65816(&sOperand))
 		{
 			return false;
 		}
-		if (Asm65816Has(iMnemonic, A65816M_BlockMove))
+		if (Asm65816Has(iMnemonic, AW65C816M_BlockMove))
 		{
 			if (!bOperand || !Expect(AP65_Comma, "','") || !Operand65816(&sSecond))
 			{
@@ -323,61 +323,61 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 	psToken = psOperand ? psOperand->psToken : Peek();
 	if (psOperand == NULL)
 	{
-		if (!Asm65816Has(iMnemonic, A65816M_Implied))
+		if (!Asm65816Has(iMnemonic, AW65C816M_Implied))
 		{
 			return ErrorExpected(psToken, "an operand");
 		}
-		*puiMode = A65816M_Implied;
+		*puiMode = AW65C816M_Implied;
 		return true;
 	}
 
 	if (psOperand->bAccumulator)
 	{
-		uiMode = A65816M_Accumulator;
+		uiMode = AW65C816M_Accumulator;
 	}
 	else if (!psOperand->bMemory)
 	{
-		if (Asm65816Has(iMnemonic, A65816M_ImmediateM))
+		if (Asm65816Has(iMnemonic, AW65C816M_ImmediateM))
 		{
-			uiMode = A65816M_ImmediateM;
+			uiMode = AW65C816M_ImmediateM;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_ImmediateX))
+		else if (Asm65816Has(iMnemonic, AW65C816M_ImmediateX))
 		{
-			uiMode = A65816M_ImmediateX;
+			uiMode = AW65C816M_ImmediateX;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_Immediate8))
+		else if (Asm65816Has(iMnemonic, AW65C816M_Immediate8))
 		{
-			uiMode = A65816M_Immediate8;
+			uiMode = AW65C816M_Immediate8;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_Immediate16))
+		else if (Asm65816Has(iMnemonic, AW65C816M_Immediate16))
 		{
-			uiMode = A65816M_Immediate16;
+			uiMode = AW65C816M_Immediate16;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_Relative))
+		else if (Asm65816Has(iMnemonic, AW65C816M_Relative))
 		{
-			uiMode = A65816M_Relative;
+			uiMode = AW65C816M_Relative;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_RelativeLong))
+		else if (Asm65816Has(iMnemonic, AW65C816M_RelativeLong))
 		{
-			uiMode = A65816M_RelativeLong;
+			uiMode = AW65C816M_RelativeLong;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_JumpAbsolute))
+		else if (Asm65816Has(iMnemonic, AW65C816M_JumpAbsolute))
 		{
-			uiMode = A65816M_JumpAbsolute;
+			uiMode = AW65C816M_JumpAbsolute;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_JumpLong))
+		else if (Asm65816Has(iMnemonic, AW65C816M_JumpLong))
 		{
-			uiMode = A65816M_JumpLong;
+			uiMode = AW65C816M_JumpLong;
 		}
-		else if (Asm65816Has(iMnemonic, A65816M_BlockMove))
+		else if (Asm65816Has(iMnemonic, AW65C816M_BlockMove))
 		{
-			uiMode = A65816M_BlockMove;
+			uiMode = AW65C816M_BlockMove;
 		}
 		else
 		{
 			return ErrorExpected(psToken, "memory in square brackets");
 		}
-		if ((psOperand->uiValueBits != 0) && (uiMode != A65816M_ImmediateM) && (uiMode != A65816M_ImmediateX))
+		if ((psOperand->uiValueBits != 0) && (uiMode != AW65C816M_ImmediateM) && (uiMode != AW65C816M_ImmediateX))
 		{
 			return Error(psToken, "A width suffix is only for an immediate whose width is m or x");
 		}
@@ -385,13 +385,13 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 	else if (Asm65816IsJump(iMnemonic))
 	{
 		//A jump's target is the address; in brackets it is read from memory.
-		if ((psOperand->eBase != A65816B_Value) || psOperand->bPointer || (psOperand->cIndex == 'Y') || (psOperand->bLong && (psOperand->cIndex != 0)))
+		if ((psOperand->eBase != AW65C816B_Value) || psOperand->bPointer || (psOperand->cIndex == 'Y') || (psOperand->bLong && (psOperand->cIndex != 0)))
 		{
 			return Error(psToken, "A jump reads its target from [address], [address + X] or [address]:24");
 		}
-		uiMode = (psOperand->cIndex == 'X') ? A65816M_JumpIndirectX : (psOperand->bLong ? A65816M_JumpIndirectLong : A65816M_JumpIndirect);
+		uiMode = (psOperand->cIndex == 'X') ? AW65C816M_JumpIndirectX : (psOperand->bLong ? AW65C816M_JumpIndirectLong : AW65C816M_JumpIndirect);
 	}
-	else if (psOperand->eBase == A65816B_Direct)
+	else if (psOperand->eBase == AW65C816B_Direct)
 	{
 		if (psOperand->bLong)
 		{
@@ -399,7 +399,7 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 		}
 		if (!psOperand->bPointer)
 		{
-			uiMode = (psOperand->cIndex == 'X') ? A65816M_DirectX : ((psOperand->cIndex == 'Y') ? A65816M_DirectY : A65816M_Direct);
+			uiMode = (psOperand->cIndex == 'X') ? AW65C816M_DirectX : ((psOperand->cIndex == 'Y') ? AW65C816M_DirectY : AW65C816M_Direct);
 		}
 		else if (psOperand->cInnerIndex == 'X')
 		{
@@ -407,26 +407,26 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 			{
 				return Error(psToken, "[[D + value + X]] reads a 16 bit pointer and takes no more index");
 			}
-			uiMode = A65816M_DirectIndirectX;
+			uiMode = AW65C816M_DirectIndirectX;
 		}
 		else if (psOperand->bLongPointer)
 		{
-			uiMode = (psOperand->cIndex == 'Y') ? A65816M_DirectIndirectLongY : A65816M_DirectIndirectLong;
+			uiMode = (psOperand->cIndex == 'Y') ? AW65C816M_DirectIndirectLongY : AW65C816M_DirectIndirectLong;
 		}
 		else
 		{
-			uiMode = (psOperand->cIndex == 'Y') ? A65816M_DirectIndirectY : A65816M_DirectIndirect;
+			uiMode = (psOperand->cIndex == 'Y') ? AW65C816M_DirectIndirectY : AW65C816M_DirectIndirect;
 		}
 	}
-	else if (psOperand->eBase == A65816B_Stack)
+	else if (psOperand->eBase == AW65C816B_Stack)
 	{
 		if (!psOperand->bPointer && (psOperand->cIndex == 0) && !psOperand->bLong)
 		{
-			uiMode = A65816M_Stack;
+			uiMode = AW65C816M_Stack;
 		}
 		else if (psOperand->bPointer && (psOperand->cInnerIndex == 0) && !psOperand->bLongPointer && (psOperand->cIndex == 'Y') && !psOperand->bLong)
 		{
-			uiMode = A65816M_StackIndirectY;
+			uiMode = AW65C816M_StackIndirectY;
 		}
 		else
 		{
@@ -443,15 +443,15 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 		{
 			return Error(psToken, "There is no long address indexed with Y");
 		}
-		uiMode = A65816M_AbsoluteY;
+		uiMode = AW65C816M_AbsoluteY;
 	}
 	else if (psOperand->cIndex == 'X')
 	{
-		return AbsoluteOrLong(iMnemonic, psOperand, A65816M_AbsoluteX, A65816M_LongX, puiMode);
+		return AbsoluteOrLong(iMnemonic, psOperand, AW65C816M_AbsoluteX, AW65C816M_LongX, puiMode);
 	}
 	else
 	{
-		return AbsoluteOrLong(iMnemonic, psOperand, A65816M_Absolute, A65816M_Long, puiMode);
+		return AbsoluteOrLong(iMnemonic, psOperand, AW65C816M_Absolute, AW65C816M_Long, puiMode);
 	}
 
 	if (!Asm65816Has(iMnemonic, uiMode))
@@ -613,30 +613,30 @@ bool CAsmW65C816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsmW65C816Operan
 
 	switch (uiMode)
 	{
-	case A65816M_Implied:
-	case A65816M_Accumulator:
+	case AW65C816M_Implied:
+	case AW65C816M_Accumulator:
 		bResult = true;
 		break;
-	case A65816M_ImmediateM:
+	case AW65C816M_ImmediateM:
 		bResult = Immediate(&sInstruction, psOperand, muiWidthA, "A");
 		break;
-	case A65816M_ImmediateX:
+	case AW65C816M_ImmediateX:
 		bResult = Immediate(&sInstruction, psOperand, muiWidthX, "X");
 		break;
-	case A65816M_Immediate8:
+	case AW65C816M_Immediate8:
 		bResult = AddField(&sInstruction, &sValue, 1, false, ASM65RF_Plain, psOperand->psToken);
 		break;
-	case A65816M_Immediate16:
-	case A65816M_JumpIndirect:
-	case A65816M_JumpIndirectLong:
+	case AW65C816M_Immediate16:
+	case AW65C816M_JumpIndirect:
+	case AW65C816M_JumpIndirectLong:
 		bResult = AddField(&sInstruction, &sValue, 2, false, ASM65RF_Plain, psOperand->psToken);
 		break;
-	case A65816M_Absolute:
-	case A65816M_AbsoluteX:
-	case A65816M_AbsoluteY:
-	case A65816M_JumpAbsolute:
-	case A65816M_JumpIndirectX:
-		if (!IsRelocatable(&sValue) && sValue.bResolved && (uiMode != A65816M_Absolute) && (uiMode != A65816M_AbsoluteX) && (uiMode != A65816M_AbsoluteY))
+	case AW65C816M_Absolute:
+	case AW65C816M_AbsoluteX:
+	case AW65C816M_AbsoluteY:
+	case AW65C816M_JumpAbsolute:
+	case AW65C816M_JumpIndirectX:
+		if (!IsRelocatable(&sValue) && sValue.bResolved && (uiMode != AW65C816M_Absolute) && (uiMode != AW65C816M_AbsoluteX) && (uiMode != AW65C816M_AbsoluteY))
 		{
 			if ((sValue.iValue >> 16) != (muiStatementAddress >> 16))
 			{
@@ -646,24 +646,24 @@ bool CAsmW65C816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsmW65C816Operan
 		}
 		bResult = AddField(&sInstruction, &sValue, 2, false, ASM65RF_InBank, psOperand->psToken);
 		break;
-	case A65816M_Long:
-	case A65816M_LongX:
-	case A65816M_JumpLong:
+	case AW65C816M_Long:
+	case AW65C816M_LongX:
+	case AW65C816M_JumpLong:
 		bResult = AddField(&sInstruction, &sValue, 3, false, ASM65RF_Plain, psOperand->psToken);
 		break;
-	case A65816M_Direct:
-	case A65816M_DirectX:
-	case A65816M_DirectY:
-	case A65816M_DirectIndirect:
-	case A65816M_DirectIndirectX:
-	case A65816M_DirectIndirectY:
-	case A65816M_DirectIndirectLong:
-	case A65816M_DirectIndirectLongY:
-	case A65816M_Stack:
-	case A65816M_StackIndirectY:
+	case AW65C816M_Direct:
+	case AW65C816M_DirectX:
+	case AW65C816M_DirectY:
+	case AW65C816M_DirectIndirect:
+	case AW65C816M_DirectIndirectX:
+	case AW65C816M_DirectIndirectY:
+	case AW65C816M_DirectIndirectLong:
+	case AW65C816M_DirectIndirectLongY:
+	case AW65C816M_Stack:
+	case AW65C816M_StackIndirectY:
 		bResult = DirectOffset(&sInstruction, psOperand);
 		break;
-	case A65816M_Relative:
+	case AW65C816M_Relative:
 		if (IsLongBranch(&sValue))
 		{
 			//bra is brl; a conditional branch is the opposite branch over a brl (bit 5 of the opcode is the condition).
@@ -685,10 +685,10 @@ bool CAsmW65C816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsmW65C816Operan
 			bResult = AddRelative(&sInstruction, &sValue, 1, 2, psOperand->psToken);
 		}
 		break;
-	case A65816M_RelativeLong:
+	case AW65C816M_RelativeLong:
 		bResult = AddRelative(&sInstruction, &sValue, 2, 3, psOperand->psToken);
 		break;
-	case A65816M_BlockMove:
+	case AW65C816M_BlockMove:
 		//The destination bank's byte comes first.
 		bResult = AddField(&sInstruction, &psSecond->sValue, 1, false, ASM65RF_Plain, psSecond->psToken) &&
 				  AddField(&sInstruction, &sValue, 1, false, ASM65RF_Plain, psOperand->psToken);

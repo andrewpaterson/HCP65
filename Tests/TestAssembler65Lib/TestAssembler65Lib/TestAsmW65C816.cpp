@@ -29,36 +29,36 @@ static bool TestAsm65816SameMode(uint8 uiMode, EAddressingMode eMode)
 {
 	switch (uiMode)
 	{
-	case A65816M_Implied:				return (eMode == AM_Implied) || (eMode == AM_StackImplied) || (eMode == AM_WaitForInterrupt) || (eMode == AM_StopTheClock);
-	case A65816M_Accumulator:			return eMode == AM_Accumulator;
-	case A65816M_ImmediateM:
-	case A65816M_ImmediateX:			return eMode == AM_Immediate;
-	case A65816M_Immediate8:			return (eMode == AM_Immediate) || (eMode == AM_StackInterruptSoftware) || (eMode == AM_Implied);
-	case A65816M_Immediate16:			return eMode == AM_StackImmediate;
-	case A65816M_Absolute:
-	case A65816M_JumpAbsolute:		return eMode == AM_Absolute;
-	case A65816M_AbsoluteX:			return eMode == AM_AbsoluteIndexedWithX;
-	case A65816M_AbsoluteY:			return eMode == AM_AbsoluteIndexedWithY;
-	case A65816M_Long:
-	case A65816M_JumpLong:			return eMode == AM_AbsoluteLong;
-	case A65816M_LongX:				return eMode == AM_AbsoluteLongIndexedWithX;
-	case A65816M_Direct:				return (eMode == AM_Direct) || (eMode == AM_StackDirectIndirect);
-	case A65816M_DirectX:				return eMode == AM_DirectIndexedWithX;
-	case A65816M_DirectY:				return eMode == AM_DirectIndexedWithY;
-	case A65816M_DirectIndirect:		return eMode == AM_DirectIndirect;
-	case A65816M_DirectIndirectX:		return eMode == AM_DirectIndexedIndirectWithX;
-	case A65816M_DirectIndirectY:		return eMode == AM_DirectIndirectIndexedWithY;
-	case A65816M_DirectIndirectLong:	return eMode == AM_DirectIndirectLong;
-	case A65816M_DirectIndirectLongY:	return eMode == AM_DirectIndirectLongIndexedWithY;
-	case A65816M_Stack:				return eMode == AM_StackRelative;
-	case A65816M_StackIndirectY:		return eMode == AM_StackRelativeIndirectIndexedWithY;
-	case A65816M_Relative:			return eMode == AM_Relative;
-	case A65816M_RelativeLong:		return eMode == AM_RelativeLong;
-	case A65816M_JumpIndirect:		return eMode == AM_AbsoluteIndirect;
-	case A65816M_JumpIndirectX:		return eMode == AM_AbsoluteIndexedIndirectWithX;
-	case A65816M_JumpIndirectLong:	return eMode == AM_AbsoluteIndirectLong;
-	case A65816M_BlockMove:			return eMode == AM_BlockMove;
-	default:						return false;
+	case AW65C816M_Implied:				return (eMode == AM_Implied) || (eMode == AM_StackImplied) || (eMode == AM_WaitForInterrupt) || (eMode == AM_StopTheClock);
+	case AW65C816M_Accumulator:			return eMode == AM_Accumulator;
+	case AW65C816M_ImmediateM:
+	case AW65C816M_ImmediateX:			return eMode == AM_Immediate;
+	case AW65C816M_Immediate8:			return (eMode == AM_Immediate) || (eMode == AM_StackInterruptSoftware) || (eMode == AM_Implied);
+	case AW65C816M_Immediate16:			return eMode == AM_StackImmediate;
+	case AW65C816M_Absolute:
+	case AW65C816M_JumpAbsolute:		return eMode == AM_Absolute;
+	case AW65C816M_AbsoluteX:			return eMode == AM_AbsoluteIndexedWithX;
+	case AW65C816M_AbsoluteY:			return eMode == AM_AbsoluteIndexedWithY;
+	case AW65C816M_Long:
+	case AW65C816M_JumpLong:			return eMode == AM_AbsoluteLong;
+	case AW65C816M_LongX:				return eMode == AM_AbsoluteLongIndexedWithX;
+	case AW65C816M_Direct:				return (eMode == AM_Direct) || (eMode == AM_StackDirectIndirect);
+	case AW65C816M_DirectX:				return eMode == AM_DirectIndexedWithX;
+	case AW65C816M_DirectY:				return eMode == AM_DirectIndexedWithY;
+	case AW65C816M_DirectIndirect:		return eMode == AM_DirectIndirect;
+	case AW65C816M_DirectIndirectX:		return eMode == AM_DirectIndexedIndirectWithX;
+	case AW65C816M_DirectIndirectY:		return eMode == AM_DirectIndirectIndexedWithY;
+	case AW65C816M_DirectIndirectLong:	return eMode == AM_DirectIndirectLong;
+	case AW65C816M_DirectIndirectLongY:	return eMode == AM_DirectIndirectLongIndexedWithY;
+	case AW65C816M_Stack:				return eMode == AM_StackRelative;
+	case AW65C816M_StackIndirectY:		return eMode == AM_StackRelativeIndirectIndexedWithY;
+	case AW65C816M_Relative:			return eMode == AM_Relative;
+	case AW65C816M_RelativeLong:		return eMode == AM_RelativeLong;
+	case AW65C816M_JumpIndirect:		return eMode == AM_AbsoluteIndirect;
+	case AW65C816M_JumpIndirectX:		return eMode == AM_AbsoluteIndexedIndirectWithX;
+	case AW65C816M_JumpIndirectLong:	return eMode == AM_AbsoluteIndirectLong;
+	case AW65C816M_BlockMove:			return eMode == AM_BlockMove;
+	default:							return false;
 	}
 }
 

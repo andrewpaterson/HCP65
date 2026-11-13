@@ -30,46 +30,46 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 //How an instruction's operand is addressed: the W65C816S's addressing modes as written
 //in AssemblerW65C816Syntax.txt.
-enum EAsm65816Mode
+enum EAsmW65C816Mode
 {
-	A65816M_Implied,
-	A65816M_Accumulator,			//asl A
-	A65816M_ImmediateM,			//lda 5: 8 or 16 bits by m
-	A65816M_ImmediateX,			//ldx 5: 8 or 16 bits by x
-	A65816M_Immediate8,			//rep, sep, brk, cop and wdm
-	A65816M_Immediate16,			//pea
-	A65816M_Absolute,				//[value]
-	A65816M_AbsoluteX,			//[value + X]
-	A65816M_AbsoluteY,			//[value + Y]
-	A65816M_Long,					//[value]:24
-	A65816M_LongX,				//[value + X]:24
-	A65816M_Direct,				//[D + value]
-	A65816M_DirectX,				//[D + value + X]
-	A65816M_DirectY,				//[D + value + Y]
-	A65816M_DirectIndirect,		//[[D + value]]
-	A65816M_DirectIndirectX,		//[[D + value + X]]
-	A65816M_DirectIndirectY,		//[[D + value] + Y]
-	A65816M_DirectIndirectLong,	//[[D + value]:24]
-	A65816M_DirectIndirectLongY,	//[[D + value]:24 + Y]
-	A65816M_Stack,				//[S + value]
-	A65816M_StackIndirectY,		//[[S + value] + Y]
-	A65816M_Relative,				//bra Label
-	A65816M_RelativeLong,			//brl Label, per Label
-	A65816M_JumpAbsolute,			//jmp Label, jsr Label
-	A65816M_JumpLong,				//jml Label, jsl Label
-	A65816M_JumpIndirect,			//jmp [Vector]
-	A65816M_JumpIndirectX,		//jmp [Table + X], jsr [Table + X]
-	A65816M_JumpIndirectLong,		//jml [Vector]:24
-	A65816M_BlockMove,			//mvn Source >> 16, Destination >> 16
-	A65816M_NumModes,
+	AW65C816M_Implied,
+	AW65C816M_Accumulator,			//asl A
+	AW65C816M_ImmediateM,			//lda 5: 8 or 16 bits by m
+	AW65C816M_ImmediateX,			//ldx 5: 8 or 16 bits by x
+	AW65C816M_Immediate8,			//rep, sep, brk, cop and wdm
+	AW65C816M_Immediate16,			//pea
+	AW65C816M_Absolute,				//[value]
+	AW65C816M_AbsoluteX,			//[value + X]
+	AW65C816M_AbsoluteY,			//[value + Y]
+	AW65C816M_Long,					//[value]:24
+	AW65C816M_LongX,				//[value + X]:24
+	AW65C816M_Direct,				//[D + value]
+	AW65C816M_DirectX,				//[D + value + X]
+	AW65C816M_DirectY,				//[D + value + Y]
+	AW65C816M_DirectIndirect,		//[[D + value]]
+	AW65C816M_DirectIndirectX,		//[[D + value + X]]
+	AW65C816M_DirectIndirectY,		//[[D + value] + Y]
+	AW65C816M_DirectIndirectLong,	//[[D + value]:24]
+	AW65C816M_DirectIndirectLongY,	//[[D + value]:24 + Y]
+	AW65C816M_Stack,				//[S + value]
+	AW65C816M_StackIndirectY,		//[[S + value] + Y]
+	AW65C816M_Relative,				//bra Label
+	AW65C816M_RelativeLong,			//brl Label, per Label
+	AW65C816M_JumpAbsolute,			//jmp Label, jsr Label
+	AW65C816M_JumpLong,				//jml Label, jsl Label
+	AW65C816M_JumpIndirect,			//jmp [Vector]
+	AW65C816M_JumpIndirectX,		//jmp [Table + X], jsr [Table + X]
+	AW65C816M_JumpIndirectLong,		//jml [Vector]:24
+	AW65C816M_BlockMove,			//mvn Source >> 16, Destination >> 16
+	AW65C816M_NumModes,
 };
 
 
-enum EAsm65816Base
+enum EAsmW65C816Base
 {
-	A65816B_Value,
-	A65816B_Direct,
-	A65816B_Stack,
+	AW65C816B_Value,
+	AW65C816B_Direct,
+	AW65C816B_Stack,
 };
 
 
@@ -80,7 +80,7 @@ struct SAsmW65C816Operand
 	bool			bMemory;
 	SAsm65Value		sValue;
 	uint8			uiValueBits;		//A :8, :16 or :24 suffix on a value, else 0.
-	uint8			eBase;				//EAsm65816Base inside the (inner) brackets.
+	uint8			eBase;				//EAsmW65C816Base inside the (inner) brackets.
 	bool			bPointer;			//[[...]]: the address is read from memory.
 	bool			bLongPointer;		//[[...]:24 ...]
 	char			cInnerIndex;		//X inside the inner brackets, or 0.
@@ -156,7 +156,7 @@ protected:
 };
 
 
-//The opcode table, for tests: the mnemonic and EAsm65816Mode of each opcode.
+//The opcode table, for tests: the mnemonic and EAsmW65C816Mode of each opcode.
 const char*	Asm65816Mnemonic(uint8 uiOpcode, uint8* puiMode);
 
 

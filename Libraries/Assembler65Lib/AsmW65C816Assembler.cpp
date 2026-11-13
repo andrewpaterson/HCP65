@@ -351,7 +351,7 @@ bool CAsmW65C816Assembler::Inner65816(SAsmW65C816Operand* psOperand)
 	if (psToken->IsIdentifier("D") || psToken->IsIdentifier("S"))
 	{
 		Next();
-		psOperand->eBase = psToken->IsIdentifier("D") ? A65816B_Direct : A65816B_Stack;
+		psOperand->eBase = psToken->IsIdentifier("D") ? AW65C816B_Direct : AW65C816B_Stack;
 		if (Peek()->Is(AP65_Plus) && !IsRegisterName(Peek(1)))
 		{
 			Next();
@@ -375,7 +375,7 @@ bool CAsmW65C816Assembler::Inner65816(SAsmW65C816Operand* psOperand)
 	}
 	else
 	{
-		psOperand->eBase = A65816B_Value;
+		psOperand->eBase = AW65C816B_Value;
 		if (!Expression(&psOperand->sValue))
 		{
 			return false;

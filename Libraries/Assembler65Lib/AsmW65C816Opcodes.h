@@ -33,13 +33,13 @@ struct SAsmW65C816DirectPageWrite
 
 
 //What an instruction does to the flow of the program, for a debugger stepping it.
-enum EAsm65816Flow
+enum EAsmW65C816Flow
 {
-	A65816F_Other,
-	A65816F_Call,		//jsr, jsl, and brk and cop (a software interrupt returns past its signature byte).
-	A65816F_Return,		//rts, rtl, rti.
-	A65816F_Jump,		//jmp, jml, bra, brl.
-	A65816F_Branch,		//A conditional branch.
+	AW65C816F_Other,
+	AW65C816F_Call,		//jsr, jsl, and brk and cop (a software interrupt returns past its signature byte).
+	AW65C816F_Return,	//rts, rtl, rti.
+	AW65C816F_Jump,		//jmp, jml, bra, brl.
+	AW65C816F_Branch,	//A conditional branch.
 };
 
 
@@ -48,7 +48,7 @@ bool	Asm65816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite
 bool	Asm65816IsSubroutineCall(uint8 uiOpcode);
 bool	Asm65816IsCall(uint8 uiOpcode);
 bool	Asm65816IsReturn(uint8 uiOpcode);
-EAsm65816Flow	Asm65816Flow(uint8 uiOpcode);
+EAsmW65C816Flow	Asm65816Flow(uint8 uiOpcode);
 bool	Asm65816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget);
 
 

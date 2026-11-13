@@ -141,20 +141,20 @@ bool Asm65816IsReturn(uint8 uiOpcode)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-EAsm65816Flow Asm65816Flow(uint8 uiOpcode)
+EAsmW65C816Flow Asm65816Flow(uint8 uiOpcode)
 {
 	switch (uiOpcode)
 	{
 	case 0x20: case 0x22: case 0xFC: case 0x00: case 0x02:
-		return A65816F_Call;
+		return AW65C816F_Call;
 	case 0x60: case 0x6B: case 0x40:
-		return A65816F_Return;
+		return AW65C816F_Return;
 	case 0x4C: case 0x5C: case 0x6C: case 0x7C: case 0xDC: case 0x80: case 0x82:
-		return A65816F_Jump;
+		return AW65C816F_Jump;
 	case 0x10: case 0x30: case 0x50: case 0x70: case 0x90: case 0xB0: case 0xD0: case 0xF0:
-		return A65816F_Branch;
+		return AW65C816F_Branch;
 	default:
-		return A65816F_Other;
+		return AW65C816F_Other;
 	}
 }
 

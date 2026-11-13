@@ -40,33 +40,33 @@ size Asm65816InstructionLength(uint8 uiOpcode, SAsmW65C816Widths* psWidths)
 	Asm65816Mnemonic(uiOpcode, &uiMode);
 	switch (uiMode)
 	{
-	case A65816M_Implied:
-	case A65816M_Accumulator:
+	case AW65C816M_Implied:
+	case AW65C816M_Accumulator:
 		return 1;
 
-	case A65816M_ImmediateM:
+	case AW65C816M_ImmediateM:
 		return psWidths->bMemory8 ? 2 : 3;
 
-	case A65816M_ImmediateX:
+	case AW65C816M_ImmediateX:
 		return psWidths->bIndex8 ? 2 : 3;
 
-	case A65816M_Immediate8:
-	case A65816M_Direct:
-	case A65816M_DirectX:
-	case A65816M_DirectY:
-	case A65816M_DirectIndirect:
-	case A65816M_DirectIndirectX:
-	case A65816M_DirectIndirectY:
-	case A65816M_DirectIndirectLong:
-	case A65816M_DirectIndirectLongY:
-	case A65816M_Stack:
-	case A65816M_StackIndirectY:
-	case A65816M_Relative:
+	case AW65C816M_Immediate8:
+	case AW65C816M_Direct:
+	case AW65C816M_DirectX:
+	case AW65C816M_DirectY:
+	case AW65C816M_DirectIndirect:
+	case AW65C816M_DirectIndirectX:
+	case AW65C816M_DirectIndirectY:
+	case AW65C816M_DirectIndirectLong:
+	case AW65C816M_DirectIndirectLongY:
+	case AW65C816M_Stack:
+	case AW65C816M_StackIndirectY:
+	case AW65C816M_Relative:
 		return 2;
 
-	case A65816M_Long:
-	case A65816M_LongX:
-	case A65816M_JumpLong:
+	case AW65C816M_Long:
+	case AW65C816M_LongX:
+	case AW65C816M_JumpLong:
 		return 4;
 
 	default:
@@ -145,7 +145,7 @@ size Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SA
 
 	szMnemonic = Asm65816Mnemonic(puiBytes[0], &uiMode);
 	pszDest->Append(szMnemonic);
-	if (uiMode == A65816M_Implied)
+	if (uiMode == AW65C816M_Implied)
 	{
 		return uiLength;
 	}
@@ -153,135 +153,135 @@ size Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SA
 	pszDest->Append(' ');
 	switch (uiMode)
 	{
-	case A65816M_Accumulator:
+	case AW65C816M_Accumulator:
 		pszDest->Append('A');
 		break;
 
-	case A65816M_ImmediateM:
-	case A65816M_ImmediateX:
-	case A65816M_Immediate8:
-	case A65816M_Immediate16:
+	case AW65C816M_ImmediateM:
+	case AW65C816M_ImmediateX:
+	case AW65C816M_Immediate8:
+	case AW65C816M_Immediate16:
 		Asm65816AppendHex(pszDest, uiOperand, 2 * (int)(uiLength - 1));
 		break;
 
-	case A65816M_Absolute:
-	case A65816M_JumpIndirect:
+	case AW65C816M_Absolute:
+	case AW65C816M_JumpIndirect:
 		pszDest->Append('[');
 		Asm65816AppendHex(pszDest, uiOperand, 4);
 		pszDest->Append(']');
 		break;
 
-	case A65816M_AbsoluteX:
-	case A65816M_JumpIndirectX:
+	case AW65C816M_AbsoluteX:
+	case AW65C816M_JumpIndirectX:
 		pszDest->Append('[');
 		Asm65816AppendHex(pszDest, uiOperand, 4);
 		pszDest->Append(" + X]");
 		break;
 
-	case A65816M_AbsoluteY:
+	case AW65C816M_AbsoluteY:
 		pszDest->Append('[');
 		Asm65816AppendHex(pszDest, uiOperand, 4);
 		pszDest->Append(" + Y]");
 		break;
 
-	case A65816M_Long:
+	case AW65C816M_Long:
 		pszDest->Append('[');
 		Asm65816AppendHex(pszDest, uiOperand, 6);
 		pszDest->Append("]:24");
 		break;
 
-	case A65816M_LongX:
+	case AW65C816M_LongX:
 		pszDest->Append('[');
 		Asm65816AppendHex(pszDest, uiOperand, 6);
 		pszDest->Append(" + X]:24");
 		break;
 
-	case A65816M_JumpIndirectLong:
+	case AW65C816M_JumpIndirectLong:
 		pszDest->Append('[');
 		Asm65816AppendHex(pszDest, uiOperand, 4);
 		pszDest->Append("]:24");
 		break;
 
-	case A65816M_Direct:
+	case AW65C816M_Direct:
 		pszDest->Append("[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append(']');
 		break;
 
-	case A65816M_DirectX:
+	case AW65C816M_DirectX:
 		pszDest->Append("[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append(" + X]");
 		break;
 
-	case A65816M_DirectY:
+	case AW65C816M_DirectY:
 		pszDest->Append("[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append(" + Y]");
 		break;
 
-	case A65816M_DirectIndirect:
+	case AW65C816M_DirectIndirect:
 		pszDest->Append("[[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append("]]");
 		break;
 
-	case A65816M_DirectIndirectX:
+	case AW65C816M_DirectIndirectX:
 		pszDest->Append("[[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append(" + X]]");
 		break;
 
-	case A65816M_DirectIndirectY:
+	case AW65C816M_DirectIndirectY:
 		pszDest->Append("[[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append("] + Y]");
 		break;
 
-	case A65816M_DirectIndirectLong:
+	case AW65C816M_DirectIndirectLong:
 		pszDest->Append("[[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append("]:24]");
 		break;
 
-	case A65816M_DirectIndirectLongY:
+	case AW65C816M_DirectIndirectLongY:
 		pszDest->Append("[[D + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append("]:24 + Y]");
 		break;
 
-	case A65816M_Stack:
+	case AW65C816M_Stack:
 		pszDest->Append("[S + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append(']');
 		break;
 
-	case A65816M_StackIndirectY:
+	case AW65C816M_StackIndirectY:
 		pszDest->Append("[[S + ");
 		Asm65816AppendHex(pszDest, uiOperand, 2);
 		pszDest->Append("] + Y]");
 		break;
 
-	case A65816M_Relative:
+	case AW65C816M_Relative:
 		//In the program bank, from the next instruction.
 		uiTarget = (uiAddress & 0xFF0000) | ((uiAddress + 2 + (uint32)(int32)(int8)uiOperand) & 0xFFFF);
 		Asm65816AppendHex(pszDest, uiTarget, 4);
 		break;
 
-	case A65816M_RelativeLong:
+	case AW65C816M_RelativeLong:
 		uiTarget = (uiAddress & 0xFF0000) | ((uiAddress + 3 + (uint32)(int32)(int16)uiOperand) & 0xFFFF);
 		Asm65816AppendHex(pszDest, uiTarget, 4);
 		break;
 
-	case A65816M_JumpAbsolute:
+	case AW65C816M_JumpAbsolute:
 		Asm65816AppendHex(pszDest, uiOperand, 4);
 		break;
 
-	case A65816M_JumpLong:
+	case AW65C816M_JumpLong:
 		Asm65816AppendHex(pszDest, uiOperand, 6);
 		break;
 
-	case A65816M_BlockMove:
+	case AW65C816M_BlockMove:
 		//The destination bank is first in memory and last in the source.
 		Asm65816AppendHex(pszDest, uiOperand >> 8, 2);
 		pszDest->Append(", ");
