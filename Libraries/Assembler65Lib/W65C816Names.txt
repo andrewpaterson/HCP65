@@ -94,3 +94,34 @@ Done
    TestEmulatorDebugLib 765 (it has no CMake build; built from a scratch CMakeLists.txt in
    a worktree), TestHCP65Lib 813 passed.
    After steps 1 to 4: the full IDE suite, 171 checks, passed.
+5. 2026-11-14, CommonLibraries 615c17909: 16 names, 263 uses.  TestBaseLib65 816 414
+   passed; the generated FatW65C816.inc is byte for byte BaseLib's.
+6. 2026-11-14, CommonLibraries 2b124ea51 and HCP65 cdb393d: 9 names, 56 uses; the tests
+   take W65C816 (816 kept for short).  TestBaseLib65 414/416, TestStandardLib65 178/180,
+   TestSupportLib65 163/167 (816 given) and TestLibc65 154781/154765, W65C816/65C64, passed.
+7. 2026-11-14, HCP65 be737ef: the docs site and this assembler's syntax note (4 names);
+   the user's notes outside the repositories updated too.  W65C816.txt is left: the
+   back end's session has it.
+8. 2026-11-14, CommonLibraries d918d1539 and HCP65 3567f31: 70 names, 289 uses.
+   TestMicroprocessorLib 9006, TestEmulatorDebugLib 765, TestHCP65Lib 813,
+   TestAssembler65Lib 1415, TestLibc65 816 154781 passed.
+   After steps 5 to 8: the full IDE suite, 171 checks, passed.
+
+
+Cleanup found on the way
+------------------------
+
+- TestEmulatorDebugLib has no CMakeLists.txt, so no Linux build or run sweep includes it.
+- A 65 test given an argument it doesn't know (W65C816, before step 6) runs the 65C64
+  quietly; it should say so.  TestProject65ChooseTarget and TestLibc65's main both read
+  the argument: one function could.
+- Two runs of the same test directory share its Output, so a test's 65C64 and W65C816
+  runs can't go at once.
+- TestCPP65Context.cpp (TestCppCompilerLib) tells assembly units apart by
+  Contains("816") in the file name; it works because W65C816 has 816 in it.
+- AsmW65C816Opcodes.h's declarations aren't aligned (one tab after each return type).
+- AssemblerW65C816Syntax.txt has lines past 130 characters.
+- Waiting with the back end: R816_ (and R65_), IR816*, IR816_*, SIR816*, CIR816BranchCode,
+  CPP816_*, TestCPP816*, TestIR816*, TEST_CPP816_*, TEST_IR816_*, AssertIR816*,
+  InitFast65816, and W65C816.txt's CAsm65816Assembler, CIR816Backend and
+  Assembler65816Syntax.txt.
