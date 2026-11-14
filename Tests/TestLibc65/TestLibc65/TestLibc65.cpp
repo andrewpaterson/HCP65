@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <string.h>
 #include "BaseLib/LeakDetector.h"
 #include "BaseLib/TypeNames.h"
@@ -6,6 +5,7 @@
 #include "BaseLib/NumberControl.h"
 #include "MicroprocessorLib/65C64InstructionFactory.h"
 #include "TestLib/Assert.h"
+#include "../../../../CommonLibraries/Tests/TestBaseLib65/TestBaseLib65/TestTarget65.h"
 #include "TestLibc65Context.h"
 
 
@@ -28,14 +28,8 @@ int __cdecl main(int argc, char** argv)
 {
 	int	iTotalTestsFailed;
 
-	//"W65C816" (or "816" for short) for the W65C816, "65C64" or nothing for the 65C64, and nothing else.
-	if ((argc == 2) && ((strcmp(argv[1], "W65C816") == 0) || (strcmp(argv[1], "816") == 0)))
+	if (!TestTarget65Choose(argc, argv, &geTestLibc65Target))
 	{
-		geTestLibc65Target = CPPT_W65C816;
-	}
-	else if ((argc > 2) || ((argc == 2) && (strcmp(argv[1], "65C64") != 0)))
-	{
-		fprintf(stderr, "%s: unknown argument \"%s\".  Give W65C816 (or 816) for the W65C816, or 65C64 or nothing for the 65C64.\n", argv[0], (argc == 2) ? argv[1] : argv[2]);
 		return 2;
 	}
 	BreakOnAllocation(0);

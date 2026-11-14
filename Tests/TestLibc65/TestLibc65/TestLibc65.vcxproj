@@ -241,10 +241,12 @@
     <ClCompile Include="TestLibc65Limits.cpp" />
     <ClCompile Include="TestLibc65SoftFloat.cpp" />
     <ClCompile Include="TestLibc65SoftFloatReference.cpp" />
+    <ClCompile Include="..\..\..\..\CommonLibraries\Tests\TestBaseLib65\TestBaseLib65\TestTarget65.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestLibc65Context.h" />
     <ClInclude Include="TestLibc65StringCases.h" />
+    <ClInclude Include="..\..\..\..\CommonLibraries\Tests\TestBaseLib65\TestBaseLib65\TestTarget65.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Log.txt" />
