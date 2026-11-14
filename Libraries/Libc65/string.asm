@@ -20,19 +20,20 @@
 ; each argument's register), where compiled code calls it; at its plain label they are
 ; all on the stack (the first at [5 + S] above the return address, then 4 bytes each),
 ; for calls through pointers and from assembly.  The result is in A, A, B, X and Y are 32
-; bits wide on the way in and out and V, W and S are kept.  A, B, X, Y and the status
-; flags change.
+; bits wide on the way in and out and V and S are kept.  A, B, X, Y, W and the status
+; flags change (W is a register like any other).
 ;
 ; memcpy, memmove, memset, memcmp and strlen work from the registers: their plain labels
 ; load them from the stack and go on into the register entries.  The others work from
-; the stack (each pushes V and W first, so its arguments are at [13 + S], [17 + S] and
-; [21 + S]): their register labels push the registers and call them.
+; the stack (each pushes V first, so its arguments are at [9 + S], [13 + S] and
+; [17 + S]): their register labels push the registers and call them.
 ;
 ; Cycles: a step is its opcode cycle and a cycle for each 16 bit word read or written.
 ; For 1000 bytes on the simulator, with string.cpp's compiled code in brackets: memcpy
 ; 1184 (15093), unaligned 1311 (54087), memmove overlapping 1324 (52122), memset 698
 ; (11612), memcmp 1194 (16101), memchr 2067 (52065), strlen 2055 (22064), strcpy 3049
-; (39082), strcmp 3212 (60081), strchr 4074 (51084).
+; (39082), strcmp 3212 (60081), strchr 4074 (51084).  The assembly's are 4 less each now:
+; W is no longer pushed and pulled (2026-11-14).
 
 
 ; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes) and memmove, which
@@ -45,7 +46,7 @@ _memcpy:
 		cpy B, [9 + S]
 		cpy A, [5 + S]
 _memcpy.aby:
-		psh (V, W)
+		psh V
 		cpy X, A
 		cpy V, A
 		cpy W, B
@@ -67,7 +68,7 @@ CopyUpBytes:
 		vcpy W, V, +1, A, 8
 CopyDone:
 		cpy A, X
-		pul (V, W)
+		pul V
 		ret
 
 _memmove:
@@ -75,7 +76,7 @@ _memmove:
 		cpy B, [9 + S]
 		cpy A, [5 + S]
 _memmove.aby:
-		psh (V, W)
+		psh V
 		cpy X, A
 		cpy V, A
 		cpy W, B
@@ -122,7 +123,7 @@ _memset:
 		cpy B, [9 + S]
 		cpy A, [5 + S]
 _memset.aby:
-		psh (V, W)
+		psh V
 		psh B
 		psh A
 		cpy V, A
@@ -157,7 +158,7 @@ SetDone:
 		wtth (B, X), 32
 		pul A
 		add S, 4
-		pul (V, W)
+		pul V
 		ret
 
 
@@ -173,7 +174,7 @@ _memcmp:
 		cpy B, [9 + S]
 		cpy A, [5 + S]
 _memcmp.aby:
-		psh (V, W)
+		psh V
 		cpy V, A
 		cpy W, B
 		cpy B, Y
@@ -208,11 +209,11 @@ CompareBytes:
 		cpy B, [-1 + W]
 		wtth (A, B), 32
 		sub A, B
-		pul (V, W)
+		pul V
 		ret
 CompareSame:
 		cpy A, 0
-		pul (V, W)
+		pul V
 		ret
 
 _strcmp.ab:
@@ -231,24 +232,24 @@ _strncmp.aby:
 		ret
 
 _strcmp:
-		psh (V, W)
-		cpy V, [13 + S]
+		psh V
+		cpy V, [9 + S]
 		cpy A, $7FFFFFFF
 		wth B, 8
 		cpy B, $FF
 		btst B, V, +1, A, z
 		wth B, 32
 		cpy B, V
-		cpy X, [13 + S]
+		cpy X, [9 + S]
 		sub B, X
-		cpy V, [13 + S]
-		cpy W, [17 + S]
+		cpy V, [9 + S]
+		cpy W, [13 + S]
 		bra Compare
 
 _strncmp:
-		psh (V, W)
-		cpy V, [13 + S]
-		cpy A, [21 + S]
+		psh V
+		cpy V, [9 + S]
+		cpy A, [17 + S]
 		cmp A, 0
 		bras z, CompareSame
 		sub A, 1
@@ -257,10 +258,10 @@ _strncmp:
 		btst B, V, +1, A, z
 		wth B, 32
 		cpy B, V
-		cpy X, [13 + S]
+		cpy X, [9 + S]
 		sub B, X
-		cpy V, [13 + S]
-		cpy W, [17 + S]
+		cpy V, [9 + S]
+		cpy W, [13 + S]
 		bra Compare
 
 
@@ -277,24 +278,24 @@ _memchr.aby:
 		ret
 
 _memchr:
-		psh (V, W)
-		cpy V, [13 + S]
-		cpy A, [21 + S]
+		psh V
+		cpy V, [9 + S]
+		cpy A, [17 + S]
 		cmp A, 0
 		bras z, FindNone
 		sub A, 1
 		wth B, 8
-		cpy B, [17 + S]
+		cpy B, [13 + S]
 		bcmp B, V, +1, A, z
 		wth B, 32
 		brac z, FindNone
 		cpy A, V
 		sub A, 1
-		pul (V, W)
+		pul V
 		ret
 FindNone:
 		cpy A, 0
-		pul (V, W)
+		pul V
 		ret
 
 
@@ -305,7 +306,7 @@ FindNone:
 _strlen:
 		cpy A, [5 + S]
 _strlen.a:
-		psh (V, W)
+		psh V
 		cpy X, A
 		cpy V, A
 		cpy A, $7FFFFFFF
@@ -316,7 +317,7 @@ _strlen.a:
 		cpy A, V
 		sub A, X
 		sub A, 1
-		pul (V, W)
+		pul V
 		ret
 
 
@@ -333,13 +334,13 @@ _strcpy.ab:
 		ret
 
 _strcpy:
-		psh (V, W)
-		cpy V, [13 + S]
-		cpy W, [17 + S]
+		psh V
+		cpy V, [9 + S]
+		cpy W, [13 + S]
 		cpy A, $7FFFFFFF
 		vcpy W, V, +1, A, 8, z
-		cpy A, [13 + S]
-		pul (V, W)
+		cpy A, [9 + S]
+		pul V
 		ret
 
 
@@ -357,10 +358,10 @@ _strncpy.aby:
 		ret
 
 _strncpy:
-		psh (V, W)
-		cpy V, [13 + S]
-		cpy W, [17 + S]
-		cpy A, [21 + S]
+		psh V
+		cpy V, [9 + S]
+		cpy W, [13 + S]
+		cpy A, [17 + S]
 		cmp A, 0
 		bras z, CopyNDone
 		sub A, 1
@@ -373,8 +374,8 @@ _strncpy:
 		bcpy B, V, +1, A
 		wth B, 32
 CopyNDone:
-		cpy A, [13 + S]
-		pul (V, W)
+		cpy A, [9 + S]
+		pul V
 		ret
 
 
@@ -391,19 +392,19 @@ _strcat.ab:
 		ret
 
 _strcat:
-		psh (V, W)
-		cpy V, [13 + S]
+		psh V
+		cpy V, [9 + S]
 		cpy A, $7FFFFFFF
 		wth B, 8
 		cpy B, $FF
 		btst B, V, +1, A, z
 		wth B, 32
 		sub V, 1
-		cpy W, [17 + S]
+		cpy W, [13 + S]
 		cpy A, $7FFFFFFF
 		vcpy W, V, +1, A, 8, z
-		cpy A, [13 + S]
-		pul (V, W)
+		cpy A, [9 + S]
+		pul V
 		ret
 
 
@@ -422,17 +423,17 @@ _strncat.aby:
 		ret
 
 _strncat:
-		psh (V, W)
-		cpy V, [13 + S]
+		psh V
+		cpy V, [9 + S]
 		cpy A, $7FFFFFFF
 		wth B, 8
 		cpy B, $FF
 		btst B, V, +1, A, z
 		sub V, 1
-		cpy A, [21 + S]
+		cpy A, [17 + S]
 		cmp A, 0
 		bras z, CatNDone
-		cpy W, [17 + S]
+		cpy W, [13 + S]
 		sub A, 1
 		vcpy W, V, +1, A, 8, z
 		bras z, CatNDone
@@ -440,8 +441,8 @@ _strncat:
 		cpy [0 + V], B
 CatNDone:
 		wth B, 32
-		cpy A, [13 + S]
-		pul (V, W)
+		cpy A, [9 + S]
+		pul V
 		ret
 
 
@@ -466,49 +467,49 @@ _strrchr.ab:
 		ret
 
 _strchr:
-		psh (V, W)
-		cpy V, [13 + S]
+		psh V
+		cpy V, [9 + S]
 		cpy A, $7FFFFFFF
 		wth B, 8
 		cpy B, $FF
 		btst B, V, +1, A, z
 		cpy A, V
-		cpy X, [13 + S]
+		cpy X, [9 + S]
 		sub A, X
 		sub A, 1
-		cpy V, [13 + S]
-		cpy B, [17 + S]
+		cpy V, [9 + S]
+		cpy B, [13 + S]
 		bcmp B, V, +1, A, z
 		brac z, StringNone
 		cpy A, V
 		sub A, 1
 		wth B, 32
-		pul (V, W)
+		pul V
 		ret
 
 _strrchr:
-		psh (V, W)
-		cpy V, [13 + S]
+		psh V
+		cpy V, [9 + S]
 		cpy A, $7FFFFFFF
 		wth B, 8
 		cpy B, $FF
 		btst B, V, +1, A, z
 		sub V, 1
 		cpy A, V
-		cpy X, [13 + S]
+		cpy X, [9 + S]
 		sub A, X
-		cpy B, [17 + S]
+		cpy B, [13 + S]
 		bcmp B, V, -1, A, z
 		brac z, StringNone
 		cpy A, V
 		add A, 1
 		wth B, 32
-		pul (V, W)
+		pul V
 		ret
 
 StringNone:
 		cpy A, 0
 		wth B, 32
-		pul (V, W)
+		pul V
 		ret
 

@@ -30,6 +30,8 @@
 ; 39 (590), to int 19 (770), to double 21 (1005), double to float 46 (1110).  Doubles:
 ; add 98 (2135), subtract 104 (2225), multiply 134 (2360), divide 105 (8245), compare 36
 ; (1140), sqrt 218 (16990), from int 28 (510), from long long 42 (545), to int 24 (750).
+; (Measured while W was kept across each routine; multiply, divide and sqrt take a few
+; cycles less now that it isn't, 2026-11-14.)
 
 
 ; Every routine that rounds (add, subtract, multiply, divide, the conversions from
@@ -783,8 +785,7 @@ NotSqrtSpecial1:
 
 ; A is the significand (the top bit at 23) and X the exponent.  M is the significand
 ; shifted up 25 or 26; the significand shifted up 0 or 1 is kept in the top half of X
-; to make M again, and W in the top half of A (divide and multiply only use their low
-; halves).
+; to make M again (divide and multiply only use the low half).
 SqrtSignificand:
 		cep f
 		bist c, (X, 0)
@@ -799,7 +800,6 @@ SqrtOdd:
 SqrtRoot:
 		shr X, 1
 		scp (A, 0), (X, 4), 4
-		scp (W, 0), (A, 4), 4
 		wth Y, 64
 		cpy Y, A
 		shl Y, 25				; M
@@ -825,7 +825,6 @@ SqrtRoot:
 		cpy B, A
 		cpy W, 0
 		mul
-		scp (A, 4), (W, 0), 4
 		wth B, 64
 		cpy B, 0
 		scp (X, 4), (B, 0), 4
@@ -1182,10 +1181,10 @@ NotDMultiplySpecial2:
 ; A and B (64 bits wide) are the significands, and [5 + S] has a's low half.  X is the
 ; exponent for DRoundPack.  With a = aH 2^32 + aL and
 ; b = bH 2^32 + bL the product is aH bH 2^64 + T 2^32 + low(aL bL), T = aH bL + aL bH +
-; (aL bL >> 32), and its top 64 bits are (aH bH << 21) + (T >> 11).  W and X wait on
-; the stack (a's low half is then at [13 + S]); g says aL bL's low half is zero.
+; (aL bL >> 32), and its top 64 bits are (aH bH << 21) + (T >> 11).  X waits on
+; the stack (a's low half is then at [9 + S]); g says aL bL's low half is zero.
 DMultiplySignificands:
-		psh (W, X)
+		psh X
 		wtth (A, B), 32
 		wtth (X, Y), 64
 		cpy W, 0
@@ -1201,7 +1200,7 @@ DMultiplySignificands:
 		mul						; aH bL
 		add X, Y
 		scp (B, 4), (B, 0), 4	; bH
-		cpy A, [13 + S]			; aL
+		cpy A, [9 + S]			; aL
 		cpy W, 0
 		mul						; aL bH
 		add X, Y				; T
@@ -1223,7 +1222,7 @@ DMultiplySticky:
 
 DMultiplyRound:
 		wth X, 32
-		pul (W, X)
+		pul X
 
 ; Rounds and packs a finite double and returns from the routine that jumped here.
 ;   Y	the significand, 64 bits wide, with its top bit at 62 or 61
@@ -1761,16 +1760,13 @@ NotDDivideSpecial2:
 ; Y is a's significand and A b's (64 bits wide), X the difference of the exponents.
 ; With the dividend's top half in B (below A, as a's significand is below twice b's),
 ; one div gives floor(a 2^63 / b), from 2^62 to 2^64, and the remainder: shifted down one
-; with what is lost (and the remainder) as the sticky bit, it is DRoundPack's.  W is
-; kept in the top half of X.
+; with what is lost (and the remainder) as the sticky bit, it is DRoundPack's.
 DDivideSignificands:
-		scp (W, 0), (X, 4), 4
 		cpy B, Y
 		shr B, 1
 		shl Y, 63				; B and Y are a's significand 2^63
 		cpy W, 0
 		div
-		scp (X, 4), (W, 0), 4
 		shr Y, 1
 		brac c, DDivideRemainder
 		or Y, 1
@@ -1948,7 +1944,7 @@ DFromSmall:
 ; sqrt's seed table and three Newton steps (a div each), corrected down with one mul.
 ; With D = MH - r1^2, one more Newton step from r1 2^23 gives x = r1 2^23 + d where d,
 ; p = divmod(D 2^22, r1): x is the root of M or one more, and M - x^2 = p 2^24 - d^2
-; says which, and whether it is exact.  MH, then p 2^24, is kept in X, and W and the
+; says which, and whether it is exact.  MH, then p 2^24, is kept in X, and the
 ; exponent on the stack.
 _SoftDoubleSqrt:
 		wtth (A, B), 64
@@ -1984,7 +1980,7 @@ DSqrtEven:
 
 DSqrtRoot:
 		shr X, 1
-		psh (W, X)				; W and the exponent wait on the stack
+		psh X					; the exponent waits on the stack
 		wth X, 64
 		cpy X, Y				; MH
 		cpy B, Y
@@ -2072,7 +2068,7 @@ DSqrtExact:
 
 DSqrtDone:
 		wth X, 32
-		pul (W, X)
+		pul X
 		wtth (A, B), 32
 		bra DRoundTop
 
