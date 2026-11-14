@@ -31,8 +31,8 @@ void TestAsm65C64Drive(void);
 void TestAsm65Lazy(void);
 void TestAsm65C64Fast(void);
 void TestAsm65C64Website(void);
-void TestAsm65816(void);
-void TestAsm65816Disassembler(void);
+void TestAsmW65C816(void);
+void TestAsmW65C816Disassembler(void);
 void TestAsm65IncHex(void);
 void TestAsm65Image(void);
 
@@ -78,8 +78,8 @@ int __cdecl main(void)
 	TestAsm65Lazy();
 	TestAsm65C64Fast();
 	TestAsm65C64Website();
-	TestAsm65816();
-	TestAsm65816Disassembler();
+	TestAsmW65C816();
+	TestAsmW65C816Disassembler();
 	TestAsm65IncHex();
 	TestAsm65Image();
 

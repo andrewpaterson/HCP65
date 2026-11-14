@@ -17,7 +17,7 @@
 //////////////////////////////////////////////////////////////////////////
 
 
-#define TEST_ASM65816_RUN_MEMORY	0x30000
+#define TEST_ASM_W65C816_RUN_MEMORY	0x30000
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -25,7 +25,7 @@
 // Whether the simulator's addressing mode is the assembler's.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestAsm65816SameMode(uint8 uiMode, EAddressingMode eMode)
+static bool TestAsmW65C816SameMode(uint8 uiMode, EAddressingMode eMode)
 {
 	switch (uiMode)
 	{
@@ -68,7 +68,7 @@ static bool TestAsm65816SameMode(uint8 uiMode, EAddressingMode eMode)
 // Every opcode's mnemonic and mode against MicroprocessorLib's W65C816S.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Opcodes(void)
+void TestAsmW65C816Opcodes(void)
 {
 	CW65C816InstructionFactory*	pcFactory;
 	CW65Instruction*			pcInstruction;
@@ -86,7 +86,7 @@ void TestAsm65816Opcodes(void)
 		pcInstruction = pcFactory->GetInstruction((uint16)i);
 		//The simulator calls jml JMP and puts per with the stack instructions.
 		bSame = (MemICmp(szMnemonic, pcInstruction->GetName(), 4) == 0) || ((strcmp(szMnemonic, "jml") == 0) && (strcmp(pcInstruction->GetName(), "JMP") == 0));
-		bSame &= TestAsm65816SameMode(uiMode, pcInstruction->GetCycles()->GetAddressingMode()) ||
+		bSame &= TestAsmW65C816SameMode(uiMode, pcInstruction->GetCycles()->GetAddressingMode()) ||
 				 ((strcmp(szMnemonic, "per") == 0) && (pcInstruction->GetCycles()->GetAddressingMode() == AM_StackImplied));
 		if (!bSame)
 		{
@@ -110,7 +110,7 @@ void TestAsm65816Opcodes(void)
 // "bytes" assembled at $1000 from szSource, or the errors.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65816Bytes(CChars* psz, const char* szSource)
+static void TestAsmW65C816Bytes(CChars* psz, const char* szSource)
 {
 	CAsmW65C816Assembler	cAssembler;
 	CChars				szFull;
@@ -149,12 +149,12 @@ static void TestAsm65816Bytes(CChars* psz, const char* szSource)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static void AssertAsm65816(const char* szExpected, const char* szSource)
+static void AssertAsmW65C816(const char* szExpected, const char* szSource)
 {
 	CChars	sz;
 
 	sz.Init();
-	TestAsm65816Bytes(&sz, szSource);
+	TestAsmW65C816Bytes(&sz, szSource);
 	AssertString(szExpected, sz.Text());
 	sz.Kill();
 }
@@ -165,7 +165,7 @@ static void AssertAsm65816(const char* szExpected, const char* szSource)
 // szSource's bytes are szBranch, then 200 zeros (.space 200), then a nop.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65816Relax(const char* szBranch, const char* szSource)
+static void TestAsmW65C816Relax(const char* szBranch, const char* szSource)
 {
 	CChars	szExpected;
 	int		i;
@@ -176,7 +176,7 @@ static void TestAsm65816Relax(const char* szBranch, const char* szSource)
 		szExpected.Append(" 00");
 	}
 	szExpected.Append(" ea");
-	AssertAsm65816(szExpected.Text(), szSource);
+	AssertAsmW65C816(szExpected.Text(), szSource);
 	szExpected.Kill();
 }
 
@@ -186,13 +186,13 @@ static void TestAsm65816Relax(const char* szBranch, const char* szSource)
 // One line with 16 bit widths.
 //
 //////////////////////////////////////////////////////////////////////////
-static void AssertAsm65816Line(const char* szExpected, const char* szLine)
+static void AssertAsmW65C816Line(const char* szExpected, const char* szLine)
 {
 	CChars	sz;
 
 	sz.Init(".width (A, X), 16\n");
 	sz.Append(szLine);
-	AssertAsm65816(szExpected, sz.Text());
+	AssertAsmW65C816(szExpected, sz.Text());
 	sz.Kill();
 }
 
@@ -202,93 +202,93 @@ static void AssertAsm65816Line(const char* szExpected, const char* szLine)
 // Each addressing mode.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Encoding(void)
+void TestAsmW65C816Encoding(void)
 {
-	AssertAsm65816Line("ea", "nop");
-	AssertAsm65816Line("0a", "asl A");
-	AssertAsm65816Line("1a", "inc A");
-	AssertAsm65816Line("a9 05 00", "lda 5");
-	AssertAsm65816Line("a9 34 12", "lda $1234");
-	AssertAsm65816Line("a9 05 00", "lda 5:16");
-	AssertAsm65816Line("a2 02 00", "ldx 2");
-	AssertAsm65816Line("89 05 00", "bit 5");
-	AssertAsm65816Line("ad 34 12", "lda [$1234]");
-	AssertAsm65816Line("bd 34 12", "lda [$1234 + X]");
-	AssertAsm65816Line("b9 34 12", "lda [$1234 + Y]");
-	AssertAsm65816Line("af 56 34 12", "lda [$123456]");
-	AssertAsm65816Line("af 34 12 00", "lda [$1234]:24");
-	AssertAsm65816Line("bf 56 34 12", "lda [$123456 + X]");
-	AssertAsm65816Line("a5 04", "lda [D + 4]");
-	AssertAsm65816Line("a5 00", "lda [D]");
-	AssertAsm65816Line("b5 04", "lda [D + 4 + X]");
-	AssertAsm65816Line("b6 04", "ldx [D + 4 + Y]");
-	AssertAsm65816Line("b2 04", "lda [[D + 4]]");
-	AssertAsm65816Line("a1 04", "lda [[D + 4 + X]]");
-	AssertAsm65816Line("b1 04", "lda [[D + 4] + Y]");
-	AssertAsm65816Line("a7 04", "lda [[D + 4]:24]");
-	AssertAsm65816Line("b7 04", "lda [[D + 4]:24 + Y]");
-	AssertAsm65816Line("a3 03", "lda [S + 3]");
-	AssertAsm65816Line("b3 03", "lda [[S + 3] + Y]");
-	AssertAsm65816Line("8d 34 12", "sta [$1234]");
-	AssertAsm65816Line("64 02", "stz [D + 2]");
-	AssertAsm65816Line("fe 34 12", "inc [$1234 + X]");
-	AssertAsm65816Line("1c 34 12", "trb [$1234]");
-	AssertAsm65816Line("e4 01", "cpx [D + 1]");
-	AssertAsm65816Line("bc 34 12", "ldy [$1234 + X]");
-	AssertAsm65816Line("96 01", "stx [D + 1 + Y]");
-	AssertAsm65816Line("c2 30", "rep (m, x)");
-	AssertAsm65816Line("c2 30", "rep $30");
-	AssertAsm65816Line("e2 20", "sep m");
-	AssertAsm65816Line("f4 34 12", "pea $1234");
-	AssertAsm65816Line("d4 06", "pei [D + 6]");
-	AssertAsm65816Line("4c 34 12", "jmp $1234");
-	AssertAsm65816Line("6c 34 12", "jmp [$1234]");
-	AssertAsm65816Line("7c 34 12", "jmp [$1234 + X]");
-	AssertAsm65816Line("5c 56 34 12", "jml $123456");
-	AssertAsm65816Line("dc 34 12", "jml [$1234]:24");
-	AssertAsm65816Line("20 34 12", "jsr $1234");
-	AssertAsm65816Line("fc 34 12", "jsr [$1234 + X]");
-	AssertAsm65816Line("22 56 34 12", "jsl $123456");
-	AssertAsm65816Line("80 fe", "bra C - 2");
-	AssertAsm65816Line("d0 04", "bne C + 4");
-	AssertAsm65816Line("80 05", "bra 5");
-	AssertAsm65816Line("82 00 01", "brl C + $100");
-	AssertAsm65816Line("62 02 00", "per C + 2");
-	AssertAsm65816Line("54 34 12", "mvn $12, $34");
-	AssertAsm65816Line("44 34 12", "mvp $12, $34");
-	AssertAsm65816Line("00 00", "brk 0");
-	AssertAsm65816Line("02 05", "cop 5");
-	AssertAsm65816Line("42 01", "wdm 1");
-	AssertAsm65816Line("eb", "xba");
-	AssertAsm65816Line("5b", "tcd");
-	AssertAsm65816Line("6b", "rtl");
-	AssertAsm65816Line("6b", "RTL");
+	AssertAsmW65C816Line("ea", "nop");
+	AssertAsmW65C816Line("0a", "asl A");
+	AssertAsmW65C816Line("1a", "inc A");
+	AssertAsmW65C816Line("a9 05 00", "lda 5");
+	AssertAsmW65C816Line("a9 34 12", "lda $1234");
+	AssertAsmW65C816Line("a9 05 00", "lda 5:16");
+	AssertAsmW65C816Line("a2 02 00", "ldx 2");
+	AssertAsmW65C816Line("89 05 00", "bit 5");
+	AssertAsmW65C816Line("ad 34 12", "lda [$1234]");
+	AssertAsmW65C816Line("bd 34 12", "lda [$1234 + X]");
+	AssertAsmW65C816Line("b9 34 12", "lda [$1234 + Y]");
+	AssertAsmW65C816Line("af 56 34 12", "lda [$123456]");
+	AssertAsmW65C816Line("af 34 12 00", "lda [$1234]:24");
+	AssertAsmW65C816Line("bf 56 34 12", "lda [$123456 + X]");
+	AssertAsmW65C816Line("a5 04", "lda [D + 4]");
+	AssertAsmW65C816Line("a5 00", "lda [D]");
+	AssertAsmW65C816Line("b5 04", "lda [D + 4 + X]");
+	AssertAsmW65C816Line("b6 04", "ldx [D + 4 + Y]");
+	AssertAsmW65C816Line("b2 04", "lda [[D + 4]]");
+	AssertAsmW65C816Line("a1 04", "lda [[D + 4 + X]]");
+	AssertAsmW65C816Line("b1 04", "lda [[D + 4] + Y]");
+	AssertAsmW65C816Line("a7 04", "lda [[D + 4]:24]");
+	AssertAsmW65C816Line("b7 04", "lda [[D + 4]:24 + Y]");
+	AssertAsmW65C816Line("a3 03", "lda [S + 3]");
+	AssertAsmW65C816Line("b3 03", "lda [[S + 3] + Y]");
+	AssertAsmW65C816Line("8d 34 12", "sta [$1234]");
+	AssertAsmW65C816Line("64 02", "stz [D + 2]");
+	AssertAsmW65C816Line("fe 34 12", "inc [$1234 + X]");
+	AssertAsmW65C816Line("1c 34 12", "trb [$1234]");
+	AssertAsmW65C816Line("e4 01", "cpx [D + 1]");
+	AssertAsmW65C816Line("bc 34 12", "ldy [$1234 + X]");
+	AssertAsmW65C816Line("96 01", "stx [D + 1 + Y]");
+	AssertAsmW65C816Line("c2 30", "rep (m, x)");
+	AssertAsmW65C816Line("c2 30", "rep $30");
+	AssertAsmW65C816Line("e2 20", "sep m");
+	AssertAsmW65C816Line("f4 34 12", "pea $1234");
+	AssertAsmW65C816Line("d4 06", "pei [D + 6]");
+	AssertAsmW65C816Line("4c 34 12", "jmp $1234");
+	AssertAsmW65C816Line("6c 34 12", "jmp [$1234]");
+	AssertAsmW65C816Line("7c 34 12", "jmp [$1234 + X]");
+	AssertAsmW65C816Line("5c 56 34 12", "jml $123456");
+	AssertAsmW65C816Line("dc 34 12", "jml [$1234]:24");
+	AssertAsmW65C816Line("20 34 12", "jsr $1234");
+	AssertAsmW65C816Line("fc 34 12", "jsr [$1234 + X]");
+	AssertAsmW65C816Line("22 56 34 12", "jsl $123456");
+	AssertAsmW65C816Line("80 fe", "bra C - 2");
+	AssertAsmW65C816Line("d0 04", "bne C + 4");
+	AssertAsmW65C816Line("80 05", "bra 5");
+	AssertAsmW65C816Line("82 00 01", "brl C + $100");
+	AssertAsmW65C816Line("62 02 00", "per C + 2");
+	AssertAsmW65C816Line("54 34 12", "mvn $12, $34");
+	AssertAsmW65C816Line("44 34 12", "mvp $12, $34");
+	AssertAsmW65C816Line("00 00", "brk 0");
+	AssertAsmW65C816Line("02 05", "cop 5");
+	AssertAsmW65C816Line("42 01", "wdm 1");
+	AssertAsmW65C816Line("eb", "xba");
+	AssertAsmW65C816Line("5b", "tcd");
+	AssertAsmW65C816Line("6b", "rtl");
+	AssertAsmW65C816Line("6b", "RTL");
 
 	//8 bit widths.
-	AssertAsm65816("a9 05", ".width (A, X), 8\nlda 5");
-	AssertAsm65816("a0 ff", ".width X, 8\nldy 255");
-	AssertAsm65816("a9 ff", ".width A, 8\nlda -1");
-	AssertAsm65816("a9 01", "lda 1:8");
+	AssertAsmW65C816("a9 05", ".width (A, X), 8\nlda 5");
+	AssertAsmW65C816("a0 ff", ".width X, 8\nldy 255");
+	AssertAsmW65C816("a9 ff", ".width A, 8\nlda -1");
+	AssertAsmW65C816("a9 01", "lda 1:8");
 
 	//rep and sep change the widths.
-	AssertAsm65816("e2 20 a9 01 c2 20 a9 01 00", "sep m\nlda 1\nrep m\nlda 1");
-	AssertAsm65816("e2 30 a2 01 c2 10 a2 01 00 a9 01", "sep (m, x)\nldx 1\nrep x\nldx 1\nlda 1");
+	AssertAsmW65C816("e2 20 a9 01 c2 20 a9 01 00", "sep m\nlda 1\nrep m\nlda 1");
+	AssertAsmW65C816("e2 30 a2 01 c2 10 a2 01 00 a9 01", "sep (m, x)\nldx 1\nrep x\nldx 1\nlda 1");
 
 	//Labels, branches and an address that only turns out to be long in a later pass.
-	AssertAsm65816("ea d0 fd", "Loop:\nnop\nbne Loop");
-	AssertAsm65816("80 01 ea ea", "bra Forward\nnop\nForward:\nnop");
-	AssertAsm65816("af 56 34 12", "lda [Far]\nFar = $123456");
-	AssertAsm65816("82 fd ff", "Here:\nbrl Here");
-	AssertAsm65816("a9 00 10", ".width A, 16\nThere:\nlda There & $FFFF");
-	AssertAsm65816("a9 12", ".width A, 8\nlda Bank >> 16\nBank = $123456");
+	AssertAsmW65C816("ea d0 fd", "Loop:\nnop\nbne Loop");
+	AssertAsmW65C816("80 01 ea ea", "bra Forward\nnop\nForward:\nnop");
+	AssertAsmW65C816("af 56 34 12", "lda [Far]\nFar = $123456");
+	AssertAsmW65C816("82 fd ff", "Here:\nbrl Here");
+	AssertAsmW65C816("a9 00 10", ".width A, 16\nThere:\nlda There & $FFFF");
+	AssertAsmW65C816("a9 12", ".width A, 8\nlda Bank >> 16\nBank = $123456");
 
 	//Data.
-	AssertAsm65816("56 34 12 78 56 34 12", ".word24 $123456\n.long $12345678");
+	AssertAsmW65C816("56 34 12 78 56 34 12", ".word24 $123456\n.long $12345678");
 
 	//.relax: a branch to a label too far away goes over a brl the other way (bra becomes brl); a near one is kept.
-	AssertAsm65816("d0 01 ea ea", ".relax\nbne Near\nnop\nNear:\nnop");
-	TestAsm65816Relax("f0 03 82 c8 00", ".relax\nbne Far\n.space 200\nFar:\nnop");
-	TestAsm65816Relax("82 c8 00", ".relax\nbra Far\n.space 200\nFar:\nnop");
+	AssertAsmW65C816("d0 01 ea ea", ".relax\nbne Near\nnop\nNear:\nnop");
+	TestAsmW65C816Relax("f0 03 82 c8 00", ".relax\nbne Far\n.space 200\nFar:\nnop");
+	TestAsmW65C816Relax("82 c8 00", ".relax\nbra Far\n.space 200\nFar:\nnop");
 }
 
 
@@ -296,12 +296,12 @@ void TestAsm65816Encoding(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static void AssertAsm65816Error(const char* szExpected, const char* szSource)
+static void AssertAsmW65C816Error(const char* szExpected, const char* szSource)
 {
 	CChars	sz;
 
 	sz.Init();
-	TestAsm65816Bytes(&sz, szSource);
+	TestAsmW65C816Bytes(&sz, szSource);
 	if (strstr(sz.Text(), szExpected) == NULL)
 	{
 		AssertString(szExpected, sz.Text());
@@ -318,27 +318,27 @@ static void AssertAsm65816Error(const char* szExpected, const char* szSource)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Errors(void)
+void TestAsmW65C816Errors(void)
 {
 	CAsmW65C816Assembler	cAssembler;
 	CAsm65Object		cObject;
 
-	AssertAsm65816Error("The width of A is not known here", "lda 1");
-	AssertAsm65816Error("The width of X is not known here", "ldy 1");
-	AssertAsm65816Error("The width of A is not known here", "rep m\nxce\nlda 1");
-	AssertAsm65816Error("The width of A is not known here", "rep m\nplp\nlda 1");
-	AssertAsm65816Error("The suffix is not the width of A (16 bits)", "rep m\nlda 1:8");
-	AssertAsm65816Error("A direct page or stack offset is 0 to 255", "lda [D + 256]");
-	AssertAsm65816Error("the instruction has no long mode", "inc [$123456]");
-	AssertAsm65816Error("The instruction has no long mode", "ldx [$1234]:24");
-	AssertAsm65816Error("Target is out of range", "bra C + 200");
-	AssertAsm65816Error("Target is in another bank: use jml or jsl", "jmp $23456");
-	AssertAsm65816Error("A pointer is read from the direct page or the stack", "lda [[$1234]]");
-	AssertAsm65816Error("The instruction has no such addressing mode", "stx [$1234 + X]");
-	AssertAsm65816Error("Expected memory in square brackets", "sta 5");
-	AssertAsm65816Error("Unknown instruction", "lax 5");
-	AssertAsm65816Error("Reserved name cannot be a label", "D:\nnop");
-	AssertAsm65816Error("A width is 8 or 16 bits", ".width A, 32");
+	AssertAsmW65C816Error("The width of A is not known here", "lda 1");
+	AssertAsmW65C816Error("The width of X is not known here", "ldy 1");
+	AssertAsmW65C816Error("The width of A is not known here", "rep m\nxce\nlda 1");
+	AssertAsmW65C816Error("The width of A is not known here", "rep m\nplp\nlda 1");
+	AssertAsmW65C816Error("The suffix is not the width of A (16 bits)", "rep m\nlda 1:8");
+	AssertAsmW65C816Error("A direct page or stack offset is 0 to 255", "lda [D + 256]");
+	AssertAsmW65C816Error("the instruction has no long mode", "inc [$123456]");
+	AssertAsmW65C816Error("The instruction has no long mode", "ldx [$1234]:24");
+	AssertAsmW65C816Error("Target is out of range", "bra C + 200");
+	AssertAsmW65C816Error("Target is in another bank: use jml or jsl", "jmp $23456");
+	AssertAsmW65C816Error("A pointer is read from the direct page or the stack", "lda [[$1234]]");
+	AssertAsmW65C816Error("The instruction has no such addressing mode", "stx [$1234 + X]");
+	AssertAsmW65C816Error("Expected memory in square brackets", "sta 5");
+	AssertAsmW65C816Error("Unknown instruction", "lax 5");
+	AssertAsmW65C816Error("Reserved name cannot be a label", "D:\nnop");
+	AssertAsmW65C816Error("A width is 8 or 16 bits", ".width A, 32");
 
 	cObject.Init("errors");
 	cAssembler.Init();
@@ -354,7 +354,7 @@ void TestAsm65816Errors(void)
 // Relocations of each form, linked into the same bank and into another bank.
 //
 //////////////////////////////////////////////////////////////////////////
-static const char* gszTestAsm65816Code =
+static const char* gszTestAsmW65C816Code =
 	".section text.Code\n"
 	".global Start\n"
 	"Start:\n"
@@ -376,7 +376,7 @@ static const char* gszTestAsm65816Code =
 	"\t.word24 Value\n"
 	"\t.byte Value >> 16\n";
 
-static const char* gszTestAsm65816Far =
+static const char* gszTestAsmW65C816Far =
 	".section text.Far\n"
 	".global Far\n"
 	"Far:\n"
@@ -387,18 +387,18 @@ static const char* gszTestAsm65816Far =
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestAsm65816Link(CAsm65Linker* pcLinker, CAsm65Object* pcCode, CAsm65Object* pcFar, uint32 uiData)
+static bool TestAsmW65C816Link(CAsm65Linker* pcLinker, CAsm65Object* pcCode, CAsm65Object* pcFar, uint32 uiData)
 {
 	CAsmW65C816Assembler	cAssembler;
 
 	pcCode->Init("code");
 	pcFar->Init("far");
 	cAssembler.Init();
-	AssertTrue(cAssembler.AssembleObject(gszTestAsm65816Code, pcCode));
+	AssertTrue(cAssembler.AssembleObject(gszTestAsmW65C816Code, pcCode));
 	AssertString("", cAssembler.GetErrors());
 	cAssembler.Kill();
 	cAssembler.Init();
-	AssertTrue(cAssembler.AssembleObject(gszTestAsm65816Far, pcFar));
+	AssertTrue(cAssembler.AssembleObject(gszTestAsmW65C816Far, pcFar));
 	cAssembler.Kill();
 
 	pcLinker->Init();
@@ -414,7 +414,7 @@ static bool TestAsm65816Link(CAsm65Linker* pcLinker, CAsm65Object* pcCode, CAsm6
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static uint32 TestAsm65816Get(CAsm65Output* pcOutput, uint32 uiAddress, int iBytes)
+static uint32 TestAsmW65C816Get(CAsm65Output* pcOutput, uint32 uiAddress, int iBytes)
 {
 	uint32	uiValue;
 	uint8	uiByte;
@@ -435,7 +435,7 @@ static uint32 TestAsm65816Get(CAsm65Output* pcOutput, uint32 uiAddress, int iByt
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Object(void)
+void TestAsmW65C816Object(void)
 {
 	CAsm65Object	cCode;
 	CAsm65Object	cFar;
@@ -448,7 +448,7 @@ void TestAsm65816Object(void)
 	int64			iNear;
 	uint32			v;
 
-	AssertTrue(TestAsm65816Link(&cLinker, &cCode, &cFar, 0x012800));
+	AssertTrue(TestAsmW65C816Link(&cLinker, &cCode, &cFar, 0x012800));
 	AssertString("", cLinker.GetErrors());
 
 	szDump.Init();
@@ -469,25 +469,25 @@ void TestAsm65816Object(void)
 	iValue = 0x012800;
 	v = (uint32)iValue;
 	AssertInt(0x012000, (int)iStart);
-	AssertInt(v, TestAsm65816Get(pcOutput, (uint32)iStart + 1, 3));
-	AssertInt(v & 0xFFFF, TestAsm65816Get(pcOutput, (uint32)iStart + 5, 2));
-	AssertInt(v & 0xFFFF, TestAsm65816Get(pcOutput, (uint32)iStart + 8, 2));
-	AssertInt(v >> 16, TestAsm65816Get(pcOutput, (uint32)iStart + 11, 2));
-	AssertInt((int)iFar, TestAsm65816Get(pcOutput, (uint32)iStart + 14, 3));
-	AssertInt((int)(iNear & 0xFFFF), TestAsm65816Get(pcOutput, (uint32)iStart + 18, 2));
-	AssertInt((int)(iNear - (iStart + 22)), TestAsm65816Get(pcOutput, (uint32)iStart + 21, 1));
-	AssertInt(0x0101, TestAsm65816Get(pcOutput, (uint32)iStart + 23, 2));
-	AssertInt(0x6B, TestAsm65816Get(pcOutput, (uint32)iNear, 1));
-	AssertInt(7, TestAsm65816Get(pcOutput, v, 2));
-	AssertInt(v, TestAsm65816Get(pcOutput, v + 2, 4));
-	AssertInt(v, TestAsm65816Get(pcOutput, v + 6, 3));
-	AssertInt(1, TestAsm65816Get(pcOutput, v + 9, 1));
+	AssertInt(v, TestAsmW65C816Get(pcOutput, (uint32)iStart + 1, 3));
+	AssertInt(v & 0xFFFF, TestAsmW65C816Get(pcOutput, (uint32)iStart + 5, 2));
+	AssertInt(v & 0xFFFF, TestAsmW65C816Get(pcOutput, (uint32)iStart + 8, 2));
+	AssertInt(v >> 16, TestAsmW65C816Get(pcOutput, (uint32)iStart + 11, 2));
+	AssertInt((int)iFar, TestAsmW65C816Get(pcOutput, (uint32)iStart + 14, 3));
+	AssertInt((int)(iNear & 0xFFFF), TestAsmW65C816Get(pcOutput, (uint32)iStart + 18, 2));
+	AssertInt((int)(iNear - (iStart + 22)), TestAsmW65C816Get(pcOutput, (uint32)iStart + 21, 1));
+	AssertInt(0x0101, TestAsmW65C816Get(pcOutput, (uint32)iStart + 23, 2));
+	AssertInt(0x6B, TestAsmW65C816Get(pcOutput, (uint32)iNear, 1));
+	AssertInt(7, TestAsmW65C816Get(pcOutput, v, 2));
+	AssertInt(v, TestAsmW65C816Get(pcOutput, v + 2, 4));
+	AssertInt(v, TestAsmW65C816Get(pcOutput, v + 6, 3));
+	AssertInt(1, TestAsmW65C816Get(pcOutput, v + 9, 1));
 	cLinker.Kill();
 	cFar.Kill();
 	cCode.Kill();
 
 	//lda [Value] is absolute: Value must be in the bank of the code.
-	AssertFalse(TestAsm65816Link(&cLinker, &cCode, &cFar, 0x030000));
+	AssertFalse(TestAsmW65C816Link(&cLinker, &cCode, &cFar, 0x030000));
 	AssertTrue(strstr(cLinker.GetErrors(), "Address is not in the bank of the instruction using it") != NULL);
 	cLinker.Kill();
 	cFar.Kill();
@@ -499,7 +499,7 @@ void TestAsm65816Object(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static uint8 TestAsm65816Read(void* pvMemory, uint32 uiAddress)
+static uint8 TestAsmW65C816Read(void* pvMemory, uint32 uiAddress)
 {
 	return 0xFF;
 }
@@ -509,7 +509,7 @@ static uint8 TestAsm65816Read(void* pvMemory, uint32 uiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65816Write(void* pvMemory, uint32 uiAddress, uint8 uiValue)
+static void TestAsmW65C816Write(void* pvMemory, uint32 uiAddress, uint8 uiValue)
 {
 }
 
@@ -520,7 +520,7 @@ static void TestAsm65816Write(void* pvMemory, uint32 uiAddress, uint8 uiValue)
 // jsl to another bank, a 24 bit pointer and a block move.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Run(void)
+void TestAsmW65C816Run(void)
 {
 	CAsmW65C816Assembler	cAssembler;
 	CFastW65C816			cFast;
@@ -569,8 +569,8 @@ void TestAsm65816Run(void)
 		"\t.word Start\n"));
 	AssertString("", cAssembler.GetErrors());
 
-	puiMemory = (uint8*)malloc(TEST_ASM65816_RUN_MEMORY);
-	memset(puiMemory, 0, TEST_ASM65816_RUN_MEMORY);
+	puiMemory = (uint8*)malloc(TEST_ASM_W65C816_RUN_MEMORY);
+	memset(puiMemory, 0, TEST_ASM_W65C816_RUN_MEMORY);
 	for (i = 0; i < cAssembler.GetOutput()->NumSegments(); i++)
 	{
 		psSegment = cAssembler.GetOutput()->GetSegment(i);
@@ -578,7 +578,7 @@ void TestAsm65816Run(void)
 	}
 	cAssembler.Kill();
 
-	cFast.Init(TestAsm65816Read, TestAsm65816Write, NULL, puiMemory, TEST_ASM65816_RUN_MEMORY);
+	cFast.Init(TestAsmW65C816Read, TestAsmW65C816Write, NULL, puiMemory, TEST_ASM_W65C816_RUN_MEMORY);
 	cFast.Reset();
 	uiSteps = cFast.Run(10000);
 	AssertTrue(cFast.IsStopped());
@@ -595,7 +595,7 @@ void TestAsm65816Run(void)
 
 //The vectors and the reset stub in bank 0 (placed with at), the program in bank 1 and two
 //big sections the linker keeps inside banks.
-static const char* gszTestAsm65816Banks =
+static const char* gszTestAsmW65C816Banks =
 	".section rodata.Vectors, at $FFFC\n"
 	"\t.word ResetStub\n"
 	".section text.ResetStub, at $FF00\n"
@@ -639,7 +639,7 @@ static const char* gszTestAsm65816Banks =
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestAsm65816LinkBanks(CAsm65Linker* pcLinker, CAsm65Object* pcObject, const char* szSource, uint32 uiText)
+static bool TestAsmW65C816LinkBanks(CAsm65Linker* pcLinker, CAsm65Object* pcObject, const char* szSource, uint32 uiText)
 {
 	CAsmW65C816Assembler	cAssembler;
 
@@ -661,7 +661,7 @@ static bool TestAsm65816LinkBanks(CAsm65Linker* pcLinker, CAsm65Object* pcObject
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Banks(void)
+void TestAsmW65C816Banks(void)
 {
 	CAsm65Object		cObject;
 	CAsm65Linker		cLinker;
@@ -676,7 +676,7 @@ void TestAsm65816Banks(void)
 	CAsmW65C816Lockstep		cLockstep;
 	CChars				szConsole;
 
-	AssertTrue(TestAsm65816LinkBanks(&cLinker, &cObject, gszTestAsm65816Banks, 0x010000));
+	AssertTrue(TestAsmW65C816LinkBanks(&cLinker, &cObject, gszTestAsmW65C816Banks, 0x010000));
 	AssertString("", cLinker.GetErrors());
 	AssertTrue(cLinker.GetSymbol("Start", &iStart));
 	AssertTrue(cLinker.GetSymbol("InBig", &iInBig));
@@ -689,7 +689,7 @@ void TestAsm65816Banks(void)
 
 	//On CFastW65C816 and the CW65C816 simulator in lockstep, with CAsm65Memory's console.
 	szConsole.Init();
-	cMemory.Init(TEST_ASM65816_RUN_MEMORY);
+	cMemory.Init(TEST_ASM_W65C816_RUN_MEMORY);
 	cMemory.SetConsole(&szConsole);
 	cMemory.Load(cLinker.GetOutput());
 	cMemory.InitFast65816(&cFast);
@@ -706,8 +706,8 @@ void TestAsm65816Banks(void)
 	cMemory.Kill();
 	szConsole.Kill();
 
-	puiMemory = (uint8*)malloc(TEST_ASM65816_RUN_MEMORY);
-	memset(puiMemory, 0, TEST_ASM65816_RUN_MEMORY);
+	puiMemory = (uint8*)malloc(TEST_ASM_W65C816_RUN_MEMORY);
+	memset(puiMemory, 0, TEST_ASM_W65C816_RUN_MEMORY);
 	for (i = 0; i < cLinker.GetOutput()->NumSegments(); i++)
 	{
 		psSegment = cLinker.GetOutput()->GetSegment(i);
@@ -716,7 +716,7 @@ void TestAsm65816Banks(void)
 	cLinker.Kill();
 	cObject.Kill();
 
-	cFast.Init(TestAsm65816Read, TestAsm65816Write, NULL, puiMemory, TEST_ASM65816_RUN_MEMORY);
+	cFast.Init(TestAsmW65C816Read, TestAsmW65C816Write, NULL, puiMemory, TEST_ASM_W65C816_RUN_MEMORY);
 	cFast.Reset();
 	cFast.Run(100);
 	AssertTrue(cFast.IsStopped());
@@ -726,14 +726,14 @@ void TestAsm65816Banks(void)
 	free(puiMemory);
 
 	//Only sections with an address may be in bank 0.
-	AssertFalse(TestAsm65816LinkBanks(&cLinker, &cObject, gszTestAsm65816Banks, 0x8000));
+	AssertFalse(TestAsmW65C816LinkBanks(&cLinker, &cObject, gszTestAsmW65C816Banks, 0x8000));
 	AssertTrue(strstr(cLinker.GetErrors(), "Only a section with an address (at) can be in bank 0 'text.Start'") != NULL);
 	cLinker.Kill();
 	cObject.Kill();
 
 	//A table of 4 byte init entries runs on into the next bank without a gap (each entry 4 byte aligned, so none crosses
 	//the end of a bank and is moved on), and __init_start is its first entry (after the alignment).
-	AssertTrue(TestAsm65816LinkBanks(&cLinker, &cObject,
+	AssertTrue(TestAsmW65C816LinkBanks(&cLinker, &cObject,
 		".section text.Code\n.space $FFF5\nE1:\nE2:\nE3:\nE4:\n"
 		".section init.E1\n.align 4\n.long E1\n.section init.E2\n.align 4\n.long E2\n"
 		".section init.E3\n.align 4\n.long E3\n.section init.E4\n.align 4\n.long E4\n", 0x010000));
@@ -747,18 +747,18 @@ void TestAsm65816Banks(void)
 	cObject.Kill();
 
 	//Sections with addresses can't overlap or cross the end of a bank.
-	AssertFalse(TestAsm65816LinkBanks(&cLinker, &cObject, ".section text.A, at $10000\n.space 8\n.section text.B, at $10004\n.space 8\n.section text.C, at $1FFFE\n.space 4\n", 0x010000));
+	AssertFalse(TestAsmW65C816LinkBanks(&cLinker, &cObject, ".section text.A, at $10000\n.space 8\n.section text.B, at $10004\n.space 8\n.section text.C, at $1FFFE\n.space 4\n", 0x010000));
 	AssertTrue(strstr(cLinker.GetErrors(), "Section overlaps another section with an address 'text.B'") != NULL);
 	AssertTrue(strstr(cLinker.GetErrors(), "Section crosses the end of a bank 'text.C'") != NULL);
 	cLinker.Kill();
 	cObject.Kill();
 
 	//Code bigger than a bank can't run (the program counter wraps in its bank); data may be.
-	AssertFalse(TestAsm65816LinkBanks(&cLinker, &cObject, ".section text.Huge\n.space $10001\n", 0x010000));
+	AssertFalse(TestAsmW65C816LinkBanks(&cLinker, &cObject, ".section text.Huge\n.space $10001\n", 0x010000));
 	AssertTrue(strstr(cLinker.GetErrors(), "Code is bigger than a bank 'text.Huge'") != NULL);
 	cLinker.Kill();
 	cObject.Kill();
-	AssertTrue(TestAsm65816LinkBanks(&cLinker, &cObject, ".section text.Code\nnop\n.section rodata.Table\n.space $10001\n", 0x010000));
+	AssertTrue(TestAsmW65C816LinkBanks(&cLinker, &cObject, ".section text.Code\nnop\n.section rodata.Table\n.space $10001\n", 0x010000));
 	AssertString("", cLinker.GetErrors());
 	cLinker.Kill();
 	cObject.Kill();
@@ -769,17 +769,17 @@ void TestAsm65816Banks(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816(void)
+void TestAsmW65C816(void)
 {
 	BeginTests();
 	CW65C816InstructionFactory::GetInstance()->Init();
 
-	TestAsm65816Opcodes();
-	TestAsm65816Encoding();
-	TestAsm65816Errors();
-	TestAsm65816Object();
-	TestAsm65816Run();
-	TestAsm65816Banks();
+	TestAsmW65C816Opcodes();
+	TestAsmW65C816Encoding();
+	TestAsmW65C816Errors();
+	TestAsmW65C816Object();
+	TestAsmW65C816Run();
+	TestAsmW65C816Banks();
 
 	CW65C816InstructionFactory::GetInstance()->Kill();
 	TestStatistics();

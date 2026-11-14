@@ -10,7 +10,7 @@
 // The instruction at $1000 disassembled with those widths.
 //
 //////////////////////////////////////////////////////////////////////////
-static void AssertAsm65816Disassembly(const char* szExpected, size uiExpectedLength, uint8* puiBytes, size uiAvailable, bool bMemory8, bool bIndex8)
+static void AssertAsmW65C816Disassembly(const char* szExpected, size uiExpectedLength, uint8* puiBytes, size uiAvailable, bool bMemory8, bool bIndex8)
 {
 	SAsmW65C816Widths	sWidths;
 	CChars			sz;
@@ -30,7 +30,7 @@ static void AssertAsm65816Disassembly(const char* szExpected, size uiExpectedLen
 // bytes it was disassembled from.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65816DisassembleRoundTrip(void)
+static void TestAsmW65C816DisassembleRoundTrip(void)
 {
 	CAsmW65C816Assembler	cAssembler;
 	SAsmW65C816Widths		sWidths;
@@ -91,7 +91,7 @@ static void TestAsm65816DisassembleRoundTrip(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65816DisassembleModes(void)
+static void TestAsmW65C816DisassembleModes(void)
 {
 	SAsmW65C816Widths		sWidths;
 	CChars				sz;
@@ -106,23 +106,23 @@ static void TestAsm65816DisassembleModes(void)
 	static uint8		auiCode[] = { 0xE2, 0x20, 0xA9, 0x01, 0xC2, 0x30, 0xA9, 0x01, 0x00, 0xA2, 0x02, 0x00 };
 
 	//Immediates by the widths.
-	AssertAsm65816Disassembly("lda $1234", 3, auiLda, 3, false, true);
-	AssertAsm65816Disassembly("lda $34", 2, auiLda, 3, true, false);
-	AssertAsm65816Disassembly("ldx $1234", 3, auiLdx, 3, true, false);
-	AssertAsm65816Disassembly("ldx $34", 2, auiLdx, 3, false, true);
+	AssertAsmW65C816Disassembly("lda $1234", 3, auiLda, 3, false, true);
+	AssertAsmW65C816Disassembly("lda $34", 2, auiLda, 3, true, false);
+	AssertAsmW65C816Disassembly("ldx $1234", 3, auiLdx, 3, true, false);
+	AssertAsmW65C816Disassembly("ldx $34", 2, auiLdx, 3, false, true);
 
 	//Branches go to addresses.
-	AssertAsm65816Disassembly("bra $1000", 2, auiBra, 2, true, true);
-	AssertAsm65816Disassembly("bne $1006", 2, auiBne, 2, true, true);
-	AssertAsm65816Disassembly("brl $1103", 3, auiBrl, 3, true, true);
-	AssertAsm65816Disassembly("per $1000", 3, auiPer, 3, true, true);
+	AssertAsmW65C816Disassembly("bra $1000", 2, auiBra, 2, true, true);
+	AssertAsmW65C816Disassembly("bne $1006", 2, auiBne, 2, true, true);
+	AssertAsmW65C816Disassembly("brl $1103", 3, auiBrl, 3, true, true);
+	AssertAsmW65C816Disassembly("per $1000", 3, auiPer, 3, true, true);
 
-	AssertAsm65816Disassembly("mvn $12, $34", 3, auiMvn, 3, true, true);
-	AssertAsm65816Disassembly("jsl $123456", 4, auiJsl, 4, true, true);
+	AssertAsmW65C816Disassembly("mvn $12, $34", 3, auiMvn, 3, true, true);
+	AssertAsmW65C816Disassembly("jsl $123456", 4, auiJsl, 4, true, true);
 
 	//Too few bytes.
-	AssertAsm65816Disassembly("", 0, auiJsl, 3, true, true);
-	AssertAsm65816Disassembly("", 0, auiJsl, 0, true, true);
+	AssertAsmW65C816Disassembly("", 0, auiJsl, 3, true, true);
+	AssertAsmW65C816Disassembly("", 0, auiJsl, 0, true, true);
 
 	//sep and rep change the widths of what follows.
 	sWidths.bMemory8 = false;
@@ -146,7 +146,7 @@ static void TestAsm65816DisassembleModes(void)
 // What the instructions do to the flow, and where they go.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65816DisassembleFlow(void)
+static void TestAsmW65C816DisassembleFlow(void)
 {
 	uint32			uiTarget;
 	static uint8	auiBne[] = { 0xD0, 0xFE };
@@ -179,13 +179,13 @@ static void TestAsm65816DisassembleFlow(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void TestAsm65816Disassembler(void)
+void TestAsmW65C816Disassembler(void)
 {
 	BeginTests();
 
-	TestAsm65816DisassembleModes();
-	TestAsm65816DisassembleFlow();
-	TestAsm65816DisassembleRoundTrip();
+	TestAsmW65C816DisassembleModes();
+	TestAsmW65C816DisassembleFlow();
+	TestAsmW65C816DisassembleRoundTrip();
 
 	TestStatistics();
 }

@@ -33,7 +33,7 @@ struct SAsmW65C816Opcode
 
 
 //Each opcode's mnemonic and addressing mode (W65C816S datasheet table 5-4).  The
-//test TestAsm65816Opcodes checks it against MicroprocessorLib's instruction factory.
+//test TestAsmW65C816Opcodes checks it against MicroprocessorLib's instruction factory.
 static const SAsmW65C816Opcode	gasAsmW65C816Opcodes[256] = {
 	{ "brk", AW65C816M_Immediate8 },  { "ora", AW65C816M_DirectIndirectX },  { "cop", AW65C816M_Immediate8 },  { "ora", AW65C816M_Stack },
 	{ "tsb", AW65C816M_Direct },  { "ora", AW65C816M_Direct },  { "asl", AW65C816M_Direct },  { "ora", AW65C816M_DirectIndirectLong },
