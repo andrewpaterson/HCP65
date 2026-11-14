@@ -44,7 +44,7 @@ void CHCP65DebugTarget::GetRegister(size uiRegister, SDebugRegister* psDest)
 	}
 	else
 	{
-		Get65C816DebugRegister(uiRegister, psDest);
+		GetW65C816DebugRegister(uiRegister, psDest);
 	}
 }
 
@@ -59,7 +59,7 @@ uint64 CHCP65DebugTarget::GetRegisterValue(size uiRegister)
 	{
 		return mpcHCP65->GetProcessID();
 	}
-	return Get65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister);
+	return GetW65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister);
 }
 
 
@@ -74,7 +74,7 @@ bool CHCP65DebugTarget::SetRegisterValue(size uiRegister, uint64 uiValue)
 	{
 		return false;
 	}
-	return Set65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister, uiValue);
+	return SetW65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister, uiValue);
 }
 uint32 CHCP65DebugTarget::GetProgramAddress(void)		{ return mpcHCP65->GetMPU()->GetProgramAddress(); }
 uint32 CHCP65DebugTarget::GetStackPointer(void)			{ return mpcHCP65->GetMPU()->GetS(); }

@@ -613,17 +613,17 @@ void CHCP65::Signal(void* pvContext, uint8 uiSignal)
 	CHCP65*		pcHCP65;
 
 	pcHCP65 = (CHCP65*)pvContext;
-	if (uiSignal == FAST_65C816_SIGNAL_VECTOR_PULL)
+	if (uiSignal == FAST_W65C816_SIGNAL_VECTOR_PULL)
 	{
 		pcHCP65->muiInterruptDepth = (uint8)((pcHCP65->muiInterruptDepth + 1) & 0x7F);
 		pcHCP65->UpdateMode();
 	}
-	else if (uiSignal == FAST_65C816_SIGNAL_RTI)
+	else if (uiSignal == FAST_W65C816_SIGNAL_RTI)
 	{
 		pcHCP65->muiInterruptDepth = (uint8)((pcHCP65->muiInterruptDepth - 1) & 0x7F);
 		pcHCP65->UpdateMode();
 	}
-	else if (uiSignal == FAST_65C816_SIGNAL_NATIVE)
+	else if (uiSignal == FAST_W65C816_SIGNAL_NATIVE)
 	{
 		if (!pcHCP65->mbNativeLatch)
 		{
@@ -633,7 +633,7 @@ void CHCP65::Signal(void* pvContext, uint8 uiSignal)
 			pcHCP65->EndChunk();
 		}
 	}
-	else if (uiSignal == FAST_65C816_SIGNAL_WDM)
+	else if (uiSignal == FAST_W65C816_SIGNAL_WDM)
 	{
 		pcHCP65->HearWDM();
 	}
