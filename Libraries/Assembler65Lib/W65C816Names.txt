@@ -111,16 +111,21 @@ Done
 Cleanup found on the way
 ------------------------
 
-- TestEmulatorDebugLib has no CMakeLists.txt, so no Linux build or run sweep includes it.
-- A 65 test given an argument it doesn't know (W65C816, before step 6) runs the 65C64
-  quietly; it should say so.  TestProject65ChooseTarget and TestLibc65's main both read
-  the argument: one function could.
-- Two runs of the same test directory share its Output, so a test's 65C64 and W65C816
-  runs can't go at once.
-- TestCPP65Context.cpp (TestCppCompilerLib) tells assembly units apart by
-  Contains("816") in the file name; it works because W65C816 has 816 in it.
-- AsmW65C816Opcodes.h's declarations aren't aligned (one tab after each return type).
-- AssemblerW65C816Syntax.txt has lines past 130 characters.
+Done 2026-11-14:
+- An argument a 65 test doesn't know is refused (exit 2): CommonLibraries 2838020ad,
+  HCP65 9a504ea.  The four tests share TestTarget65Choose (TestBaseLib65's
+  TestTarget65.cpp): CommonLibraries 355e8feae, HCP65 54700cc.
+- TestEmulatorDebugLib has a CMakeLists.txt (765 tests, 32 and 64 bit): CommonLibraries
+  71e04f5a5.
+- A test's 65C64 and W65C816 runs write Output/65C64 and Output/W65C816, so they can go
+  at once: CommonLibraries 355e8feae.
+- AsmW65C816Opcodes.h aligned, AssemblerW65C816Syntax.txt rewrapped: HCP65 ffa0acb.
+
+Open:
+- TestCPP65Context.cpp (TestCppCompilerLib) tells W65C816 assembly units apart by
+  Contains("816") in the file name, with a bool (bAssembly) that means "the 65C64".
+- StandardLib's SerialisedObject.cpp:120 warns on 32-bit builds: (uint64)iLength >
+  MAX_UINT32 is always false when size is 32 bits.
 - Waiting with the back end: R816_ (and R65_), IR816*, IR816_*, SIR816*, CIR816BranchCode,
   CPP816_*, TestCPP816*, TestIR816*, TEST_CPP816_*, TEST_IR816_*, AssertIR816*,
   InitFast65816, and W65C816.txt's CAsm65816Assembler, CIR816Backend and
