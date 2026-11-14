@@ -1,0 +1,78 @@
+W65C816 names
+=============
+
+Plan (2026-11-14, approved by the user): the names that still say 816 or 65816 where the
+classes and files say W65C816 (CAsmW65C816Assembler, AsmW65C816*.cpp, FastW65C816.cpp,
+W65C816DebugRegisters.h), outside the compiler's W65C816 back end.  About 860 uses in the
+HCP65 assembler and emulator, MicroprocessorLib, EmulatorDebugLib and the 65 test projects.
+
+Not in this plan, until the session working on the compiler's back end is done with it:
+the runtime labels (R816_Mul16; their 65C64 twin R65_), the back end's own names (IR816*,
+IR816_*, SIR816*, CIR816BranchCode, CPP816_*), TestCppCompilerLib's (TestCPP816*,
+TestIR816*, TEST_CPP816_*, TEST_IR816_*, AssertIR816*), and the docs' mentions of them.
+
+Not renamed: "S816" in TestSingleStep.cpp (the magic string of the binary test files),
+dated history in the notes, and the docs' flowchart node ids (be816, asm816).
+
+
+Naming
+------
+
+As the names already there (AW65C816M_, __W65C816_DEBUG_REGISTERS_H__):
+
+Functions, types, tables   Asm65816Has -> AsmW65C816Has, SAsm65816Opcode ->
+                           SAsmW65C816Opcode, gasAsm65816Opcodes -> gasAsmW65C816Opcodes
+Macros                     ASM65816_WIDTH_UNKNOWN -> ASM_W65C816_WIDTH_UNKNOWN, FAST_816_C ->
+                           FAST_W65C816_C, FAT816_MEMBER -> FAT_W65C816_MEMBER
+Include guards             __ASM65816_ASSEMBLER_H__ -> __ASM_W65C816_ASSEMBLER_H__
+Enum prefixes              D816R_X -> DW65C816R_X, F816M_INC -> FW65C816M_INC
+Locals and globals         cMPU816 -> cMPUW65C816, TickLow65816 -> TickLowW65C816
+Tests                      TestAsm65816Link -> TestAsmW65C816Link, AssertAsm65816Line ->
+                           AssertAsmW65C816Line, TestFat816Layout -> TestFatW65C816Layout
+
+
+Steps
+-----
+
+Each step is one commit.  Each renames from an explicit old -> new list with word
+boundaries (never a blanket pattern), then greps that none of its old names are left;
+realigns the comment and switch blocks the longer names push out of line; and is built and
+tested on clean worktrees (HEAD and the step only), as other sessions have work in the
+same repositories.  After steps 1 to 4 the full IDE suite runs once: the IDE compiles all
+four libraries.
+
+1. Assembler65Lib and the emulator's debug decoder (HCP65, about 230 uses): the
+   Asm65816* functions, the gas/gaai/gac/gai/gasz/gb/giAsm65816* tables, SAsm65816Opcode,
+   the ASM65816_* macros and six include guards, Index/Inner/Operand/Bits/Emit65816,
+   TickLow65816 and TickHigh65816; AsmW65C816DebugDecoder and HCP65DebugTarget.h.
+   Tests: TestAssembler65Lib, TestHCP65Lib, an IDE build.
+
+2. TestAssembler65Lib's own names (about 200 uses): TestAsm65816*, AssertAsm65816*,
+   gszTestAsm65816*, TEST_ASM65816_RUN_MEMORY.  Tests: TestAssembler65Lib.
+
+3. The fast W65C816 simulator (MicroprocessorLib, about 170 uses): FAST_816_*, F816M_*,
+   InitFast65816 (called from Asm65Memory and four test contexts).  Tests:
+   TestMicroprocessorLib, TestAssembler65Lib, TestLibc65 816, TestBaseLib65 816.
+
+4. The debug registers (EmulatorDebugLib, about 60 uses): D816R_*, CTestDebug816Decoder,
+   TEST_DEBUG_816_MEMORY.  Tests: TestEmulatorDebugLib, TestHCP65Lib, an IDE build.
+
+5. The FAT layout test (TestBaseLib65, about 260 uses): FAT816_*, TEST_FAT816_*,
+   STestFat816Value, gasTestFat816Values, the TestFat816Layout* functions,
+   gauiFat816Layout.  Tests: TestBaseLib65 816, its generated FatW65C816.inc byte for byte
+   the same.
+
+6. The 65 test support (about 40 uses): cMPU816, aszExcluded816,
+   gaszTestProject816Suffixes, uiMinPrograms816, iMinTestsRun816, cProfiled816,
+   aiExpected816, TEST_PROJECT816_*, and the "816" command line argument that picks the
+   W65C816 target (TestBaseLib65, TestStandardLib65, TestSupportLib65, TestLibc65).
+   Open: the argument becomes W65C816 with 816 kept as a short alias (suggested), or is
+   renamed and the run recipes changed.  Tests: all four, 816 and 65C64.
+
+7. Docs and notes: the docs site's CAsm65816Assembler (assembler-w65c816.md, index.md,
+   inside.md), this assembler's syntax note, and the notes naming anything renamed.
+
+
+Done
+----
+

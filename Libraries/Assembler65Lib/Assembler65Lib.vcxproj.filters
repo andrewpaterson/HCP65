@@ -192,5 +192,6 @@
   <ItemGroup>
     <Text Include="Assembler65C64Syntax.txt" />
     <Text Include="AssemblerW65C816Syntax.txt" />
+    <Text Include="W65C816Names.txt" />
   </ItemGroup>
 </Project>

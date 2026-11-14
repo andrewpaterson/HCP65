@@ -248,6 +248,7 @@
   <ItemGroup>
     <Text Include="Assembler65C64Syntax.txt" />
     <Text Include="AssemblerW65C816Syntax.txt" />
+    <Text Include="W65C816Names.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
