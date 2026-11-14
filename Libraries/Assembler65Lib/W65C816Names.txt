@@ -112,13 +112,13 @@ Cleanup found on the way
 ------------------------
 
 Done 2026-11-14:
-- An argument a 65 test doesn't know is refused (exit 2): CommonLibraries 2838020ad,
+- An argument a 65 test doesn't know is refused (exit 2): CommonLibraries 2bdbacf3f,
   HCP65 9a504ea.  The four tests share TestTarget65Choose (TestBaseLib65's
-  TestTarget65.cpp): CommonLibraries 355e8feae, HCP65 54700cc.
+  TestTarget65.cpp): CommonLibraries 0992246dc, HCP65 54700cc.
 - TestEmulatorDebugLib has a CMakeLists.txt (765 tests, 32 and 64 bit): CommonLibraries
-  71e04f5a5.
+  34343f2ca.
 - A test's 65C64 and W65C816 runs write Output/65C64 and Output/W65C816, so they can go
-  at once: CommonLibraries 355e8feae.
+  at once: CommonLibraries 0992246dc.
 - AsmW65C816Opcodes.h aligned, AssemblerW65C816Syntax.txt rewrapped: HCP65 ffa0acb.
 
 Open:
