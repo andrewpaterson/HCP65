@@ -9,7 +9,8 @@ HCP65 assembler and emulator, MicroprocessorLib, EmulatorDebugLib and the 65 tes
 Not in this plan, until the session working on the compiler's back end is done with it:
 the runtime labels (R816_Mul16; their 65C64 twin R65_), the back end's own names (IR816*,
 IR816_*, SIR816*, CIR816BranchCode, CPP816_*), TestCppCompilerLib's (TestCPP816*,
-TestIR816*, TEST_CPP816_*, TEST_IR816_*, AssertIR816*), and the docs' mentions of them.
+TestIR816*, TEST_CPP816_*, TEST_IR816_*, AssertIR816*), InitFast65816 (TestCppCompilerLib's
+W65C816 tests call it), and the docs' mentions of them.
 
 Not renamed: "S816" in TestSingleStep.cpp (the magic string of the binary test files),
 dated history in the notes, and the docs' flowchart node ids (be816, asm816).
@@ -50,8 +51,8 @@ four libraries.
 2. TestAssembler65Lib's own names (about 200 uses): TestAsm65816*, AssertAsm65816*,
    gszTestAsm65816*, TEST_ASM65816_RUN_MEMORY.  Tests: TestAssembler65Lib.
 
-3. The fast W65C816 simulator (MicroprocessorLib, about 170 uses): FAST_816_*, F816M_*,
-   InitFast65816 (called from Asm65Memory and four test contexts).  Tests:
+3. The fast W65C816 simulator (MicroprocessorLib, about 160 uses): FAST_816_*, F816M_*.
+   InitFast65816 waits with the back end's names: TestCppCompilerLib calls it.  Tests:
    TestMicroprocessorLib, TestAssembler65Lib, TestLibc65 816, TestBaseLib65 816.
 
 4. The debug registers (EmulatorDebugLib, about 60 uses): D816R_*, CTestDebug816Decoder,
@@ -72,7 +73,24 @@ four libraries.
 7. Docs and notes: the docs site's CAsm65816Assembler (assembler-w65c816.md, index.md,
    inside.md), this assembler's syntax note, and the notes naming anything renamed.
 
+8. Found during step 4, open: names saying 65C816 without the W (about 290 uses).  The
+   fast simulator's CFast65C816ReadByte/WriteByte/Signal, FAST_65C816_* and
+   __FAST_65C816_H__; its tests' TestFast65C816*, STestFast65C816*, CTestFast65C816*,
+   TEST_FAST_65C816_* (TestMicroprocessorLib, most of them); EmulatorDebugLib's
+   E65C816DebugRegister, Get/Set65C816DebugRegister(Value), __FLAT_65C816_DEBUG_TARGET_H__
+   and TestDebugServer65C816; and HCP65Lib's uses of them.
+
 
 Done
 ----
 
+1. 2026-11-14, HCP65 94cb006: 50 names, 236 uses in 18 files.  TestAssembler65Lib 1415,
+   TestHCP65Lib 813 passed.
+2. 2026-11-14, HCP65 6c8e3a5: 27 names, 185 uses.  TestAssembler65Lib 1415 passed.
+3. 2026-11-14, CommonLibraries 6f761551f: 23 macros, 159 uses (not InitFast65816).
+   TestMicroprocessorLib 9006, TestAssembler65Lib 1415, TestLibc65 816 154781,
+   TestBaseLib65 816 414 passed.
+4. 2026-11-14, CommonLibraries 03d5ccd11 and HCP65 1ffe0b4: 13 names, 81 uses.
+   TestEmulatorDebugLib 765 (it has no CMake build; built from a scratch CMakeLists.txt in
+   a worktree), TestHCP65Lib 813 passed.
+   After steps 1 to 4: the full IDE suite, 171 checks, passed.
