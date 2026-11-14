@@ -10,7 +10,8 @@
 ; The calling convention is the generator's: the arguments are on the stack (the first
 ; at [5 + S] above the return address, the second after it), the result is in A (all 8
 ; bytes of it for a 64 bit result), A, B, X and Y are 32 bits wide on the way in and
-; out, and V, W and S are kept.  A, B, X, Y and the status flags (f and g too) change.
+; out, and V and S are kept.  A, B, X, Y, W and the status flags (f and g too) change
+; (W is a register like any other: mul and div count in it, from 0).
 ; The pseudo registers are not used.
 ;
 ; Significands are worked on in 64 bit registers.  A product is one mul (the 24 bit
@@ -21,8 +22,7 @@
 ;
 ; For speed: a branch to a label 2 to 8 bytes on is one word (one cycle), and further
 ; it is two words (two cycles) taken or not, so the rare cases (special values, results
-; out of range) are reached by a short branch over a bra to them.  W is 0 in generated
-; code, so mul and div only keep it out of line when it is not.
+; out of range) are reached by a short branch over a bra to them.
 ;
 ; Cycles per call on the simulator for normal operands from 2^-20 to 2^20, with
 ; softfloat.cpp's compiled code in brackets: add 80 (2140), subtract 84 (2230),
@@ -73,17 +73,11 @@ NotMultiplySpecial2:
 		shr B, 8
 
 ; A is a's significand shifted up 8, B is b's significand and X the sum of the exponents
-; less 2.  W is 0 in generated code, so the general case (W kept in the top of X) is out
-; of line.  The product goes on into RoundPack.
+; less 2.  mul counts in W from 0, so W is set first.  The product goes on into RoundPack.
 MultiplySignificands:
-		tst W, W
-		bras z, MultiplyW0
-		bra MultiplyKeepW
-
-MultiplyW0:
+		cpy W, 0
 		wth Y, 64
 		mul						; from 2^54 to 2^56
-		cpy W, 0
 		sub X, 125
 
 ; Rounds and packs a finite result and returns from the routine that jumped here.
@@ -505,15 +499,6 @@ MultiplyInfiniteB:
 		bras z, DefaultNaN
 		bra SignedInfinity
 
-MultiplyKeepW:
-		scp (W, 0), (X, 4), 4
-		cpy W, 0
-		wth Y, 64
-		mul
-		scp (X, 4), (W, 0), 4
-		sub X, 125
-		bra RoundPack
-
 
 ; uint32_t SoftFloatDivide(uint32_t uiA, uint32_t uiB)
 _SoftFloatDivide:
@@ -548,17 +533,12 @@ NotDivideSpecial2:
 		stab (A, 23), 1			; b's significand
 
 ; Y (64 bits wide) is a's significand shifted up 40, A is b's significand and X the
-; difference of the exponents.  The quotient has 40 or 41 bits.  W is 0 in generated
-; code; otherwise it is kept in the top of X.
+; difference of the exponents.  The quotient has 40 or 41 bits.  div counts in W from 0,
+; so W is set first.
 DivideSignificands:
 		cpy B, 0
-		tst W, W
-		bras z, DivideW0
-		bra DivideKeepW
-
-DivideW0:
-		div
 		cpy W, 0
+		div
 
 DivideQuotient:
 		shl Y, 15
@@ -630,13 +610,6 @@ DivideByZero:
 		tst X, X
 		bras z, DefaultNaN		; zero over zero
 		bra SignedInfinity
-
-DivideKeepW:
-		scp (W, 0), (X, 4), 4
-		cpy W, 0
-		div
-		scp (X, 4), (W, 0), 4
-		bra DivideQuotient
 
 
 ; uint32_t SoftFloatFromInt(int32_t i), SoftFloatFromUnsigned(uint32_t ui),
