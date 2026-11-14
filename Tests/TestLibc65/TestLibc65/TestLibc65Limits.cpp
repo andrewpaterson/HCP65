@@ -87,7 +87,7 @@ void TestLibc65LimitsValues(void)
 		(int32)0xFFFFFFFF, 0x7FFFFFFF, (int32)0x80000000,		//SIZE_MAX PTRDIFF_MAX PTRDIFF_MIN
 		1, 1, 1, 1, 1, 1, 1, 1,									//wrapping
 	};
-	static const int32	aiExpected816[] = { -32768, 32767, 65535 };	//INT_MIN INT_MAX UINT_MAX
+	static const int32	aiExpectedW65C816[] = { -32768, 32767, 65535 };	//INT_MIN INT_MAX UINT_MAX
 	STestLibc65Run		sRun;
 	int32				iExpected;
 	size				i;
@@ -173,7 +173,7 @@ void TestLibc65LimitsValues(void)
 		iExpected = aiExpected[i];
 		if ((geTestLibc65Target == CPPT_W65C816) && (i >= 9) && (i < 12))
 		{
-			iExpected = aiExpected816[i - 9];
+			iExpected = aiExpectedW65C816[i - 9];
 		}
 		AssertInt(iExpected, TestLibc65Result(&sRun, i));
 	}

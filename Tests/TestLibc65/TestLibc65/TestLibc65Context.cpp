@@ -148,8 +148,8 @@ bool TestLibc65Begin(STestLibc65Run* psRun, const char** aszUnits, const char* s
 		if (geTestLibc65Target == CPPT_W65C816)
 		{
 			psRun->pcMemory->Load(cBuilder.GetOutput());
-			psRun->pcMemory->InitFast65816(&psRun->cMPU816);
-			psRun->cMPU816.Reset();
+			psRun->pcMemory->InitFast65816(&psRun->cMPUW65C816);
+			psRun->cMPUW65C816.Reset();
 		}
 		else
 		{
@@ -179,7 +179,7 @@ bool TestLibc65Run(STestLibc65Run* psRun, size uiMaxInstructions)
 	{
 		if (geTestLibc65Target == CPPT_W65C816)
 		{
-			return psRun->cMPU816.GetS() == GetCPPTarget(CPPT_W65C816)->GetStackTop();
+			return psRun->cMPUW65C816.GetS() == GetCPPTarget(CPPT_W65C816)->GetStackTop();
 		}
 		return psRun->cMPU.GetS() == CPP65_STACK_TOP;
 	}
@@ -198,8 +198,8 @@ bool TestLibc65RunToStop(STestLibc65Run* psRun, size uiMaxInstructions)
 	if (geTestLibc65Target == CPPT_W65C816)
 	{
 		uiMaxInstructions = (uiMaxInstructions > SIZE_MAX / TEST_LIBC65_816_INSTRUCTIONS) ? SIZE_MAX : uiMaxInstructions * TEST_LIBC65_816_INSTRUCTIONS;
-		psRun->cMPU816.Run(uiMaxInstructions);
-		return psRun->cMPU816.IsStopped();
+		psRun->cMPUW65C816.Run(uiMaxInstructions);
+		return psRun->cMPUW65C816.IsStopped();
 	}
 	psRun->cMPU.Run(uiMaxInstructions);
 	return psRun->cMPU.IsStopped();
@@ -215,7 +215,7 @@ int32 TestLibc65Return(STestLibc65Run* psRun)
 {
 	if (geTestLibc65Target == CPPT_W65C816)
 	{
-		return (int16)psRun->cMPU816.GetC();
+		return (int16)psRun->cMPUW65C816.GetC();
 	}
 	return (int32)psRun->cMPU.GetA();
 }
@@ -254,7 +254,7 @@ void TestLibc65End(STestLibc65Run* psRun)
 		AssertSize(0, psRun->pcMemory->NumBadAccesses());
 		if (geTestLibc65Target == CPPT_W65C816)
 		{
-			psRun->cMPU816.Kill();
+			psRun->cMPUW65C816.Kill();
 		}
 		else
 		{

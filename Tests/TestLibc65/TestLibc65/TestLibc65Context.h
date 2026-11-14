@@ -15,13 +15,13 @@
 //0001:0000, Libc65's heap from 0008:0000 to 000F:FFFF, a test's results (longs, 32 bits on every target) at
 //0010:0000 (TEST_LIBC65_RESULTS),
 //its byte results at 0010:8000 (TEST_LIBC65_BYTES) and the stack from 001F:FFFC down (on the W65C816 from the
-//target's stack top in bank 0).  The target is geTestLibc65Target: the 65C64 (cMPU) or the W65C816 (cMPU816),
+//target's stack top in bank 0).  The target is geTestLibc65Target: the 65C64 (cMPU) or the W65C816 (cMPUW65C816),
 //whose int is 16 bits.
 struct STestLibc65Run
 {
 	CAsm65Memory*	pcMemory;
 	CFast65C64		cMPU;
-	CFastW65C816		cMPU816;
+	CFastW65C816		cMPUW65C816;
 };
 
 

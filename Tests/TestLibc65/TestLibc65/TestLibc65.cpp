@@ -19,15 +19,15 @@ void TestLibc65SoftFloat(void);
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Libc65 is compiled with CppCompilerLib's 65C64 generator and run on MicroprocessorLib's 65C64, or with "816" for
-// the W65C816 compiler and run on its fast core.
+// Libc65 is compiled with CppCompilerLib's 65C64 generator and run on MicroprocessorLib's 65C64, or with "W65C816"
+// ("816" for short) for the W65C816 compiler and run on its fast core.
 //
 //////////////////////////////////////////////////////////////////////////
 int __cdecl main(int argc, char** argv)
 {
 	int	iTotalTestsFailed;
 
-	if ((argc > 1) && (strcmp(argv[1], "816") == 0))
+	if ((argc > 1) && ((strcmp(argv[1], "W65C816") == 0) || (strcmp(argv[1], "816") == 0)))
 	{
 		geTestLibc65Target = CPPT_W65C816;
 	}
