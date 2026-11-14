@@ -7,7 +7,7 @@ for both processors.
 |---|---|---|
 | Preprocess | `CPreprocessor`, `CPPHeaderCache` | Includes, macros and conditional compilation, to a token stream. |
 | Tokenise and parse | `CCPPTokeniser`, `CCPPParser` | C++ tokens to a syntax tree (`CCPPSyntaxTree`), with names resolved to scopes and symbols. |
-| Declarations and types | `CCPP65Generator`, `CCPP65TypeChecker` | Classes laid out, templates instantiated, overloads chosen, each expression's type worked out. |
+| Declarations and types | `CCPPUnit`, `CCPP65TypeChecker` | Classes laid out, templates instantiated, overloads chosen, each expression's type worked out. |
 | IR front end | `CCPP65IRFrontEnd` | Each function body written as [IR](ir.md), already in SSA form. |
 | Inline and optimise | `CIRInliner`, `CIROptimiser`, `CIRInterprocedural` | The IR made smaller and faster, the same for both processors. |
 | Back end | `CIRW65C816Backend`, `CIR65Backend` | IR to the processor's assembly text, with its own passes over the code. |
@@ -42,7 +42,7 @@ code.
 
 ## Generator and type checker
 
-`CCPP65Generator` does the C++: it lays out classes, writes vtables and their thunks, instantiates
+`CCPPUnit` does the C++: it lays out classes, writes vtables and their thunks, instantiates
 templates, chooses overloads and conversions, and decides which temporaries need destroying.  It
 works the way a C++ compiler does, doing only what is used:
 
