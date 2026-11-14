@@ -8,8 +8,8 @@
 
 //After the W65C816's registers: the process the MMU maps user mode for, read only (changing it would move the running
 //process's memory from under it).
-#define HCP65_DEBUG_REGISTER_PROCESS	D816R_NumRegisters
-#define HCP65_DEBUG_NUM_REGISTERS		(D816R_NumRegisters + 1)
+#define HCP65_DEBUG_REGISTER_PROCESS	DW65C816R_NumRegisters
+#define HCP65_DEBUG_NUM_REGISTERS		(DW65C816R_NumRegisters + 1)
 
 
 //The HCP65 as a CDebugServer sees it: its W65C816 and the memory map it sees now.  Run's budget is CPU cycles,

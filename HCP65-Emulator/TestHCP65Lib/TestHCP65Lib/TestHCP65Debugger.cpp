@@ -523,8 +523,8 @@ void TestHCP65Debugger(void)
 	AssertTrue(cClient.AddBreakpoint(0x8006, true));
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
-	AssertLongLongIntHex(2, cClient.GetRegisterValue(D816R_X));
-	AssertLongLongIntHex(0, cClient.GetRegisterValue(D816R_E));
+	AssertLongLongIntHex(2, cClient.GetRegisterValue(DW65C816R_X));
+	AssertLongLongIntHex(0, cClient.GetRegisterValue(DW65C816R_E));
 	AssertTrue(cHCP65.IsNativeLatched());
 	AssertTrue(cHCP65.IsKernelMode());
 
@@ -533,7 +533,7 @@ void TestHCP65Debugger(void)
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
 	AssertInt(uiInstructions + 6, cHCP65.GetInstructionCount());
-	AssertLongLongIntHex(4, cClient.GetRegisterValue(D816R_X));
+	AssertLongLongIntHex(4, cClient.GetRegisterValue(DW65C816R_X));
 
 	//Over the line with the call, with the devices kept up with each step.
 	AssertTrue(cClient.Step(2));
@@ -542,25 +542,25 @@ void TestHCP65Debugger(void)
 	sLine.uiEnd = 0x8006;
 	AssertTrue(cClient.StepRange(&sLine, 1, true));
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
-	AssertLongLongIntHex(6, cClient.GetRegisterValue(D816R_X));
+	AssertLongLongIntHex(6, cClient.GetRegisterValue(DW65C816R_X));
 
 	//Over the jsr, and into it and out again.
 	AssertTrue(cClient.Step(3));
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8003);
 	AssertTrue(cClient.StepOver());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
-	AssertLongLongIntHex(8, cClient.GetRegisterValue(D816R_X));
+	AssertLongLongIntHex(8, cClient.GetRegisterValue(DW65C816R_X));
 	AssertTrue(cClient.Step(4));
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8010);
 	AssertTrue(cClient.StepOut());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Step, 0x8006);
-	AssertLongLongIntHex(10, cClient.GetRegisterValue(D816R_X));
+	AssertLongLongIntHex(10, cClient.GetRegisterValue(DW65C816R_X));
 
 	//A kernel mode breakpoint stops it in the function; removed, it goes on to the one after the call.
 	AssertTrue(cClient.AddBreakpoint(0x8010, true, uiKernel));
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8010);
-	AssertLongLongIntHex(11, cClient.GetRegisterValue(D816R_X));
+	AssertLongLongIntHex(11, cClient.GetRegisterValue(DW65C816R_X));
 	AssertInt(uiKernel, cClient.GetStopSpace());
 	AssertIntHex(DEBUG_PROCESS_ANY, cClient.GetStopProcess());
 	AssertTrue(cHCP65.GetModeBreakpoints(true)->Contains(0x8010));
@@ -568,7 +568,7 @@ void TestHCP65Debugger(void)
 	AssertTrue(cClient.RemoveBreakpoint(0x8010, uiKernel));
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
-	AssertLongLongIntHex(12, cClient.GetRegisterValue(D816R_X));
+	AssertLongLongIntHex(12, cClient.GetRegisterValue(DW65C816R_X));
 
 	//Processes: the kernal tells the debug port of one started while running.  It stops (DS_Process), and the
 	//debugger is told its ID and program.

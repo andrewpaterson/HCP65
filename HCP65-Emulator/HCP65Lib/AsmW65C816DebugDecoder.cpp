@@ -44,10 +44,10 @@ size CAsmW65C816DebugDecoder::Decode(CDebugTarget* pcTarget, uint32 uiAddress, s
 	SDebugInstruction*	psInstruction;
 	uint32				uiTarget;
 
-	uiP = pcTarget->GetRegisterValue(D816R_P);
+	uiP = pcTarget->GetRegisterValue(DW65C816R_P);
 	sWidths.bMemory8 = (uiP & ASM_W65C816_DEBUG_M_FLAG) != 0;
 	sWidths.bIndex8 = (uiP & ASM_W65C816_DEBUG_X_FLAG) != 0;
-	if (pcTarget->GetRegisterValue(D816R_E) != 0)
+	if (pcTarget->GetRegisterValue(DW65C816R_E) != 0)
 	{
 		sWidths.bMemory8 = true;
 		sWidths.bIndex8 = true;
