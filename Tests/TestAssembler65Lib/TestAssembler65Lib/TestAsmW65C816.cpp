@@ -82,7 +82,7 @@ void TestAsm65816Opcodes(void)
 	szDifferences.Init();
 	for (i = 0; i < 256; i++)
 	{
-		szMnemonic = Asm65816Mnemonic((uint8)i, &uiMode);
+		szMnemonic = AsmW65C816Mnemonic((uint8)i, &uiMode);
 		pcInstruction = pcFactory->GetInstruction((uint16)i);
 		//The simulator calls jml JMP and puts per with the stack instructions.
 		bSame = (MemICmp(szMnemonic, pcInstruction->GetName(), 4) == 0) || ((strcmp(szMnemonic, "jml") == 0) && (strcmp(pcInstruction->GetName(), "JMP") == 0));

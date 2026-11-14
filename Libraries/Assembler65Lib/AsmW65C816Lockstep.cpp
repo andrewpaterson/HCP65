@@ -41,7 +41,7 @@ void CAsmW65C816Lockstep::Init(CAsm65Memory* pcFastMemory, CFastW65C816* pcFast)
 	mpcSimMemory = NewMalloc<CAsm65Memory>();
 	mpcSimMemory->Init(mpcFastMemory->GetLowSize());
 	mpcSimMemory->CopyFrom(mpcFastMemory);
-	mcMeta.Init(CAsm65Memory::TickHigh65816, CAsm65Memory::TickLow65816, mpcSimMemory);
+	mcMeta.Init(CAsm65Memory::TickHighW65C816, CAsm65Memory::TickLowW65C816, mpcSimMemory);
 	mcMeta.GetRESB()->Set(false);
 	mcMeta.TickInstruction();
 }

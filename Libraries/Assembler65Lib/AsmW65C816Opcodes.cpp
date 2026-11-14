@@ -28,7 +28,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 // isn't 0.
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816HasDirectPageOperand(uint8 uiOpcode)
+bool AsmW65C816HasDirectPageOperand(uint8 uiOpcode)
 {
 	uint8	uiLow;
 
@@ -64,7 +64,7 @@ bool Asm65816HasDirectPageOperand(uint8 uiOpcode)
 // a pointer in the direct page ((dp), [dp], ...) writes elsewhere.
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite)
+bool AsmW65C816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite)
 {
 	psWrite->cIndex = 0;
 	psWrite->bIndexWidth = false;
@@ -100,7 +100,7 @@ bool Asm65816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite
 // jsl, jsr or jsr (a,x).
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816IsSubroutineCall(uint8 uiOpcode)
+bool AsmW65C816IsSubroutineCall(uint8 uiOpcode)
 {
 	return (uiOpcode == 0x22) || (uiOpcode == 0x20) || (uiOpcode == 0xFC);
 }
@@ -114,7 +114,7 @@ bool Asm65816IsSubroutineCall(uint8 uiOpcode)
 // is a loop.
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816IsCall(uint8 uiOpcode)
+bool AsmW65C816IsCall(uint8 uiOpcode)
 {
 	switch (uiOpcode)
 	{
@@ -131,7 +131,7 @@ bool Asm65816IsCall(uint8 uiOpcode)
 // Whether an instruction returns: rtl, rts or rti.
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816IsReturn(uint8 uiOpcode)
+bool AsmW65C816IsReturn(uint8 uiOpcode)
 {
 	return (uiOpcode == 0x6B) || (uiOpcode == 0x60) || (uiOpcode == 0x40);
 }
@@ -141,7 +141,7 @@ bool Asm65816IsReturn(uint8 uiOpcode)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-EAsmW65C816Flow Asm65816Flow(uint8 uiOpcode)
+EAsmW65C816Flow AsmW65C816Flow(uint8 uiOpcode)
 {
 	switch (uiOpcode)
 	{
@@ -167,7 +167,7 @@ EAsmW65C816Flow Asm65816Flow(uint8 uiOpcode)
 // one's.  False through a vector, or for any other instruction.
 //
 //////////////////////////////////////////////////////////////////////////
-bool Asm65816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget)
+bool AsmW65C816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget)
 {
 	uint32	uiBank;
 	uint32	uiAbsolute;

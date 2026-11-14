@@ -23,7 +23,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "AsmW65C816FrameCheck.h"
 
 
-#define ASM65816_FRAME_CHECK_MOST	4		//The stores to callers' stacks kept (GetWrite): the first ones found.
+#define ASM_W65C816_FRAME_CHECK_MOST	4		//The stores to callers' stacks kept (GetWrite): the first ones found.
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -92,7 +92,7 @@ uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 	uiAddress = mpcFast->GetProgramAddress();
 	uiOpcode = mpcMemory->GetByte(uiAddress);
 	Check(uiAddress, uiOpcode);
-	if (Asm65816IsSubroutineCall(uiOpcode))
+	if (AsmW65C816IsSubroutineCall(uiOpcode))
 	{
 		if (masCalls.NumElements() == 0)
 		{
@@ -118,7 +118,7 @@ uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 //////////////////////////////////////////////////////////////////////////
 void CAsmW65C816FrameCheck::AfterStep(uint8 uiOpcode)
 {
-	if (!Asm65816IsReturn(uiOpcode))
+	if (!AsmW65C816IsReturn(uiOpcode))
 	{
 		return;
 	}
@@ -183,7 +183,7 @@ void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 	char						sz[16];
 	SAsmW65C816FrameWrite*		psWrite;
 
-	if ((masCalls.NumElements() == 0) || !Asm65816DirectPageWrite(uiOpcode, &sWrite))
+	if ((masCalls.NumElements() == 0) || !AsmW65C816DirectPageWrite(uiOpcode, &sWrite))
 	{
 		return;
 	}
@@ -211,7 +211,7 @@ void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 		return;
 	}
 
-	if (masWrites.NumElements() < ASM65816_FRAME_CHECK_MOST)
+	if (masWrites.NumElements() < ASM_W65C816_FRAME_CHECK_MOST)
 	{
 		psWrite = masWrites.Add();
 		psWrite->uiAddress = uiAddress;

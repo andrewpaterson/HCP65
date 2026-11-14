@@ -125,12 +125,12 @@ void CAsm65ProfiledW65C816::Step(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // jsl, jsr, a jump, or the rtl a call through a pointer is made with
-// (Asm65816IsCall).
+// (AsmW65C816IsCall).
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65ProfiledW65C816::IsCall(uint32 uiAddress)
 {
-	return Asm65816IsCall(mpcMemory->GetByte(uiAddress));
+	return AsmW65C816IsCall(mpcMemory->GetByte(uiAddress));
 }
 
 
@@ -140,7 +140,7 @@ bool CAsm65ProfiledW65C816::IsCall(uint32 uiAddress)
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65ProfiledW65C816::IsReturn(uint32 uiAddress)
 {
-	return Asm65816IsReturn(mpcMemory->GetByte(uiAddress));
+	return AsmW65C816IsReturn(mpcMemory->GetByte(uiAddress));
 }
 
 
@@ -151,7 +151,7 @@ bool CAsm65ProfiledW65C816::IsReturn(uint32 uiAddress)
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65ProfiledW65C816::HasFrameOperand(uint32 uiAddress)
 {
-	return Asm65816HasDirectPageOperand(mpcMemory->GetByte(uiAddress));
+	return AsmW65C816HasDirectPageOperand(mpcMemory->GetByte(uiAddress));
 }
 
 

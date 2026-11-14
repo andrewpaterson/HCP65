@@ -18,14 +18,14 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#ifndef __ASM65816_ASSEMBLER_H__
-#define __ASM65816_ASSEMBLER_H__
+#ifndef __ASM_W65C816_ASSEMBLER_H__
+#define __ASM_W65C816_ASSEMBLER_H__
 #include "Asm65BaseAssembler.h"
 
 
-#define ASM65816_MAX_BYTES		5
-#define ASM65816_MAX_RELOCATIONS	2
-#define ASM65816_WIDTH_UNKNOWN	0
+#define ASM_W65C816_MAX_BYTES		5
+#define ASM_W65C816_MAX_RELOCATIONS	2
+#define ASM_W65C816_WIDTH_UNKNOWN	0
 
 
 //How an instruction's operand is addressed: the W65C816S's addressing modes as written
@@ -104,9 +104,9 @@ struct SAsmW65C816Relocation
 
 struct SAsmW65C816Instruction
 {
-	uint8				auiBytes[ASM65816_MAX_BYTES];
+	uint8				auiBytes[ASM_W65C816_MAX_BYTES];
 	uint8				uiBytes;
-	SAsmW65C816Relocation	asRelocations[ASM65816_MAX_RELOCATIONS];
+	SAsmW65C816Relocation	asRelocations[ASM_W65C816_MAX_RELOCATIONS];
 	uint8				uiRelocations;
 };
 
@@ -117,7 +117,7 @@ struct SAsmW65C816Instruction
 class CAsmW65C816Assembler : public CAsm65BaseAssembler
 {
 protected:
-	uint8	muiWidthA;		//8, 16 or ASM65816_WIDTH_UNKNOWN.
+	uint8	muiWidthA;		//8, 16 or ASM_W65C816_WIDTH_UNKNOWN.
 	uint8	muiWidthX;
 	bool	mbRelax;		//.relax: a branch to a label too far away becomes a branch round a brl.
 
@@ -134,14 +134,14 @@ protected:
 	void			SectionStarted(void) override;
 
 	//AsmW65C816Assembler.cpp: operands, widths and writing instructions.
-	bool			Operand65816(SAsmW65C816Operand* psOperand);
-	bool			Inner65816(SAsmW65C816Operand* psOperand);
-	bool			Index65816(char* pcIndex, bool bAllowY);
-	bool			Bits65816(uint8* puiBits, bool bAllow24);
+	bool			OperandW65C816(SAsmW65C816Operand* psOperand);
+	bool			InnerW65C816(SAsmW65C816Operand* psOperand);
+	bool			IndexW65C816(char* pcIndex, bool bAllowY);
+	bool			BitsW65C816(uint8* puiBits, bool bAllow24);
 	bool			Width(void);
 	bool			StatusBits(uint8* puiBits);
 	void			ChangeWidths(bool bSet, uint8 uiBits);
-	void			Emit65816(SAsmW65C816Instruction* psInstruction);
+	void			EmitW65C816(SAsmW65C816Instruction* psInstruction);
 	void			AddByte(SAsmW65C816Instruction* psInstruction, uint8 uiByte);
 	bool			AddField(SAsmW65C816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, bool bSigned, uint8 uiForm, SAsm65Token* psToken);
 	bool			AddRelative(SAsmW65C816Instruction* psInstruction, SAsm65Value* psValue, uint8 uiBytes, uint8 uiLength, SAsm65Token* psToken);
@@ -157,8 +157,8 @@ protected:
 
 
 //The opcode table, for tests: the mnemonic and EAsmW65C816Mode of each opcode.
-const char*	Asm65816Mnemonic(uint8 uiOpcode, uint8* puiMode);
+const char*	AsmW65C816Mnemonic(uint8 uiOpcode, uint8* puiMode);
 
 
-#endif // __ASM65816_ASSEMBLER_H__
+#endif // __ASM_W65C816_ASSEMBLER_H__
 

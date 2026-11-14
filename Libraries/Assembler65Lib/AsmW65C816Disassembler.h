@@ -18,8 +18,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#ifndef __ASM65816_DISASSEMBLER_H__
-#define __ASM65816_DISASSEMBLER_H__
+#ifndef __ASM_W65C816_DISASSEMBLER_H__
+#define __ASM_W65C816_DISASSEMBLER_H__
 #include "BaseLib/Chars.h"
 
 
@@ -36,10 +36,10 @@ struct SAsmW65C816Widths
 //syntax: "lda [D + $04]".  It reassembles to the same bytes, except that a branch's operand (bra, brl, per) is
 //written as the address it goes to, not C plus an offset.  Returns the instruction's length, or 0 (nothing
 //appended) if there aren't that many bytes.
-size	Asm65816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SAsmW65C816Widths* psWidths, CChars* pszDest);
+size	AsmW65C816Disassemble(uint32 uiAddress, uint8* puiBytes, size uiAvailable, SAsmW65C816Widths* psWidths, CChars* pszDest);
 
 //The length of the instruction starting with uiOpcode, with those widths.
-size	Asm65816InstructionLength(uint8 uiOpcode, SAsmW65C816Widths* psWidths);
+size	AsmW65C816InstructionLength(uint8 uiOpcode, SAsmW65C816Widths* psWidths);
 
 
-#endif // __ASM65816_DISASSEMBLER_H__
+#endif // __ASM_W65C816_DISASSEMBLER_H__

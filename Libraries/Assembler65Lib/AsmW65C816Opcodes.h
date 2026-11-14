@@ -18,8 +18,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#ifndef __ASM65816_OPCODES_H__
-#define __ASM65816_OPCODES_H__
+#ifndef __ASM_W65C816_OPCODES_H__
+#define __ASM_W65C816_OPCODES_H__
 #include "BaseLib/PrimitiveTypes.h"
 
 
@@ -43,13 +43,13 @@ enum EAsmW65C816Flow
 };
 
 
-bool	Asm65816HasDirectPageOperand(uint8 uiOpcode);
-bool	Asm65816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite);
-bool	Asm65816IsSubroutineCall(uint8 uiOpcode);
-bool	Asm65816IsCall(uint8 uiOpcode);
-bool	Asm65816IsReturn(uint8 uiOpcode);
-EAsmW65C816Flow	Asm65816Flow(uint8 uiOpcode);
-bool	Asm65816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget);
+bool	AsmW65C816HasDirectPageOperand(uint8 uiOpcode);
+bool	AsmW65C816DirectPageWrite(uint8 uiOpcode, SAsmW65C816DirectPageWrite* psWrite);
+bool	AsmW65C816IsSubroutineCall(uint8 uiOpcode);
+bool	AsmW65C816IsCall(uint8 uiOpcode);
+bool	AsmW65C816IsReturn(uint8 uiOpcode);
+EAsmW65C816Flow	AsmW65C816Flow(uint8 uiOpcode);
+bool	AsmW65C816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget);
 
 
-#endif // __ASM65816_OPCODES_H__
+#endif // __ASM_W65C816_OPCODES_H__

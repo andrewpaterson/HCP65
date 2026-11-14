@@ -356,7 +356,7 @@ void CAsm65Memory::InitFast65C64(CFast65C64* pcMPU)
 // The W65C816S's bus: a byte at a 24 bit address when VDA, VPA or VPB says it is valid.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65Memory::TickHigh65816(CW65C816Meta* pcMPU, void* pvMemory)
+void CAsm65Memory::TickHighW65C816(CW65C816Meta* pcMPU, void* pvMemory)
 {
 	CAsm65Memory*	pcMemory;
 	uint32			uiAddress;
@@ -388,7 +388,7 @@ void CAsm65Memory::TickHigh65816(CW65C816Meta* pcMPU, void* pvMemory)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65Memory::TickLow65816(CW65C816Meta* pcMPU, void* pvMemory)
+void CAsm65Memory::TickLowW65C816(CW65C816Meta* pcMPU, void* pvMemory)
 {
 }
 

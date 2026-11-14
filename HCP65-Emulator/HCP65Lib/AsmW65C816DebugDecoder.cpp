@@ -6,15 +6,15 @@
 #include "AsmW65C816DebugDecoder.h"
 
 
-#define ASM65816_DEBUG_M_FLAG	0x20
-#define ASM65816_DEBUG_X_FLAG	0x10
+#define ASM_W65C816_DEBUG_M_FLAG	0x20
+#define ASM_W65C816_DEBUG_X_FLAG	0x10
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static EDebugInstruction Asm65816DebugKind(EAsmW65C816Flow eFlow)
+static EDebugInstruction AsmW65C816DebugKind(EAsmW65C816Flow eFlow)
 {
 	switch (eFlow)
 	{
@@ -45,8 +45,8 @@ size CAsmW65C816DebugDecoder::Decode(CDebugTarget* pcTarget, uint32 uiAddress, s
 	uint32				uiTarget;
 
 	uiP = pcTarget->GetRegisterValue(D816R_P);
-	sWidths.bMemory8 = (uiP & ASM65816_DEBUG_M_FLAG) != 0;
-	sWidths.bIndex8 = (uiP & ASM65816_DEBUG_X_FLAG) != 0;
+	sWidths.bMemory8 = (uiP & ASM_W65C816_DEBUG_M_FLAG) != 0;
+	sWidths.bIndex8 = (uiP & ASM_W65C816_DEBUG_X_FLAG) != 0;
 	if (pcTarget->GetRegisterValue(D816R_E) != 0)
 	{
 		sWidths.bMemory8 = true;
@@ -58,7 +58,7 @@ size CAsmW65C816DebugDecoder::Decode(CDebugTarget* pcTarget, uint32 uiAddress, s
 		memset(auiBytes, 0, sizeof(auiBytes));
 		uiAvailable = pcTarget->PeekMemory(uiAddress, auiBytes, sizeof(auiBytes));
 		szText.Init();
-		uiLength = Asm65816Disassemble(uiAddress, auiBytes, uiAvailable, &sWidths, &szText);
+		uiLength = AsmW65C816Disassemble(uiAddress, auiBytes, uiAvailable, &sWidths, &szText);
 		if (uiLength == 0)
 		{
 			szText.Kill();
@@ -69,8 +69,8 @@ size CAsmW65C816DebugDecoder::Decode(CDebugTarget* pcTarget, uint32 uiAddress, s
 		StartDebugInstruction(psInstruction, pcTarget, uiAddress, uiLength);
 		strncpy(psInstruction->szText, szText.Text(), DEBUG_INSTRUCTION_TEXT - 1);
 		szText.Kill();
-		psInstruction->uiKind = (uint8)Asm65816DebugKind(Asm65816Flow(auiBytes[0]));
-		if (Asm65816FlowTarget(uiAddress, auiBytes, &uiTarget))
+		psInstruction->uiKind = (uint8)AsmW65C816DebugKind(AsmW65C816Flow(auiBytes[0]));
+		if (AsmW65C816FlowTarget(uiAddress, auiBytes, &uiTarget))
 		{
 			psInstruction->uiTarget = uiTarget;
 			psInstruction->uiHasTarget = true;

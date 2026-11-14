@@ -71,7 +71,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //CChars as the console (ASM65_CONSOLE) and a CAsm65HostFiles as the host file device (ASM65_HOST_BASE).
 //
 //It is the W65C816's test memory too: the devices' page 00FF:0000 is the W65C816's bank $FF, so the memory at 0000:0000
-//can be up to $FF0000 bytes.  TickHigh65816 and TickLow65816 are CW65C816Meta's callbacks; InitFast65816 connects a
+//can be up to $FF0000 bytes.  TickHighW65C816 and TickLowW65C816 are CW65C816Meta's callbacks; InitFast65816 connects a
 //CFastW65C816 (ReadByte and WriteByte).
 class CAsm65Memory
 {
@@ -120,8 +120,8 @@ public:
 	static uint16	ReadWord(void* pvMemory, uint32 uiAddress);
 	static void		WriteByte(void* pvMemory, uint32 uiAddress, uint8 uiValue);
 
-	static void		TickHigh65816(CW65C816Meta* pcMPU, void* pvMemory);
-	static void		TickLow65816(CW65C816Meta* pcMPU, void* pvMemory);
+	static void		TickHighW65C816(CW65C816Meta* pcMPU, void* pvMemory);
+	static void		TickLowW65C816(CW65C816Meta* pcMPU, void* pvMemory);
 	void			InitFast65816(CFastW65C816* pcMPU);
 	static uint8	ReadByte(void* pvMemory, uint32 uiAddress);
 

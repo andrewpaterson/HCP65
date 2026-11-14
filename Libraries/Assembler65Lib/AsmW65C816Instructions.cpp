@@ -22,10 +22,10 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "AsmW65C816Assembler.h"
 
 
-#define ASM65816_MAX_MNEMONICS	96
+#define ASM_W65C816_MAX_MNEMONICS	96
 
 
-struct SAsm65816Opcode
+struct SAsmW65C816Opcode
 {
 	const char*	szMnemonic;
 	uint8		uiMode;
@@ -34,7 +34,7 @@ struct SAsm65816Opcode
 
 //Each opcode's mnemonic and addressing mode (W65C816S datasheet table 5-4).  The
 //test TestAsm65816Opcodes checks it against MicroprocessorLib's instruction factory.
-static const SAsm65816Opcode	gasAsm65816Opcodes[256] = {
+static const SAsmW65C816Opcode	gasAsmW65C816Opcodes[256] = {
 	{ "brk", AW65C816M_Immediate8 },  { "ora", AW65C816M_DirectIndirectX },  { "cop", AW65C816M_Immediate8 },  { "ora", AW65C816M_Stack },
 	{ "tsb", AW65C816M_Direct },  { "ora", AW65C816M_Direct },  { "asl", AW65C816M_Direct },  { "ora", AW65C816M_DirectIndirectLong },
 	{ "php", AW65C816M_Implied },  { "ora", AW65C816M_ImmediateM },  { "asl", AW65C816M_Accumulator },  { "phd", AW65C816M_Implied },
@@ -102,18 +102,18 @@ static const SAsm65816Opcode	gasAsm65816Opcodes[256] = {
 };
 
 
-//Every mnemonic is three letters: as a key, five bits a letter (see Asm65816MnemonicKey).
-#define ASM65816_MNEMONIC_KEYS	(32 * 32 * 32)
+//Every mnemonic is three letters: as a key, five bits a letter (see AsmW65C816MnemonicKey).
+#define ASM_W65C816_MNEMONIC_KEYS	(32 * 32 * 32)
 
 
 //The mnemonics, and the opcode of each mnemonic in each mode (or -1), made from
-//gasAsm65816Opcodes when first needed.  gaiAsm65816MnemonicByKey is each mnemonic's
+//gasAsmW65C816Opcodes when first needed.  gaiAsmW65C816MnemonicByKey is each mnemonic's
 //index by its key (or -1).
-static const char*	gaszAsm65816Mnemonics[ASM65816_MAX_MNEMONICS];
-static int16		gaaiAsm65816Opcodes[ASM65816_MAX_MNEMONICS][AW65C816M_NumModes];
-static int8			gaiAsm65816MnemonicByKey[ASM65816_MNEMONIC_KEYS];
-static int			giAsm65816Mnemonics = 0;
-static bool			gbAsm65816Indexed = false;
+static const char*	gaszAsmW65C816Mnemonics[ASM_W65C816_MAX_MNEMONICS];
+static int16		gaaiAsmW65C816Opcodes[ASM_W65C816_MAX_MNEMONICS][AW65C816M_NumModes];
+static int8			gaiAsmW65C816MnemonicByKey[ASM_W65C816_MNEMONIC_KEYS];
+static int			giAsmW65C816Mnemonics = 0;
+static bool			gbAsmW65C816Indexed = false;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -121,7 +121,7 @@ static bool			gbAsm65816Indexed = false;
 // The key of three letters (either case), or -1 if they aren't all letters.
 //
 //////////////////////////////////////////////////////////////////////////
-static int Asm65816MnemonicKey(const char* sz)
+static int AsmW65C816MnemonicKey(const char* sz)
 {
 	int		i;
 	int		iKey;
@@ -156,30 +156,30 @@ void CAsmW65C816Assembler::IndexMnemonics(void)
 	int		i;
 	int		j;
 
-	if (gbAsm65816Indexed)
+	if (gbAsmW65C816Indexed)
 	{
 		return;
 	}
-	memset(gaiAsm65816MnemonicByKey, 0xFF, sizeof(gaiAsm65816MnemonicByKey));
+	memset(gaiAsmW65C816MnemonicByKey, 0xFF, sizeof(gaiAsmW65C816MnemonicByKey));
 	for (i = 0; i < 256; i++)
 	{
-		for (j = 0; j < giAsm65816Mnemonics; j++)
+		for (j = 0; j < giAsmW65C816Mnemonics; j++)
 		{
-			if (strcmp(gaszAsm65816Mnemonics[j], gasAsm65816Opcodes[i].szMnemonic) == 0)
+			if (strcmp(gaszAsmW65C816Mnemonics[j], gasAsmW65C816Opcodes[i].szMnemonic) == 0)
 			{
 				break;
 			}
 		}
-		if (j == giAsm65816Mnemonics)
+		if (j == giAsmW65C816Mnemonics)
 		{
-			gaszAsm65816Mnemonics[j] = gasAsm65816Opcodes[i].szMnemonic;
-			memset(gaaiAsm65816Opcodes[j], 0xFF, sizeof(gaaiAsm65816Opcodes[j]));
-			gaiAsm65816MnemonicByKey[Asm65816MnemonicKey(gasAsm65816Opcodes[i].szMnemonic)] = (int8)j;
-			giAsm65816Mnemonics++;
+			gaszAsmW65C816Mnemonics[j] = gasAsmW65C816Opcodes[i].szMnemonic;
+			memset(gaaiAsmW65C816Opcodes[j], 0xFF, sizeof(gaaiAsmW65C816Opcodes[j]));
+			gaiAsmW65C816MnemonicByKey[AsmW65C816MnemonicKey(gasAsmW65C816Opcodes[i].szMnemonic)] = (int8)j;
+			giAsmW65C816Mnemonics++;
 		}
-		gaaiAsm65816Opcodes[j][gasAsm65816Opcodes[i].uiMode] = (int16)i;
+		gaaiAsmW65C816Opcodes[j][gasAsmW65C816Opcodes[i].uiMode] = (int16)i;
 	}
-	gbAsm65816Indexed = true;
+	gbAsmW65C816Indexed = true;
 }
 
 
@@ -188,7 +188,7 @@ void CAsmW65C816Assembler::IndexMnemonics(void)
 // The mnemonic's index, or -1.  Mnemonics are not case sensitive.
 //
 //////////////////////////////////////////////////////////////////////////
-static int Asm65816FindMnemonic(SAsm65Token* psToken)
+static int AsmW65C816FindMnemonic(SAsm65Token* psToken)
 {
 	int		iKey;
 
@@ -197,12 +197,12 @@ static int Asm65816FindMnemonic(SAsm65Token* psToken)
 	{
 		return -1;
 	}
-	iKey = Asm65816MnemonicKey(psToken->szText);
+	iKey = AsmW65C816MnemonicKey(psToken->szText);
 	if (iKey < 0)
 	{
 		return -1;
 	}
-	return gaiAsm65816MnemonicByKey[iKey];
+	return gaiAsmW65C816MnemonicByKey[iKey];
 }
 
 
@@ -210,9 +210,9 @@ static int Asm65816FindMnemonic(SAsm65Token* psToken)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static bool Asm65816Has(int iMnemonic, uint8 uiMode)
+static bool AsmW65C816Has(int iMnemonic, uint8 uiMode)
 {
-	return gaaiAsm65816Opcodes[iMnemonic][uiMode] >= 0;
+	return gaaiAsmW65C816Opcodes[iMnemonic][uiMode] >= 0;
 }
 
 
@@ -220,10 +220,10 @@ static bool Asm65816Has(int iMnemonic, uint8 uiMode)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static bool Asm65816IsJump(int iMnemonic)
+static bool AsmW65C816IsJump(int iMnemonic)
 {
-	return Asm65816Has(iMnemonic, AW65C816M_JumpAbsolute) || Asm65816Has(iMnemonic, AW65C816M_JumpLong) || Asm65816Has(iMnemonic, AW65C816M_JumpIndirect) ||
-		   Asm65816Has(iMnemonic, AW65C816M_JumpIndirectX) || Asm65816Has(iMnemonic, AW65C816M_JumpIndirectLong);
+	return AsmW65C816Has(iMnemonic, AW65C816M_JumpAbsolute) || AsmW65C816Has(iMnemonic, AW65C816M_JumpLong) || AsmW65C816Has(iMnemonic, AW65C816M_JumpIndirect) ||
+		   AsmW65C816Has(iMnemonic, AW65C816M_JumpIndirectX) || AsmW65C816Has(iMnemonic, AW65C816M_JumpIndirectLong);
 }
 
 
@@ -231,10 +231,10 @@ static bool Asm65816IsJump(int iMnemonic)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-const char* Asm65816Mnemonic(uint8 uiOpcode, uint8* puiMode)
+const char* AsmW65C816Mnemonic(uint8 uiOpcode, uint8* puiMode)
 {
-	*puiMode = gasAsm65816Opcodes[uiOpcode].uiMode;
-	return gasAsm65816Opcodes[uiOpcode].szMnemonic;
+	*puiMode = gasAsmW65C816Opcodes[uiOpcode].uiMode;
+	return gasAsmW65C816Opcodes[uiOpcode].szMnemonic;
 }
 
 
@@ -253,7 +253,7 @@ bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 	bool			bOperand;
 	bool			bResult;
 
-	iMnemonic = Asm65816FindMnemonic(psMnemonic);
+	iMnemonic = AsmW65C816FindMnemonic(psMnemonic);
 	if (iMnemonic < 0)
 	{
 		return Error(psMnemonic, "Unknown instruction");
@@ -262,7 +262,7 @@ bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 	memset(&sOperand, 0, sizeof(SAsmW65C816Operand));
 	memset(&sSecond, 0, sizeof(SAsmW65C816Operand));
 	bOperand = !Peek()->IsEndOfStatement();
-	if (Asm65816Has(iMnemonic, AW65C816M_Immediate8) && (psMnemonic->IsIdentifierIgnoreCase("rep") || psMnemonic->IsIdentifierIgnoreCase("sep")))
+	if (AsmW65C816Has(iMnemonic, AW65C816M_Immediate8) && (psMnemonic->IsIdentifierIgnoreCase("rep") || psMnemonic->IsIdentifierIgnoreCase("sep")))
 	{
 		sOperand.psToken = Peek();
 		if (!bOperand)
@@ -280,14 +280,14 @@ bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 	}
 	else
 	{
-		mbRelative = Asm65816Has(iMnemonic, AW65C816M_Relative) || Asm65816Has(iMnemonic, AW65C816M_RelativeLong);
-		if (bOperand && !Operand65816(&sOperand))
+		mbRelative = AsmW65C816Has(iMnemonic, AW65C816M_Relative) || AsmW65C816Has(iMnemonic, AW65C816M_RelativeLong);
+		if (bOperand && !OperandW65C816(&sOperand))
 		{
 			return false;
 		}
-		if (Asm65816Has(iMnemonic, AW65C816M_BlockMove))
+		if (AsmW65C816Has(iMnemonic, AW65C816M_BlockMove))
 		{
-			if (!bOperand || !Expect(AP65_Comma, "','") || !Operand65816(&sSecond))
+			if (!bOperand || !Expect(AP65_Comma, "','") || !OperandW65C816(&sSecond))
 			{
 				return bOperand ? false : ErrorExpected(Peek(), "the source bank");
 			}
@@ -303,8 +303,8 @@ bool CAsmW65C816Assembler::Instruction(SAsm65Token* psMnemonic)
 	//The widths are not known after the status is pulled or emulation is swapped.
 	if (psMnemonic->IsIdentifierIgnoreCase("plp") || psMnemonic->IsIdentifierIgnoreCase("rti") || psMnemonic->IsIdentifierIgnoreCase("xce"))
 	{
-		muiWidthA = ASM65816_WIDTH_UNKNOWN;
-		muiWidthX = ASM65816_WIDTH_UNKNOWN;
+		muiWidthA = ASM_W65C816_WIDTH_UNKNOWN;
+		muiWidthX = ASM_W65C816_WIDTH_UNKNOWN;
 	}
 	return bResult;
 }
@@ -323,7 +323,7 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 	psToken = psOperand ? psOperand->psToken : Peek();
 	if (psOperand == NULL)
 	{
-		if (!Asm65816Has(iMnemonic, AW65C816M_Implied))
+		if (!AsmW65C816Has(iMnemonic, AW65C816M_Implied))
 		{
 			return ErrorExpected(psToken, "an operand");
 		}
@@ -337,39 +337,39 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 	}
 	else if (!psOperand->bMemory)
 	{
-		if (Asm65816Has(iMnemonic, AW65C816M_ImmediateM))
+		if (AsmW65C816Has(iMnemonic, AW65C816M_ImmediateM))
 		{
 			uiMode = AW65C816M_ImmediateM;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_ImmediateX))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_ImmediateX))
 		{
 			uiMode = AW65C816M_ImmediateX;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_Immediate8))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_Immediate8))
 		{
 			uiMode = AW65C816M_Immediate8;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_Immediate16))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_Immediate16))
 		{
 			uiMode = AW65C816M_Immediate16;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_Relative))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_Relative))
 		{
 			uiMode = AW65C816M_Relative;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_RelativeLong))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_RelativeLong))
 		{
 			uiMode = AW65C816M_RelativeLong;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_JumpAbsolute))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_JumpAbsolute))
 		{
 			uiMode = AW65C816M_JumpAbsolute;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_JumpLong))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_JumpLong))
 		{
 			uiMode = AW65C816M_JumpLong;
 		}
-		else if (Asm65816Has(iMnemonic, AW65C816M_BlockMove))
+		else if (AsmW65C816Has(iMnemonic, AW65C816M_BlockMove))
 		{
 			uiMode = AW65C816M_BlockMove;
 		}
@@ -382,7 +382,7 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 			return Error(psToken, "A width suffix is only for an immediate whose width is m or x");
 		}
 	}
-	else if (Asm65816IsJump(iMnemonic))
+	else if (AsmW65C816IsJump(iMnemonic))
 	{
 		//A jump's target is the address; in brackets it is read from memory.
 		if ((psOperand->eBase != AW65C816B_Value) || psOperand->bPointer || (psOperand->cIndex == 'Y') || (psOperand->bLong && (psOperand->cIndex != 0)))
@@ -454,7 +454,7 @@ bool CAsmW65C816Assembler::ChooseMode(int iMnemonic, SAsmW65C816Operand* psOpera
 		return AbsoluteOrLong(iMnemonic, psOperand, AW65C816M_Absolute, AW65C816M_Long, puiMode);
 	}
 
-	if (!Asm65816Has(iMnemonic, uiMode))
+	if (!AsmW65C816Has(iMnemonic, uiMode))
 	{
 		return Error(psToken, "The instruction has no such addressing mode");
 	}
@@ -508,21 +508,21 @@ bool CAsmW65C816Assembler::AbsoluteOrLong(int iMnemonic, SAsmW65C816Operand* psO
 	bLong = psOperand->bLong;
 	if (!bLong && psOperand->sValue.bResolved && !IsRelocatable(&psOperand->sValue) && ((psOperand->sValue.iValue < 0) || (psOperand->sValue.iValue > 0xFFFF)))
 	{
-		if (!Asm65816Has(iMnemonic, uiLong))
+		if (!AsmW65C816Has(iMnemonic, uiLong))
 		{
 			return Error(psOperand->psToken, "Address doesn't fit 16 bits and the instruction has no long mode");
 		}
 		bLong = true;
 	}
-	if (!bLong && Asm65816Has(iMnemonic, uiLong) && (GetMinimumLength() > 3))
+	if (!bLong && AsmW65C816Has(iMnemonic, uiLong) && (GetMinimumLength() > 3))
 	{
 		bLong = true;
 	}
-	if (bLong && !Asm65816Has(iMnemonic, uiLong))
+	if (bLong && !AsmW65C816Has(iMnemonic, uiLong))
 	{
 		return Error(psOperand->psToken, "The instruction has no long mode");
 	}
-	if (!bLong && !Asm65816Has(iMnemonic, uiAbsolute))
+	if (!bLong && !AsmW65C816Has(iMnemonic, uiAbsolute))
 	{
 		return Error(psOperand->psToken, "The instruction has no such addressing mode");
 	}
@@ -545,7 +545,7 @@ bool CAsmW65C816Assembler::Immediate(SAsmW65C816Instruction* psInstruction, SAsm
 	{
 		return Error(psOperand->psToken, "An immediate is :8 or :16");
 	}
-	if (uiWidth == ASM65816_WIDTH_UNKNOWN)
+	if (uiWidth == ASM_W65C816_WIDTH_UNKNOWN)
 	{
 		if (psOperand->uiValueBits == 0)
 		{
@@ -608,7 +608,7 @@ bool CAsmW65C816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsmW65C816Operan
 	bool				bResult;
 
 	memset(&sInstruction, 0, sizeof(SAsmW65C816Instruction));
-	AddByte(&sInstruction, (uint8)gaaiAsm65816Opcodes[iMnemonic][uiMode]);
+	AddByte(&sInstruction, (uint8)gaaiAsmW65C816Opcodes[iMnemonic][uiMode]);
 	sValue = psOperand->sValue;
 
 	switch (uiMode)
@@ -702,6 +702,6 @@ bool CAsmW65C816Assembler::Encode(int iMnemonic, uint8 uiMode, SAsmW65C816Operan
 	{
 		return false;
 	}
-	Emit65816(&sInstruction);
+	EmitW65C816(&sInstruction);
 	return true;
 }

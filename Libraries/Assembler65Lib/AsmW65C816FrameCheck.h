@@ -18,8 +18,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#ifndef __ASM65816_FRAME_CHECK_H__
-#define __ASM65816_FRAME_CHECK_H__
+#ifndef __ASM_W65C816_FRAME_CHECK_H__
+#define __ASM_W65C816_FRAME_CHECK_H__
 #include "BaseLib/Chars.h"
 #include "BaseLib/ArrayTemplate.h"
 #include "MicroprocessorLib/FastW65C816.h"
@@ -84,4 +84,4 @@ protected:
 };
 
 
-#endif // __ASM65816_FRAME_CHECK_H__
+#endif // __ASM_W65C816_FRAME_CHECK_H__

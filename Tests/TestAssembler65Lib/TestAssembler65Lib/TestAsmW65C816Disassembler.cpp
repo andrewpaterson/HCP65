@@ -18,7 +18,7 @@ static void AssertAsm65816Disassembly(const char* szExpected, size uiExpectedLen
 	sWidths.bMemory8 = bMemory8;
 	sWidths.bIndex8 = bIndex8;
 	sz.Init();
-	AssertSize(uiExpectedLength, Asm65816Disassemble(0x1000, puiBytes, uiAvailable, &sWidths, &sz));
+	AssertSize(uiExpectedLength, AsmW65C816Disassemble(0x1000, puiBytes, uiAvailable, &sWidths, &sz));
 	AssertString(szExpected, sz.Text());
 	sz.Kill();
 }
@@ -46,7 +46,7 @@ static void TestAsm65816DisassembleRoundTrip(void)
 	szDifferences.Init();
 	for (iOpcode = 0; iOpcode < 256; iOpcode++)
 	{
-		Asm65816Mnemonic((uint8)iOpcode, &uiMode);
+		AsmW65C816Mnemonic((uint8)iOpcode, &uiMode);
 		if ((uiMode == AW65C816M_Relative) || (uiMode == AW65C816M_RelativeLong))
 		{
 			continue;
@@ -59,7 +59,7 @@ static void TestAsm65816DisassembleRoundTrip(void)
 		sWidths.bMemory8 = false;
 		sWidths.bIndex8 = false;
 		szSource.Init(".org $1000\n.width (A, X), 16\n");
-		uiLength = Asm65816Disassemble(0x1000, auiBytes, 4, &sWidths, &szSource);
+		uiLength = AsmW65C816Disassemble(0x1000, auiBytes, 4, &sWidths, &szSource);
 		szSource.AppendNewLine();
 
 		cAssembler.Init();
@@ -128,14 +128,14 @@ static void TestAsm65816DisassembleModes(void)
 	sWidths.bMemory8 = false;
 	sWidths.bIndex8 = false;
 	sz.Init();
-	AssertSize(2, Asm65816Disassemble(0x1000, &auiCode[0], 12, &sWidths, &sz));
+	AssertSize(2, AsmW65C816Disassemble(0x1000, &auiCode[0], 12, &sWidths, &sz));
 	AssertTrue(sWidths.bMemory8);
 	AssertFalse(sWidths.bIndex8);
-	AssertSize(2, Asm65816Disassemble(0x1002, &auiCode[2], 10, &sWidths, &sz));
-	AssertSize(2, Asm65816Disassemble(0x1004, &auiCode[4], 8, &sWidths, &sz));
+	AssertSize(2, AsmW65C816Disassemble(0x1002, &auiCode[2], 10, &sWidths, &sz));
+	AssertSize(2, AsmW65C816Disassemble(0x1004, &auiCode[4], 8, &sWidths, &sz));
 	AssertFalse(sWidths.bMemory8);
-	AssertSize(3, Asm65816Disassemble(0x1006, &auiCode[6], 6, &sWidths, &sz));
-	AssertSize(3, Asm65816Disassemble(0x1009, &auiCode[9], 3, &sWidths, &sz));
+	AssertSize(3, AsmW65C816Disassemble(0x1006, &auiCode[6], 6, &sWidths, &sz));
+	AssertSize(3, AsmW65C816Disassemble(0x1009, &auiCode[9], 3, &sWidths, &sz));
 	AssertString("sep $20lda $01rep $30lda $0001ldx $0002", sz.Text());
 	sz.Kill();
 }
@@ -155,23 +155,23 @@ static void TestAsm65816DisassembleFlow(void)
 	static uint8	auiJsl[] = { 0x22, 0x56, 0x34, 0x12 };
 	static uint8	auiJmpX[] = { 0x7C, 0x34, 0x12 };
 
-	AssertInt(AW65C816F_Call, Asm65816Flow(0x20));
-	AssertInt(AW65C816F_Call, Asm65816Flow(0x00));
-	AssertInt(AW65C816F_Return, Asm65816Flow(0x6B));
-	AssertInt(AW65C816F_Jump, Asm65816Flow(0x80));
-	AssertInt(AW65C816F_Branch, Asm65816Flow(0xD0));
-	AssertInt(AW65C816F_Other, Asm65816Flow(0x62));
-	AssertInt(AW65C816F_Other, Asm65816Flow(0xEA));
+	AssertInt(AW65C816F_Call, AsmW65C816Flow(0x20));
+	AssertInt(AW65C816F_Call, AsmW65C816Flow(0x00));
+	AssertInt(AW65C816F_Return, AsmW65C816Flow(0x6B));
+	AssertInt(AW65C816F_Jump, AsmW65C816Flow(0x80));
+	AssertInt(AW65C816F_Branch, AsmW65C816Flow(0xD0));
+	AssertInt(AW65C816F_Other, AsmW65C816Flow(0x62));
+	AssertInt(AW65C816F_Other, AsmW65C816Flow(0xEA));
 
-	AssertTrue(Asm65816FlowTarget(0x021000, auiBne, &uiTarget));
+	AssertTrue(AsmW65C816FlowTarget(0x021000, auiBne, &uiTarget));
 	AssertIntHex(0x021000, uiTarget);
-	AssertTrue(Asm65816FlowTarget(0x021000, auiBrl, &uiTarget));
+	AssertTrue(AsmW65C816FlowTarget(0x021000, auiBrl, &uiTarget));
 	AssertIntHex(0x021103, uiTarget);
-	AssertTrue(Asm65816FlowTarget(0x021000, auiJsr, &uiTarget));
+	AssertTrue(AsmW65C816FlowTarget(0x021000, auiJsr, &uiTarget));
 	AssertIntHex(0x021234, uiTarget);
-	AssertTrue(Asm65816FlowTarget(0x021000, auiJsl, &uiTarget));
+	AssertTrue(AsmW65C816FlowTarget(0x021000, auiJsl, &uiTarget));
 	AssertIntHex(0x123456, uiTarget);
-	AssertFalse(Asm65816FlowTarget(0x021000, auiJmpX, &uiTarget));
+	AssertFalse(AsmW65C816FlowTarget(0x021000, auiJmpX, &uiTarget));
 }
 
 

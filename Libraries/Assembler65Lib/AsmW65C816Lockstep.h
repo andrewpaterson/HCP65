@@ -18,8 +18,8 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
-#ifndef __ASM65816_LOCKSTEP_H__
-#define __ASM65816_LOCKSTEP_H__
+#ifndef __ASM_W65C816_LOCKSTEP_H__
+#define __ASM_W65C816_LOCKSTEP_H__
 #include "BaseLib/Chars.h"
 #include "MicroprocessorLib/W65C816Meta.h"
 #include "MicroprocessorLib/FastW65C816.h"
@@ -56,5 +56,5 @@ public:
 };
 
 
-#endif // __ASM65816_LOCKSTEP_H__
+#endif // __ASM_W65C816_LOCKSTEP_H__
 
