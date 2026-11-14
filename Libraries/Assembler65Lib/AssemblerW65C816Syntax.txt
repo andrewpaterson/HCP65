@@ -15,7 +15,7 @@ instructions, operands, widths and two directives (CAsm65BaseAssembler's virtual
 Instruction, IsRegisterName, InstructionAlignment, ProcessorDirective and
 SectionStarted).  Usage is CAsm65BaseAssembler's: Assemble (.org) or
 AssembleObject.  The opcode table is checked against MicroprocessorLib's
-CW65C816InstructionFactory by TestAsm65816Opcodes (the simulator calls jml JMP and puts per
+CW65C816InstructionFactory by TestAsmW65C816Opcodes (the simulator calls jml JMP and puts per
 with the stack instructions; those two are allowed).  Tests: test/TestAssembler65Lib
 TestAsmW65C816.cpp (every mode, widths, errors, relocations through CAsm65Linker, and a
 program run on CFastW65C816).
@@ -135,7 +135,7 @@ Running and testing
 
 CAsm65Memory is the W65C816's test memory too: its devices (console, drive, host
 files, memory size register) are at 00FF:0000, the W65C816's bank $FF.
-InitFast65816 connects a CFastW65C816, TickHigh65816 / TickLow65816 a CW65C816Meta, and
+InitFast65816 connects a CFastW65C816, TickHighW65C816 / TickLowW65C816 a CW65C816Meta, and
 CAsmW65C816Lockstep runs both side by side (as CAsm65C64Lockstep does for the 65C64).
 
 Bank 0 holds only the stack, the direct page, the vectors and a jml stub per vector:

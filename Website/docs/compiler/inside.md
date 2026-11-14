@@ -11,7 +11,7 @@ for both processors.
 | IR front end | `CCPP65IRFrontEnd` | Each function body written as [IR](ir.md), already in SSA form. |
 | Inline and optimise | `CIRInliner`, `CIROptimiser`, `CIRInterprocedural` | The IR made smaller and faster, the same for both processors. |
 | Back end | `CIRW65C816Backend`, `CIR65Backend` | IR to the processor's assembly text, with its own passes over the code. |
-| Assemble | `CAsm65816Assembler`, `CAsm65C64Assembler` | Assembly text to an object, in memory. |
+| Assemble | `CAsmW65C816Assembler`, `CAsm65C64Assembler` | Assembly text to an object, in memory. |
 | Link | `CAsm65Linker` | Every unit's object, Libc65 and the runtime, to the output file. |
 
 `CCPP65Builder` runs these for every unit of a program, on several threads (one unit a thread),

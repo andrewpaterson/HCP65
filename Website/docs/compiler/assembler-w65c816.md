@@ -1,6 +1,6 @@
 # W65C816 Assembler
 
-The W65C816 assembler (`CAsm65816Assembler` in Assembler65Lib) uses the W65C816's own mnemonics
+The W65C816 assembler (`CAsmW65C816Assembler` in Assembler65Lib) uses the W65C816's own mnemonics
 (`lda`, `sta`, `adc`, `jsl`, `rep` ...) in the style of the [65C64 assembler](../65c64/assembler.md):
 upper case registers, lower case flags, memory in square brackets, a bare value is a constant, and
 `:` suffixes for widths.  Lines, labels, numbers, expressions, directives, sections and objects are
@@ -131,13 +131,13 @@ The rest of the instruction set is the W65C816's mnemonics with these operands: 
 take a signature byte (`brk 0`).
 
 The assembler's opcode table is checked against MicroprocessorLib's W65C816 simulator by
-`TestAsm65816Opcodes`.
+`TestAsmW65C816Opcodes`.
 
 ## Using the assembler from C++
 
 ```cpp
-CAsm65816Assembler	cAssembler;
-CAsm65Object		cObject;
+CAsmW65C816Assembler	cAssembler;
+CAsm65Object			cObject;
 
 cObject.Init("main");
 cAssembler.Init();

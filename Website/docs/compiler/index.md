@@ -30,7 +30,7 @@ flowchart LR
 | Part | Where | What it does |
 |---|---|---|
 | C++ compiler | `CommonLibraries/Libraries/CppCompilerLib` | Preprocesses, parses and type checks C++, turns it into an intermediate representation (IR), optimises that and writes assembly for either processor. |
-| Assemblers | `HCP65/Libraries/Assembler65Lib` | `CAsm65816Assembler` and `CAsm65C64Assembler`: the same source format and directives, each processor's own instructions. |
+| Assemblers | `HCP65/Libraries/Assembler65Lib` | `CAsmW65C816Assembler` and `CAsm65C64Assembler`: the same source format and directives, each processor's own instructions. |
 | Linker | `HCP65/Libraries/Assembler65Lib` | `CAsm65Linker`: one object format and one linker for both processors.  Writes executables, ROM images and relocatable modules. |
 | Libc65 | `HCP65/Libraries/Libc65` | The C standard headers and library, soft float, the maths library and the W65C816's runtime routines. |
 | `hcp65build` | `HCP65-IDE/HCP65Build` | The command line build tool.  The HCP65 IDE builds the same way from inside the editor. |
