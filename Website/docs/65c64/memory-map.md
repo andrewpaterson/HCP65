@@ -22,6 +22,37 @@ An address below `0001:0000` fits in one operand word in place of two, through t
 good place for the variables a program uses most.  The C++ compiler keeps its
 [pseudo registers](calling-convention.md#pseudo-registers) in the first 256 bytes.
 
+### A zero page by accident
+
+The zero page is the 6502's idea: the first 256 bytes of memory, reached with a one byte
+address, so they're shorter and quicker to use than the rest of memory and serve as extra
+registers.  The W65C816 kept the idea but made it movable, as the direct page, and the 65C64
+was meant to leave it behind altogether, with V and W in its place: full width registers that
+an offset is added to, `[offs + V]`.
+
+But the offset modes take any register, and one of the registers is the
+[zero register](registers.md#the-zero-register).  `[offs + zero]`, written `[offs]`, is the
+fixed address `0000:offs`, so indexing with the zero register accidentally brought the 6502's
+zero page back: a fixed area at the bottom of memory that is a word shorter to reach than the
+rest, 64KB in place of 256 bytes.
+
+It turned out to be just what the C++ compiler needed.  The 65C64 has only four registers for
+values (A, B, X and Y), and a call can change all of them.  The compiler uses the first 256
+bytes as 64 extra 32 bit registers, the pseudo registers:
+
+- **Nothing to set up.**  They're at the same addresses in every function, so they don't need a
+  base register.  V stays the frame pointer and W stays 0, and a function that keeps all its
+  values in registers and pseudo registers doesn't set up a frame at all.
+- **One word to reach.**  An instruction on a pseudo register is as short as one on the frame,
+  and only a word longer than one on a register.
+- **Usable in place.**  Most instructions take a memory operand on either side, so a value can
+  be worked on where it lives (`add [4], X`, `shl [4], 2`) without going through A.
+- **Fewer restrictions.**  `add`, `sub`, `cmp`, `shl` and `shr` can't address memory with W,
+  but they can all use an offset with the zero register.
+
+The compiler gives each value the cheapest home it can: X or Y, then a pseudo register, then
+the frame (see [65C64 Code](../compiler/65c64.md#register-allocation)).
+
 ## The stack
 
 S is `0001:FFFF` after reset, so by default the stack is the second 64KB, growing down

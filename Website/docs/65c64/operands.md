@@ -138,7 +138,8 @@ R is any of A, B, S, V, W, X and Y.
 ### Address Offset (modes 6–9) {#address-offset}
 
 The same, with a single 16 bit offset word.  The offset is the address `0000:offs`, so an
-offset reaches the first 64KB of memory and saves a word.
+offset reaches the first 64KB of memory and saves a word.  An offset with the zero register is
+the 65C64's zero page (see [A zero page by accident](memory-map.md#a-zero-page-by-accident)).
 
 | Mode | Assembly | Effective address |
 |---|---|---|
