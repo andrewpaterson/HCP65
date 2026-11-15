@@ -55,6 +55,21 @@
 .md-typeset table.x-sheet td.x-b { font-weight: 700; }
 .md-typeset table.x-sheet td.x-muted { color: var(--md-default-fg-color--light); }
 
+/* The page is up to 80rem wide in place of Material's 61rem: 1760 pixels of a 1920 pixel window
+   (Material's rem is 22px from 1600 pixels). */
+.md-grid {
+  max-width: 80rem;
+}
+
+/* The sidebars are 15rem wide in place of 12.1rem, so fewer titles wrap.  Below 76.25em the
+   navigation is a drawer and the contents sidebar has the window to itself, so they're left
+   as they are. */
+@media screen and (min-width: 76.25em) {
+  .md-sidebar {
+    width: 15rem;
+  }
+}
+
 /* Pages holding a sheet use the full window width. */
 body:has(.x-sheet) .md-main .md-grid {
   max-width: none;
