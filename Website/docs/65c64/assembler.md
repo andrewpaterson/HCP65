@@ -111,6 +111,18 @@ Round brackets have a second job: they group two or more operands into one, as i
 `psh (A, B), S` or `sep (c, n)`.  Those brackets aren't optional (`sep c, n` is an error) and a
 group of one is an error (`sep (c)`).
 
+A group can be any operand of an instruction: the left, the right or both.  The commas inside
+the brackets separate the parts of the group, and the commas outside them still separate the
+operands:
+
+```asm
+	stab (A, 0), f		; a compound left operand: bit 0 of A
+	gwth X, (A, -1)		; a compound right operand: A's width, less 1
+	bist c, (A, 40)		; a compound right operand: bit 40 of A
+	scp (A, 0), (B, 1), 1	; compound left and right operands: byte 0 of A into byte 1 of B
+	brae (c, z), 8		; a compound left operand: the two flags to compare
+```
+
 ### The program counter
 
 C is the program counter as an instruction runs: the address of the next instruction.  It is
