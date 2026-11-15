@@ -1,6 +1,6 @@
 ; memcpy, memmove, memset, memcmp and strlen with 16 bit counts for the W65C816, and BaseLib's MemSwp16
 ; (MemSwp with a size length): what BaseLib's natural arrays (counted with size, so at most
-; 65535 bytes) call through ARRAY_MEMCPY and the like (ArraySizeNatural.inl).  stringW65C816.asm
+; 65535 bytes) call through SArrayNaturalSize::Copy and the like (BaseLib's ArrayBlock.h).  stringW65C816.asm
 ; has the C library's, with size_t (32 bit) counts.  The count is pushed as 2 bytes and kept
 ; in a word, but the pointers are 24 bit and a block can still cross into the next bank:
 ; the moves (mvn and mvp) stop at a bank's end as stringW65C816.asm's do.  Y never wraps in the
