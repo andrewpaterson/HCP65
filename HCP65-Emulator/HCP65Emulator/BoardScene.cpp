@@ -566,11 +566,11 @@ bool CBoardSceneDraw::LoadSourceModel(int iModel, const char* szSaved)
 
 	pSource = OMalloc<CMeshEditor>(pMesh);
 	pSource->Scale((float32)psModel->fMillimetresPerUnit);
-	pSource->AddModifier<CMeshFixReversed>()->Init();
-	pSource->AddModifier<CMeshWeldCorners>()->Init();
-	pSource->AddModifier<CMeshEdgeCollapse>()->Init((float32)psModel->fMaxErrorMillimetres);
-	pSource->AddModifier<CMeshRemoveDegenerate>()->Init();
-	pSource->AddModifier<CMeshMergeNormals>()->Init(BOARD_SCENE_MAX_NORMAL_ANGLE);
+	pSource->AddModifier<CMeshFixReversed>();
+	pSource->AddModifier<CMeshWeldCorners>();
+	pSource->AddModifier<CMeshEdgeCollapse>((float32)psModel->fMaxErrorMillimetres);
+	pSource->AddModifier<CMeshRemoveDegenerate>();
+	pSource->AddModifier<CMeshMergeNormals>(BOARD_SCENE_MAX_NORMAL_ANGLE);
 
 	pEditor = OMalloc<CMeshEditor>(pSource->GetOutput());
 	pEditor->mszName.Set(psModel->szSaved);
