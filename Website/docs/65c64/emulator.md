@@ -16,9 +16,7 @@ the pins on one clock edge and takes or gives data on the next.  `C65C64Meta` ow
 traces, so a logic level system can be built around the processor, and calls the memory back on
 each edge of the clock.
 
-It follows the structure of the library's W65C816S simulator.  Where the spreadsheet leaves a
-question open, the decision taken is written down in `MicroprocessorLib/65C64Simulator.txt`, and
-these pages follow the simulator.
+It follows the structure of the library's W65C816S simulator.
 
 ## The instruction level simulator
 

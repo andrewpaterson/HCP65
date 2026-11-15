@@ -126,15 +126,3 @@ parse, declarations, types, front end, inline, optimise, back end, code passes, 
 each optimiser pass's runs and changes, and the things the compiler is being reshaped to remove.
 The test suites print them with `TEST_PROJECT65_COMPILE_STATS`, and
 `CommonLibraries/Tests/CompilerMeasure.py` makes tables of them.
-
-## The source
-
-The design notes beside the code say why it is as it is:
-
-| File in `CppCompilerLib` | Covers |
-|---|---|
-| `CPP65Generator.txt` | The generator: types, classes, templates, objects by value, names, Libc65, floating point. |
-| `IR.txt` | The IR, the optimiser's passes and the 65C64 back end. |
-| `W65C816.txt` | The W65C816 target: the model, the calling convention, the runtime and how it was made fast. |
-| `CppParserTodo.txt` | What is left for C++14 compliance, in order. |
-| `ConsolidationPlan.txt` | The plan for reshaping the compiler's largest classes, and its progress. |

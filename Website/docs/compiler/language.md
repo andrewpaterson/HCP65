@@ -123,9 +123,6 @@ Overload resolution is a simplified form of the standard's ranking: exact match,
 then conversion, then a user defined conversion.  It gives the standard's answer for the code it
 has been used on, but not every case.
 
-The full list, with the order the work is planned in, is `CppCompilerLib/CppParserTodo.txt`
-section 6.
-
 ## Floating point
 
 Neither processor has floating point instructions, so `float` and `double` are done by Libc65's

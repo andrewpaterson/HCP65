@@ -54,14 +54,6 @@ In the HCP65 repository:
 - `W65C64/65C64 Instruction Architecture - Copy.pdf`, the draft instruction reference for
   `cpy`.
 - `W65C64/65C64 Proposal.odt`, the original proposal.
-- `Libraries/Assembler65Lib/Assembler65C64Syntax.txt`, the assembler's syntax.
 
-In the CommonLibraries repository:
-
-- `Libraries/MicroprocessorLib/65C64Simulator.txt`, the simulator's decisions on the parts the
-  spreadsheet leaves open.
-- `Libraries/CppCompilerLib/CPP65Generator.txt` and `IR.txt`, the C++ compiler's calling
-  convention.
-
-Where they disagree, the simulator is taken as the truth.  Every example on these pages
-assembles with the assembler: a test (TestAssembler65Lib) assembles them all.
+Every example on these pages assembles with the assembler: a test (TestAssembler65Lib)
+assembles them all.
