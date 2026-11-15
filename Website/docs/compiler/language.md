@@ -22,7 +22,7 @@ The preprocessor defines `__cplusplus` as `201402L`.
 | `bool` | 1 byte | 1 byte | |
 | `wchar_t`, `char16_t` | 2 bytes | 2 bytes | Unsigned. |
 | Pointers, references | 4 bytes | 4 bytes | On the W65C816 a 24 bit address with a zero top byte. |
-| `size_t`, `ptrdiff_t` | 4 bytes | 4 bytes | `unsigned long` and `long`. |
+| `size_t`, `ptrdiff_t` | 4 bytes | 4 bytes | `unsigned long` and `long`.  `sizeof` is an `unsigned int`, not a `size_t`, so on the W65C816 it is 2 bytes. |
 | Pointers to members | 4 bytes | 4 bytes | A field's offset, or a member function's address. |
 
 An enum's underlying type follows the standard: `int`, then `unsigned int`, `long`,
@@ -50,6 +50,20 @@ option to make `int` 32 bits.  Code written for a 32 bit `int` meets these traps
 The compiler warns about the constant cases: an *integer overflow* warning for a constant
 expression whose value doesn't fit its type, and an *integer conversion overflow* warning for a
 constant that an implicit conversion cuts short.
+
+### BaseLib's `size` and `lsize`
+
+BaseLib counts and measures with its own `size` and `lsize` types (`BaseLib/PrimitiveTypes.h`),
+not with `size_t`:
+
+| Type | W65C816 | 65C64 | Notes |
+|---|---|---|---|
+| `size` | **2 bytes** | 4 bytes | `uint16` on the W65C816, the processor's natural width; `size_t` elsewhere. |
+| `lsize` | 4 bytes | 4 bytes | `uint32` on the W65C816, for counts and lengths that can pass 64KB; `size` elsewhere. |
+
+The two are different types only on the W65C816, so only there can a function be overloaded on
+both.  A host build checks the W65C816's size model with `g++ -m32 -DBASELIB_SIZE16
+-Wconversion`, which warns wherever an `lsize`, or anything wider, is narrowed to a `size`.
 
 ## What is supported
 
