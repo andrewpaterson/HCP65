@@ -78,7 +78,8 @@ In the assembly on these pages:
 
 - Mnemonics and directives are in lower case (they aren't case sensitive).
 - Registers are in upper case and status flags in lower case: `V` is the register, `v` the
-  overflow flag.
+  overflow flag.  V and W are always 32 bits, so P has no width flags for them: `v` can only
+  mean overflow, and there is no `w` flag.
 - Square brackets are memory, so `[$1000]` is the contents of address `$1000`.  Brackets
   inside brackets are indirection.
 - Round brackets group two or more operands into one: `psh (A, B), S`.  A group of one is an

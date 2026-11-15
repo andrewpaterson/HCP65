@@ -70,7 +70,8 @@ extending it.  S, V, W and C are always 32 bits.
 | c | Carry | Carry out of an add, not borrow from a subtract or compare |
 
 In assembly, flags are written in lower case (`c`, `z`, `n`, `v`, `f`, `g`) and registers in
-upper case, so `v` is the overflow flag and `V` is the register.
+upper case, so `v` is the overflow flag and `V` is the register.  V and W are always 32 bits,
+so P has no width flags for them: `v` can only mean overflow, and there is no `w` flag.
 
 ## Internal registers
 
