@@ -9,29 +9,29 @@ that is called from C++ follow too.
 
 | Register | Use | Across a call |
 |---|---|---|
-| A | Expression values, and the result of a function | May change |
-| B | The right operand of an operator | May change |
+| A | Expression values, the first register argument, and the result of a function | May change |
+| B | The right operand of an operator, and the second register argument | May change |
 | X | Addresses, and `this` in a call to a member function | May change |
-| Y | Scratch | May change |
+| Y | Scratch, and the third register argument | May change |
 | V | The frame pointer | Kept |
-| W | Always 0 | Kept |
+| W | Scratch, and the step count of `mul` and `div` | May change |
 | S | The stack pointer | Kept |
 
 A, B, X and Y are 32 bits wide at every call and return.  Code that changes a width sets it
 back.  Values of 8 or 16 bits are read and written with [`cpyx`](instructions/cpyx.md), which
 extends them into the 32 bit register.
 
-## W is 0
+## W
 
-W is 0 at every call and at every return.  That is why several pages say to write `[n]` for
-`[n + W]`: with W at 0 they are the same address, and `add`, `sub`, `cmp`, `shl`, `shr` and
-`cpyx` can't [address memory with W](operands.md#restrictions).
+W is a register like any other: compiled code keeps values in it, and a call may change it.
+Don't count on it being 0 at a call or a return.
 
-`mul` and `div` count their steps in W, so compiled code sets it back straight after:
+`mul` and `div` count their steps in W from 0, so compiled code sets it to 0 just before one
+(and leaves that out when W is known to be 0 already):
 
 ```asm
-	mul
 	cpy W, 0
+	mul
 ```
 
 ## Pseudo registers
@@ -50,6 +50,8 @@ The runtime routines use no pseudo registers.
 
 ## Arguments and results
 
+- A function that isn't variadic takes its first arguments in registers: see
+  [Register arguments](#register-arguments).  The others are pushed.
 - Arguments are pushed on the stack, the last one first, so the first argument is at the lowest
   address.
 - Each argument is pushed at its own size: a `char` is one byte and a `short` two.  They
@@ -79,6 +81,27 @@ Add:
 
 The stack is post-decrement, so S points at the byte below the last value pushed.  On entry
 the return address is at `[1 + S]` and the first argument at `[5 + S]`.
+
+`Add` is called at its plain label with everything pushed, as assembly calls it.  C++ calls a
+function like it with its arguments in registers, at the label below.
+
+### Register arguments
+
+A function that isn't variadic, and has no parameter that is an object passed by value, takes
+its first arguments in registers, whether it has C++ or C linkage:
+
+- Going through the arguments in order (a hidden result pointer first), each of 32 bits or less
+  takes the next of A, B and Y.  A `long long` or `double` is pushed, and a later, smaller
+  argument may still take a register.  `this` is in X as before.
+- The function's code is at its label plus a **suffix** naming where each argument is: a dot,
+  then `a`, `b` or `y` for a register or `s` for a pushed argument, without the pushed ones at
+  the end.  `_Add__Fii.ab` takes two `int`s in A and B.  A caller and a definition that
+  disagree don't link.
+- The plain label is an entry for callers that push everything (function pointers, vtables,
+  thunks and assembly): it loads the registers from the stack and goes on to the body.
+
+Every caller works out the same rule from the parameter types alone.  Hand written assembly
+that C++ calls defines the suffixed label too.
 
 ## Frames
 

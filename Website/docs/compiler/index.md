@@ -56,7 +56,7 @@ The two processors are very different targets:
 | Registers | A, X and Y, 16 bits; the direct page is the frame | A, B, X, Y, 32 bits (64 for `long long`); 256 bytes of pseudo registers |
 | Multiply and divide | Runtime routines | Instructions |
 | Floating point | Soft float in assembly | Soft float in assembly |
-| Calls | `jsl` / `rtl`, arguments in A, X and Y where they fit | `jsr` / `ret`, arguments pushed |
+| Calls | `jsl` / `rtl`, arguments in A, X and Y where they fit | `jsr` / `ret`, arguments in A, B and Y where they fit |
 
 ## Pages
 

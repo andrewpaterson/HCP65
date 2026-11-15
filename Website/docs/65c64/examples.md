@@ -86,9 +86,8 @@ SignedMultiply:
 	stat f, n		; keep that in f
 	abs A
 	abs B
-	cpy W, 0
+	cpy W, 0		; mul counts its steps in W
 	mul
-	cpy W, 0		; W is 0 by the calling convention
 	brac f, Done
 	neg Y
 Done:

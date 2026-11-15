@@ -207,8 +207,7 @@ Some instructions narrow these choices.
 
 - `add`, `sub`, `cmp`, `shl`, `shr` and `cpyx` take only V, X or Y (or no register) as the
   register in a single register address (`[addr + R]`, `[offs + R]`, `[R]` …).  W isn't
-  allowed: by the [calling convention](calling-convention.md) W is 0, so write `[n]` for
-  `[n + W]`.  `cpy` and the logical instructions take any register.
+  allowed.  A pseudo register is a fixed address, so write `[n]`, not `[n + W]`.  `cpy` and the logical instructions take any register.
 - In a two register address (`[R1 + R2]`, `[[R1 + R2]]`, `[[R1] + R2]`), `add`, `sub`, `cmp`,
   `shl`, `shr`, `jmp` and `jsr` take only X or Y as R2.  `cpy` and the logical instructions
   take V, W, X or Y.

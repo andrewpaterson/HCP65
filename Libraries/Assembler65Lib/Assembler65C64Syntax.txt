@@ -255,7 +255,7 @@ Choices (not in the spreadsheet)
   immediate form.
 - Hardware register instructions (hws, hwg, hwsp, hwcp) are not assembled.
 - add, sub, cmp, shl, shr and cpyx address memory with V, X or Y ([n + V] works, [n + W]
-  does not: W is 0 by the calling convention, so write [n]).  The logical instructions
+  does not; a pseudo register is a fixed address, so write [n]).  The logical instructions
   take any register (the user, 2026-10-28).
 - Relative offsets do not wrap around the 32 bit address space.
 
