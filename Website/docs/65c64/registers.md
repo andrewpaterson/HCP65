@@ -75,9 +75,10 @@ so P has no width flags for them: `v` can only mean overflow, and there is no `w
 
 ## Internal registers
 
-DI, D and DJ are 64 bit internal data registers.  Programs can't reach them.  They appear in
-the instruction descriptions: D holds the value a block instruction loads from memory, DI and
-DJ the two values of a vector instruction.
+D, DI and DJ are hypothetical 64 bit internal data registers, used only in the instruction
+descriptions.  Programs can't reach them.  D is any internal register.  DI and DJ are any two
+internal registers that are not the same register.  For example, D holds the value a block
+instruction loads from memory.
 
 ## After reset
 

@@ -15,7 +15,8 @@ spreadsheet.
 | r | The width of a register in bytes |
 | H | The contents of a hardware register |
 | h | The width of a hardware register in bytes |
-| DI, D, DJ | The internal data registers |
+| D | Any hypothetical internal data register |
+| DI, DJ | Any two hypothetical internal data registers that are not the same register |
 | O | An operand: a register, an address, or an embedded or immediate value (see [Operands and Addressing](operands.md)) |
 | O1 | The first (left) operand, the destination |
 | O2 | The second (right) operand, the source |
