@@ -23,11 +23,13 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A label can be a C++ name, which may have characters past ASCII in it,
+// in UTF-8: every byte of one is 0x80 or more.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool IsIdentifierStart(char c)
 {
-	return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || (c == '_') || (c == '.');
+	return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || (c == '_') || (c == '.') || ((unsigned char)c >= 0x80);
 }
 
 
