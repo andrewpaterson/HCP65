@@ -1,11 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include "StandardLib/ClassDefines.h"
 #include "WindowLib/Window.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
-#include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65EmulatorRunner.h"
 #include "HCP65EmulatorTick.h"
@@ -24,7 +22,6 @@ void CHCP65EmulatorTick::Init(CHCP65* pcHCP65, CHCP65Audio* pcAudio, Ptr<CHCP65S
 	mpcAudio = pcAudio;
 	mpSoundVoice = pSoundVoice;
 	mpcRunner = pcRunner;
-	mpcTerminal = NULL;
 	miStopTime = getenv("HCP65_EMULATOR_SECONDS") ? (int64)atoi(getenv("HCP65_EMULATOR_SECONDS")) * 1000 : -1;
 	miReportTime = getenv("HCP65_EMULATOR_TRACE") ? 0 : -1;
 
@@ -43,8 +40,6 @@ void CHCP65EmulatorTick::Class(void)
 	U_Pointer(mpcAudio);
 	M_Pointer(mpSoundVoice);
 	U_Pointer(mpcRunner);
-	U_Pointer(mpcTerminal);
-	M_Pointer(mpTerminalText);
 	U_Int64(miStopTime);
 	U_Int64(miReportTime);
 }
@@ -77,49 +72,6 @@ void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMilliecon
 	if ((miStopTime >= 0) && (iTotalTimeInMillieconds >= miStopTime))
 	{
 		pWindow->Stop();
-	}
-	UpdateTerminal();
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The terminal and the text area that shows it, or NULL for none.
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::SetTerminal(CHCP65Terminal* pcTerminal, Ptr<CTextArea> pText)
-{
-	mpcTerminal = pcTerminal;
-	mpTerminalText = pText;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The terminal's lines into its text area when it has been sent anything.
-// The caret is moved to the end if it was there, so the text area follows
-// what comes in unless it has been moved off it to look back.
-//
-//////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorTick::UpdateTerminal(void)
-{
-	CChars	szText;
-	size	uiStart;
-	size	uiEnd;
-	bool	bFollow;
-
-	if (!mpcTerminal || mpTerminalText.IsNull() || !mpcTerminal->Update())
-	{
-		return;
-	}
-	bFollow = (mpTerminalText->GetCaretPosition() == strlen(mpTerminalText->GetText())) && !mpTerminalText->GetSelection(&uiStart, &uiEnd);
-	szText.Init();
-	mpcTerminal->GetText(&szText);
-	mpTerminalText->SetText(szText.Text());
-	szText.Kill();
-	if (bFollow)
-	{
-		mpTerminalText->GetEditing()->DocumentEnd();
 	}
 }
 

@@ -9,9 +9,6 @@
 #define HCP65_EMULATOR_MACHINE			"Machines/SmallMainboard.xml"	//The boards (CHCP65Mainboard) without --machine.
 #define HCP65_EMULATOR_ARGUMENT_MACHINE	"--machine"		//The mainboard description: which boards are in which sockets.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
-#define HCP65_EMULATOR_TERMINAL_FONT	"Resources/JetBrainsMonoNL-Regular.ttf"
-#define HCP65_EMULATOR_TERMINAL_PIXEL_SIZE	15.0f
-#define HCP65_EMULATOR_TERMINAL_CHARACTERS	" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 
 #include "StandardLib/Object.h"
@@ -26,8 +23,6 @@
 #include "WindowLib/NativeSoundFactory.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
-#include "HCP65Lib/HCP65Terminal.h"
-#include "SupportLib/FontFamily.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
 #include "HCP65MenuListener.h"
@@ -45,10 +40,8 @@
 //thread of its own (CHCP65EmulatorRunner) while the window shows, and anything else that changes it pauses that first.
 //
 //A keyboard (CHCP65PS2Keyboard) is plugged into port 1 of the first PS2 Board, if there is one; port 2 has nothing in
-//it.  A terminal (CHCP65Terminal) is at the far end of the first UART Board's RS232 port: the window shows it under the
-//menu bar, where a video board's screen will be.  It takes the host's keys while it has the focus, which it has from the
-//start, and gives each going down and up to the keyboard.  Machines/Console.xml boots the console (HCP65/Console), which
-//shows on the terminal what is typed.
+//it.  The HCP65's screen takes the host's keys while it has the focus, which it has from the start, and gives each going
+//down and up to the keyboard.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
@@ -76,8 +69,6 @@ protected:
 	Ptr<CWindowInputSource>	mpInputSource;
 	CComponentInput			mcComponentInput;
 	CHCP65PS2Keyboard		mcKeyboard;
-	CHCP65Terminal			mcTerminal;
-	Ptr<CFontFamily>		mpTerminalFamily;
 	bool					mbValid;
 	bool					mbInputs;  //The menu listener and the component input are initialised.
 

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The console: the Small Mainboard booting TestHCP65KernalConsole's card, whose boot.exe (HCP65/Console) shows what is -->
-<!-- typed on the PS2 Board's keyboard on the terminal at the far end of the UART Board's RS232 port.  Files are -->
-<!-- relative to this one. -->
+<!-- The console: the Small Mainboard booting TestHCP65KernalConsole's card, whose boot.exe (HCP65/Console) sends what is -->
+<!-- typed on the PS2 Board's keyboard out of the UART Board's RS232 port.  The emulator doesn't show the port; the -->
+<!-- test does.  Files are relative to this one. -->
 <Mainboard Type="Small">
 	<Processor Index="0">
 		<Board Socket="3" Type="SD Card Board">
