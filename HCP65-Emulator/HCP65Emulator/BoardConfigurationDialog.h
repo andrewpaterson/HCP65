@@ -16,6 +16,7 @@
 #define BOARD_CONFIGURATION_TURN_MS		30000		//How long the mainboard takes to go right round.
 #define BOARD_CONFIGURATION_SIDE_SPACE	160			//Each side of the picture and the rows when the dialog opens.
 #define BOARD_CONFIGURATION_ALL_BREAKOUTS	0x0F	//GetBreakouts: every VIA Breakout fitted.
+#define BOARD_CONFIGURATION_COLUMNS		3		//The rows' label, combo box and VIA Breakouts: the picture spans them all.
 
 
 //Which board is in each of the mainboard's device sockets: a combo box for each, of the boards that fit it and Empty,

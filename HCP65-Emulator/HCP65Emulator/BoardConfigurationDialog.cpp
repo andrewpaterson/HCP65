@@ -54,7 +54,7 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 		mpSceneCanvas = OMalloc<CCanvas>(mpDialog->GetWindow(), pScene);
 		mpSceneCanvas->SetDesiredSize(BOARD_SCENE_WIDTH, BOARD_SCENE_HEIGHT);
 		mpSceneCanvas->SetAlignment(CSH_Center, CSV_Center);
-		mpRows->AddComponent(mpSceneCanvas, 0, miNumRows, 2, 1, 1, 0);
+		mpRows->AddComponent(mpSceneCanvas, 0, miNumRows, BOARD_CONFIGURATION_COLUMNS, 1, 1, 0);
 		miNumRows++;
 		mpDialog->SetTicker(this, &CBoardConfigurationDialog::TickScene);
 	}
