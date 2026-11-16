@@ -181,3 +181,23 @@ _KernalDeviceCall:
 		adc 4
 		cop 12
 		rtl
+
+		.section text.KernalSystemCall
+		.global _KernalSystemCall.ax
+_KernalSystemCall.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _KernalSystemCall
+		ply
+		ply
+		rtl
+
+		.global _KernalSystemCall
+_KernalSystemCall:
+		.width (A, X), 16
+		tsc
+		clc
+		adc 4
+		cop 13
+		rtl

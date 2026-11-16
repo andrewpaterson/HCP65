@@ -14,6 +14,7 @@
 #include "KernalDebug.h"
 #include "KernalMemory.h"
 #include "KernalStartUp.h"
+#include "KernalSystemCalls.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
@@ -33,6 +34,7 @@ SKernalCall			gsKernalCall;
 static uint8		guiKernalProcess;							//The process running (or calling), 0 for none.
 static uint16		gauiKernalArguments[256];					//Each process ID's argument.
 static uint8		gauiKernalBankOwners[KERNAL_NUM_BANKS];					//The process ID a physical bank is given to.
+static bool			gbKernalCopy;								//User addresses are kernal addresses (KernalSetKernalCopy).
 static uint8*			gpuiKernalArguments;					//The call's arguments, on the process's stack in its bank 0.
 
 
@@ -61,6 +63,18 @@ uint8 KernalCurrentProcess(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// While bKernal, the copies to and from the running process take kernal
+// addresses: for the kernal's own calls to drivers.
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalSetKernalCopy(bool bKernal)
+{
+	gbKernalCopy = bKernal;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The physical main memory address of the running process's address, and
 // how many bytes from it are in the same bank.  NULL if the process has no
 // such bank.
@@ -70,6 +84,14 @@ uint8* KernalUserPointer(uint32 uiAddress, uint32* puiInBank)
 {
 	uint8	uiBank;
 
+	if (gbKernalCopy)
+	{
+		if (puiInBank)
+		{
+			*puiInBank = 0x10000 - (uiAddress & 0xFFFF);
+		}
+		return (uint8*)uiAddress;
+	}
 	uiBank = KernalRemapPage(guiKernalProcess)[(uiAddress >> 16) & 0xFF];
 	if (uiBank == 0)
 	{
@@ -256,6 +278,32 @@ static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 		}
 	}
 	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The banks of main memory processes can have, and how many of them no
+// process has.
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalCountProcessBanks(uint16* puiProcessBanks, uint16* puiFreeBanks)
+{
+	uint16	uiPhysical;
+
+	*puiProcessBanks = 0;
+	*puiFreeBanks = 0;
+	for (uiPhysical = 0; uiPhysical < KERNAL_NUM_BANKS; uiPhysical++)
+	{
+		if (gauiKernalBanks[uiPhysical] == KERNAL_BANK_PROCESS)
+		{
+			(*puiProcessBanks)++;
+			if (gauiKernalBankOwners[uiPhysical] == 0)
+			{
+				(*puiFreeBanks)++;
+			}
+		}
+	}
 }
 
 
@@ -770,6 +818,10 @@ extern "C" void KernalCopCall(void)
 
 	case KERNAL_CALL_DEVICE:
 		gsKernalCall.uiA = KernalCallDevice(KernalArgumentLong(0));
+		break;
+
+	case KERNAL_CALL_SYSTEM:
+		gsKernalCall.uiA = KernalCallSystem(KernalArgumentLong(0));
 		break;
 
 	default:

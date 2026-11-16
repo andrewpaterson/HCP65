@@ -48,6 +48,12 @@
     <ClCompile Include="KernalDeviceCalls.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KernalSystemCalls.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="KernalConsole.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="KernalExports.asm">
       <Filter>Source</Filter>
     </ClCompile>
@@ -75,6 +81,12 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalDeviceCalls.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalSystemCalls.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalConsole.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalDebug.h">

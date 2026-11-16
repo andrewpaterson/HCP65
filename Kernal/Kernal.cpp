@@ -8,6 +8,7 @@
 #include "KernalDriverLoader.h"
 #include "KernalMemory.h"
 #include "KernalStartUp.h"
+#include "KernalConsole.h"
 
 
 //Libc65's heap.
@@ -111,7 +112,8 @@ static void KernalReadStartUp(char* szPath, uint16* puiArgument)
 // OS.SYS's main: the boot loader jumped to it (Start.asm), in kernel mode,
 // native, with interrupts disabled, and the start up has initialised its
 // globals.  Starts the devices and the SD card again, loads each board's
-// driver from \OS\Drivers and runs the start up program.
+// driver from \OS\Drivers and runs the start up program, with the
+// console (CKernalConsole) behind its standard handles.
 //
 //////////////////////////////////////////////////////////////////////////
 int main(void)
@@ -124,6 +126,7 @@ int main(void)
 		return 1;
 	}
 	KernalLoadDrivers();
+	gcKernalConsole.Init();
 
 	KernalReadStartUp(szStartUp, &uiArgument);
 	gsKernalStatus.uiBootArgument = uiArgument;

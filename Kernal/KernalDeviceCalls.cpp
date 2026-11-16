@@ -1,7 +1,9 @@
 #include <string.h>
 #include "UserLib/HCP65User.h"
 #include "KernalDriver.h"
+#include "Kernal.h"
 #include "KernalProcess.h"
+#include "KernalConsole.h"
 #include "KernalDeviceCalls.h"
 
 
@@ -23,19 +25,35 @@ static SKernalHandle	gasKernalHandles[KERNAL_MAX_HANDLES];
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The driver and unit of uiHandle (1 to KERNAL_MAX_HANDLES) if the
-// running process has it open, NULL if not.
+// The handle table's entry for uiHandle (KERNAL_FIRST_DEVICE_HANDLE on),
+// NULL if it isn't one.
+//
+//////////////////////////////////////////////////////////////////////////
+static SKernalHandle* KernalGetHandle(uint16 uiHandle)
+{
+	if ((uiHandle < KERNAL_FIRST_DEVICE_HANDLE) || (uiHandle >= KERNAL_FIRST_DEVICE_HANDLE + KERNAL_MAX_HANDLES))
+	{
+		return NULL;
+	}
+	return &gasKernalHandles[uiHandle - KERNAL_FIRST_DEVICE_HANDLE];
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The driver and unit of uiHandle if the running process has it open,
+// NULL if not.
 //
 //////////////////////////////////////////////////////////////////////////
 static CKernalDriver* KernalHandleDriver(uint16 uiHandle, uint16* puiUnit)
 {
 	SKernalHandle*	psHandle;
 
-	if ((uiHandle == 0) || (uiHandle > KERNAL_MAX_HANDLES))
+	psHandle = KernalGetHandle(uiHandle);
+	if (!psHandle)
 	{
 		return NULL;
 	}
-	psHandle = &gasKernalHandles[uiHandle - 1];
 	if ((psHandle->uiProcess == 0) || (psHandle->uiProcess != KernalCurrentProcess()))
 	{
 		return NULL;
@@ -79,6 +97,10 @@ static uint16 KernalDeviceInfoCall(uint16 uiIndex, uint32 uiAddress)
 		sInfo.uiOpen = (pcDriver && pcDriver->IsOpen()) ? 1 : 0;
 		strcpy(sInfo.szName, psROM->szName);
 		strcpy(sInfo.szManufacturer, psROM->szManufacturer);
+		if (pcDriver && (gsKernalStatus.uiLoadedDrivers & ((uint32)1 << uiSlot)))
+		{
+			strncpy(sInfo.szDriverFile, psROM->szDriverFile, KERNAL_DEVICE_DRIVER_LENGTH - 1);
+		}
 		return KernalCopyToUser(uiAddress, (uint8*)&sInfo, sizeof(SKernalDeviceInfo)) ? KERNAL_DEVICE_SUCCESS : KERNAL_DEVICE_BAD_ARGUMENT;
 	}
 	return KERNAL_DEVICE_NOT_FOUND;
@@ -132,7 +154,7 @@ static uint16 KernalDeviceOpenCall(uint32 uiManufacturer, uint32 uiName, uint16 
 	psHandle->uiProcess = KernalCurrentProcess();
 	psHandle->uiSlot = (uint8)pcDriver->GetSlot();
 	psHandle->uiUnit = uiUnit;
-	*puiHandle = (uint32)uiHandle + 1;
+	*puiHandle = (uint32)uiHandle + KERNAL_FIRST_DEVICE_HANDLE;
 	return KERNAL_DEVICE_SUCCESS;
 }
 
@@ -157,9 +179,10 @@ static uint16 KernalDeviceCloseCall(uint16 uiHandle)
 	{
 		return KERNAL_DEVICE_BAD_HANDLE;
 	}
-	uiProcess = gasKernalHandles[uiHandle - 1].uiProcess;
-	uiSlot = gasKernalHandles[uiHandle - 1].uiSlot;
-	gasKernalHandles[uiHandle - 1].uiProcess = 0;
+	psHandle = KernalGetHandle(uiHandle);
+	uiProcess = psHandle->uiProcess;
+	uiSlot = psHandle->uiSlot;
+	psHandle->uiProcess = 0;
 	for (i = 0; i < KERNAL_MAX_HANDLES; i++)
 	{
 		psHandle = &gasKernalHandles[i];
@@ -170,6 +193,45 @@ static uint16 KernalDeviceCloseCall(uint16 uiHandle)
 	}
 	pcDriver->Close(uiUnit, uiProcess);
 	return KERNAL_DEVICE_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A read, write, control or wait on a standard handle: the console's
+// (input on KERNAL_STANDARD_INPUT, output and control on
+// KERNAL_STANDARD_OUTPUT).  *psCall is the process's block at uiAddress.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 KernalConsoleCall(SKernalDeviceCall* psCall, uint32 uiAddress)
+{
+	bool	bInput;
+	uint16	uiResult;
+
+	bInput = psCall->uiHandle == KERNAL_STANDARD_INPUT;
+	psCall->uiResult = 0;
+	switch (psCall->uiCall)
+	{
+	case KERNAL_DEVICE_CALL_READ:
+		uiResult = bInput ? gcKernalConsole.Read(psCall->uiAddress, psCall->uiLength, &psCall->uiResult) : KERNAL_DEVICE_NOT_SUPPORTED;
+		break;
+
+	case KERNAL_DEVICE_CALL_WRITE:
+		uiResult = !bInput ? gcKernalConsole.Write(psCall->uiAddress, psCall->uiLength, &psCall->uiResult) : KERNAL_DEVICE_NOT_SUPPORTED;
+		break;
+
+	case KERNAL_DEVICE_CALL_CONTROL:
+		uiResult = !bInput ? gcKernalConsole.Control(psCall->uiCode, psCall->uiValue, &psCall->uiResult) : KERNAL_DEVICE_NOT_SUPPORTED;
+		break;
+
+	case KERNAL_DEVICE_CALL_WAIT:
+		return bInput ? gcKernalConsole.Wait(psCall->uiValue, psCall->uiCode) : KERNAL_DEVICE_NOT_SUPPORTED;
+
+	default:
+		return KERNAL_DEVICE_BAD_HANDLE;
+	}
+	KernalCopyToUser(uiAddress + KERNAL_DEVICE_CALL_RESULT, (uint8*)&psCall->uiResult, sizeof(uint32));
+	return uiResult;
 }
 
 
@@ -203,6 +265,11 @@ uint16 KernalCallDevice(uint32 uiAddress)
 
 	case KERNAL_DEVICE_CALL_CLOSE:
 		return KernalDeviceCloseCall(sCall.uiHandle);
+	}
+
+	if ((sCall.uiHandle == KERNAL_STANDARD_INPUT) || (sCall.uiHandle == KERNAL_STANDARD_OUTPUT))
+	{
+		return KernalConsoleCall(&sCall, uiAddress);
 	}
 
 	pcDriver = KernalHandleDriver(sCall.uiHandle, &uiUnit);

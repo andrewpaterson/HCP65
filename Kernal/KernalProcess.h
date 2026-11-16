@@ -3,7 +3,7 @@
 #include "BaseLib/PrimitiveTypes.h"
 
 
-#define KERNAL_FIRST_PROCESS_ID		0xFF		//boot.exe's.  A process run by another gets the next ID down.
+#define KERNAL_FIRST_PROCESS_ID		0xFF		//The start up program's.  A process run by another gets the next ID down.
 #define KERNAL_LAST_PROCESS_ID		0xFC
 #define KERNAL_REMAP_TABLE			0x070000	//MPU RAM: a 256 byte page of physical banks per process ID.
 #define KERNAL_USER_STACK_TOP		0xEFFF		//In the process's bank 0.
@@ -19,6 +19,7 @@
 #define KERNAL_CALL_FILE_LOAD		5
 #define KERNAL_CALL_FILE_READ		11			//Part of a file: the path, the offset, the destination and the size.
 #define KERNAL_CALL_DEVICE			12			//A device call's block (KernalDeviceCalls.h).  6 to 10 were the sound board's.
+#define KERNAL_CALL_SYSTEM			13			//A system call's block (KernalSystemCalls.h).
 
 //Call results (KERNAL_RESULT_* in HCP65User.h).
 #define KERNAL_PROCESS_NONE				0
@@ -52,9 +53,13 @@ extern "C" void		KernalEnterUser(void);		//Start.asm: RTI into the process; retu
 extern "C" void		KernalCopCall(void);		//Called by Start.asm's COP handler.
 
 uint16	KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode);
+void	KernalCountProcessBanks(uint16* puiProcessBanks, uint16* puiFreeBanks);
+
 //The running process's memory, for drivers: a process address's physical address and how much of its bank is left,
-//and copies to and from it (false if the process hasn't all of the banks).
+//and copies to and from it (false if the process hasn't all of the banks).  While KernalSetKernalCopy(true) they take
+//kernal addresses as they are instead: the console gives drivers its own buffers that way.
 uint8	KernalCurrentProcess(void);
+void	KernalSetKernalCopy(bool bKernal);
 uint8*	KernalUserPointer(uint32 uiAddress, uint32* puiInBank);
 bool	KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 uiLength);
 bool	KernalCopyFromUser(uint8* puiDest, uint32 uiAddress, uint32 uiLength);
