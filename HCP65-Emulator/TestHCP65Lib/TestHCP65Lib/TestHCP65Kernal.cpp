@@ -23,6 +23,7 @@
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Terminal.h"
+#include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
@@ -61,6 +62,10 @@
 #define TEST_HCP65_PS2_DRIVER_PATH	"\\OS\\Drivers\\PS2.DRV"
 #define TEST_HCP65_CONSOLE_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "ConsoleCard.img"	//The emulator's Machines/Console.xml boots it.
 #define TEST_HCP65_CONSOLE_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Console" _FS_ "HCP65Console.vcxproj"
+#define TEST_HCP65_VIDEO_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VideoCard.img"	//The emulator's Machines/Video.xml boots it.
+#define TEST_HCP65_VIDEO_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "VideoTest" _FS_ "HCP65VideoTest.vcxproj"
+#define TEST_HCP65_VIDEO_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VideoBoard" _FS_ "HCP65VideoBoard.vcxproj"
+#define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -76,6 +81,7 @@
 #define TEST_HCP65_VIA_MACHINE		TEST_HCP65_MACHINES _FS_ "VIA.xml"
 #define TEST_HCP65_PS2_MACHINE		TEST_HCP65_MACHINES _FS_ "PS2.xml"
 #define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
+#define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
 #define TEST_HCP65_PRIVATE_TYPE		"Test Private Board"
@@ -89,6 +95,7 @@
 #define TEST_HCP65_UART_SOCKET		16
 #define TEST_HCP65_VIA_SOCKET		3
 #define TEST_HCP65_PS2_SOCKET		3
+#define TEST_HCP65_VIDEO_SOCKET		16
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
 #define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
@@ -1743,6 +1750,142 @@ void TestHCP65KernalConsole(CHCP65KernalBuilder* pcBuilder)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Copies the blank SD card image to Output/VideoCard.img and puts the
+// Video Board's test program (HCP65/VideoTest) on it as \boot.exe and its
+// driver (HCP65/Drivers/VideoBoard) as \OS\Drivers\VIDEO.DRV.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalPutVideoFiles(void)
+{
+	if (!TestKernalCopyBlankCard(TEST_HCP65_VIDEO_CARD_IMAGE))
+	{
+		return false;
+	}
+	if (!TestKernalPutExe(TEST_HCP65_VIDEO_CARD_IMAGE, "\\boot.exe", TEST_HCP65_VIDEO_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	{
+		return false;
+	}
+	return TestKernalPutDriver(TEST_HCP65_VIDEO_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
+// (holding Output/VideoCard.img), the Video Board and a Memory Board.
+// VideoTest.cpp, as boot.exe, checks the driver and exits 0 if it all did
+// what it should, leaving 640x480 shown: the pixel at (x, y) is palette
+// 0's colour (x + y) & $FF (red i, green 255 - i, blue $40), but row 0,
+// palette 5's (red), and row 1, which the row table makes row 0 again.
+// The card it writes is the one the emulator's Machines/Video.xml boots.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
+{
+	CHCP65				cHCP65;
+	CTestMainboard		cMainboard;
+	CHCP65SDCard*		pcSDCard;
+	CHCP65VideoBoard*	pcVideo;
+	CHCP65DebugPort*	pcPort;
+	STestKernalStatus	sStatus;
+	uint32*				puiFrame;
+	uint32				uiStatus;
+	uint32				uiWidth;
+	uint32				uiHeight;
+	uint32				uiExpected;
+	uint32				uiWrong;
+	uint32				x;
+	uint32				y;
+	uint8				uiIndex;
+	int					i;
+
+	if (!TestKernalPutVideoFiles())
+	{
+		return;
+	}
+	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+
+	cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_VIDEO_MACHINE))
+	{
+		cHCP65.Kill();
+		cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
+	pcPort = cHCP65.GetDebugPort();
+	TestKernalStart(&cHCP65, pcBuilder);
+
+	for (i = 0; i < TEST_UART_MAX_RUNS; i++)
+	{
+		cHCP65.Run(TEST_UART_RUN_CYCLES);
+		TestKernalReadStatus(cHCP65.GetMPURAM(), uiStatus, &sStatus);
+		if (getenv("TEST_HCP65_VERBOSE"))
+		{
+			printf("video run %d: state %d, exit %d, PC $%06X, frames %d\n", i, sStatus.uiState, sStatus.uiExitCode, cHCP65.GetMPU()->GetProgramAddress(), (int)pcVideo->NumFrames());
+			fflush(stdout);
+		}
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+
+	//boot.exe did what VideoTest.cpp checks, with the driver loaded from the card.
+	AssertFalse(cHCP65.IsStopped());
+	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
+	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
+	AssertInt(0, sStatus.uiExitCode);
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
+	AssertInt(0, sStatus.uiDriverError);
+	AssertInt(1 << TEST_HCP65_VIDEO_SOCKET, sStatus.uiLoadedDrivers);
+	AssertSize(1, pcPort->NumDrivers());
+	AssertString(TEST_HCP65_VIDEO_DRIVER_PATH, pcPort->GetDriver(0)->szName);
+
+	//640x480 at 60Hz: 800 clocks a line, 525 lines, 25.175MHz.
+	AssertLong(25175000, (int64)pcVideo->GetPixelClockRate());
+	AssertInt(800, (int)pcVideo->GetLineLength());
+	AssertInt(525, (int)pcVideo->GetFrameLines());
+
+	//Two more frames, so that the last is drawn after boot.exe's last change, then the picture.
+	cHCP65.Run(2 * 800 * 525 + 1000);
+	puiFrame = (uint32*)malloc(640 * 480 * sizeof(uint32));
+	AssertTrue(pcVideo->GetFrame(puiFrame, 640, 480, &uiWidth, &uiHeight));
+	AssertInt(640, (int)uiWidth);
+	AssertInt(480, (int)uiHeight);
+	uiWrong = 0;
+	for (y = 0; y < 480; y++)
+	{
+		for (x = 0; x < 640; x++)
+		{
+			if (y < 2)
+			{
+				uiExpected = 0xFFFF0000;
+			}
+			else
+			{
+				uiIndex = (uint8)(x + y);
+				uiExpected = 0xFF000040 | ((uint32)uiIndex << 16) | ((uint32)(255 - uiIndex) << 8);
+			}
+			if (puiFrame[y * 640 + x] != uiExpected)
+			{
+				uiWrong++;
+			}
+		}
+	}
+	AssertInt(0, (int)uiWrong);
+	free(puiFrame);
+
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cHCP65.Kill();
+	cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Without a memory board the kernal scans the devices and stops: the SD
 // Card Board has nothing to read into.  Its heap is MPU RAM's, so it gets
 // that far.  A private board's memory isn't main memory, though it is
@@ -1807,6 +1950,7 @@ void TestHCP65Kernal(void)
 		TestHCP65KernalVIA(&cBuilder);
 		TestHCP65KernalPS2(&cBuilder);
 		TestHCP65KernalConsole(&cBuilder);
+		TestHCP65KernalVideo(&cBuilder);
 		TestHCP65KernalNoMainMemory(&cBuilder);
 	}
 	cBuilder.Kill();
