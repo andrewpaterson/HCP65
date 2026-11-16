@@ -29,6 +29,9 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	muiHeight = 0;
 	mbFlip = false;
 	muiVBlanks = 0;
+	mbText = false;
+	muiColumns = 0;
+	muiRows = 0;
 	muiWindow = ((psDevice->uiWindow != KERNAL_NO_WINDOW) && (psDevice->uiWindow != 0)) ? (uint32)psDevice->uiWindow * VIDEO_WINDOW_SIZE : 0;
 
 	Off();
@@ -57,7 +60,7 @@ void CKernalVideoBoard::Kill(void)
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::NumUnits(void)
 {
-	return VIDEO_BOARD_ROWS + 1;
+	return VIDEO_BOARD_FONT + 1;
 }
 
 
@@ -69,13 +72,17 @@ uint16 CKernalVideoBoard::NumUnits(void)
 //////////////////////////////////////////////////////////////////////////
 void CKernalVideoBoard::Interrupt(void)
 {
+	bool	bFlipped;
+
 	mpuiRegisters[VIDEO_CLEAR_INTERRUPT] = 0;
 	muiVBlanks++;
+	bFlipped = mbFlip;
 	if (mbFlip)
 	{
 		mbFlip = false;
 		WriteFlags((uint8)(muiFlags ^ VIDEO_FLAG_MEMORY_FRAME));
 	}
+	TextBlank(bFlipped);
 }
 
 
@@ -108,6 +115,20 @@ uint16 CKernalVideoBoard::Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddr
 uint16 CKernalVideoBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
 	uint8*	puiMemory;
+
+	if (uiUnit == VIDEO_BOARD_TEXT)
+	{
+		return WriteText(uiOffset, uiUserAddress, uiLength, puiDone);
+	}
+	if (uiUnit == VIDEO_BOARD_FONT)
+	{
+		if ((uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&mauiFont[uiOffset], uiUserAddress, uiLength))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		*puiDone += uiLength;
+		return KERNAL_DRIVER_SUCCESS;
+	}
 
 	puiMemory = UnitMemory(uiUnit, uiOffset, uiLength);
 	if (!puiMemory || !KernalCopyFromUser(puiMemory, uiUserAddress, uiLength))
@@ -146,6 +167,10 @@ uint8* CKernalVideoBoard::UnitMemory(uint16 uiUnit, uint32 uiOffset, uint32 uiLe
 		uiSize = VIDEO_BOARD_PALETTES_SIZE;
 		uiAddress = mpsDevice->uiAddress + VIDEO_PALETTES;
 		break;
+
+	case VIDEO_BOARD_TEXT:
+	case VIDEO_BOARD_FONT:
+		return NULL;
 
 	default:
 		uiSize = VIDEO_BOARD_ROWS_SIZE;
@@ -213,6 +238,43 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 
 	case VIDEO_BOARD_OFF:
 		Off();
+		return KERNAL_DRIVER_SUCCESS;
+
+	case VIDEO_BOARD_SET_TEXT_MODE:
+		if (uiValue >= VIDEO_NUM_MODES)
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		return SetTextMode((uint8)uiValue) ? KERNAL_DRIVER_SUCCESS : KERNAL_DRIVER_FAILED;
+
+	case VIDEO_BOARD_GET_COLUMNS:
+		*puiResult = mbText ? muiColumns : 0;
+		return KERNAL_DRIVER_SUCCESS;
+
+	case VIDEO_BOARD_GET_ROWS:
+		*puiResult = mbText ? muiRows : 0;
+		return KERNAL_DRIVER_SUCCESS;
+
+	case VIDEO_BOARD_SET_TEXT_COLOUR:
+		if (!mbText || (uiValue >= VIDEO_TEXT_CURSOR_PALETTE))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		muiTextColour = (uint8)uiValue;
+		return KERNAL_DRIVER_SUCCESS;
+
+	case VIDEO_BOARD_SCROLL_TEXT:
+		return ScrollText(uiValue);
+
+	case VIDEO_BOARD_CLEAR_TEXT:
+		return ClearText();
+
+	case VIDEO_BOARD_SET_CURSOR:
+		if (!mbText || ((uiValue != VIDEO_CURSOR_NONE) && (uiValue >= (uint32)muiRows * muiColumns)))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		SetCursorCell((uiValue == VIDEO_CURSOR_NONE) ? VIDEO_CURSOR_NONE : PhysicalCell((uint16)uiValue));
 		return KERNAL_DRIVER_SUCCESS;
 
 	default:
@@ -300,6 +362,7 @@ void CKernalVideoBoard::SetMode(uint8 uiMode)
 //////////////////////////////////////////////////////////////////////////
 void CKernalVideoBoard::Off(void)
 {
+	mbText = false;
 	mpuiRegisters[VIDEO_SIGNAL_DELAY] = VIDEO_DELAY_OFF;
 	mpuiRegisters[VIDEO_CLOCK_SELECT] = 0;
 	muiMode = 0xFF;

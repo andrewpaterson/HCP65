@@ -78,6 +78,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="VideoBoard.cpp" />
+    <ClCompile Include="VideoBoardText.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VideoBoard.h" />

@@ -18,7 +18,7 @@ uint8	gauiVideoTestRow[VIDEO_TEST_WIDTH];
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The board is there with its four units; it opens and refuses what it
+// The board is there with its six units; it opens and refuses what it
 // doesn't take.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -40,11 +40,11 @@ uint16 VideoTestOpen(uint16* puiPixels, uint16* puiPalettes, uint16* puiNumbers,
 			break;
 		}
 	}
-	if ((sInfo.uiNumUnits != 4) || sInfo.uiOpen)
+	if ((sInfo.uiNumUnits != 6) || sInfo.uiOpen)
 	{
 		return 2;
 	}
-	if (KernalDeviceOpen(VIDEO_BOARD_MANUFACTURER, VIDEO_BOARD_NAME, 0, 4, &uiHandle) != KERNAL_DEVICE_BAD_UNIT)
+	if (KernalDeviceOpen(VIDEO_BOARD_MANUFACTURER, VIDEO_BOARD_NAME, 0, 6, &uiHandle) != KERNAL_DEVICE_BAD_UNIT)
 	{
 		return 3;
 	}

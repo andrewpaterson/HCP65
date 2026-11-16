@@ -31,6 +31,16 @@
 
 #define VIDEO_WINDOW_SIZE				0x400000	//A main memory window: chip A (the indices), then chip B (the palette numbers).
 
+//Text.
+#define VIDEO_TEXT_CELL_WIDTH			8
+#define VIDEO_TEXT_CELL_HEIGHT			16
+#define VIDEO_TEXT_MAX_CELLS			(128 * 48)	//1024x768's.
+#define VIDEO_TEXT_MAX_PENDING			512			//Cells owed to the other frame before it is all drawn again.
+#define VIDEO_TEXT_DEFAULT_COLOUR		0x07		//Light grey on black.
+#define VIDEO_TEXT_BLINK_FRAMES			16			//The cursor's blink: about a quarter of a second on, then off.
+#define VIDEO_TEXT_FLIP_TICKS			16			//The longest a mode change waits for a vertical blank (KERNAL_TICKS_PER_SECOND).
+#define VIDEO_TEXT_CHUNK				64			//Characters WriteText takes from the process at a time.
+
 
 //A mode's timing: in 8 pixels across and lines down, each Front Porch Start (the width or height), Sync Start, Back
 //Porch Start and Back Porch End (the whole).
@@ -43,8 +53,8 @@ struct SVideoMode
 };
 
 
-//The HCP65 Video Board's driver: its units are the board's memories (VIDEO_BOARD_PIXELS ...), and a program has the
-//whole board.  The pixels and their palette numbers are the board's main memory window (the frame the processor has);
+//The HCP65 Video Board's driver: its units are the board's memories (VIDEO_BOARD_PIXELS ...) and its text
+//(VIDEO_BOARD_TEXT, VIDEO_BOARD_FONT: VideoBoardText.cpp), and a program has the whole board.  The pixels and their palette numbers are the board's main memory window (the frame the processor has);
 //the palettes and the row table its device RAM.  The interrupt (trusted: only the board and the driver's own memory) is
 //vertical blank's: it counts them and makes a flip asked for since the last.  Without a window from the kernal (or with
 //window 0, whose pixels aren't reachable in kernel mode) the pixels can't be reached: their reads and writes fail.
@@ -58,6 +68,26 @@ protected:
 	volatile bool	mbFlip;			//A flip is due at the next vertical blank.
 	volatile uint32	muiVBlanks;
 	uint32			muiWindow;		//The main memory window's first address, 0 if it can't be reached.
+
+	//Text.  A cell's physical row is its row moved down by the scroll, muiTop (the row table shows physical row muiTop
+	//first).  What each cell is (mauiChars, mauiColours) is drawn in the frame being drawn, and the cells the other
+	//frame is owed are kept (mauiPending, or all of them) to draw in it once the frames have flipped (mbFlipped).
+	bool			mbText;
+	uint16			muiColumns;
+	uint16			muiRows;
+	uint16			muiTop;
+	uint16			muiShownTop;	//The row table's.
+	uint8			muiTextColour;
+	uint16			muiCursor;		//Its physical cell, VIDEO_CURSOR_NONE if none.
+	uint8			muiBlink;
+	uint16			muiPending;
+	bool			mbPendingAll;
+	volatile bool	mbFlipped;
+	uint8			mauiChars[VIDEO_TEXT_MAX_CELLS];
+	uint8			mauiColours[VIDEO_TEXT_MAX_CELLS];
+	uint16			mauiPending[VIDEO_TEXT_MAX_PENDING];
+	uint8			mauiFont[VIDEO_FONT_SIZE];
+	uint8			mauiExpand[256 * 8];	//A glyph row's byte as its eight pixels, 0 or 1.
 
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
@@ -78,6 +108,21 @@ protected:
 	void	SetMode(uint8 uiMode);
 	void	Off(void);
 	void	WriteFlags(uint8 uiFlags);
+
+	bool	SetTextMode(uint8 uiMode);
+	void	SetTextPalette(uint8 uiPalette, uint8 uiBackground, uint8 uiForeground);
+	void	ClearTextFrame(void);
+	void	WriteTextRows(uint16 uiTop);
+	uint16	PhysicalCell(uint16 uiCell);
+	void	RenderCell(uint16 uiCell);
+	void	CatchUp(void);
+	void	DrawCell(uint16 uiCell);
+	void	DrawAll(void);
+	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
+	uint16	ScrollText(uint32 uiLines);
+	uint16	ClearText(void);
+	void	SetCursorCell(uint16 uiCell);
+	void	TextBlank(bool bFlipped);
 };
 
 
