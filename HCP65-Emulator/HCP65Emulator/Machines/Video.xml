@@ -9,7 +9,8 @@
 		</Board>
 		<Board Socket="4" Type="UART Board"/>
 		<Board Socket="16" Type="Video Board"/>
-		<Board Socket="17" Type="PS2 Board"/>
+		<Board Socket="17" Type="Sound Board"/>
 		<Board Socket="18" Type="Memory Board"/>
+		<Board Socket="19" Type="PS2 Board"/>
 	</Processor>
 </Mainboard>
