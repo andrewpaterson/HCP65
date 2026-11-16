@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The HCP65 VIA Board (VIA Board, VIA Control and VIA Breakout sheets): eight W65C22 VIAs, named by their ports,
-     AB, CD, EF, GH, XJ, KL, MN and OP, two on each VIA Breakout.  VIA Control's 74LVC138 selects one by A6-A4 when A7 is
+<!-- The HCP65 VIA Board (VIA Board, VIA Control and VIA Breakout sheets): up to eight W65C22 VIAs, named by their ports,
+     AB, CD, EF, GH, XJ, KL, MN and OP, two on each of the four VIA Breakouts, which are optional.  A VIA that isn't
+     fitted reads $FF and its ~IRQ is pulled up.  VIA Control's 74LVC138 selects one by A6-A4 when A7 is
      0, 16 bytes each from $400; A3-A0 are its RS3-RS0, so its registers are in the W65C22's order: ORB/IRB, ORA/IRA,
      DDRB, DDRA, T1C-L, T1C-H, T1L-L, T1L-H, T2C-L, T2C-H, SR, ACR, PCR, IFR, IER, then ORA/IRA without handshake.  At
      $480 (A7 set, A6-A0 clear) a 74LCX540 reads the VIAs' ~IRQs inverted: D0 is AB's to D7 OP's, 1 where it is

@@ -10,6 +10,7 @@
 #include "HCP65Audio.h"
 #include "HCP65SDCard.h"
 #include "HCP65UART.h"
+#include "HCP65VIA.h"
 #include "HCP65MemoryBoard.h"
 #include "HCP65Mainboard.h"
 
@@ -18,7 +19,7 @@
 static const char*	gaszHCP65MainboardTypes[] = { "Any", "Small", "Full" };
 
 //The boards CreateBoard makes.
-static const char*	gaszHCP65BoardTypes[] = { HCP65_SD_NAME, HCP65_UART_NAME, HCP65_AUDIO_NAME, HCP65_MEMORY_BOARD_NAME };
+static const char*	gaszHCP65BoardTypes[] = { HCP65_SD_NAME, HCP65_UART_NAME, HCP65_AUDIO_NAME, HCP65_MEMORY_BOARD_NAME, HCP65_VIA_BOARD_NAME };
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -426,6 +427,7 @@ CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszT
 	CHCP65SDCard*		pcSDCard;
 	CHCP65UARTBoard*	pcUART;
 	CHCP65MemoryBoard*	pcMemory;
+	CHCP65VIABoard*		pcVIA;
 
 	if (strcmp(szType, HCP65_AUDIO_NAME) == 0)
 	{
@@ -454,6 +456,13 @@ CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszT
 		pcMemory->Init();
 		*pszType = HCP65_MEMORY_BOARD_NAME;
 		return pcMemory;
+	}
+	if (strcmp(szType, HCP65_VIA_BOARD_NAME) == 0)
+	{
+		pcVIA = NewMalloc<CHCP65VIABoard>();
+		pcVIA->Init();
+		*pszType = HCP65_VIA_BOARD_NAME;
+		return pcVIA;
 	}
 	*pszType = NULL;
 	return NULL;

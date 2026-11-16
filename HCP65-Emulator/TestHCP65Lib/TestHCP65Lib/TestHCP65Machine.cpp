@@ -11,6 +11,7 @@
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
+#include "HCP65Lib/HCP65VIA.h"
 #include "TestLib/Assert.h"
 
 
@@ -603,6 +604,7 @@ void TestHCP65DeviceROMFromXML(void)
 	CHCP65SDCard	cSDCard;
 	CHCP65UARTBoard	cUART;
 	CHCP65MemoryBoard	cMemory;
+	CHCP65VIABoard	cVIA;
 	CChars			szError;
 	CChars			szMainBus;
 	FILE*			pFile;
@@ -655,13 +657,20 @@ void TestHCP65DeviceROMFromXML(void)
 	AssertTrue(bSame);
 	cMemory.Kill();
 
-	//The VIA Board has no emulated board: its eight VIAs' 16 registers each are read and written, and the interrupts are
-	//only read.
+	//The VIA Board's eight VIAs' 16 registers each are read and written, and the interrupts are only read.
+	cVIA.Init();
 	AssertTrue(TestHCP65LoadDeviceROM(TEST_HCP65_BOARDS, "VIABoard.xml", &cROM, &szError));
 	AssertString("", szError.Text());
 	AssertInt(8 * 16 * 2 + 1, cROM.NumRegisters());
 	AssertString("VIA Board", (char*)&cROM.GetROM()[DEVICE_ROM_NAME_OFFSET]);
 	AssertString("VIA.DRV", (char*)&cROM.GetROM()[DEVICE_ROM_DRIVER_OFFSET]);
+	bSame = true;
+	for (i = 0; i < DEVICE_ROM_SIZE; i++)
+	{
+		bSame &= cROM.Read(i) == cVIA.Read(i);
+	}
+	AssertTrue(bSame);
+	cVIA.Kill();
 
 	cFileUtil.TouchDir("Output");  //False when Output is already there.
 	AssertTrue(cFileUtil.IsDirectory("Output"));
@@ -1138,7 +1147,7 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
 
 	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
-	AssertSize(4, CHCP65Mainboard::NumBoardTypes());
+	AssertSize(5, CHCP65Mainboard::NumBoardTypes());
 	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
 	AssertFalse(cMainboard.CanHold(3, HCP65_AUDIO_NAME));
@@ -1258,6 +1267,480 @@ void TestHCP65MainboardChangeBoards(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// One W65C22S on its own, in its PHI2 ticks: the ports and their bus
+// holders, the timers, the shift register, the control lines'
+// handshakes and flags, and reset.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65VIA(void)
+{
+	CHCP65VIA	cVIA;
+	uint64		uiTick;
+	uint16		uiValue;
+	int			i;
+
+	cVIA.Init();
+
+	//Reset: every pin an input and nothing enabled.  IER reads D7 set.
+	AssertInt(0, cVIA.Read(HCP65_VIA_DDRA));
+	AssertInt(0, cVIA.Read(HCP65_VIA_ACR));
+	AssertInt(0, cVIA.Read(HCP65_VIA_IFR));
+	AssertInt(0x80, cVIA.Read(HCP65_VIA_IER));
+	AssertFalse(cVIA.IsInterrupting());
+	AssertLong((int64)HCP65_NEVER, (int64)cVIA.NextEvent());
+
+	//Port A reads its pins.  What the host drives on an output is ignored, and a pin nothing drives keeps its level.
+	cVIA.Write(HCP65_VIA_DDRA, 0x0F);
+	cVIA.Write(HCP65_VIA_ORA, 0x05);
+	AssertInt(0xF5, cVIA.GetPortA());
+	cVIA.HostDrivePortA(0x3A, 0xFF);
+	AssertInt(0x35, cVIA.Read(HCP65_VIA_ORA_NH));
+	cVIA.HostDrivePortA(0, 0);
+	AssertInt(0x35, cVIA.Read(HCP65_VIA_ORA_NH));
+	cVIA.Write(HCP65_VIA_DDRA, 0xFF);
+	AssertInt(0x05, cVIA.GetPortA());
+	cVIA.Write(HCP65_VIA_DDRA, 0x00);
+	AssertInt(0x05, cVIA.GetPortA());
+
+	//Port B reads ORB where it is an output.
+	cVIA.Write(HCP65_VIA_DDRB, 0xF0);
+	cVIA.Write(HCP65_VIA_ORB, 0xA5);
+	cVIA.HostDrivePortB(0x0F, 0xFF);
+	AssertInt(0xAF, cVIA.GetPortB());
+	AssertInt(0xAF, cVIA.Read(HCP65_VIA_ORB));
+	cVIA.Write(HCP65_VIA_DDRB, 0x00);
+	cVIA.HostDrivePortB(0, 0);
+
+	//One shot T1 of 10, written at tick 100: 10 on the next tick, 0 ten later, and the time out the tick after that.  It
+	//sets the flag once.
+	cVIA.CatchUp(100);
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_ANY | HCP65_VIA_INT_T1);
+	AssertInt(0xC0, cVIA.Read(HCP65_VIA_IER));
+	cVIA.Write(HCP65_VIA_T1CL, 10);
+	cVIA.Write(HCP65_VIA_T1CH, 0);
+	AssertLong(112, (int64)cVIA.NextEvent());
+	cVIA.CatchUp(101);
+	AssertInt(10, cVIA.GetT1Counter());
+	cVIA.CatchUp(111);
+	AssertInt(0, cVIA.GetT1Counter());
+	AssertFalse(cVIA.IsInterrupting());
+	cVIA.CatchUp(112);
+	AssertInt(0xFFFF, cVIA.GetT1Counter());
+	AssertTrue(cVIA.IsInterrupting());
+	AssertInt(0xC0, cVIA.Read(HCP65_VIA_IFR));
+	AssertLong((int64)HCP65_NEVER, (int64)cVIA.NextEvent());
+	cVIA.CatchUp(113);
+	AssertInt(0xFE, cVIA.Read(HCP65_VIA_T1CL));
+	AssertFalse(cVIA.IsInterrupting());
+	AssertLong((int64)HCP65_NEVER, (int64)cVIA.NextEvent());
+	cVIA.CatchUp(112 + 0x10000 + 5);
+	AssertFalse(cVIA.IsInterrupting());
+	AssertInt(10, cVIA.Read(HCP65_VIA_T1LL));
+
+	//Continuous T1 of 4 times out every 6 ticks, inverting PB7, which went low when T1C-H was written.
+	uiTick = 200000;
+	cVIA.CatchUp(uiTick);
+	cVIA.Write(HCP65_VIA_ACR, HCP65_VIA_ACR_T1_CONTINUOUS | HCP65_VIA_ACR_T1_PB7);
+	cVIA.Write(HCP65_VIA_T1CL, 4);
+	cVIA.Write(HCP65_VIA_T1CH, 0);
+	AssertInt(0x00, cVIA.GetPortB() & 0x80);
+	cVIA.CatchUp(uiTick + 6);
+	AssertInt(0x80, cVIA.GetPortB() & 0x80);
+	AssertInt(0x80, cVIA.Read(HCP65_VIA_ORB) & 0x80);
+	AssertTrue(cVIA.IsInterrupting());
+	cVIA.Read(HCP65_VIA_T1CL);
+	AssertFalse(cVIA.IsInterrupting());
+	AssertLong((int64)(uiTick + 12), (int64)cVIA.NextEvent());
+	cVIA.CatchUp(uiTick + 7);
+	AssertInt(4, cVIA.GetT1Counter());
+	cVIA.CatchUp(uiTick + 12);
+	AssertInt(0x00, cVIA.GetPortB() & 0x80);
+	AssertTrue(cVIA.IsInterrupting());
+
+	//1001 more time outs, worked out rather than counted.
+	cVIA.CatchUp(uiTick + 12 + 6 * 1001);
+	AssertInt(0x80, cVIA.GetPortB() & 0x80);
+	AssertInt(0xFFFF, cVIA.GetT1Counter());
+
+	//A new latch, written at a time out, is what reloads on the next tick.
+	cVIA.Write(HCP65_VIA_T1LL, 10);
+	cVIA.Read(HCP65_VIA_T1CL);
+	AssertLong((int64)(uiTick + 12 + 6 * 1001 + 12), (int64)cVIA.NextEvent());
+	cVIA.CatchUp(uiTick + 12 + 6 * 1001 + 1);
+	AssertInt(10, cVIA.GetT1Counter());
+
+	//Timed T2 of 5 times out 7 ticks after it is written, once.
+	cVIA.Write(HCP65_VIA_ACR, 0);
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_FLAGS);
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_ANY | HCP65_VIA_INT_T2);
+	uiTick = cVIA.GetTick();
+	cVIA.Write(HCP65_VIA_T2CL, 5);
+	cVIA.Write(HCP65_VIA_T2CH, 0);
+	AssertLong((int64)(uiTick + 7), (int64)cVIA.NextEvent());
+	cVIA.CatchUp(uiTick + 6);
+	AssertInt(0, cVIA.GetT2Counter());
+	AssertFalse(cVIA.IsInterrupting());
+	cVIA.CatchUp(uiTick + 7);
+	AssertTrue(cVIA.IsInterrupting());
+	AssertInt(0xFF, cVIA.Read(HCP65_VIA_T2CL));
+	AssertFalse(cVIA.IsInterrupting());
+	cVIA.CatchUp(uiTick + 7 + 0x10000 + 1);
+	AssertFalse(cVIA.IsInterrupting());
+
+	//Counting PB6's falls, T2 sets its flag on reaching 0 and doesn't count PHI2.
+	cVIA.Write(HCP65_VIA_ACR, HCP65_VIA_ACR_T2_PULSES);
+	cVIA.HostDrivePortB(0x40, 0x40);
+	cVIA.Write(HCP65_VIA_T2CL, 3);
+	cVIA.Write(HCP65_VIA_T2CH, 0);
+	for (i = 0; i < 3; i++)
+	{
+		AssertFalse(cVIA.IsInterrupting());
+		cVIA.HostDrivePortB(0x00, 0x40);
+		cVIA.HostDrivePortB(0x40, 0x40);
+	}
+	AssertTrue(cVIA.IsInterrupting());
+	cVIA.CatchUp(cVIA.GetTick() + 1000);
+	AssertInt(0, cVIA.GetT2Counter());
+	cVIA.Read(HCP65_VIA_T2CL);
+	AssertFalse(cVIA.IsInterrupting());
+	cVIA.HostDrivePortB(0, 0);
+
+	//Shifting out under PHI2: an edge of CB1 every tick, CB2 changing on the falls, D7 first.  Eight bits put $A5 back.
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_FLAGS);
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_ANY | HCP65_VIA_INT_SR);
+	cVIA.Write(HCP65_VIA_ACR, HCP65_VIA_SR_OUT_PHI2 << HCP65_VIA_ACR_SR_SHIFT);
+	uiTick = cVIA.GetTick();
+	cVIA.Write(HCP65_VIA_SR, 0xA5);
+	AssertLong((int64)(uiTick + 16), (int64)cVIA.NextEvent());
+	AssertTrue(cVIA.GetCB1());
+	cVIA.CatchUp(uiTick + 1);
+	AssertFalse(cVIA.GetCB1());
+	AssertTrue(cVIA.GetCB2());
+	cVIA.CatchUp(uiTick + 2);
+	AssertTrue(cVIA.GetCB1());
+	cVIA.CatchUp(uiTick + 3);
+	AssertFalse(cVIA.GetCB2());
+	cVIA.CatchUp(uiTick + 15);
+	AssertFalse(cVIA.IsInterrupting());
+	cVIA.CatchUp(uiTick + 16);
+	AssertTrue(cVIA.IsInterrupting());
+	AssertInt(0x84, cVIA.Read(HCP65_VIA_IFR));
+	AssertTrue(cVIA.GetCB1());
+	AssertTrue(cVIA.GetCB2());
+	AssertInt(0xA5, cVIA.Read(HCP65_VIA_SR));
+	AssertFalse(cVIA.IsInterrupting());
+
+	//Shifting in on the host's CB1: CB2 at each rise, into D0.
+	cVIA.Write(HCP65_VIA_ACR, HCP65_VIA_SR_IN_CB1 << HCP65_VIA_ACR_SR_SHIFT);
+	cVIA.Read(HCP65_VIA_SR);
+	for (i = 7; i >= 0; i--)
+	{
+		AssertFalse(cVIA.IsInterrupting());
+		cVIA.HostSetCB2(((0x5A >> i) & 1) != 0);
+		cVIA.HostSetCB1(false);
+		cVIA.HostSetCB1(true);
+	}
+	AssertTrue(cVIA.IsInterrupting());
+	AssertInt(0x5A, cVIA.Read(HCP65_VIA_SR));
+	AssertFalse(cVIA.IsInterrupting());
+
+	//Shifting out free running at T2's rate (T2's low latch 0: an edge every 2 ticks) goes round and round without a
+	//flag.  16001 edges are one.
+	cVIA.Write(HCP65_VIA_T2CL, 0);
+	cVIA.Write(HCP65_VIA_ACR, HCP65_VIA_SR_OUT_FREE << HCP65_VIA_ACR_SR_SHIFT);
+	uiTick = cVIA.GetTick();
+	cVIA.Write(HCP65_VIA_SR, 0x81);
+	AssertLong((int64)HCP65_NEVER, (int64)cVIA.NextEvent());
+	cVIA.CatchUp(uiTick + 2 * 16001);
+	AssertFalse(cVIA.IsInterrupting());
+	AssertFalse(cVIA.GetCB1());
+	AssertTrue(cVIA.GetCB2());
+	AssertInt(0x03, cVIA.Read(HCP65_VIA_SR));
+
+	//CA2's handshake: low on reading ORA, high on CA1's active edge (here positive), which sets CA1's flag.  ORA without
+	//handshake leaves the flag.
+	cVIA.Write(HCP65_VIA_ACR, 0);
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_FLAGS);
+	cVIA.Write(HCP65_VIA_IFR, HCP65_VIA_INT_FLAGS);
+	cVIA.Write(HCP65_VIA_PCR, HCP65_VIA_PCR_CA1_POSITIVE | (HCP65_VIA_C2_HANDSHAKE << 1));
+	AssertTrue(cVIA.GetCA2());
+	cVIA.Read(HCP65_VIA_ORA);
+	AssertFalse(cVIA.GetCA2());
+	cVIA.HostSetCA1(false);
+	AssertInt(0, cVIA.Read(HCP65_VIA_IFR));
+	cVIA.HostSetCA1(true);
+	AssertInt(HCP65_VIA_INT_CA1, cVIA.Read(HCP65_VIA_IFR));
+	AssertTrue(cVIA.GetCA2());
+	cVIA.Read(HCP65_VIA_ORA_NH);
+	AssertInt(HCP65_VIA_INT_CA1, cVIA.Read(HCP65_VIA_IFR));
+	cVIA.Read(HCP65_VIA_ORA);
+	AssertInt(0, cVIA.Read(HCP65_VIA_IFR));
+	AssertFalse(cVIA.GetCA2());
+
+	//Latching: port A as it was at CA1's active edge.
+	cVIA.Write(HCP65_VIA_ACR, HCP65_VIA_ACR_PA_LATCH);
+	cVIA.HostDrivePortA(0x11, 0xFF);
+	cVIA.HostSetCA1(false);
+	cVIA.HostSetCA1(true);
+	cVIA.HostDrivePortA(0x22, 0xFF);
+	AssertInt(0x11, cVIA.Read(HCP65_VIA_ORA_NH));
+	AssertInt(0x22, cVIA.GetPortA());
+	cVIA.Write(HCP65_VIA_ACR, 0);
+	AssertInt(0x22, cVIA.Read(HCP65_VIA_ORA_NH));
+
+	//CA2's pulse lasts a tick, and is counted.
+	cVIA.Write(HCP65_VIA_PCR, HCP65_VIA_C2_PULSE << 1);
+	AssertTrue(cVIA.GetCA2());
+	cVIA.Write(HCP65_VIA_ORA, 0);
+	AssertFalse(cVIA.GetCA2());
+	AssertLong(1, (int64)cVIA.NumCA2Pulses());
+	cVIA.CatchUp(cVIA.GetTick() + 1);
+	AssertTrue(cVIA.GetCA2());
+
+	//CB2 as an independent input: ORB leaves its flag, writing it to the IFR clears it.  Otherwise ORB clears it.
+	cVIA.Write(HCP65_VIA_PCR, HCP65_VIA_C2_INDEPENDENT << 5);
+	cVIA.HostSetCB2(true);
+	cVIA.HostSetCB2(false);
+	AssertInt(HCP65_VIA_INT_CB2, cVIA.Read(HCP65_VIA_IFR));
+	cVIA.Read(HCP65_VIA_ORB);
+	AssertInt(HCP65_VIA_INT_CB2, cVIA.Read(HCP65_VIA_IFR));
+	cVIA.Write(HCP65_VIA_IFR, HCP65_VIA_INT_CB2);
+	AssertInt(0, cVIA.Read(HCP65_VIA_IFR));
+	cVIA.Write(HCP65_VIA_PCR, 0);
+	cVIA.HostSetCB2(true);
+	cVIA.HostSetCB2(false);
+	AssertInt(HCP65_VIA_INT_CB2, cVIA.Read(HCP65_VIA_IFR));
+
+	//IFR's D7 is any enabled flag; IER is set and cleared a bit at a time.
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_ANY | HCP65_VIA_INT_CB2);
+	AssertInt(HCP65_VIA_INT_ANY | HCP65_VIA_INT_CB2, cVIA.Read(HCP65_VIA_IFR));
+	AssertTrue(cVIA.IsInterrupting());
+	cVIA.Write(HCP65_VIA_IER, HCP65_VIA_INT_CB2);
+	AssertInt(HCP65_VIA_INT_CB2, cVIA.Read(HCP65_VIA_IFR));
+	AssertFalse(cVIA.IsInterrupting());
+	cVIA.Write(HCP65_VIA_ORB, 0);
+	AssertInt(0, cVIA.Read(HCP65_VIA_IFR));
+
+	//Reset keeps the timers' latches.  Held in reset, the timers stop.
+	cVIA.Write(HCP65_VIA_T1LL, 0x34);
+	cVIA.Write(HCP65_VIA_T1LH, 0x12);
+	cVIA.Write(HCP65_VIA_PCR, 0xFF);
+	cVIA.Reset();
+	AssertInt(0x34, cVIA.Read(HCP65_VIA_T1LL));
+	AssertInt(0x12, cVIA.Read(HCP65_VIA_T1LH));
+	AssertInt(0, cVIA.Read(HCP65_VIA_PCR));
+	cVIA.SetFrozen(true);
+	uiValue = cVIA.GetT1Counter();
+	cVIA.CatchUp(cVIA.GetTick() + 5000);
+	AssertInt(uiValue, cVIA.GetT1Counter());
+	cVIA.SetFrozen(false);
+	cVIA.CatchUp(cVIA.GetTick() + 1);
+	AssertInt((uint16)(uiValue - 1), cVIA.GetT1Counter());
+
+	cVIA.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The VIA Board decodes A7-A0: A6-A4 pick the VIA, A3-A0 its register,
+// and $80 reads the interrupts.  A VIA whose breakout isn't fitted reads
+// $FF and doesn't interrupt.  Writes are ignored while the board is held
+// in reset.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65VIABoard(void)
+{
+	CHCP65VIABoard	cBoard;
+
+	cBoard.Init();
+	AssertInt(0x1A, cBoard.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cBoard.Read(0x800));
+	AssertInt(8, cBoard.NumVIAs());
+	AssertString("XJ", CHCP65VIABoard::GetVIAName(4));
+
+	cBoard.Write(0x400 + HCP65_VIA_DDRA, 0xFF);
+	AssertInt(0, cBoard.Read(0x400 + HCP65_VIA_DDRA));
+	cBoard.SetHeldInReset(false);
+	cBoard.Write(0x400 + HCP65_VIA_DDRA, 0x12);
+	cBoard.Write(0x470 + HCP65_VIA_DDRA, 0x34);
+	AssertInt(0x12, cBoard.Read(0x400 + HCP65_VIA_DDRA));
+	AssertInt(0x34, cBoard.Read(0x470 + HCP65_VIA_DDRA));
+	AssertInt(0x12, cBoard.Read(0x500 + HCP65_VIA_DDRA));
+	AssertInt(0x34, cBoard.Read(0x770 + HCP65_VIA_DDRA));
+	AssertInt(0x12, cBoard.GetVIA(0)->Read(HCP65_VIA_DDRA));
+	AssertInt(0, cBoard.Read(0x410 + HCP65_VIA_DDRA));
+	AssertInt(0xFF, cBoard.Read(0x481));
+	AssertInt(0xFF, cBoard.Read(0x490));
+
+	//CD's CA1 flag, enabled: it is D1 of the interrupt register.  Writing that register does nothing.
+	AssertInt(0, cBoard.Read(0x480));
+	cBoard.Write(0x410 + HCP65_VIA_IER, HCP65_VIA_INT_ANY | HCP65_VIA_INT_CA1);
+	cBoard.GetVIA(1)->HostSetCA1(false);
+	AssertTrue(cBoard.IsInterrupting());
+	AssertInt(0x02, cBoard.Read(0x480));
+	AssertInt(0x02, cBoard.Read(0x780));
+	cBoard.Write(0x480, 0xFF);
+	AssertInt(0x02, cBoard.Read(0x480));
+
+	//Without breakout 0, AB and CD aren't there: they read $FF and don't interrupt.  Fitted again, they are as they were.
+	cBoard.SetBreakout(0, false);
+	AssertInt(6, cBoard.NumVIAs());
+	AssertNull(cBoard.GetVIA(1));
+	AssertNotNull(cBoard.GetVIA(2));
+	AssertInt(0xFF, cBoard.Read(0x400 + HCP65_VIA_DDRA));
+	AssertInt(0, cBoard.Read(0x480));
+	AssertFalse(cBoard.IsInterrupting());
+	cBoard.Write(0x400 + HCP65_VIA_DDRA, 0x56);
+	cBoard.SetBreakout(0, true);
+	AssertInt(0x12, cBoard.Read(0x400 + HCP65_VIA_DDRA));
+	AssertInt(0x02, cBoard.Read(0x480));
+
+	//Held in reset, the VIAs are reset.
+	cBoard.SetHeldInReset(true);
+	AssertFalse(cBoard.IsInterrupting());
+	AssertInt(0, cBoard.Read(0x480));
+	AssertInt(0, cBoard.Read(0x470 + HCP65_VIA_DDRA));
+
+	cBoard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The VIA Board in socket 3, its PHI2 half the CPU's clock: AB's one shot
+// T1 interrupts the processor on its time out, N+2 ticks after T1C-H is
+// written.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65VIAInterrupt(void)
+{
+	CHCP65				cHCP65;
+	CHCP65VIABoard		cVIA;
+	CHCP65MemoryBoard	cMemory;
+	uint8*				puiRAM;
+	uint64				uiWriteCycle;
+	uint64				uiDue;
+
+	static const uint8 auiIrq[] = {
+		0xAF, 0x80, 0x84, 0x11,		//lda $118480 (interrupts)
+		0x8F, 0x10, 0x00, 0x20,		//sta $200010
+		0xAF, 0x0D, 0x84, 0x11,		//lda $11840D (AB's IFR)
+		0x8F, 0x11, 0x00, 0x20,		//sta $200011
+		0xAF, 0x04, 0x84, 0x11,		//lda $118404 (AB's T1C-L, clearing the flag)
+		0xDB };						//stp
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	cVIA.Init();
+	AssertTrue(cHCP65.SetDevice(3, &cVIA));
+	puiRAM = TestHCP65WaitingKernal(&cHCP65, 0x8200, 0x8300);
+	TestHCP65Put(puiRAM, 0x8200, auiIrq, sizeof(auiIrq));
+
+	cHCP65.Reset();
+	AssertTrue(cVIA.IsHeldInReset());
+	cHCP65.Write(0x100003, 0x08);
+	AssertFalse(cVIA.IsHeldInReset());
+	AssertInt(0x1A, cHCP65.Read(0x118000));
+	cHCP65.Write(0x11840E, HCP65_VIA_INT_ANY | HCP65_VIA_INT_T1);
+	cHCP65.Write(0x118404, 100);
+	uiWriteCycle = cHCP65.NumCycles();
+	cHCP65.Write(0x118405, 0);
+
+	cHCP65.Run(100000);
+	AssertTrue(cHCP65.IsStopped());
+	AssertInt(0x01, *TestHCP65Main(&cHCP65, 0x200010));
+	AssertInt(0xC0, *TestHCP65Main(&cHCP65, 0x200011));
+	uiDue = cHCP65.CycleOfDeviceTick(cHCP65.DeviceTick(uiWriteCycle, TEST_HCP65_CLOCK_RATE / 2) + 100 + 2, TEST_HCP65_CLOCK_RATE / 2);
+	AssertTrue(cHCP65.NumCycles() >= uiDue);
+	AssertTrue(cHCP65.NumCycles() < uiDue + 60);
+	AssertFalse(cVIA.IsInterrupting());
+	AssertInt(0x08, cHCP65.Read(0x100000) & 0x08);
+
+	cHCP65.Kill();
+	cVIA.Kill();
+	cMemory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A VIA Board's <Breakout>s say which breakouts are fitted; none is all
+// four.  It is written the same way.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65VIABreakouts(void)
+{
+	CHCP65Mainboard		cMainboard;
+	CHCP65VIABoard*		pcVIA;
+	CChars				szError;
+	CFileUtil			cFileUtil;
+	CTextFile			cText;
+
+	DataMemoryInit();
+	szError.Init();
+	cFileUtil.TouchDir("Output");
+	TestHCP65WriteFile("Output" _FS_ "VIAMainboard.xml",
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<Mainboard Type=\"Small\"><Processor>"
+		"<Board Socket=\"3\" Type=\"VIA Board\"/>"
+		"<Board Socket=\"4\" Type=\"VIA Board\"><Breakout Socket=\"2\"/><Breakout Socket=\"0\"/></Board>"
+		"</Processor></Mainboard>", 0);
+	cMainboard.Init();
+	AssertTrue(cMainboard.Read("Output" _FS_ "VIAMainboard.xml", &szError));
+	AssertString("", szError.Text());
+	pcVIA = (CHCP65VIABoard*)cMainboard.GetBoard(3);
+	AssertInt(8, pcVIA->NumVIAs());
+	pcVIA = (CHCP65VIABoard*)cMainboard.GetBoard(4);
+	AssertInt(4, pcVIA->NumVIAs());
+	AssertNotNull(pcVIA->GetVIA(1));
+	AssertNull(pcVIA->GetVIA(2));
+	AssertNotNull(pcVIA->GetVIA(5));
+	AssertNull(pcVIA->GetVIA(7));
+
+	AssertTrue(cMainboard.Write("Output" _FS_ "VIAMainboardWritten.xml", &szError));
+	cText.Init();
+	AssertTrue(cText.Read("Output" _FS_ "VIAMainboardWritten.xml"));
+	AssertString("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<Mainboard Type=\"Small\">\n"
+		"\t<Processor Index=\"0\">\n"
+		"\t\t<Board Socket=\"3\" Type=\"VIA Board\"/>\n"
+		"\t\t<Board Socket=\"4\" Type=\"VIA Board\">\n"
+		"\t\t\t<Breakout Socket=\"0\"/>\n"
+		"\t\t\t<Breakout Socket=\"2\"/>\n"
+		"\t\t</Board>\n"
+		"\t</Processor>\n"
+		"</Mainboard>\n", cText.Text());
+	cText.Kill();
+	cMainboard.Kill();
+
+	TestHCP65WriteFile("Output" _FS_ "VIAMainboard.xml",
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<Mainboard Type=\"Small\"><Processor>"
+		"<Board Socket=\"3\" Type=\"VIA Board\"><Breakout Socket=\"4\"/></Board>"
+		"</Processor></Mainboard>", 0);
+	cMainboard.Init();
+	AssertFalse(cMainboard.Read("Output" _FS_ "VIAMainboard.xml", &szError));
+	AssertString("Output" _FS_ "VIAMainboard.xml: Bad number in Socket (<Breakout> line 2)", szError.Text());
+	cMainboard.Kill();
+
+	TestHCP65WriteFile("Output" _FS_ "VIAMainboard.xml",
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<Mainboard Type=\"Small\"><Processor>"
+		"<Board Socket=\"3\" Type=\"VIA Board\"><Breakout Socket=\"1\"/><Breakout Socket=\"1\"/></Board>"
+		"</Processor></Mainboard>", 0);
+	cMainboard.Init();
+	AssertFalse(cMainboard.Read("Output" _FS_ "VIAMainboard.xml", &szError));
+	AssertString("Output" _FS_ "VIAMainboard.xml: A breakout is in this socket already (<Breakout> line 2)", szError.Text());
+	cMainboard.Kill();
+
+	szError.Kill();
+	DataMemoryKill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -1273,6 +1756,10 @@ void TestHCP65Machine(void)
 	TestHCP65DeviceTick();
 	TestHCP65UART();
 	TestHCP65UARTBoard();
+	TestHCP65VIA();
+	TestHCP65VIABoard();
+	TestHCP65VIAInterrupt();
+	TestHCP65VIABreakouts();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();
