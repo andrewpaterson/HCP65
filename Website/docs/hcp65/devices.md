@@ -155,7 +155,7 @@ the names a driver may use, and a driver that uses any other name isn't loaded. 
 runs the driver's constructors and calls its `KernalCreateDriver(index)`, which returns the driver
 (a `CKernalDriver`) the kernel starts for the board.  A driver file is loaded once however many
 boards use it: each board gets the next index (the sound board's driver drives up to four, the UART
-Board's up to two).  The ROM drives up to two SD Card Boards.
+Board's and the VIA Board's up to two).  A driver has up to eight units.  The ROM drives up to two SD Card Boards.
 
 On the emulator, the kernel tells the debugger, through a `WDM` instruction that a real W65C816 runs
 as a no-op, of each driver it loads (its file, where it is and
@@ -172,12 +172,12 @@ A program uses a board through its driver with the device calls (`HCP65User.h`):
   of that kind.  A unit is the program's until it closes its last handle on it, or exits.  Most
   drivers give the program the whole board while it has any unit open, so no other program can
   open one; a driver whose units are separate gives each unit its own program (the UART Board's two
-  ports).
+  ports, the VIA Board's eight VIAs).
 - `KernalDeviceRead`, `KernalDeviceWrite`, `KernalDeviceControl` and `KernalDeviceWait` take the
   handle.  Read and write say how many bytes they moved: a unit that is a stream (a UART port) reads
   what has arrived, which may be nothing.  What a unit, an offset, a control code or a wait value
-  means is the driver's: `HCP65SoundBoard.h` has the sound board's and `HCP65UARTBoard.h` the UART
-  Board's.
+  means is the driver's: `HCP65SoundBoard.h` has the sound board's, `HCP65UARTBoard.h` the UART
+  Board's and `HCP65VIABoard.h` the VIA Board's.
 - `KernalDeviceClose(handle)`.
 
 They are one kernel call (COP 12) with a block of arguments.
