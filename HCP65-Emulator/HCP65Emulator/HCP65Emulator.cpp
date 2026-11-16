@@ -24,6 +24,7 @@
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65VIA.h"
+#include "HCP65Lib/HCP65Video.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65Emulator.h"
 #include "HCP65EmulatorTick.h"
@@ -220,7 +221,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	}
 	else
 	{
-		PlugInKeyboard();
+		PlugInDevices();
 	}
 	szError.Kill();
 	pcAudio = (CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME);
@@ -272,7 +273,10 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		mpMenuBar->AddMenu("File", pFileMenu);
 		pHCP65Menu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 		mpMenuBar->AddMenu("HCP65", pHCP65Menu);
-		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Editor)));
+		mpScreenDraw = OMalloc<CHCP65ScreenDraw>(mpTheme->GetColour(TC_Editor));
+		mpTick->SetScreen(mpScreenDraw);
+		mpScreenDraw->SetVideo((CHCP65VideoBoard*)mcMainboard.FindBoard(HCP65_VIDEO_BOARD_NAME));
+		pScreen = OMalloc<CCanvas>(mpWindow, mpScreenDraw);
 		pScreen->SetDrawnEveryPaint(true);  //The emulated screen changes every tick without telling the canvas.
 		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pScreen->SetCanGetFocus(true);
@@ -330,6 +334,7 @@ void CHCP65EmulatorApp::Class(void)
 	M_Pointer(mpInputSource);
 	U_Unknown(CComponentInput, mcComponentInput);
 	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
+	M_Pointer(mpScreenDraw);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
@@ -483,7 +488,7 @@ void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes, const uint8* auiBrea
 			}
 		}
 	}
-	PlugInKeyboard();
+	PlugInDevices();
 	if (!bChanged || !mcMainboard.Write(mszMachine.Text(), &szError))
 	{
 		gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
@@ -525,13 +530,19 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The keyboard into port 1 of the first PS2 Board (unplugged if there is
-// none), and nothing into its port 2.  Only while the HCP65 isn't running.
+// The screen onto the first Video Board, the keyboard into port 1 of the
+// first PS2 Board (unplugged if there is none) and nothing into its port
+// 2.  Only while the HCP65 isn't running.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorApp::PlugInKeyboard(void)
+void CHCP65EmulatorApp::PlugInDevices(void)
 {
 	CHCP65PS2Board*	pcPS2;
+
+	if (mpScreenDraw.IsNotNull())
+	{
+		mpScreenDraw->SetVideo((CHCP65VideoBoard*)mcMainboard.FindBoard(HCP65_VIDEO_BOARD_NAME));
+	}
 
 	pcPS2 = (CHCP65PS2Board*)mcMainboard.FindBoard(HCP65_PS2_BOARD_NAME);
 	if (pcPS2 == NULL)

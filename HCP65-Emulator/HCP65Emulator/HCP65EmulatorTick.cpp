@@ -40,6 +40,7 @@ void CHCP65EmulatorTick::Class(void)
 	U_Pointer(mpcAudio);
 	M_Pointer(mpSoundVoice);
 	U_Pointer(mpcRunner);
+	M_Pointer(mpScreen);
 	U_Int64(miStopTime);
 	U_Int64(miReportTime);
 }
@@ -73,6 +74,21 @@ void CHCP65EmulatorTick::Tick(Ptr<CWindow> pWindow, int64 iUpdateTimeInMilliecon
 	{
 		pWindow->Stop();
 	}
+	if (mpScreen.IsNotNull())
+	{
+		mpScreen->Update();
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The screen whose frames the ticks take.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorTick::SetScreen(Ptr<CHCP65ScreenDraw> pScreen)
+{
+	mpScreen = pScreen;
 }
 
 
