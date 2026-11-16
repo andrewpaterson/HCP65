@@ -3,9 +3,9 @@
 
 
 //Relative to the emulator's directory (HCP65Emulator/HCP65Emulator), as Visual Studio runs it.  TestHCP65Lib's
-//TestHCP65Kernal builds the ROM, and the SD card image (a copy of the blank Input/SDCard.img with boot.exe, modplay.exe
-//and SpaceDebris.mod on it) the machine descriptions name, into its Output: run it first.
-#define HCP65_EMULATOR_KERNAL_ROM		"../TestHCP65Lib/TestHCP65Lib/Output/Kernal.rom"
+//TestHCP65Kernal builds the boot loader's ROM, and the SD card images the machine descriptions name (copies of the blank
+//Input/SDCard.img with the kernal, \OS\OS.SYS, and the programs on them), into its Output: run it first.
+#define HCP65_EMULATOR_BOOT_ROM			"../TestHCP65Lib/TestHCP65Lib/Output/Boot.rom"
 #define HCP65_EMULATOR_MACHINE			"Machines/SmallMainboard.xml"	//The boards (CHCP65Mainboard) without --machine.
 #define HCP65_EMULATOR_ARGUMENT_MACHINE	"--machine"		//The mainboard description: which boards are in which sockets.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
@@ -34,7 +34,7 @@
 #include "HCP65EmulatorRunner.h"
 
 
-//The emulator: the HCP65 (its kernal ROM, and the boards HCP65_EMULATOR_MACHINE or --machine's description puts in its
+//The emulator: the HCP65 (its boot loader's ROM, and the boards HCP65_EMULATOR_MACHINE or --machine's description puts in its
 //sockets; --card's image replaces the first SD Card Board's card in its card socket 0) in a window with a menu bar, and
 //the input that drives it.  The first Sound Board is heard.  HCP65EmulatorRun makes it, adds it to the root, runs it and
 //removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).  The HCP65 runs on a

@@ -11,14 +11,24 @@
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65KernalBuilder::Init(void)
+void CHCP65KernalBuilder::Init(EHCP65KernalImage eImage)
 {
 	mcBuilder.Init();
-
-	//Banks 0-3 hold what is linked at $000000-$03FFFF.  Code and data flow from bank 1; bss after them may go up to
-	//the remap table, but what is in the image must stay in the four banks the start up copies.
-	mcImage.Init("Kernal.rom", HCP65_ROM_SIZE, 0xFF, HCP65_RAM_END, 0);
-	mcImage.AddRegion(0, HCP65_ROM_CODE_END, 0);
+	meImage = eImage;
+	if (eImage == HKI_Boot)
+	{
+		mcImage.Init("Boot.rom", HCP65_ROM_SIZE, 0xFF, HCP65_BOOT_END, 0);
+		mcImage.SetText(HCP65_BOOT_TEXT);
+		mcImage.AddRegion(HCP65_OS_START, 0x10000, HCP65_OS_START);
+		mcImage.AddRegion(HCP65_BOOT_TEXT, HCP65_BOOT_END, HCP65_BOOT_TEXT);
+	}
+	else
+	{
+		//Code and data flow from bank 1; bss after them may go up to the remap table, but what is in OS.SYS must stay
+		//in the banks the boot loader reads it into.
+		mcImage.Init("OS.SYS", HCP65_OS_SIZE, 0xFF, HCP65_RAM_END, HCP65_OS_START);
+		mcImage.AddRegion(HCP65_OS_START, HCP65_OS_CODE_END, 0);
+	}
 	muiCodeEnd = 0;
 	mszErrors.Init();
 }
@@ -43,22 +53,34 @@ void CHCP65KernalBuilder::Kill(void)
 // directories.  False with GetErrors if it didn't compile, link or fit.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szKernal)
+bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szKernal, const char* szBoot)
 {
 	CFileUtil	cFileUtil;
 	CChars		szProject;
 	bool		bResult;
 
-	//Built as HCP65-IDE builds HCP65Kernal.sln: the kernal's units in link order (Assembler65Lib's Asm65Object.cpp
-	//for the executable format among them), then BaseLib and Libc65's runtime.
-	szProject.Init(szKernal);
-	cFileUtil.AppendToPath(&szProject, "HCP65Kernal.vcxproj");
-	mcBuilder.SetMathTables(false);  //The tables aren't in memory until boot.exe loads them (MathTables="false").
-	bResult = HCP65AddProgram(&mcBuilder, szCommonLibraries, szHCP65Libraries, szProject.Text(), NULL, NULL);
+	//Built as HCP65-IDE builds the solution: the units in link order (the kernal's Assembler65Lib's Asm65Object.cpp for
+	//the executable format among them), then BaseLib and Libc65's runtime.
+	if (meImage == HKI_Boot)
+	{
+		szProject.Init(szBoot);
+		cFileUtil.AppendToPath(&szProject, "HCP65Boot.vcxproj");
+	}
+	else
+	{
+		szProject.Init(szKernal);
+		cFileUtil.AppendToPath(&szProject, "HCP65Kernal.vcxproj");
+	}
+	mcBuilder.SetMathTables(false);  //The tables aren't in memory until the start up program loads them (MathTables="false").
+	bResult = HCP65AddProgram(&mcBuilder, szCommonLibraries, szHCP65Libraries, szProject.Text(), (meImage == HKI_Boot) ? szKernal : NULL, NULL);
 	szProject.Kill();
 
 	mcBuilder.SetLimit(mcImage.GetLimit());
-	mcBuilder.SetNoFloats(true);  //The kernal has no floats (HCP65Kernal.hcp65build's NoFloats).
+	if (mcImage.GetText() != 0)
+	{
+		mcBuilder.SetTextAddress(mcImage.GetText());
+	}
+	mcBuilder.SetNoFloats(true);  //No floats (the .hcp65build files' NoFloats).
 	bResult &= mcBuilder.Link();
 	mszErrors.Append(mcBuilder.GetErrors());
 	if (!bResult)
@@ -71,8 +93,8 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The linked segments in the ROM's layout, and where the kernal's code
-// and data end (bank 0's stubs and vectors aren't counted).
+// The linked segments in the image's layout, and where the code and data
+// end (bank 0's stubs and vectors aren't counted).
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65KernalBuilder::MakeImage(void)
@@ -95,7 +117,7 @@ bool CHCP65KernalBuilder::MakeImage(void)
 		psSegment = pcOutput->GetSegment(i);
 		uiStart = psSegment->uiAddress;
 		uiEnd = uiStart + (uint32)psSegment->cBytes.NumElements();
-		if ((uiStart >= 0x10000) && (uiEnd <= HCP65_ROM_CODE_END) && (uiEnd > muiCodeEnd))
+		if ((uiStart >= 0x10000) && (uiEnd > muiCodeEnd))
 		{
 			muiCodeEnd = uiEnd;
 		}
@@ -137,9 +159,42 @@ bool CHCP65KernalBuilder::GetSymbol(const char* szName, uint32* puiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65KernalBuilder::GetROM(void)
+uint8* CHCP65KernalBuilder::GetImage(void)
 {
 	return mcImage.GetImage();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CHCP65KernalBuilder::GetImageSize(void)
+{
+	return mcImage.GetSize();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The image's byte for what is linked at uiAddress, NULL if no region has
+// it.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8* CHCP65KernalBuilder::GetImageAt(uint32 uiAddress)
+{
+	SAsm65ImageRegion*	psRegion;
+	size				i;
+
+	for (i = 0; i < mcImage.NumRegions(); i++)
+	{
+		psRegion = mcImage.GetRegion(i);
+		if ((uiAddress >= psRegion->uiStart) && (uiAddress < psRegion->uiEnd))
+		{
+			return &mcImage.GetImage()[psRegion->uiOffset + (uiAddress - psRegion->uiStart)];
+		}
+	}
+	return NULL;
 }
 
 

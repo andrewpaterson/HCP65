@@ -15,6 +15,7 @@ REGISTER_INTERRUPTS_LOW		= 0x100000		; D1-D7: devices 1-7, 0 interrupting.
 REGISTER_INTERRUPTS_HIGH	= 0x100002		; D0-D3: devices 16-19.
 REGISTER_ENABLE_LOW			= 0x100003		; D1-D7: devices 1-7, 0 held in reset.
 REGISTER_ENABLE_HIGH		= 0x100005		; D0-D3: devices 16-19.
+KERNAL_STATUS_ADDRESS		= 0x00C000		; Kernal.h's, where gsKernalStatus is.
 STATUS_STRAY_INTERRUPTS		= 32			; gsKernalStatus.uiStrayInterrupts.
 
 ; The frame (on the stack, D = S): the slots still to look at, the slot, a pointer.
@@ -253,12 +254,12 @@ DispatchStrayShift:
 		dey
 		bra DispatchStrayShift
 DispatchStrayOr:
-		lda [_gsKernalStatus + STATUS_STRAY_INTERRUPTS]:24
+		lda [KERNAL_STATUS_ADDRESS + STATUS_STRAY_INTERRUPTS]:24
 		ora [D + L_POINTER]
-		sta [_gsKernalStatus + STATUS_STRAY_INTERRUPTS]:24
-		lda [_gsKernalStatus + STATUS_STRAY_INTERRUPTS + 2]:24
+		sta [KERNAL_STATUS_ADDRESS + STATUS_STRAY_INTERRUPTS]:24
+		lda [KERNAL_STATUS_ADDRESS + STATUS_STRAY_INTERRUPTS + 2]:24
 		ora [D + L_POINTER + 2]
-		sta [_gsKernalStatus + STATUS_STRAY_INTERRUPTS + 2]:24
+		sta [KERNAL_STATUS_ADDRESS + STATUS_STRAY_INTERRUPTS + 2]:24
 		rts
 
 

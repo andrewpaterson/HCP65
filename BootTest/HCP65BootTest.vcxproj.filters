@@ -21,7 +21,7 @@
     <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="OperatingSystem.cpp">
+    <ClCompile Include="BootTest.cpp">
       <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>

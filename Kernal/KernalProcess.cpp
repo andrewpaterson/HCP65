@@ -13,6 +13,7 @@
 #include "KernalDeviceCalls.h"
 #include "KernalDebug.h"
 #include "KernalMemory.h"
+#include "KernalStartUp.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
@@ -27,7 +28,6 @@ static const uint8 gauiKernalProcessBanks[] = { 0x00, 0xFF };
 static const uint8 gauiKernalLowHeapBanks[] = { 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
 
 
-extern CFatVolume	gcKernalVolume;
 
 SKernalCall			gsKernalCall;
 static uint8		guiKernalProcess;							//The process running (or calling), 0 for none.

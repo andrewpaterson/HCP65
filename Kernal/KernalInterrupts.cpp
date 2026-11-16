@@ -36,6 +36,20 @@ void KernalInitInterrupts(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// IRQs disabled and the NMI timer's NMI off, its pending NMIs cleared: the
+// boot loader stops them before it overwrites the vectors.  Every
+// handler must be gone already (KernalStopDrivers).
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalStopInterrupts(void)
+{
+	KernalInterruptsOff();
+	KernalWriteRegister(KERNAL_REGISTER_NMI_STATE, KERNAL_NMI_CLEAR_SOURCES);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The device in uiSlot interrupts through fHandler (given pvContext).
 // puiFlags is its Flags register (Flags & Interrupt board), or NULL if it
 // hasn't one (then its handler must be trusted).

@@ -1,88 +1,17 @@
 #include <string.h>
-#include "BaseLib/FatVolume.h"
+#include "BaseLib/FatFile.h"
 #include "BaseLib/TrueMallocator.h"
-#include "BaseLib/GlobalMemory.h"
 #include "KernalDevices.h"
-#include "KernalSDCard.h"
 #include "KernalProcess.h"
 #include "Kernal.h"
-#include "KernalInterrupts.h"
 #include "KernalDriver.h"
 #include "KernalDriverLoader.h"
 #include "KernalMemory.h"
-
-
-SKernalStatus	gsKernalStatus = { KERNAL_STATE_STARTING, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-//The drivers in the ROM: up to KERNAL_SD_MAX_BOARDS SD Card Boards.
-CKernalSDCardBoard	gacKernalSDCardBoards[KERNAL_SD_MAX_BOARDS];
-uint16			guiKernalBootArgument = KERNAL_NO_BOOT_ARGUMENT;	//Not 0: zero initialised globals are bss, not in the ROM.
-CFatVolume		gcKernalVolume;
+#include "KernalStartUp.h"
 
 
 //Libc65's heap.
 extern CTrueMallocator	gcHeap;
-extern bool				gbHeap;
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The ROM's driver for the uiIndex'th board called szName (an HCP65
-// board), NULL if it has none for it.
-//
-//////////////////////////////////////////////////////////////////////////
-static CKernalDriver* KernalBuiltInDriver(const char* szName, uint16 uiIndex)
-{
-	if ((strcmp(szName, KERNAL_SD_CARD_NAME) == 0) && (uiIndex < KERNAL_SD_MAX_BOARDS))
-	{
-		return &gacKernalSDCardBoards[uiIndex];
-	}
-	return NULL;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// How many boards made by szManufacturer called szName have drivers.
-//
-//////////////////////////////////////////////////////////////////////////
-static uint16 KernalNumDrivers(const char* szManufacturer, const char* szName)
-{
-	uint16	uiCount;
-
-	uiCount = 0;
-	while (KernalFindDriver(szManufacturer, szName, uiCount))
-	{
-		uiCount++;
-	}
-	return uiCount;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Starts the ROM's driver of each present HCP65 board it has one for.  The
-// rest stay in reset (their drivers may be on the SD card).
-//
-//////////////////////////////////////////////////////////////////////////
-static void KernalStartBuiltInDrivers(void)
-{
-	SKernalDeviceROM*	psROM;
-	CKernalDriver*		pcDriver;
-	uint16				uiSlot;
-
-	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
-	{
-		psROM = gasKernalDevices[uiSlot].psROM;
-		if (psROM && (strcmp(psROM->szManufacturer, KERNAL_DEVICE_MANUFACTURER) == 0))
-		{
-			pcDriver = KernalBuiltInDriver(psROM->szName, KernalNumDrivers(KERNAL_DEVICE_MANUFACTURER, psROM->szName));
-			if (pcDriver)
-			{
-				KernalStartDriver(pcDriver, uiSlot);
-			}
-		}
-	}
-}
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -118,99 +47,87 @@ static void KernalLoadDrivers(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Called by the start up once MPU RAM holds the kernal and its globals are
-// initialised.  Running in kernel mode, native, with interrupts disabled.
-// Finds the devices, brings up the SD card, mounts its FAT32 volume and
-// runs boot.exe from it.
+// The start up program and its argument: STARTUP.TXT's first line, a path
+// and then (after spaces) a decimal number, or KERNAL_DEFAULT_STARTUP and
+// 0 without the file.  szPath holds KERNAL_STARTUP_LENGTH.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalReadStartUp(char* szPath, uint16* puiArgument)
+{
+	CFatFile	cFile;
+	char		szLine[KERNAL_STARTUP_LENGTH];
+	lsize		uiRead;
+	char*		pc;
+	uint16		uiLength;
+
+	strcpy(szPath, KERNAL_DEFAULT_STARTUP);
+	*puiArgument = 0;
+	cFile.Init(&gcKernalVolume);
+	if (cFile.Open(KERNAL_STARTUP_FILE, FAT_FILE_ACCESS_READ) != FAT_SUCCESS)
+	{
+		return;
+	}
+	uiRead = 0;
+	if (cFile.Read((uint8*)szLine, KERNAL_STARTUP_LENGTH - 1, &uiRead) != FAT_SUCCESS)
+	{
+		uiRead = 0;
+	}
+	cFile.Close();
+	szLine[uiRead] = '\0';
+
+	//The first line, without the spaces around it.
+	pc = szLine;
+	while ((*pc == ' ') || (*pc == '\t'))
+	{
+		pc++;
+	}
+	uiLength = 0;
+	while ((pc[uiLength] != '\0') && (pc[uiLength] != '\r') && (pc[uiLength] != '\n') && (pc[uiLength] != ' ') && (pc[uiLength] != '\t'))
+	{
+		uiLength++;
+	}
+	if (uiLength == 0)
+	{
+		return;
+	}
+	memcpy(szPath, pc, uiLength);
+	szPath[uiLength] = '\0';
+
+	pc += uiLength;
+	while ((*pc == ' ') || (*pc == '\t'))
+	{
+		pc++;
+	}
+	while ((*pc >= '0') && (*pc <= '9'))
+	{
+		*puiArgument = (uint16)(*puiArgument * 10 + (*pc - '0'));
+		pc++;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// OS.SYS's main: the boot loader jumped to it (Start.asm), in kernel mode,
+// native, with interrupts disabled, and the start up has initialised its
+// globals.  Starts the devices and the SD card again, loads each board's
+// driver from \OS\Drivers and runs the start up program.
 //
 //////////////////////////////////////////////////////////////////////////
 int main(void)
 {
-	CKernalSDCardBoard*	pcSDCardBoard;
-	EFatCode			eResult;
-	uint16				uiSlot;
-	uint8				uiSocket;
-	CKernalSDCard*		pcCard;
+	char	szStartUp[KERNAL_STARTUP_LENGTH];
+	uint16	uiArgument;
 
-	//The allocators a chunk file (an executable) names are looked up here.  Only the system allocator (malloc): BaseLib's
-	//global memory would be too big for the ROM.
-	gcMallocators.InitSystem();
-	gcConstructors.Init();
-
-	KernalScanDevices();
-	for (uiSlot = 0; uiSlot < KERNAL_NUM_DEVICE_SLOTS; uiSlot++)
+	if (!KernalStartUp())
 	{
-		if (gasKernalDevices[uiSlot].uiState == KERNAL_DEVICE_PRESENT)
-		{
-			gsKernalStatus.uiDevices |= (uint32)1 << uiSlot;
-		}
-		else if (gasKernalDevices[uiSlot].uiState != KERNAL_DEVICE_NONE)
-		{
-			gsKernalStatus.uiBadDevices |= (uint32)1 << uiSlot;
-		}
-	}
-	gsKernalStatus.uiState = KERNAL_STATE_DEVICES_SCANNED;
-
-	//Main memory is the memory boards': without it the SD Card Board has nothing to read into.
-	if (!KernalInitMainMemory())
-	{
-		gsKernalStatus.uiMainBanks = KernalNumMainBanks();
-		gsKernalStatus.uiState = KERNAL_STATE_NO_MAIN_MEMORY;
 		return 1;
 	}
-	gsKernalStatus.uiMainBanks = KernalNumMainBanks();
-	KernalInitInterrupts();
-	KernalStartBuiltInDrivers();
-
-	//The SD Card Board's driver brought up each socket's card; the first with a volume that mounts is used.
-	pcSDCardBoard = (CKernalSDCardBoard*)KernalFindDriver(KERNAL_DEVICE_MANUFACTURER, KERNAL_SD_CARD_NAME, 0);
-	if (!pcSDCardBoard)
-	{
-		gsKernalStatus.uiState = KERNAL_STATE_NO_SD_CARD_BOARD;
-		return 1;
-	}
-	gsKernalStatus.uiSDCards = pcSDCardBoard->GetReadyCards();
-	if (gsKernalStatus.uiSDCards == 0)
-	{
-		gsKernalStatus.uiSDError = pcSDCardBoard->GetCard(0)->GetError();
-		gsKernalStatus.uiState = KERNAL_STATE_SD_CARD_FAILED;
-		return 1;
-	}
-	gsKernalStatus.uiSDError = KERNAL_SD_SUCCESS;
-
-	eResult = FAT_INVALID_FAT_VOLUME;
-	pcCard = NULL;
-	for (uiSocket = 0; uiSocket < KERNAL_SD_NUM_SOCKETS; uiSocket++)
-	{
-		if (gsKernalStatus.uiSDCards & (1 << uiSocket))
-		{
-			pcCard = pcSDCardBoard->GetCard(uiSocket);
-			eResult = gcKernalVolume.Mount(pcCard);
-			if (eResult == FAT_SUCCESS)
-			{
-				break;
-			}
-			gcKernalVolume.Unmount();
-		}
-	}
-	gsKernalStatus.uiFatCode = (uint16)eResult;
-	if (eResult != FAT_SUCCESS)
-	{
-		gsKernalStatus.uiSDError = pcCard->GetError();
-		gsKernalStatus.uiState = KERNAL_STATE_MOUNT_FAILED;
-		return 1;
-	}
-	gsKernalStatus.uiSDSocket = uiSocket;
-	gsKernalStatus.uiNumSectors = (uint32)(pcCard->GetTotalSectors() + 1);
-	gsKernalStatus.uiFileSystem = (uint16)gcKernalVolume.GetFileSystemType();
-	gsKernalStatus.uiNumClusters = gcKernalVolume.GetNumClusters();
-	gsKernalStatus.uiFreeClusters = gcKernalVolume.GetTotalFreeClusters();
-	gsKernalStatus.uiState = KERNAL_STATE_MOUNTED;
-
 	KernalLoadDrivers();
 
-	gsKernalStatus.uiBootArgument = (guiKernalBootArgument == KERNAL_NO_BOOT_ARGUMENT) ? 0 : guiKernalBootArgument;
-	gsKernalStatus.uiBootResult = KernalRunExecutable(KERNAL_BOOT_FILE, gsKernalStatus.uiBootArgument, &gsKernalStatus.uiExitCode);
+	KernalReadStartUp(szStartUp, &uiArgument);
+	gsKernalStatus.uiBootArgument = uiArgument;
+	gsKernalStatus.uiBootResult = KernalRunExecutable(szStartUp, uiArgument, &gsKernalStatus.uiExitCode);
 	gsKernalStatus.uiHeapPeak = (uint32)gcHeap.PeakBytes();
 	gsKernalStatus.uiMainHeapPeak = KernalMainHeapPeak();
 	gsKernalStatus.uiState = (gsKernalStatus.uiBootResult == KERNAL_PROCESS_EXITED) ? KERNAL_STATE_BOOT_EXITED : KERNAL_STATE_BOOT_FAILED;

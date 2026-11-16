@@ -43,6 +43,7 @@ extern "C" volatile uint32		guiKernalInterrupts;	//Handlers called.
 
 
 void				KernalInitInterrupts(void);
+void				KernalStopInterrupts(void);
 void				KernalSetInterruptHandler(uint16 uiSlot, KernalInterruptHandler fHandler, void* pvContext, volatile uint8* puiFlags, bool bTrusted);
 void				KernalClearInterruptHandler(uint16 uiSlot);
 uint32				KernalTicks(void);

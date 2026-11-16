@@ -3,10 +3,10 @@
 #include "HCP65VIABoard.h"
 
 
-//TestHCP65KernalVIA boots this as \boot.exe with a VIA Board that has breakouts 0 and 2 (AB, CD, XJ and KL), and plays
+//TestHCP65KernalVIA runs this (\viatest.exe) as its start up program with a VIA Board that has breakouts 0 and 2 (AB, CD, XJ and KL), and plays
 //what is on the VIAs' lines (HCP65Lib's CHCP65VIABoard): before the boot it drives XJ's port A with $77 and its port B
 //with $C3, and it takes XJ's CA1 low once XJ's CA1 interrupt is enabled.
-#define VIA_TEST_PATH			"\\boot.exe"
+#define VIA_TEST_PATH			"\\viatest.exe"
 #define VIA_TEST_CHILD			0xC41D		//The argument it runs itself with as the child.
 #define VIA_TEST_MAX_BOARDS		20
 #define VIA_TEST_FITTED			0x33		//AB, CD, XJ and KL.
@@ -246,7 +246,7 @@ uint16 VIATestChildOwnership(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The VIA Board driver's test (TestHCP65KernalVIA boots it as \boot.exe).
+// The VIA Board driver's test (TestHCP65KernalVIA runs it).
 // Exits 0 if everything did what it should, otherwise 100 times the step
 // that failed plus which check in it.  Run with VIA_TEST_CHILD it is the
 // child (VIATestChild).

@@ -1,7 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- boot.exe, the program the HCP65 kernal runs from the SD card.  It is built by HCP65-IDE's W65C816
-       configurations (HCP65OperatingSystem.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
+  <!-- boottest.exe, the program TestHCP65KernalBoot's card (and the emulator's default one) starts:
+       \OS\STARTUP.TXT names it.  It is built by HCP65-IDE's W65C816
+       configurations (HCP65BootTest.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
        files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -23,7 +24,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{8E2A4C17-3B9D-4F61-A7C5-2D0E9F1B6A38}</ProjectGuid>
-    <RootNamespace>HCP65OperatingSystem</RootNamespace>
+    <RootNamespace>HCP65BootTest</RootNamespace>
     <Keyword>MakeFileProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -81,7 +82,7 @@
     <ClCompile Include="..\Libraries\UserLib\UserCalls.asm" />
     <ClCompile Include="..\Libraries\UserLib\UserDevices.cpp" />
     <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm" />
-    <ClCompile Include="OperatingSystem.cpp" />
+    <ClCompile Include="BootTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Libraries\UserLib\HCP65User.h" />

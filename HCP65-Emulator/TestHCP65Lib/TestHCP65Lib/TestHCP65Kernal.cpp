@@ -36,13 +36,17 @@
 #define TEST_HCP65_COMMON			".." _FS_ ".." _FS_ ".." _FS_ ".." _FS_ "CommonLibraries" _FS_ "Libraries"
 #define TEST_HCP65_LIBRARIES		".." _FS_ ".." _FS_ ".." _FS_ "Libraries"
 #define TEST_HCP65_KERNAL			".." _FS_ ".." _FS_ ".." _FS_ "Kernal"
+#define TEST_HCP65_BOOT				".." _FS_ ".." _FS_ ".." _FS_ "Boot"
 #define TEST_HCP65_INPUT			".." _FS_ ".." _FS_ "HCP65Emulator" _FS_ "Input"
 #define TEST_HCP65_BLANK_SD_CARD	TEST_HCP65_INPUT _FS_ "SDCard.img"	//Freshly formatted; never written.
 #define TEST_HCP65_OUTPUT			"Output"
 #define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots these two (HCP65Emulator.h).
-#define TEST_HCP65_KERNAL_ROM		TEST_HCP65_OUTPUT _FS_ "Kernal.rom"
+#define TEST_HCP65_BOOT_ROM			TEST_HCP65_OUTPUT _FS_ "Boot.rom"
+#define TEST_HCP65_OS_FILE			TEST_HCP65_OUTPUT _FS_ "OS.SYS"		//What each card has as \OS\OS.SYS.
+#define TEST_HCP65_STARTUP_PATH		"\\OS\\STARTUP.TXT"
 #define TEST_HCP65_USER				".." _FS_ ".." _FS_ ".." _FS_ "Libraries" _FS_ "UserLib"
-#define TEST_HCP65_BOOT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "OperatingSystem" _FS_ "HCP65OperatingSystem.vcxproj"
+#define TEST_HCP65_BOOT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "BootTest" _FS_ "HCP65BootTest.vcxproj"
+#define TEST_HCP65_BOOT_PROGRAM_PATH	"\\boottest.exe"
 #define TEST_HCP65_SOUND_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "SoundBoard" _FS_ "HCP65SoundBoard.vcxproj"
 #define TEST_HCP65_SOUND_DRIVER_PATH	"\\OS\\Drivers\\SOUND.DRV"
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
@@ -50,20 +54,25 @@
 #define TEST_HCP65_MATH_TABLES		TEST_HCP65_LIBRARIES _FS_ "Libc65" _FS_ "MathTbls"
 #define TEST_HCP65_UART_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "UARTCard.img"	//HCP65UARTTest.hcp65build's card.
 #define TEST_HCP65_UART_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "UARTTest" _FS_ "HCP65UARTTest.vcxproj"
+#define TEST_HCP65_UART_PROGRAM_PATH	"\\uarttest.exe"
 #define TEST_HCP65_UART_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "UARTBoard" _FS_ "HCP65UARTBoard.vcxproj"
 #define TEST_HCP65_UART_DRIVER_PATH	"\\OS\\Drivers\\UART.DRV"
 #define TEST_HCP65_VIA_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VIACard.img"	//HCP65VIATest.hcp65build's card.
 #define TEST_HCP65_VIA_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "VIATest" _FS_ "HCP65VIATest.vcxproj"
+#define TEST_HCP65_VIA_PROGRAM_PATH	"\\viatest.exe"
 #define TEST_HCP65_VIA_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VIABoard" _FS_ "HCP65VIABoard.vcxproj"
 #define TEST_HCP65_VIA_DRIVER_PATH	"\\OS\\Drivers\\VIA.DRV"
 #define TEST_HCP65_PS2_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "PS2Card.img"	//HCP65PS2Test.hcp65build's card.
 #define TEST_HCP65_PS2_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "PS2Test" _FS_ "HCP65PS2Test.vcxproj"
+#define TEST_HCP65_PS2_PROGRAM_PATH	"\\ps2test.exe"
 #define TEST_HCP65_PS2_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "PS2Board" _FS_ "HCP65PS2Board.vcxproj"
 #define TEST_HCP65_PS2_DRIVER_PATH	"\\OS\\Drivers\\PS2.DRV"
 #define TEST_HCP65_CONSOLE_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "ConsoleCard.img"	//The emulator's Machines/Console.xml boots it.
 #define TEST_HCP65_CONSOLE_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Console" _FS_ "HCP65Console.vcxproj"
+#define TEST_HCP65_CONSOLE_PROGRAM_PATH	"\\console.exe"
 #define TEST_HCP65_VIDEO_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VideoCard.img"	//The emulator's Machines/Video.xml boots it.
 #define TEST_HCP65_VIDEO_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "VideoTest" _FS_ "HCP65VideoTest.vcxproj"
+#define TEST_HCP65_VIDEO_PROGRAM_PATH	"\\vidtest.exe"
 #define TEST_HCP65_VIDEO_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VideoBoard" _FS_ "HCP65VideoBoard.vcxproj"
 #define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
 
@@ -72,7 +81,7 @@
 #define TEST_HCP65_CLOCK_RATE		4000000000ULL
 #define TEST_HCP65_RUN_CYCLES		20000000
 #define TEST_HCP65_MAX_RUNS			2000
-#define TEST_MODPLAY_SECONDS		1			//boot.exe's argument, patched into the test's copy of the ROM.
+#define TEST_MODPLAY_SECONDS		1			//boottest.exe's argument, in the test's card's STARTUP.TXT.
 //The tests' machines are Small Mainboards (sockets 3, 4 and 16 to 19), described in Machines; these say where the
 //descriptions put the boards.
 #define TEST_HCP65_MACHINES			"Machines"
@@ -115,12 +124,23 @@
 #define TEST_KERNAL_STATE_BOOT_FAILED		7
 #define TEST_KERNAL_STATE_BOOT_EXITED		8
 #define TEST_KERNAL_STATE_NO_MAIN_MEMORY	9
+#define TEST_KERNAL_STATE_NO_OS				10
+#define TEST_KERNAL_STATE_OS_STARTED		11
+#define TEST_KERNAL_STATUS_ADDRESS			0x00C000	//Kernal/Kernal.h's KERNAL_STATUS_ADDRESS.
 #define TEST_KERNAL_MPU_HEAP_SIZE			0x10000		//Kernal/KernalMemory.h's.
 #define TEST_KERNAL_PROCESS_EXITED			5
 #define TEST_KERNAL_PROCESS_BAD_ADDRESS		7
 #define TEST_HCP65_MISPLACED_CARD		TEST_HCP65_OUTPUT _FS_ "Misplaced.img"	//The card with a misplaced modplay.exe.
 #define TEST_HCP65_MISPLACED_AT			0x080000	//In the small heap's banks.
 #define TEST_KERNAL_FAT32					3
+
+
+//The two builds the tests boot: the boot loader's ROM and the kernal, OS.SYS, which every card has.
+struct STestKernal
+{
+	CHCP65KernalBuilder	cBoot;
+	CHCP65KernalBuilder	cOS;
+};
 
 
 //The kernal's SKernalStatus as it is laid out in MPU RAM (16 bit words, 32 bit longs, little endian).
@@ -305,15 +325,16 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Whether the kernal has finished starting up: boot.exe ran (or couldn't),
-// or it stopped short (no main memory, no card, no volume).  Until the
-// start up has copied the kernal's data its status is whatever MPU RAM
-// held ($CC in fill mode).
+// Whether the start up has finished: the start up program ran (or
+// couldn't), or the boot loader or the kernal stopped short (no main
+// memory, no card, no volume, no OS.SYS).  Until the boot loader has
+// cleared the status it is whatever MPU RAM held ($CC in fill mode, or
+// what the last boot left before a reset).
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalIsDone(STestKernalStatus* psStatus)
 {
-	if ((psStatus->uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (psStatus->uiState <= TEST_KERNAL_STATE_NO_MAIN_MEMORY))
+	if ((psStatus->uiState >= TEST_KERNAL_STATE_BOOT_FAILED) && (psStatus->uiState <= TEST_KERNAL_STATE_NO_OS))
 	{
 		return true;
 	}
@@ -410,26 +431,33 @@ static bool TestKernalPutDriver(const char* szImage, const char* szName, const c
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A 24 bit address in the kernal's ROM image at uiAddress (a .long: the
-// address and a zero byte).
+// A 24 bit address in OS.SYS at uiAddress (a .long: the address and a
+// zero byte).
 //
 //////////////////////////////////////////////////////////////////////////
-static uint32 TestKernalROMLong(uint8* puiROM, uint32 uiAddress)
+static uint32 TestKernalImageLong(CHCP65KernalBuilder* pcOS, uint32 uiAddress)
 {
-	return (uint32)puiROM[uiAddress] | ((uint32)puiROM[uiAddress + 1] << 8) | ((uint32)puiROM[uiAddress + 2] << 16);
+	uint8*	puiLong;
+
+	puiLong = pcOS->GetImageAt(uiAddress);
+	if (!puiLong)
+	{
+		return 0;
+	}
+	return (uint32)puiLong[0] | ((uint32)puiLong[1] << 8) | ((uint32)puiLong[2] << 16);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The kernal's exports (Kernal/KernalExports.asm) as its ROM has them:
+// The kernal's exports (Kernal/KernalExports.asm) as OS.SYS has them:
 // each name is the symbol at its address in the kernal's link, so a
 // driver that imports the name gets that symbol.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestKernalExports(CHCP65KernalBuilder* pcBuilder)
+static void TestKernalExports(STestKernal* psKernal)
 {
-	uint8*	puiROM;
+	uint8*	puiCount;
 	uint32	uiTable;
 	uint32	uiCount;
 	uint32	uiAddress;
@@ -439,10 +467,11 @@ static void TestKernalExports(CHCP65KernalBuilder* pcBuilder)
 	uint32	uiNumExports;
 	uint32	i;
 
-	AssertTrue(pcBuilder->GetSymbol("_gauiKernalExports", &uiTable));
-	AssertTrue(pcBuilder->GetSymbol("_guiKernalNumExports", &uiCount));
-	puiROM = pcBuilder->GetROM();
-	uiNumExports = (uint32)puiROM[uiCount] | ((uint32)puiROM[uiCount + 1] << 8);
+	AssertTrue(psKernal->cOS.GetSymbol("_gauiKernalExports", &uiTable));
+	AssertTrue(psKernal->cOS.GetSymbol("_guiKernalNumExports", &uiCount));
+	puiCount = psKernal->cOS.GetImageAt(uiCount);
+	AssertTrue(puiCount != NULL);
+	uiNumExports = puiCount ? ((uint32)puiCount[0] | ((uint32)puiCount[1] << 8)) : 0;
 	AssertTrue(uiNumExports > 0);
 
 	//The count (which the assembler works out) is right after the table: it counts all of it.
@@ -451,9 +480,9 @@ static void TestKernalExports(CHCP65KernalBuilder* pcBuilder)
 	szWrong.Init();
 	for (i = 0; i < uiNumExports; i++)
 	{
-		szName = (char*)&puiROM[TestKernalROMLong(puiROM, uiTable + i * 8)];
-		uiAddress = TestKernalROMLong(puiROM, uiTable + i * 8 + 4);
-		if (!pcBuilder->GetSymbol(szName, &uiSymbol) || (uiSymbol != uiAddress))
+		szName = (char*)psKernal->cOS.GetImageAt(TestKernalImageLong(&psKernal->cOS, uiTable + i * 8));
+		uiAddress = TestKernalImageLong(&psKernal->cOS, uiTable + i * 8 + 4);
+		if (!szName || !psKernal->cOS.GetSymbol(szName, &uiSymbol) || (uiSymbol != uiAddress))
 		{
 			szWrong.Append(szName);
 			szWrong.Append(" ");
@@ -511,7 +540,8 @@ static bool TestKernalReadTables(uint8* puiDest)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Output/szImage, a copy of the emulator's blank SD card image.
+// Output/szImage, a copy of the emulator's blank SD card image, with the
+// kernal on it (Output/OS.SYS as \OS\OS.SYS) for the boot loader to load.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalCopyBlankCard(const char* szImage)
@@ -524,46 +554,41 @@ static bool TestKernalCopyBlankCard(const char* szImage)
 	AssertTrue(cFileUtil.IsDirectory(TEST_HCP65_OUTPUT));
 	bResult = cFileUtil.Copy(TEST_HCP65_BLANK_SD_CARD, szImage);
 	AssertTrue(bResult);
+	bResult = bResult && FatPutDiskFileOnImage(szImage, HCP65_OS_PATH, TEST_HCP65_OS_FILE);
+	AssertTrue(bResult);
 	return bResult;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Sets boot.exe's argument to uiArgument and gives where the kernal's
-// status is.  guiKernalBootArgument is image data: in the ROM at its MPU
-// RAM address (the kernal's status is set by the start up).
+// Makes szProgram, with uiArgument, the start up program of the SD card
+// image szImage (its \OS\STARTUP.TXT), and gives where the status is
+// (the boot loader's and then the kernal's: KERNAL_STATUS_ADDRESS).
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestKernalSetBootArgument(CHCP65KernalBuilder* pcBuilder, uint16 uiArgument, uint32* puiStatus)
+static void TestKernalSetStartUp(const char* szImage, const char* szProgram, uint16 uiArgument, uint32* puiStatus)
 {
-	uint8*	puiROM;
-	uint32	uiAddress;
+	char	szLine[128];
 
-	puiROM = pcBuilder->GetROM();
-	AssertTrue(pcBuilder->GetSymbol("_gsKernalStatus", puiStatus));
-	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiAddress));
-	puiROM[uiAddress] = (uint8)uiArgument;
-	puiROM[uiAddress + 1] = (uint8)(uiArgument >> 8);
-	if (getenv("TEST_HCP65_VERBOSE"))
-	{
-		printf("status at $%06X, boot argument at $%06X\n", *puiStatus, uiAddress);
-	}
+	snprintf(szLine, sizeof(szLine), "%s %u\r\n", szProgram, (unsigned int)uiArgument);
+	AssertTrue(FatPutFileOnImage(szImage, TEST_HCP65_STARTUP_PATH, (uint8*)szLine, strlen(szLine)));
+	*puiStatus = TEST_KERNAL_STATUS_ADDRESS;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Watches the debug port, loads the kernal ROM and resets the machine,
+// Watches the debug port, loads the boot loader's ROM and resets the machine,
 // its boards in place.  Fill mode: memory nothing wrote reads $CC (the
 // kernal doesn't clear the banks it gives processes), so a program that
 // relied on zeroed memory would fail.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestKernalStart(CHCP65* pcHCP65, CHCP65KernalBuilder* pcBuilder)
+static void TestKernalStart(CHCP65* pcHCP65, STestKernal* psKernal)
 {
 	pcHCP65->GetDebugPort()->Watch(true);
-	AssertTrue(pcHCP65->LoadROM(pcBuilder->GetROM(), HCP65_ROM_SIZE));
+	AssertTrue(pcHCP65->LoadROM(psKernal->cBoot.GetImage(), HCP65_ROM_SIZE));
 	pcHCP65->SetMemoryFill(true);
 	pcHCP65->Reset();
 }
@@ -571,7 +596,7 @@ static void TestKernalStart(CHCP65* pcHCP65, CHCP65KernalBuilder* pcBuilder)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Copies the blank SD card image to Output and puts boot.exe (HCP65/OperatingSystem),
+// Copies the blank SD card image to Output and puts boottest.exe (HCP65/BootTest),
 // modplay.exe (HCP65/ModPlay), the sound board's driver (HCP65/Drivers/
 // SoundBoard, \OS\Drivers\SOUND.DRV), the UART Board's (for the
 // emulator, which has one), the song modplay plays and the maths tables
@@ -604,8 +629,8 @@ static bool TestKernalPutFiles(void)
 		return false;
 	}
 
-	//boot.exe loads the maths tables, so it is built without them; modplay.exe uses them.
-	if (!TestKernalPutExe(TEST_HCP65_SD_CARD_IMAGE, "\\boot.exe", TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	//boottest.exe loads the maths tables, so it is built without them; modplay.exe uses them.
+	if (!TestKernalPutExe(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
@@ -743,57 +768,78 @@ static bool TestKernalMakeMisplacedExe(uint32 uiAt, CArrayUint8* pacDest)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Builds the kernal ROM and writes it to Output/Kernal.rom, which the
-// emulator boots: its exports are right, nothing is stubbed and its boot
-// argument is $FFFF.
+// Builds one of the two images, which must link with nothing stubbed (it
+// is built without the maths tables, so nothing it links may read
+// MathMult or MathInvert), and writes it to Output as szFile.  szMap is
+// the link map's file, written when TEST_HCP65_MAP is set.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalBuild(CHCP65KernalBuilder* pcBuilder)
+static bool TestKernalBuildImage(CHCP65KernalBuilder* pcBuilder, const char* szFile, const char* szMap)
 {
-	CAsm65LineTable*	pcLines;
-	SAsm65LineEntry*	psLine;
-	CChars				szMissing;
-	uint8*				puiROM;
-	uint32				uiArgument;
-	FILE*				pFile;
-	bool				bBuilt;
+	CChars	szMissing;
+	FILE*	pFile;
+	bool	bBuilt;
 
-	bBuilt = pcBuilder->Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_KERNAL);
+	bBuilt = pcBuilder->Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_KERNAL, TEST_HCP65_BOOT);
 	AssertString("", pcBuilder->GetErrors());
 	AssertTrue(bBuilt);
 	if (!bBuilt)
 	{
 		return false;
 	}
-	AssertTrue(pcBuilder->GetCodeEnd() > 0x10000);
-	AssertTrue(pcBuilder->GetCodeEnd() <= HCP65_ROM_CODE_END);
 	if (getenv("TEST_HCP65_MAP"))
 	{
-		//The kernal's link map, to find what is at an address.
-		pFile = fopen(TEST_HCP65_OUTPUT _FS_ "Kernal.map", "w");
+		//The link map, to find what is at an address.
+		pFile = fopen(szMap, "w");
 		if (pFile)
 		{
 			fputs(pcBuilder->GetBuilder()->GetLinker()->GetMap(), pFile);
 			fclose(pFile);
 		}
 	}
-
-	//Nothing is stubbed: the kernal is built without the maths tables (they aren't in memory until boot.exe loads
-	//them), so nothing it links may read MathMult or MathInvert.
 	szMissing.Init();
 	pcBuilder->GetBuilder()->GetMissingNames(&szMissing);
 	AssertString("", szMissing.Text());
-	TestKernalExports(pcBuilder);
 	szMissing.Kill();
+	AssertTrue(pcBuilder->Write(szFile));
+	return true;
+}
 
-	puiROM = pcBuilder->GetROM();
-	AssertTrue(pcBuilder->GetSymbol("_guiKernalBootArgument", &uiArgument));
-	AssertInt(0xFFFF, (int32)(puiROM[uiArgument] | (puiROM[uiArgument + 1] << 8)));
-	AssertTrue(pcBuilder->Write(TEST_HCP65_KERNAL_ROM));
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Builds the boot loader's ROM and the kernal, and writes them to
+// Output/Boot.rom (which the emulator boots) and Output/OS.SYS (which
+// TestKernalCopyBlankCard puts on every card).  The boot loader runs from
+// banks 4 and 5, out of the kernal's way; the kernal's exports are right
+// and its stubs and vectors are OS.SYS's first page, with ResetStub (its
+// entry, a jml) first.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalBuild(STestKernal* psKernal)
+{
+	CAsm65LineTable*	pcLines;
+	SAsm65LineEntry*	psLine;
+	uint32				uiAddress;
+
+	if (!TestKernalBuildImage(&psKernal->cBoot, TEST_HCP65_BOOT_ROM, TEST_HCP65_OUTPUT _FS_ "Boot.map") ||
+		!TestKernalBuildImage(&psKernal->cOS, TEST_HCP65_OS_FILE, TEST_HCP65_OUTPUT _FS_ "Kernal.map"))
+	{
+		return false;
+	}
+	AssertTrue(psKernal->cBoot.GetCodeEnd() > HCP65_BOOT_TEXT);
+	AssertTrue(psKernal->cBoot.GetCodeEnd() <= HCP65_BOOT_END);
+	AssertTrue(psKernal->cBoot.GetSymbol("_main", &uiAddress));
+	AssertTrue(uiAddress >= HCP65_BOOT_TEXT);
+	AssertTrue(psKernal->cOS.GetCodeEnd() > 0x10000);
+	AssertTrue(psKernal->cOS.GetCodeEnd() <= HCP65_OS_CODE_END);
+	AssertInt(0x5C, psKernal->cOS.GetImage()[0]);
+	AssertInt(HCP65_OS_SIZE, psKernal->cOS.GetImageSize());
+	TestKernalExports(psKernal);
 
 	//Start.asm's lines are in the line table, as the C++ units' are, so a debugger can stop at them: the native
 	//vectors at $FFE4 are its data.
-	pcLines = pcBuilder->GetBuilder()->GetLineTable();
+	pcLines = psKernal->cOS.GetBuilder()->GetLineTable();
 	psLine = pcLines->FindLine(0xFFE4);
 	AssertTrue(psLine != NULL);
 	if (psLine)
@@ -806,21 +852,22 @@ static bool TestKernalBuild(CHCP65KernalBuilder* pcBuilder)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Boots the kernal ROM with the sound boards and the SD Card
+// Boots the boot loader's ROM with the sound boards and the SD Card
 // Board (holding Output/SDCard.img, a copy of the emulator's blank
-// Input/SDCard.img with the test's boot.exe, modplay.exe, Space Debris and
-// the maths tables on it, not written back) and checks that it found both,
-// mounted the FAT32 volume and ran boot.exe in user mode, which loaded the
-// maths tables to main memory and ran modplay.exe as a second process: it
-// played the first TEST_MODPLAY_SECONDS of the song through the sound
-// board as CModPlayer does on the host.  The emulator boots Output/
-// Kernal.rom (TestKernalBuild's) and Output/SDCard.img (where boot.exe's
-// argument is zero: modplay.exe plays the whole song).  Then
-// boots a copy of the card whose modplay.exe is where its heap would be,
-// which the kernal refuses to load.
+// Input/SDCard.img with OS.SYS, \boottest.exe as the start up program,
+// modplay.exe, Space Debris and the maths tables on it, not written back)
+// and checks that the boot loader loaded OS.SYS and the kernal found the
+// boards, mounted the FAT32 volume and ran boottest.exe in user mode,
+// which loaded the maths tables to main memory and ran modplay.exe as a
+// second process: it played the first TEST_MODPLAY_SECONDS of the song
+// through the sound board as CModPlayer does on the host.  The emulator
+// boots Output/Boot.rom (TestKernalBuild's) and Output/SDCard.img (where
+// boottest.exe's argument is zero: modplay.exe plays the whole song).
+// Then boots a copy of the card whose modplay.exe is where its heap would
+// be, which the kernal refuses to load.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalBoot(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -858,12 +905,12 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 		return;
 	}
 
-	//boot.exe's argument is the seconds modplay.exe plays.
+	//boottest.exe's argument is the seconds modplay.exe plays.
 	//TEST_MODPLAY_SECONDS, TEST_HCP65_RUN_CYCLES and TEST_HCP65_CLOCK (environment) override them, to time modplay.exe
 	//(at the board's 25000000 it must keep the sound board fed, or what it plays won't match).
 	uiSeconds = getenv("TEST_MODPLAY_SECONDS") ? (uint32)atoi(getenv("TEST_MODPLAY_SECONDS")) : TEST_MODPLAY_SECONDS;
 	uiRunCycles = getenv("TEST_HCP65_RUN_CYCLES") ? (uint64)atoll(getenv("TEST_HCP65_RUN_CYCLES")) : TEST_HCP65_RUN_CYCLES;
-	TestKernalSetBootArgument(pcBuilder, (uint16)uiSeconds, &uiStatus);
+	TestKernalSetStartUp(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, (uint16)uiSeconds, &uiStatus);
 
 	cHCP65.Init(getenv("TEST_HCP65_CLOCK") ? (uint64)atoll(getenv("TEST_HCP65_CLOCK")) : TEST_HCP65_CLOCK_RATE);
 	//The kernal brings up each socket's card and mounts the first volume it finds: socket 0's card has none.
@@ -880,7 +927,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	pcStray = (CTestStrayDevice*)TestKernalBoard(&cMainboard, TEST_HCP65_STRAY_SOCKET, TEST_HCP65_STRAY_TYPE);
 	pcPort = cHCP65.GetDebugPort();
 	AssertInt(TEST_HCP65_BLANK_CARD_SIZE / 512, pcSDCard->NumSectors(0));
-	TestKernalStart(&cHCP65, pcBuilder);
+	TestKernalStart(&cHCP65, psKernal);
 
 	//The sound board's frames are taken as they are played: it keeps no more than 64K of them.
 	acPlayed.Init();
@@ -946,7 +993,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt((1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET), sStatus.uiLoadedDrivers);
 	AssertSize(1, pcPort->NumDrivers());
-	AssertTrue(pcBuilder->GetSymbol("__end", &uiKernalEnd));
+	AssertTrue(psKernal->cOS.GetSymbol("__end", &uiKernalEnd));
 	AssertString(TEST_HCP65_SOUND_DRIVER_PATH, pcPort->GetDriver(0)->szName);
 	AssertInt(TEST_HCP65_AUDIO_SOCKET, pcPort->GetDriver(0)->uiSlot);
 	AssertTrue(pcPort->GetDriver(0)->uiAddress >= uiKernalEnd);
@@ -958,7 +1005,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertTrue(pcStray->IsQuiet());
 	AssertInt(uiSeconds, (uint32)sStatus.uiBootArgument);
 
-	//boot.exe ran in user mode (process $FF), multiplied and divided with the tables, gave the kernal 300 * 200 / 3
+	//boottest.exe ran in user mode (process $FF), multiplied and divided with the tables, gave the kernal 300 * 200 / 3
 	//and ran modplay.exe (process $FE), whose exit code it exited with; the kernal is back in kernel mode.
 	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
 	AssertInt(MODPLAY_EXIT_SUCCESS, sStatus.uiExitCode);
@@ -977,17 +1024,17 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(0xFF, cHCP65.GetProcessID());
 	AssertInt(1, cHCP65.GetInterruptDepth());
 
-	//The kernal told the debug port of each process, in order: boot.exe ($FF) started, boot.exe again as the child that
-	//checks it can't open the sound board ($FE) started and ended, modplay.exe ($FE) started and ended, then boot.exe
+	//The kernal told the debug port of each process, in order: boottest.exe ($FF) started, boottest.exe again as the child that
+	//checks it can't open the sound board ($FE) started and ended, modplay.exe ($FE) started and ended, then boottest.exe
 	//ended with modplay.exe's exit code.  Each start stopped a Run, which went on in the next.
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFF, sProcess.uiProcess);
-	AssertString("\\boot.exe", sProcess.szName);
+	AssertString(TEST_HCP65_BOOT_PROGRAM_PATH, sProcess.szName);
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFE, sProcess.uiProcess);
-	AssertString("\\boot.exe", sProcess.szName);
+	AssertString(TEST_HCP65_BOOT_PROGRAM_PATH, sProcess.szName);
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Ended, eEvent);
 	AssertInt(0xFE, sProcess.uiProcess);
@@ -1014,7 +1061,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	AssertFalse(pcAudio->IsEnabled());
 	AssertFalse(pcAudio2->IsEnabled());
 
-	//boot.exe loaded MULT and INVERT's upper half (round(2^32 / $8000) first) from the SD card to main memory at
+	//boottest.exe loaded MULT and INVERT's upper half (round(2^32 / $8000) first) from the SD card to main memory at
 	//$400000, and the kernal was copied from ROM banks 0-3 to MPU RAM.  The processes' pages of the remap table were
 	//cleared when they exited.
 	puiMain = cHCP65.MainMemoryAt(HCP65_TABLES_START) - HCP65_TABLES_START;  //Chip A: $400000 to $5FFFFF, the tables' banks.
@@ -1025,8 +1072,8 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	free(puiTables);
 	AssertInt(15, puiMain[HCP65_TABLES_START + ((3 << 8) | 5) * 2]);
 	AssertInt(0x020000, puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE] | (puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 1] << 8) | (puiMain[HCP65_TABLES_START + HCP65_MATH_MULT_SIZE + 2] << 16));
-	puiROM = pcBuilder->GetROM();
-	AssertTrue(memcmp(&puiROM[0x10000], &puiRAM[0x10000], 0x100) == 0);
+	puiROM = psKernal->cOS.GetImageAt(0x10000);
+	AssertTrue(memcmp(puiROM, &puiRAM[0x10000], 0x100) == 0);
 	for (i = 0; i < 0x400; i++)
 	{
 		if (puiRAM[HCP65_REMAP_TABLE + 0xFC00 + i] != 0)
@@ -1066,7 +1113,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	acPlayed.Kill();
 
 	//Booted again with a card whose modplay.exe has its code in the small heap's banks and no UserHeapSize: the kernal
-	//refuses to load it (KERNAL_PROCESS_BAD_ADDRESS) and boot.exe exits with 100 and why.  The card is a copy.
+	//refuses to load it (KERNAL_PROCESS_BAD_ADDRESS) and boottest.exe exits with 100 and why.  The card is a copy.
 	acMisplaced.Init();
 	AssertTrue(TestKernalMakeMisplacedExe(TEST_HCP65_MISPLACED_AT, &acMisplaced));
 	AssertTrue(cFileUtil.Copy(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_MISPLACED_CARD));
@@ -1090,6 +1137,9 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
 	cFileUtil.Delete(TEST_HCP65_MISPLACED_CARD);
 
+	//The emulator boots Output/SDCard.img: there boottest.exe's argument is zero, so modplay.exe plays the whole song.
+	TestKernalSetStartUp(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, 0, &uiStatus);
+
 	cHCP65.Kill();
 	cMainboard.Kill();
 }
@@ -1098,7 +1148,7 @@ void TestHCP65KernalBoot(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output/UARTCard.img and puts the UART
-// Board's test program (HCP65/UARTTest) on it as \boot.exe and its driver
+// Board's test program (HCP65/UARTTest) on it as \uarttest.exe and its driver
 // (HCP65/Drivers/UARTBoard) as \OS\Drivers\UART.DRV.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1108,7 +1158,7 @@ static bool TestKernalPutUARTFiles(void)
 	{
 		return false;
 	}
-	if (!TestKernalPutExe(TEST_HCP65_UART_CARD_IMAGE, "\\boot.exe", TEST_HCP65_UART_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_UART_CARD_IMAGE, TEST_HCP65_UART_PROGRAM_PATH, TEST_HCP65_UART_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
@@ -1137,12 +1187,12 @@ static void TestKernalUARTPattern(uint8* puiDest, uint32 uiLength, uint8 uiFirst
 //
 // Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
 // (holding Output/UARTCard.img) and the UART Board, whose two ports'
-// far ends the test plays.  UARTTest.cpp, as boot.exe, checks the driver
+// far ends the test plays.  UARTTest.cpp, as \uarttest.exe, checks the driver
 // and exits 0 if it all did what it should:
 //  - Both ports open, the board shows open, and the driver refuses what it
 //    doesn't take.  Nothing has arrived, so a read takes nothing.
 //  - The TTL port in loopback gets back what it sends.
-//  - With the RS232 port closed, a child process (boot.exe again) can't
+//  - With the RS232 port closed, a child process (uarttest.exe again) can't
 //    open the TTL port but can open the RS232 port; it sends "CHILD" and
 //    exits without closing it, and the kernal lets it go.
 //  - The RS232 port with RTS/CTS sends 1000 bytes in one write, then the
@@ -1151,7 +1201,7 @@ static void TestKernalUARTPattern(uint8* puiDest, uint32 uiLength, uint8 uiFirst
 //  - The TTL port at 9600 7E1 echoes 50 bytes xor $20.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalUART(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -1180,8 +1230,8 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 		return;
 	}
 
-	//boot.exe's argument is 0: it is the parent.
-	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	//uarttest.exe's argument is 0: it is the parent.
+	TestKernalSetStartUp(TEST_HCP65_UART_CARD_IMAGE, TEST_HCP65_UART_PROGRAM_PATH, 0, &uiStatus);
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_UART_MACHINE))
@@ -1195,7 +1245,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	pcPrivate = (CTestPrivateBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_PRIVATE_SOCKET, TEST_HCP65_PRIVATE_TYPE);
 	pcUART = (CHCP65UARTBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_UART_SOCKET, HCP65_UART_NAME);
 	pcPort = cHCP65.GetDebugPort();
-	TestKernalStart(&cHCP65, pcBuilder);
+	TestKernalStart(&cHCP65, psKernal);
 
 	//The far ends: the RS232 port's has RTS and DTR on (its CTS and DSR) and DCD off; the TTL port's has RTS on.
 	pcTTL = pcUART->GetTTL();
@@ -1254,7 +1304,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 		}
 	}
 
-	//boot.exe did what UARTTest.cpp checks.
+	//uarttest.exe did what UARTTest.cpp checks.
 	AssertFalse(cHCP65.IsStopped());
 	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
 	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
@@ -1276,14 +1326,14 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 	AssertString(TEST_HCP65_UART_DRIVER_PATH, pcPort->GetDriver(0)->szName);
 	AssertInt(TEST_HCP65_UART_SOCKET, pcPort->GetDriver(0)->uiSlot);
 
-	//The processes: boot.exe ($FF) ran itself as the child ($FE), which exited 0.
+	//The processes: uarttest.exe ($FF) ran itself as the child ($FE), which exited 0.
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFF, sProcess.uiProcess);
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFE, sProcess.uiProcess);
-	AssertString("\\boot.exe", sProcess.szName);
+	AssertString(TEST_HCP65_UART_PROGRAM_PATH, sProcess.szName);
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Ended, eEvent);
 	AssertInt(0xFE, sProcess.uiProcess);
@@ -1337,7 +1387,7 @@ void TestHCP65KernalUART(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output/VIACard.img and puts the VIA
-// Board's test program (HCP65/VIATest) on it as \boot.exe and its driver
+// Board's test program (HCP65/VIATest) on it as \viatest.exe and its driver
 // (HCP65/Drivers/VIABoard) as \OS\Drivers\VIA.DRV.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1347,7 +1397,7 @@ static bool TestKernalPutVIAFiles(void)
 	{
 		return false;
 	}
-	if (!TestKernalPutExe(TEST_HCP65_VIA_CARD_IMAGE, "\\boot.exe", TEST_HCP65_VIA_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_VIA_CARD_IMAGE, TEST_HCP65_VIA_PROGRAM_PATH, TEST_HCP65_VIA_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
@@ -1359,7 +1409,7 @@ static bool TestKernalPutVIAFiles(void)
 //
 // Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
 // (holding Output/VIACard.img) and a VIA Board with breakouts 0 and 2,
-// whose lines the test plays.  VIATest.cpp, as boot.exe, checks the
+// whose lines the test plays.  VIATest.cpp, as \viatest.exe, checks the
 // driver and exits 0 if it all did what it should:
 //  - The board has eight units; only the four fitted open, and the driver
 //    refuses what it doesn't take, writing IER among them.
@@ -1369,11 +1419,11 @@ static bool TestKernalPutVIAFiles(void)
 //    out.
 //  - A wait for XJ's CA1 ends when the test takes CA1 low, which it does
 //    once the wait has turned CA1's interrupt on.
-//  - A child process (boot.exe again) can't open XJ but can open CD; it
+//  - A child process (viatest.exe again) can't open XJ but can open CD; it
 //    drives CD's port B with $A5 and exits without closing it.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalVIA(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -1394,8 +1444,8 @@ void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
 		return;
 	}
 
-	//boot.exe's argument is 0: it is the parent.
-	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	//viatest.exe's argument is 0: it is the parent.
+	TestKernalSetStartUp(TEST_HCP65_VIA_CARD_IMAGE, TEST_HCP65_VIA_PROGRAM_PATH, 0, &uiStatus);
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_VIA_MACHINE))
@@ -1414,7 +1464,7 @@ void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
 	pcXJ = pcVIA->GetVIA(4);
 	pcXJ->HostDrivePortA(0x77, 0xFF);
 	pcXJ->HostDrivePortB(0xC3, 0xFF);
-	TestKernalStart(&cHCP65, pcBuilder);
+	TestKernalStart(&cHCP65, psKernal);
 
 	bDropped = false;
 	puiRAM = cHCP65.GetMPURAM();
@@ -1422,7 +1472,7 @@ void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
 	{
 		cHCP65.Run(TEST_UART_RUN_CYCLES);
 
-		//XJ's CA1 goes low once the driver has turned its interrupt on for boot.exe's wait.
+		//XJ's CA1 goes low once the driver has turned its interrupt on for viatest.exe's wait.
 		if (!bDropped && (pcXJ->Read(HCP65_VIA_IER) & HCP65_VIA_INT_CA1))
 		{
 			pcXJ->HostSetCA1(false);
@@ -1442,7 +1492,7 @@ void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
 		}
 	}
 
-	//boot.exe did what VIATest.cpp checks.
+	//viatest.exe did what VIATest.cpp checks.
 	AssertFalse(cHCP65.IsStopped());
 	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
 	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
@@ -1476,7 +1526,7 @@ void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output/PS2Card.img and puts the PS2
-// Board's test program (HCP65/PS2Test) on it as \boot.exe and its driver
+// Board's test program (HCP65/PS2Test) on it as \ps2test.exe and its driver
 // (HCP65/Drivers/PS2Board) as \OS\Drivers\PS2.DRV.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1486,7 +1536,7 @@ static bool TestKernalPutPS2Files(void)
 	{
 		return false;
 	}
-	if (!TestKernalPutExe(TEST_HCP65_PS2_CARD_IMAGE, "\\boot.exe", TEST_HCP65_PS2_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_PS2_CARD_IMAGE, TEST_HCP65_PS2_PROGRAM_PATH, TEST_HCP65_PS2_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
@@ -1498,7 +1548,7 @@ static bool TestKernalPutPS2Files(void)
 //
 // Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
 // (holding Output/PS2Card.img) and the PS2 Board with a keyboard in port
-// 1 and nothing in port 2.  PS2Test.cpp, as boot.exe, checks the driver
+// 1 and nothing in port 2.  PS2Test.cpp, as \ps2test.exe, checks the driver
 // and exits 0 if it all did what it should:
 //  - Both ports open, and the driver refuses what it doesn't take.
 //  - A byte sent to port 2 fails: nothing clocks it in.
@@ -1507,11 +1557,11 @@ static bool TestKernalPutPS2Files(void)
 //    with nothing of the sends' clocks among them.
 //  - Then the test presses A and Cursor Up, which arrive as their scan
 //    codes.
-//  - A child process (boot.exe again) can't open port 1 but can open port
+//  - A child process (ps2test.exe again) can't open port 1 but can open port
 //    2, and exits without closing it.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalPS2(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -1530,8 +1580,8 @@ void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
 		return;
 	}
 
-	//boot.exe's argument is 0: it is the parent.
-	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	//ps2test.exe's argument is 0: it is the parent.
+	TestKernalSetStartUp(TEST_HCP65_PS2_CARD_IMAGE, TEST_HCP65_PS2_PROGRAM_PATH, 0, &uiStatus);
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_PS2_MACHINE))
@@ -1547,7 +1597,7 @@ void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
 	cKeyboard.Init();
 	cKeyboard.Attach(pcPS2->GetPort(0));
 	pcPS2->GetPort(1)->SetPlugged(false);
-	TestKernalStart(&cHCP65, pcBuilder);
+	TestKernalStart(&cHCP65, psKernal);
 
 	bPressed = false;
 	puiRAM = cHCP65.GetMPURAM();
@@ -1555,7 +1605,7 @@ void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
 	{
 		cHCP65.Run(TEST_UART_RUN_CYCLES);
 
-		//The keys go once boot.exe has the keyboard scanning again with Num Lock's LED on.
+		//The keys go once ps2test.exe has the keyboard scanning again with Num Lock's LED on.
 		if (!bPressed && cKeyboard.IsScanning() && (cKeyboard.GetLEDs() == HCP65_PS2_KEYBOARD_LED_NUM))
 		{
 			AssertTrue(cKeyboard.Key("A", true));
@@ -1577,7 +1627,7 @@ void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
 		}
 	}
 
-	//boot.exe did what PS2Test.cpp checks.
+	//ps2test.exe did what PS2Test.cpp checks.
 	AssertFalse(cHCP65.IsStopped());
 	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
 	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
@@ -1609,7 +1659,7 @@ void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output/ConsoleCard.img and puts the
-// console (HCP65/Console) on it as \boot.exe, with the UART Board's and
+// console (HCP65/Console) on it as \console.exe, with the UART Board's and
 // the PS2 Board's drivers.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1619,7 +1669,7 @@ static bool TestKernalPutConsoleFiles(void)
 	{
 		return false;
 	}
-	if (!TestKernalPutExe(TEST_HCP65_CONSOLE_CARD_IMAGE, "\\boot.exe", TEST_HCP65_CONSOLE_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_CONSOLE_PROGRAM_PATH, TEST_HCP65_CONSOLE_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
@@ -1633,7 +1683,7 @@ static bool TestKernalPutConsoleFiles(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The console (Console.cpp) as \boot.exe, at the real board's 25MHz, with
+// The console (Console.cpp) as \console.exe, at the real board's 25MHz, with
 // a terminal at the far end of the UART Board's RS232 port and a keyboard
 // in the PS2 Board's port 1.  Once it shows its prompt the test types
 // Shift+H, I, Caps Lock, A, B and C, Enter, then X and Backspace, all at
@@ -1643,7 +1693,7 @@ static bool TestKernalPutConsoleFiles(void)
 // Machines/Console.xml boots.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalConsole(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalConsole(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -1662,7 +1712,7 @@ void TestHCP65KernalConsole(CHCP65KernalBuilder* pcBuilder)
 	{
 		return;
 	}
-	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	TestKernalSetStartUp(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_CONSOLE_PROGRAM_PATH, 0, &uiStatus);
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_CONSOLE_MACHINE))
@@ -1680,7 +1730,7 @@ void TestHCP65KernalConsole(CHCP65KernalBuilder* pcBuilder)
 	pcPS2->GetPort(1)->SetPlugged(false);
 	cTerminal.Init();
 	cTerminal.Attach(pcUART->GetRS232());
-	TestKernalStart(&cHCP65, pcBuilder);
+	TestKernalStart(&cHCP65, psKernal);
 
 	bTyped = false;
 	bDone = false;
@@ -1751,7 +1801,7 @@ void TestHCP65KernalConsole(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies the blank SD card image to Output/VideoCard.img and puts the
-// Video Board's test program (HCP65/VideoTest) on it as \boot.exe and its
+// Video Board's test program (HCP65/VideoTest) on it as \vidtest.exe and its
 // driver (HCP65/Drivers/VideoBoard) as \OS\Drivers\VIDEO.DRV.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1761,7 +1811,7 @@ static bool TestKernalPutVideoFiles(void)
 	{
 		return false;
 	}
-	if (!TestKernalPutExe(TEST_HCP65_VIDEO_CARD_IMAGE, "\\boot.exe", TEST_HCP65_VIDEO_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_VIDEO_CARD_IMAGE, TEST_HCP65_VIDEO_PROGRAM_PATH, TEST_HCP65_VIDEO_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
@@ -1773,14 +1823,14 @@ static bool TestKernalPutVideoFiles(void)
 //
 // Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
 // (holding Output/VideoCard.img), the Video Board and a Memory Board.
-// VideoTest.cpp, as boot.exe, checks the driver and exits 0 if it all did
+// VideoTest.cpp, as \vidtest.exe, checks the driver and exits 0 if it all did
 // what it should, leaving 640x480 shown: the pixel at (x, y) is palette
 // 0's colour (x + y) & $FF (red i, green 255 - i, blue $40), but row 0,
 // palette 5's (red), and row 1, which the row table makes row 0 again.
 // The card it writes is the one the emulator's Machines/Video.xml boots.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalVideo(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -1803,7 +1853,7 @@ void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
 	{
 		return;
 	}
-	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	TestKernalSetStartUp(TEST_HCP65_VIDEO_CARD_IMAGE, TEST_HCP65_VIDEO_PROGRAM_PATH, 0, &uiStatus);
 
 	cHCP65.Init(TEST_UART_CLOCK_RATE);
 	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_VIDEO_MACHINE))
@@ -1816,7 +1866,7 @@ void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
 	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
 	pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
 	pcPort = cHCP65.GetDebugPort();
-	TestKernalStart(&cHCP65, pcBuilder);
+	TestKernalStart(&cHCP65, psKernal);
 
 	for (i = 0; i < TEST_UART_MAX_RUNS; i++)
 	{
@@ -1833,7 +1883,7 @@ void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
 		}
 	}
 
-	//boot.exe did what VideoTest.cpp checks, with the driver loaded from the card.
+	//vidtest.exe did what VideoTest.cpp checks, with the driver loaded from the card.
 	AssertFalse(cHCP65.IsStopped());
 	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
 	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
@@ -1849,7 +1899,7 @@ void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
 	AssertInt(800, (int)pcVideo->GetLineLength());
 	AssertInt(525, (int)pcVideo->GetFrameLines());
 
-	//Two more frames, so that the last is drawn after boot.exe's last change, then the picture.
+	//Two more frames, so that the last is drawn after vidtest.exe's last change, then the picture.
 	cHCP65.Run(2 * 800 * 525 + 1000);
 	puiFrame = (uint32*)malloc(640 * 480 * sizeof(uint32));
 	AssertTrue(pcVideo->GetFrame(puiFrame, 640, 480, &uiWidth, &uiHeight));
@@ -1892,7 +1942,7 @@ void TestHCP65KernalVideo(CHCP65KernalBuilder* pcBuilder)
 // given a window.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
+void TestHCP65KernalNoMainMemory(STestKernal* psKernal)
 {
 	CHCP65				cHCP65;
 	CTestMainboard		cMainboard;
@@ -1902,7 +1952,7 @@ void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
 	uint32				uiStatus;
 	int					i;
 
-	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+	uiStatus = TEST_KERNAL_STATUS_ADDRESS;
 	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
 	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_NO_MEMORY_MACHINE))
 	{
@@ -1912,7 +1962,7 @@ void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
 	}
 	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
 	pcPrivate = (CTestPrivateBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_PRIVATE_SOCKET, TEST_HCP65_PRIVATE_TYPE);
-	AssertTrue(cHCP65.LoadROM(pcBuilder->GetROM(), HCP65_ROM_SIZE));
+	AssertTrue(cHCP65.LoadROM(psKernal->cBoot.GetImage(), HCP65_ROM_SIZE));
 	cHCP65.Reset();
 	sStatus.uiState = 0;
 	for (i = 0; (i < TEST_HCP65_MAX_RUNS) && !TestKernalIsDone(&sStatus) && !cHCP65.IsStopped(); i++)
@@ -1937,23 +1987,25 @@ void TestHCP65KernalNoMainMemory(CHCP65KernalBuilder* pcBuilder)
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Kernal(void)
 {
-	CHCP65KernalBuilder	cBuilder;
+	STestKernal	sKernal;
 
 	BeginTests();
 	DataMemoryInit();  //The machines' XML.
 
-	cBuilder.Init();
-	if (TestKernalBuild(&cBuilder))
+	sKernal.cBoot.Init(HKI_Boot);
+	sKernal.cOS.Init(HKI_OS);
+	if (TestKernalBuild(&sKernal))
 	{
-		TestHCP65KernalBoot(&cBuilder);
-		TestHCP65KernalUART(&cBuilder);
-		TestHCP65KernalVIA(&cBuilder);
-		TestHCP65KernalPS2(&cBuilder);
-		TestHCP65KernalConsole(&cBuilder);
-		TestHCP65KernalVideo(&cBuilder);
-		TestHCP65KernalNoMainMemory(&cBuilder);
+		TestHCP65KernalBoot(&sKernal);
+		TestHCP65KernalUART(&sKernal);
+		TestHCP65KernalVIA(&sKernal);
+		TestHCP65KernalPS2(&sKernal);
+		TestHCP65KernalConsole(&sKernal);
+		TestHCP65KernalVideo(&sKernal);
+		TestHCP65KernalNoMainMemory(&sKernal);
 	}
-	cBuilder.Kill();
+	sKernal.cOS.Kill();
+	sKernal.cBoot.Kill();
 
 	DataMemoryKill();
 	TestStatistics();

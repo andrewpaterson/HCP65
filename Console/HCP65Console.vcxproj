@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- boot.exe, the program the HCP65 kernal runs from the SD card.  It is built by HCP65-IDE's W65C816
+  <!-- console.exe, the start up program its test's card names in \OS\STARTUP.TXT.  It is built by HCP65-IDE's W65C816
        configurations (HCP65Console.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
        files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
   <ItemGroup Label="ProjectConfigurations">

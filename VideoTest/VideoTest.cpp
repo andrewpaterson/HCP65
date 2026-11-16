@@ -3,7 +3,7 @@
 #include "HCP65VideoBoard.h"
 
 
-//TestHCP65KernalVideo boots this as \boot.exe with a Video Board, and checks the picture it leaves: 640x480, the pixel
+//TestHCP65KernalVideo runs this (\vidtest.exe) as its start up program with a Video Board, and checks the picture it leaves: 640x480, the pixel
 //at (x, y) palette 0's colour (x + y) & $FF, but row 0, whose palette number is 5 (all red), and row 1, which the row
 //table makes row 0 again.  Palette 0's colour i is red i, green 255 - i and blue $40.
 #define VIDEO_TEST_MAX_BOARDS	20
@@ -231,8 +231,8 @@ uint16 VideoTestRows(uint16 uiPixels, uint16 uiRows)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The Video Board driver's test (TestHCP65KernalVideo boots it as
-// \boot.exe).  Exits 0 if everything did what it should, otherwise 100
+// The Video Board driver's test (TestHCP65KernalVideo's card starts it:
+// \OS\STARTUP.TXT names it).  Exits 0 if everything did what it should, otherwise 100
 // times the step that failed plus which check in it.  It leaves the
 // picture shown.
 //

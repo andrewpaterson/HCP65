@@ -4,7 +4,7 @@
 
 
 //Kernal calls for a program the HCP65 kernal runs (UserCalls.asm).  A program exits by returning from main (or by
-//calling exit).  Paths are FAT paths on the SD card ("\\boot.exe").
+//calling exit).  Paths are FAT paths on the SD card ("\\OS\\INIT.EXE").
 
 #define KERNAL_RESULT_SUCCESS		0
 #define KERNAL_RESULT_NOT_FOUND		1		//No such file.
@@ -18,9 +18,9 @@
 
 #define KERNAL_FILE_NOT_FOUND		0xFFFFFFFF
 
-//Garth Wilson's maths tables, in main memory where every process has them (UserMathTables.asm).  boot.exe loads them
-//from the SD card before it runs anything built with them (a program without MathTables="false"): all of MULT, and
-//the upper half of INVERT (the reciprocals of $8000 to $FFFF, the soft float's); the file has all of it.
+//Garth Wilson's maths tables, in main memory where every process has them (UserMathTables.asm).  The start up program
+//(the one \OS\STARTUP.TXT names) loads them from the SD card before it runs anything built with them (a program
+//without MathTables="false"): all of MULT, and the upper half of INVERT (the reciprocals of $8000 to $FFFF, the soft float's); the file has all of it.
 #define KERNAL_MATH_MULT_PATH		"\\OS\\Math\\MULT.BIN"
 #define KERNAL_MATH_MULT_ADDRESS	0x400000
 #define KERNAL_MATH_MULT_SIZE		0x20000
@@ -37,7 +37,8 @@ extern "C" void		KernalPutValue(uint16 uiValue);
 //Returns KERNAL_RESULT_EXITED with its exit code in *puiExitCode, or why it couldn't run.
 extern "C" uint16	KernalExecute(const char* szPath, uint16 uiArgument, uint16* puiExitCode);
 
-//The argument the process was run with (boot.exe's is the kernal's boot argument, zero unless a test sets it).
+//The argument the process was run with (the start up program's is the number after its path in \OS\STARTUP.TXT, 0
+//without one).
 extern "C" uint16	KernalGetArgument(void);
 
 //The size of the file szPath, or KERNAL_FILE_NOT_FOUND.

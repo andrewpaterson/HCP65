@@ -3,10 +3,10 @@
 #include "HCP65PS2Board.h"
 
 
-//TestHCP65KernalPS2 boots this as \boot.exe with a PS2 Board that has a keyboard (HCP65Lib's CHCP65PS2Keyboard) in
+//TestHCP65KernalPS2 runs this (\ps2test.exe) as its start up program with a PS2 Board that has a keyboard (HCP65Lib's CHCP65PS2Keyboard) in
 //port 1 and nothing in port 2.  Once the keyboard is scanning with its Num Lock LED on (after PS2TestCommands) it
 //presses and lets go of A, then Cursor Up.
-#define PS2_TEST_PATH			"\\boot.exe"
+#define PS2_TEST_PATH			"\\ps2test.exe"
 #define PS2_TEST_CHILD			0xC41D		//The argument it runs itself with as the child.
 #define PS2_TEST_MAX_BOARDS		20
 #define PS2_TEST_WAIT_TICKS		KERNAL_DEVICE_TICKS_PER_SECOND
@@ -256,7 +256,7 @@ uint16 PS2TestChildOwnership(uint16 uiPort2)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The PS2 Board driver's test (TestHCP65KernalPS2 boots it as \boot.exe).
+// The PS2 Board driver's test (TestHCP65KernalPS2 runs it).
 // Exits 0 if everything did what it should, otherwise 100 times the step
 // that failed plus which check in it.  Run with PS2_TEST_CHILD it is the
 // child (PS2TestChild).

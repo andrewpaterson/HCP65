@@ -228,7 +228,8 @@ uint16 ConsoleResetKeyboard(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The console, as \boot.exe.  It only exits if the UART Board or the
+// The console, as the card's start up program (console.exe, which
+// \OS\STARTUP.TXT names).  It only exits if the UART Board or the
 // PS2 Board's keyboard can't be had.
 //
 //////////////////////////////////////////////////////////////////////////

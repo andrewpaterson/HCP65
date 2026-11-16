@@ -3,9 +3,9 @@
 #include "HCP65UARTBoard.h"
 
 
-//TestHCP65KernalUART boots this as \boot.exe with the UART Board, and plays the far end of both ports (HCP65Lib's
+//TestHCP65KernalUART runs this (\uarttest.exe) as its start up program with the UART Board, and plays the far end of both ports (HCP65Lib's
 //CHCP65UARTBoard): it turns the RS232 port's CTS and DSR on and the TTL port's CTS on before the boot.
-#define UART_TEST_PATH			"\\boot.exe"
+#define UART_TEST_PATH			"\\uarttest.exe"
 #define UART_TEST_CHILD			0xC41D		//The argument it runs itself with as the child.
 #define UART_TEST_MAX_BOARDS	20
 
@@ -339,8 +339,8 @@ uint16 UARTTestEcho(uint16 uiTTL)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The UART Board driver's test (TestHCP65KernalUART boots it as
-// \boot.exe).  Exits 0 if everything did what it should, otherwise 100
+// The UART Board driver's test (TestHCP65KernalUART's card starts it:
+// \OS\STARTUP.TXT names it).  Exits 0 if everything did what it should, otherwise 100
 // times the step that failed plus which check in it.  Run with
 // UART_TEST_CHILD it is the child (UARTTestChild).
 //

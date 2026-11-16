@@ -5,6 +5,7 @@
 #include "Assembler65Lib/Asm65Object.h"
 #include "KernalDebug.h"
 #include "KernalDriverLoader.h"
+#include "KernalStartUp.h"
 
 
 #define KERNAL_DRIVER_PATH_LENGTH	(sizeof(KERNAL_DRIVER_DIRECTORY) + DEVICE_ROM_DRIVER_LENGTH)
@@ -26,7 +27,6 @@ struct SKernalModule
 };
 
 
-extern CFatVolume	gcKernalVolume;
 extern "C" uint8	_end;		//The linker's __end: the end of the kernal's bss.
 
 static uint32		guiKernalDriverMemory;		//The next free MPU RAM for a driver, 0 until the first.

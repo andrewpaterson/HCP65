@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- The HCP65 boot loader, the MPU ROM: it brings up the devices and the SD card, and loads \OS\OS.SYS (HCP65/Kernal)
+       into MPU RAM.  It shares the kernal's start up, device, memory, interrupt and SD card units.  It is built by
+       HCP65-IDE's W65C816 configurations (HCP65Boot.hcp65build), not by Visual Studio: a Makefile project with no
+       commands, so its files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7FFE7798-BE08-4206-B16B-D24E2E4A6FCF}</ProjectGuid>
+    <RootNamespace>HCP65Boot</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;..\Kernal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="BootStart.asm" />
+    <ClCompile Include="Boot.cpp" />
+    <ClCompile Include="..\Kernal\KernalStartUp.cpp" />
+    <ClCompile Include="..\Kernal\KernalMemory.cpp" />
+    <ClCompile Include="..\Kernal\KernalDevices.cpp" />
+    <ClCompile Include="..\Kernal\KernalDriver.cpp" />
+    <ClCompile Include="..\Kernal\KernalSDCard.cpp" />
+    <ClCompile Include="..\Kernal\KernalSDCard.asm" />
+    <ClCompile Include="..\Kernal\KernalInterrupts.cpp" />
+    <ClCompile Include="..\Kernal\KernalInterrupts.asm" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Kernal\Kernal.h" />
+    <ClInclude Include="..\Kernal\KernalDevices.h" />
+    <ClInclude Include="..\Kernal\KernalDriver.h" />
+    <ClInclude Include="..\Kernal\KernalInterrupts.h" />
+    <ClInclude Include="..\Kernal\KernalMemory.h" />
+    <ClInclude Include="..\Kernal\KernalSDCard.h" />
+    <ClInclude Include="..\Kernal\KernalStartUp.h" />
+    <None Include="..\Kernal\StartRuntime.inc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">
+      <Project>{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

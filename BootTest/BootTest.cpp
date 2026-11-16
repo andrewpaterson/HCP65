@@ -4,7 +4,7 @@
 
 
 #define BOOT_PROGRAM	"\\modplay.exe"
-#define BOOT_SELF		"\\boot.exe"
+#define BOOT_SELF		"\\boottest.exe"
 #define BOOT_CHILD		0xB0C1	//The argument it runs itself with as the child (BootChild) when there is one sound board.
 #define BOOT_CHILD_TWO	0xB0C2	//The child's argument when there is a second sound board, which it opens too.
 #define BOOT_NO_TABLES	200		//The exit code when the maths tables couldn't be loaded, plus why.
@@ -57,7 +57,7 @@ uint16 BootCheckDevices(void)
 		return 2;
 	}
 
-	//A handle that isn't open, a board the kernal keeps (the SD Card Board boot.exe was loaded from), one there isn't and
+	//A handle that isn't open, a board the kernal keeps (the SD Card Board boottest.exe was loaded from), one there isn't and
 	//a unit there isn't.
 	if (KernalDeviceClose(1) != KERNAL_DEVICE_BAD_HANDLE)
 	{
@@ -167,7 +167,7 @@ uint16 BootChild(bool bSecondBoard)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The test's boot.exe: loads the maths tables from the SD card into main
+// The boot test's start up program: loads the maths tables from the SD card into main
 // memory (MULT, and INVERT's upper half; it is built without them,
 // MathTables="false", so it can),
 // multiplies and divides and gives the kernal a value, checks the device

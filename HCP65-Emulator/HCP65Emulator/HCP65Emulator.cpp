@@ -85,10 +85,10 @@ Ptr<CFont> GenerateFont(const char* szFontFilename, const char* szName, float32 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The kernal ROM image szFilename into the HCP65's ROM.
+// The boot loader's ROM image szFilename into the HCP65's ROM.
 //
 //////////////////////////////////////////////////////////////////////////
-bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
+bool LoadBootROM(CHCP65* pcHCP65, const char* szFilename)
 {
 	CDiskFile	cFile;
 	uint8*		puiROM;
@@ -99,7 +99,7 @@ bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
 	if (!cFile.Open(EFM_Read))
 	{
 		cFile.Kill();
-		gcLogger.Error2(__METHOD__, " Could not open the kernal ROM [", szFilename, "].", NULL);
+		gcLogger.Error2(__METHOD__, " Could not open the boot loader's ROM [", szFilename, "].", NULL);
 		return false;
 	}
 	uiSize = (lsize)cFile.Size();
@@ -118,7 +118,7 @@ bool LoadKernal(CHCP65* pcHCP65, const char* szFilename)
 	free(puiROM);
 	if (!bResult)
 	{
-		gcLogger.Error2(__METHOD__, " Could not load the kernal ROM [", szFilename, "].", NULL);
+		gcLogger.Error2(__METHOD__, " Could not load the boot loader's ROM [", szFilename, "].", NULL);
 	}
 	return bResult;
 }
@@ -174,11 +174,11 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	//Debuggable: it runs until a debugger attaches, or with --debug-wait holds stopped until one continues it.  A
 	//debugger it waits for may load the kernal itself, so then the ROM file needn't be there.
 	mbValid = mcDebugger.ParseArguments(argc, argv);
-	if (mbValid && !LoadKernal(&mcHCP65, HCP65_EMULATOR_KERNAL_ROM))
+	if (mbValid && !LoadBootROM(&mcHCP65, HCP65_EMULATOR_BOOT_ROM))
 	{
 		if (mcDebugger.IsWaiting())
 		{
-			gcLogger.Warning2(__METHOD__, " Starting without a kernal ROM: the debugger is to load one.", NULL);
+			gcLogger.Warning2(__METHOD__, " Starting without a boot loader ROM: the debugger is to load one.", NULL);
 		}
 		else
 		{
