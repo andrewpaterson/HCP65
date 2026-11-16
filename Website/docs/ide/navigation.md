@@ -120,9 +120,35 @@ search runs a little at a time, so the IDE never stops answering keys.
 
 There are no regular expressions, file masks or Replace in Files yet.
 
+## Find Duplicates
+
+Edit, Find Duplicates... (Ctrl+Alt+Shift+D), as IntelliJ IDEA's Locate Duplicates, finds where else the
+code at the caret is written, whatever its variables are called there.
+
+- **An expression selected** is looked for inside any statement: `x * x + y * y` is found in
+  `d = sqrt(a * a + b * b);`.
+- **Statements selected** (whole statements of one block) are looked for as a run of statements.
+- **Nothing selected**: the function the caret is in.  First the places its whole body is written, then
+  the runs of its statements written elsewhere, the longest first.  A run must be at least as big as the
+  [Find Duplicates settings](settings.md#find-duplicates) ask (3 statements and 20 tokens to begin with,
+  counting the statements inside an `if` or a loop).
+
+The function's variables and parameters may have other names at another place, as long as each is
+always the same other name there and that name is a variable or parameter of the function it is in.
+Members, types and functions called must be written the same.  Literals must be the same too, unless
+**Literals may differ** is ticked: then a number matches any number, a string any string and a
+character any character.
+
+The dialog says what it will look for, and asks for the [scope](#scopes) and the tick.  **Find** lists
+what it found in the **Duplicates** tool window: a part of the function each (for a function), each
+file under it, and each place's first line, which opens the place.  It has the same keys, preview and
+toolbar as Find, and **Rerun** looks again for the same code in the same scope.  The search runs a
+little at a time, so the IDE carries on meanwhile, and only files with the names the code is written
+with are parsed.
+
 ## Next and Previous Occurrence
 
 Ctrl+Alt+Down and Ctrl+Alt+Up step through the results of the tool window with the keys: Find Usages',
-Find's, or the [Build tab's](building.md#the-build-tab) errors.  From an editor, they step through the one
+Find's, Duplicates', or the [Build tab's](building.md#the-build-tab) errors.  From an editor, they step through the one
 such tool window that can be seen and has something to step to; if there are none, or more than one, the
 status line says so.  Each step opens the place in the editor.

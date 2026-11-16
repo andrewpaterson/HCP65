@@ -1,7 +1,7 @@
 # Settings and Keys
 
-File, Settings... (Ctrl+Alt+S) has two pages: **Keymap**, and [File and Code
-Templates](templates.md#the-templates).  What OK changes applies straight away.
+File, Settings... (Ctrl+Alt+S) has three pages: **Keymap**, [File and Code
+Templates](templates.md#the-templates) and **Find Duplicates**.  What OK changes applies straight away.
 
 ## The keymap
 
@@ -23,12 +23,19 @@ Type in its filter to find one.  The buttons beside the list:
 Only the keys you change are kept, in `Keymap.xml` in your settings directory, so a new version of the
 IDE's own keys still reaches every command you haven't changed.
 
+## Find Duplicates
+
+The smallest run of a function's statements that [Find Duplicates](navigation.md#find-duplicates)
+lists: **Statements** (counting those inside an `if` or a loop, 3 to begin with) and **Tokens** (20).  Both
+must be reached.  A function's whole body written elsewhere is always listed.  **Literals may differ** is
+what the Find Duplicates dialog's tick starts as.
+
 ## Where settings are kept
 
 | File | What is in it |
 |---|---|
 | `Keymap.xml` | The keys you have changed. |
-| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; the template Author. |
+| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author. |
 | `RecentSolutions.xml` | File, Recent Solutions, and what was open last. |
 | `fileTemplates\` | Your Default scheme's [templates](templates.md#schemes). |
 
@@ -64,6 +71,7 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+A | Select All |
 | Ctrl+W, Ctrl+Shift+W | Extend Selection, Shrink Selection |
 | Ctrl+Shift+F | Find in Files |
+| Ctrl+Alt+Shift+D | Find Duplicates |
 
 ### The editor
 
