@@ -145,8 +145,8 @@ The HCP65's own boards have the manufacturer `HCP65`:
 
 ### Drivers
 
-The kernel has the SD Card Board's driver in its ROM: it needs the SD card to
-load anything else.  Once it has mounted the SD card, it loads the driver of each other board from
+The kernel has the SD Card Board's driver built in, as the boot loader in the ROM does: they need the
+SD card to load anything else ([Starting Up](boot.md)).  Once it has mounted the SD card, it loads the driver of each other board from
 `\OS\Drivers\`, the file its device ROM names (the sound board's is `SOUND.DRV`).
 
 A driver is a relocatable W65C816 module, built from its project in `HCP65/Drivers`.  The kernel

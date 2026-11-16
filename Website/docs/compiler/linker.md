@@ -49,30 +49,34 @@ A build writes one of three kinds of file, or only compiles.
 
 ### Executable
 
-A program a loader places: the HCP65 kernal loads `boot.exe` and the programs it runs.  It is an
+A program a loader places: the HCP65 kernal loads its start up program and the programs it runs.  It is an
 object file holding one section for each linked segment at its address, nothing relocated, an
 empty bss section (`__bss_start` to `__bss_end`) for the loader to clear, and absolute symbols:
 the entry point, and the symbols the configuration gives, which the loader or the program reads.
 
 ```xml
-<Executable File="boot.exe" Entry="UserStart" Limit="0x200000">
+<Executable File="boottest.exe" Entry="UserStart" Limit="0x200000">
 	<Symbol Name="UserHeapSize" Value="0x20000"/>
 </Executable>
 ```
 
 ### Image
 
-A file of a fixed size, loaded whole: a ROM.  Each segment goes where its region says, and bytes
-nothing goes in are the fill (erased flash is `$FF`).  A segment not wholly inside one region is
-an error.
+A file of a fixed size, loaded whole: a ROM, or the kernel the boot loader reads into MPU RAM.  Each
+segment goes where its region says, and bytes nothing goes in are the fill (erased flash is `$FF`).
+A segment not wholly inside one region is an error.  This is the HCP65's boot loader ROM, which
+runs from MPU RAM bank 4:
 
 ```xml
-<Image File="Kernal.rom" Size="0x80000" Fill="0xFF" Limit="0x7FC00" Load="0x0">
-	<Region Start="0x0" End="0x40000" Offset="0x0"/>
+<Image File="Boot.rom" Size="0x80000" Fill="0xFF" Limit="0x60000" Load="0x0" Text="0x40000">
+	<Region Start="0xFF00" End="0x10000" Offset="0xFF00"/>
+	<Region Start="0x40000" End="0x60000" Offset="0x40000"/>
 </Image>
 ```
 
-`Load` is where the IDE's debugger writes the image into the emulator.
+`Load` is where the IDE's debugger writes the image into the emulator.  `Text`, if given, is where
+the linker starts placing code (otherwise `$10000`), for an image that runs from somewhere else.
+An image whose configuration has a `Card` goes on the card instead, as the kernel `OS.SYS` does.
 
 ### Module
 

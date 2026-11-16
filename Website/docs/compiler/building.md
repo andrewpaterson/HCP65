@@ -25,7 +25,7 @@ no solution.
 |---|---|
 | <code>-config "Release&#124;W65C816"</code> | The configuration to build, from the `.hcp65build` file.  Default: the workspace's last one, else the first HCP65 one. |
 | `-startup <project>` | The project whose program is built.  Default: the one the workspace names, else the first. |
-| `-card` | Also copy each executable and module onto the configuration's SD card image (`Card`, `CardPath`). |
+| `-card` | Also copy each executable, module and carded image (such as `OS.SYS`) onto the configuration's SD card image (`Card`, `CardPath`). |
 | `-show-plain <file>` | Write the build as a [plain command line](#a-plain-command-line) instead of building.  `hcp65build @<file>` then builds the same thing. |
 
 The program goes in `Output/<toolchain>/<configuration>` and the listings in `Listing/`, beside
@@ -50,7 +50,7 @@ configuration whose files and settings it builds, and what to link.  This is
 		<Executable File="modplay.exe" Entry="UserStart" Limit="0x200000">
 			<Symbol Name="UserHeapSize" Value="0x180000"/>
 		</Executable>
-		<Load File="..\Kernal\Output\W65C816\Release\Kernal.rom" Address="0x0"/>
+		<Load File="..\Boot\Output\W65C816\Release\Boot.rom" Address="0x0"/>
 	</Configuration>
 </BuildConfigurations>
 ```
@@ -72,11 +72,12 @@ units are only compiled.
 | Element | Writes |
 |---|---|
 | `<Executable File Entry Limit>` | A program the HCP65 kernal loads and runs.  `<Symbol Name Value/>` children are absolute symbols the loader or the program reads, such as `UserHeapSize`. |
-| `<Image File Size Fill Limit Load>` | A file of a fixed size, such as a ROM.  `<Region Start End Offset/>` children say where the code linked at each range of addresses goes in the file; unused bytes are `Fill`. |
+| `<Image File Size Fill Limit Load Text>` | A file of a fixed size, such as a ROM.  `<Region Start End Offset/>` children say where the code linked at each range of addresses goes in the file; unused bytes are `Fill`.  `Text` (optional) is where the code starts. |
 | `<Module File Entry Limit>` | A relocatable driver the kernal can load anywhere in a bank. |
 
 `Limit` is the highest address the linker may place anything at.  `<Load File Address/>` is a
-file the IDE's debugger loads into the emulator first: a kernal ROM for a program to run on.
+file the IDE's debugger loads into the emulator first: the boot loader's ROM for a program to run
+on.
 Numbers are decimal or `0x` hexadecimal, and paths are relative to the `.hcp65build` file.
 
 [Linker and Outputs](linker.md) describes the three kinds of file.

@@ -49,9 +49,9 @@ that to come from ROM, the RAM and ROM chip selects start out swapped:
 | `$080000`–`$0FFFFF` | MPU RAM | MPU ROM |
 
 A latch on the *W65C816 Breakout* sheet is set when the processor's E output first goes low (the
-first `XCE` into native mode) and is only cleared by reset.  So the boot code copies the 512KB ROM
-into the 512KB RAM while still in emulation mode, then switches to native mode, and carries on
-running from the same addresses, now in RAM.
+first `XCE` into native mode) and is only cleared by reset.  So the boot loader in the ROM switches
+to native mode, then copies itself from the ROM into RAM and carries on running there
+([Starting Up](boot.md)).
 
 The [NMI timer](registers.md#6-timer-speed-select) is also held stopped until this latch is set.
 

@@ -11,6 +11,8 @@ registers.  Everything else (memory boards, video, sound, storage, input) plugs 
   NMI timer, device resets, the process ID and the instruction counter.
 - [Devices and Main Memory](devices.md) - the device sockets, the layout inside each device's
   space, and how main memory is assigned to the sockets.
+- [Starting Up](boot.md) - the boot loader in the ROM, the kernel it loads from the SD card
+  (`\OS\OS.SYS`) and the start up program `\OS\STARTUP.TXT` names.
 
 The compiler's runtime routines are in [Drivers and Runtime](runtime/index.md).
 
