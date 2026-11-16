@@ -136,6 +136,7 @@ void CHCP65EmulatorApp::Init(void)
 	mcMainboard.Init();
 	mcDebugger.Init();
 	mcRunner.Init(&mcHCP65, &mcDebugger);
+	mcKeyboard.Init();
 	memset(&msDialogLook, 0, sizeof(msDialogLook));
 	mszMachine.Init();
 	mbValid = false;
@@ -217,6 +218,10 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		gcLogger.Error2(__METHOD__, " Could not plug in the boards of [", szMachine, "].", NULL);
 		mbValid = false;
 	}
+	else
+	{
+		PlugInKeyboard();
+	}
 	szError.Kill();
 	pcAudio = (CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME);
 	for (i = 1; i < argc; i++)
@@ -270,10 +275,14 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Editor)));
 		pScreen->SetDrawnEveryPaint(true);  //The emulated screen changes every tick without telling the canvas.
 		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
+		pScreen->SetCanGetFocus(true);
+		pScreen->AddInputAction(IAF_AnyKeyDown, NULL, this, &CHCP65EmulatorApp::KeyDownAction);
+		pScreen->AddInputAction(IAF_AnyKeyUp, NULL, this, &CHCP65EmulatorApp::KeyUpAction);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
 		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
 		mpWindow->SetContainer(pMain);
+		mpWindow->GetFocus()->SetFocus(pScreen);
 
 		mcFileMenuListener.Init(mpWindow, pFileMenu, &mcRunner);
 		mpMenuBar->GetItemClickEvent()->Add(&mcFileMenuListener, &CFileMenuListener::MenuItemClicked);
@@ -320,6 +329,7 @@ void CHCP65EmulatorApp::Class(void)
 	M_Pointer(mpInput);
 	M_Pointer(mpInputSource);
 	U_Unknown(CComponentInput, mcComponentInput);
+	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
@@ -348,6 +358,7 @@ void CHCP65EmulatorApp::Free(void)
 	mszMachine.Kill();
 	mcRunner.Kill();
 	mcDebugger.Kill();
+	mcKeyboard.Kill();
 	mcHCP65.Kill();
 	mcMainboard.Kill();
 }
@@ -472,6 +483,7 @@ void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes, const uint8* auiBrea
 			}
 		}
 	}
+	PlugInKeyboard();
 	if (!bChanged || !mcMainboard.Write(mszMachine.Text(), &szError))
 	{
 		gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
@@ -510,3 +522,51 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 	return bResult;
 }
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The keyboard into port 1 of the first PS2 Board (unplugged if there is
+// none), and nothing into its port 2.  Only while the HCP65 isn't running.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::PlugInKeyboard(void)
+{
+	CHCP65PS2Board*	pcPS2;
+
+	pcPS2 = (CHCP65PS2Board*)mcMainboard.FindBoard(HCP65_PS2_BOARD_NAME);
+	if (pcPS2 == NULL)
+	{
+		mcKeyboard.Detach();
+		return;
+	}
+	if (mcKeyboard.GetPort() != pcPS2->GetPort(0))
+	{
+		mcKeyboard.Attach(pcPS2->GetPort(0));
+	}
+	pcPS2->GetPort(1)->SetPlugged(false);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A host key going down or up, while the screen has the focus: the
+// keyboard sends it (from the HCP65's thread).  Keys it hasn't are
+// ignored.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::KeyDownAction(SComponentInputEvent* psEvent)
+{
+	if (psEvent->szName)
+	{
+		mcKeyboard.Key(psEvent->szName, true);
+	}
+}
+
+
+void CHCP65EmulatorApp::KeyUpAction(SComponentInputEvent* psEvent)
+{
+	if (psEvent->szName)
+	{
+		mcKeyboard.Key(psEvent->szName, false);
+	}
+}

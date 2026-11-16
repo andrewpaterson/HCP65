@@ -22,6 +22,7 @@
 #include "WindowLib/NativeWindowFactory.h"
 #include "WindowLib/NativeSoundFactory.h"
 #include "HCP65Lib/HCP65.h"
+#include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
 #include "HCP65MenuListener.h"
@@ -37,6 +38,10 @@
 //the input that drives it.  The first Sound Board is heard.  HCP65EmulatorRun makes it, adds it to the root, runs it and
 //removes it from the root.  The command line can make it debuggable (CHCP65EmulatorDebugger).  The HCP65 runs on a
 //thread of its own (CHCP65EmulatorRunner) while the window shows, and anything else that changes it pauses that first.
+//
+//A keyboard (CHCP65PS2Keyboard) is plugged into port 1 of the first PS2 Board, if there is one; port 2 has nothing in
+//it.  The HCP65's screen takes the host's keys while it has the focus, which it has from the start, and gives each going
+//down and up to the keyboard.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
@@ -63,6 +68,7 @@ protected:
 	Ptr<CInput>				mpInput;
 	Ptr<CWindowInputSource>	mpInputSource;
 	CComponentInput			mcComponentInput;
+	CHCP65PS2Keyboard		mcKeyboard;
 	bool					mbValid;
 	bool					mbInputs;  //The menu listener and the component input are initialised.
 
@@ -80,6 +86,9 @@ public:
 
 protected:
 	void	ChangeBoards(const char** aszTypes, const uint8* auiBreakouts);
+	void	PlugInKeyboard(void);
+	void	KeyDownAction(SComponentInputEvent* psEvent);
+	void	KeyUpAction(SComponentInputEvent* psEvent);
 };
 
 
