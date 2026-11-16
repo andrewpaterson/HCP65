@@ -20,6 +20,8 @@
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
 #include "HCP65Lib/HCP65VIA.h"
+#include "HCP65Lib/HCP65PS2.h"
+#include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
@@ -52,6 +54,10 @@
 #define TEST_HCP65_VIA_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "VIATest" _FS_ "HCP65VIATest.vcxproj"
 #define TEST_HCP65_VIA_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VIABoard" _FS_ "HCP65VIABoard.vcxproj"
 #define TEST_HCP65_VIA_DRIVER_PATH	"\\OS\\Drivers\\VIA.DRV"
+#define TEST_HCP65_PS2_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "PS2Card.img"	//HCP65PS2Test.hcp65build's card.
+#define TEST_HCP65_PS2_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "PS2Test" _FS_ "HCP65PS2Test.vcxproj"
+#define TEST_HCP65_PS2_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "PS2Board" _FS_ "HCP65PS2Board.vcxproj"
+#define TEST_HCP65_PS2_DRIVER_PATH	"\\OS\\Drivers\\PS2.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -65,6 +71,7 @@
 #define TEST_HCP65_BOOT_MACHINE		TEST_HCP65_MACHINES _FS_ "Boot.xml"
 #define TEST_HCP65_UART_MACHINE		TEST_HCP65_MACHINES _FS_ "UART.xml"
 #define TEST_HCP65_VIA_MACHINE		TEST_HCP65_MACHINES _FS_ "VIA.xml"
+#define TEST_HCP65_PS2_MACHINE		TEST_HCP65_MACHINES _FS_ "PS2.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
 #define TEST_HCP65_PRIVATE_TYPE		"Test Private Board"
@@ -77,6 +84,7 @@
 #define TEST_HCP65_AUDIO2_SOCKET	17			//A second sound board, which the same driver drives.
 #define TEST_HCP65_UART_SOCKET		16
 #define TEST_HCP65_VIA_SOCKET		3
+#define TEST_HCP65_PS2_SOCKET		3
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
 #define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
@@ -1456,6 +1464,139 @@ void TestHCP65KernalVIA(CHCP65KernalBuilder* pcBuilder)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Copies the blank SD card image to Output/PS2Card.img and puts the PS2
+// Board's test program (HCP65/PS2Test) on it as \boot.exe and its driver
+// (HCP65/Drivers/PS2Board) as \OS\Drivers\PS2.DRV.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalPutPS2Files(void)
+{
+	if (!TestKernalCopyBlankCard(TEST_HCP65_PS2_CARD_IMAGE))
+	{
+		return false;
+	}
+	if (!TestKernalPutExe(TEST_HCP65_PS2_CARD_IMAGE, "\\boot.exe", TEST_HCP65_PS2_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	{
+		return false;
+	}
+	return TestKernalPutDriver(TEST_HCP65_PS2_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Boots the kernal ROM, at the real board's 25MHz, with the SD Card Board
+// (holding Output/PS2Card.img) and the PS2 Board with a keyboard in port
+// 1 and nothing in port 2.  PS2Test.cpp, as boot.exe, checks the driver
+// and exits 0 if it all did what it should:
+//  - Both ports open, and the driver refuses what it doesn't take.
+//  - A byte sent to port 2 fails: nothing clocks it in.
+//  - The keyboard is reset (FA AA), disabled, has its Num Lock LED set,
+//    is identified (FA AB 83) and enabled, each answer read on its own,
+//    with nothing of the sends' clocks among them.
+//  - Then the test presses A and Cursor Up, which arrive as their scan
+//    codes.
+//  - A child process (boot.exe again) can't open port 1 but can open port
+//    2, and exits without closing it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
+{
+	CHCP65				cHCP65;
+	CTestMainboard		cMainboard;
+	CHCP65SDCard*		pcSDCard;
+	CHCP65PS2Board*		pcPS2;
+	CHCP65PS2Keyboard	cKeyboard;
+	CHCP65DebugPort*	pcPort;
+	STestKernalStatus	sStatus;
+	uint8*				puiRAM;
+	uint32				uiStatus;
+	int					i;
+	bool				bPressed;
+
+	if (!TestKernalPutPS2Files())
+	{
+		return;
+	}
+
+	//boot.exe's argument is 0: it is the parent.
+	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+
+	cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_PS2_MACHINE))
+	{
+		cHCP65.Kill();
+		cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
+	pcPort = cHCP65.GetDebugPort();
+	cKeyboard.Init();
+	cKeyboard.Attach(pcPS2->GetPort(0));
+	pcPS2->GetPort(1)->SetPlugged(false);
+	TestKernalStart(&cHCP65, pcBuilder);
+
+	bPressed = false;
+	puiRAM = cHCP65.GetMPURAM();
+	for (i = 0; i < TEST_UART_MAX_RUNS; i++)
+	{
+		cHCP65.Run(TEST_UART_RUN_CYCLES);
+
+		//The keys go once boot.exe has the keyboard scanning again with Num Lock's LED on.
+		if (!bPressed && cKeyboard.IsScanning() && (cKeyboard.GetLEDs() == HCP65_PS2_KEYBOARD_LED_NUM))
+		{
+			AssertTrue(cKeyboard.Key("A", true));
+			AssertTrue(cKeyboard.Key("A", false));
+			AssertTrue(cKeyboard.Key("Cursor Up", true));
+			AssertTrue(cKeyboard.Key("Cursor Up", false));
+			bPressed = true;
+		}
+
+		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
+		if (getenv("TEST_HCP65_VERBOSE"))
+		{
+			printf("ps2 run %d: state %d, exit %d, process $%02X, PC $%06X\n", i, sStatus.uiState, sStatus.uiExitCode, cHCP65.GetProcessID(), cHCP65.GetMPU()->GetProgramAddress());
+			fflush(stdout);
+		}
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+
+	//boot.exe did what PS2Test.cpp checks.
+	AssertFalse(cHCP65.IsStopped());
+	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
+	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
+	AssertInt(0, sStatus.uiExitCode);
+	AssertTrue(bPressed);
+
+	//The driver was loaded from the card for the PS2 Board.
+	AssertInt((1 << TEST_HCP65_SD_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_MEMORY_SOCKET), sStatus.uiDevices);
+	AssertInt(0, sStatus.uiBadDevices);
+	AssertInt(0, sStatus.uiDriverError);
+	AssertInt(1 << TEST_HCP65_PS2_SOCKET, sStatus.uiLoadedDrivers);
+	AssertSize(1, pcPort->NumDrivers());
+	AssertString(TEST_HCP65_PS2_DRIVER_PATH, pcPort->GetDriver(0)->szName);
+
+	//Every byte the driver sent was clocked in whole, and its lines were let go.
+	AssertLong(0, (int64)pcPS2->GetPort(0)->NumErrors());
+	AssertInt(HCP65_PS2_KEYBOARD_LED_NUM, cKeyboard.GetLEDs());
+	AssertTrue(pcPS2->GetPort(0)->IsClockHigh());
+	AssertTrue(pcPS2->GetPort(0)->IsDataHigh());
+	AssertTrue(pcPS2->GetPort(1)->IsClockHigh());
+
+	cKeyboard.Kill();
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cHCP65.Kill();
+	cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Without a memory board the kernal scans the devices and stops: the SD
 // Card Board has nothing to read into.  Its heap is MPU RAM's, so it gets
 // that far.  A private board's memory isn't main memory, though it is
@@ -1518,6 +1659,7 @@ void TestHCP65Kernal(void)
 		TestHCP65KernalBoot(&cBuilder);
 		TestHCP65KernalUART(&cBuilder);
 		TestHCP65KernalVIA(&cBuilder);
+		TestHCP65KernalPS2(&cBuilder);
 		TestHCP65KernalNoMainMemory(&cBuilder);
 	}
 	cBuilder.Kill();
