@@ -56,8 +56,8 @@ decimal number (what `KernalGetArgument` gives it, 0 if there isn't one):
 \boottest.exe 1
 ```
 
-Without the file the kernel runs `\OS\INIT.EXE` with argument 0.  The program runs as process
-`$FF` in user mode.
+Without the file the kernel runs `\OS\INIT.EXE` with argument 0, which keeps the shell running
+([The Console and the Shell](console.md)).  The program runs as process `$FF` in user mode.
 
 ## Memory while starting
 

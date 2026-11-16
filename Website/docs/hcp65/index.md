@@ -13,6 +13,8 @@ registers.  Everything else (memory boards, video, sound, storage, input) plugs 
   space, and how main memory is assigned to the sockets.
 - [Starting Up](boot.md) - the boot loader in the ROM, the kernel it loads from the SD card
   (`\OS\OS.SYS`) and the start up program `\OS\STARTUP.TXT` names.
+- [The Console and the Shell](console.md) - the standard handles, text on the Video Board, the
+  keyboard, and the shell's commands.
 
 The compiler's runtime routines are in [Drivers and Runtime](runtime/index.md).
 
