@@ -39,6 +39,7 @@ selected in a form on the right:
 | No floating point | Floating point is an error (a kernal has none). |
 | Maths tables in memory | Off builds it to run without the maths tables in memory (the kernal, its drivers and the operating system, which loads them). |
 | Prefer size to speed | The compiler picks smaller code where it has the choice (a ROM's kernal). |
+| Warn about overrides not declared override | Ticked to begin with: a function that overrides a base class's virtual function without `override` (or `final`) is a warning in the Build tab.  Unticked writes `WarnMissingOverride="false"`. |
 | Card | The emulator's SD card image the program is written onto. |
 | Path on card | Where on the card's FAT volume (`\boot.exe`). |
 

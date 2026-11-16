@@ -64,6 +64,7 @@ configuration whose files and settings it builds, and what to link.  This is
 | `NoFloats="true"` | Floating point is an error.  The kernal is built this way. |
 | `MathTables="false"` | Build to run without the maths tables in memory: the multiplies use the table-free runtime.  For the kernal, its drivers and the operating system, which run before the tables are loaded. |
 | `PreferSize="true"` | Prefer smaller code to faster where the compiler has the choice. |
+| `WarnMissingOverride="false"` | No warning for a function that overrides a base class's virtual function without being declared `override` (or `final`).  The warning is on unless a configuration says this. |
 | `BreakpointSpace` | The emulator's address space (`Kernel` or `User`) that the IDE's breakpoints go in. |
 | `Card`, `CardPath` | An SD card image, and the path on its FAT volume, that `-card` and the IDE's debugger copy the program to. |
 
@@ -113,6 +114,7 @@ units are linked only when something uses them.  Sources can be `.cpp` or `.asm`
 | `-nofloats` | Floating point is an error. |
 | `-no-mathtables` | Build without the maths tables. |
 | `-prefer-size` | Prefer smaller code to faster. |
+| `-no-override-warning` | No warning for an override not declared `override`. |
 | `-exe <file> -entry <symbol> [-limit <n>] [-symbol <name>=<n>]...` | Link an executable. |
 | `-image <file> -size <n> [-fill <n>] [-limit <n>] [-load <n>] -region <start>,<end>,<offset>...` | Link an image. |
 | `-module <file> -entry <symbol> [-limit <n>]` | Link a module (a driver). |
