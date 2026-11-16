@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TestHCP65KernalVIA's Small Mainboard: the VIA Board with breakouts 0 and 2 (AB, CD, XJ and KL).  Files are -->
+<!-- relative to this one; the test writes the card into Output. -->
+<Mainboard Type="Small">
+	<Processor Index="0">
+		<Board Socket="3" Type="VIA Board">
+			<Breakout Socket="0"/>
+			<Breakout Socket="2"/>
+		</Board>
+		<Board Socket="4" Type="SD Card Board">
+			<Card Socket="2" File="../Output/VIACard.img"/>
+		</Board>
+		<Board Socket="18" Type="Memory Board"/>
+	</Processor>
+</Mainboard>
