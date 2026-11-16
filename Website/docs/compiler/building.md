@@ -45,12 +45,13 @@ configuration whose files and settings it builds, and what to link.  This is
 <?xml version="1.0" encoding="utf-8"?>
 <BuildConfigurations>
 	<Configuration Name="Release|W65C816" Toolchain="W65C816" Solution="Release|Win32"
-	               BreakpointSpace="User" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img"
+	               BreakpointSpace="User" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\BootCard.img"
 	               CardPath="\modplay.exe">
 		<Executable File="modplay.exe" Entry="UserStart" Limit="0x200000">
 			<Symbol Name="UserHeapSize" Value="0x180000"/>
 		</Executable>
 		<Load File="..\Boot\Output\W65C816\Release\Boot.rom" Address="0x0"/>
+		<Lines File="..\Kernal\Output\W65C816\Release\OS.SYS" CardPath="\OS\OS.SYS"/>
 	</Configuration>
 </BuildConfigurations>
 ```
@@ -78,6 +79,17 @@ units are only compiled.
 `Limit` is the highest address the linker may place anything at.  `<Load File Address/>` is a
 file the IDE's debugger loads into the emulator first: the boot loader's ROM for a program to run
 on.
+
+`<Lines File Space CardPath/>` is a program whose line table the debugger reads without loading
+it: the kernal, `OS.SYS`, which the boot loader loads from the card where it is linked.  Its
+source breakpoints go in the breakpoint space `Space` (`Kernel` if left out), in every process,
+and stepping into it shows its source.  `CardPath`, if given, is where it should be on the card:
+when debugging starts, the Build tab says if the card's copy isn't the one built, since its lines
+would then be wrong.
+
+The debugger reads the same for the workspace's other solutions: a program's (an executable on a
+card) when the kernal starts it, a driver's (a module on a card) when the kernal loads it, and an
+image's on a card (`OS.SYS`) as it is.  A `<Lines>` that names one of those is read once.
 Numbers are decimal or `0x` hexadecimal, and paths are relative to the `.hcp65build` file.
 
 [Linker and Outputs](linker.md) describes the three kinds of file.
