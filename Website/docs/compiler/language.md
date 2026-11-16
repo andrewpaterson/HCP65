@@ -46,10 +46,23 @@ option to make `int` 32 bits.  Code written for a 32 bit `int` meets these traps
 - `uint8_t << 16` and seeds, counts and sizes cast to `int`.
 - Multi character literals (`'\0MAN'`) are `long`, and `NULL` passed to a variadic function
   must be pointer sized (`0L`).
+- A virtual function's override that takes an `int` where the base class's takes an `int32` is
+  a different function, which calls through the base class never reach.  Declare it `override`
+  and the compiler says so (below).
 
 The compiler warns about the constant cases: an *integer overflow* warning for a constant
 expression whose value doesn't fit its type, and an *integer conversion overflow* warning for a
 constant that an implicit conversion cuts short.
+
+### `override` and `final`
+
+A function declared `override` must override a virtual function of a base class, and no function
+may override one declared `final`: both are errors.  A function that overrides one without being
+declared `override` (or `final`) gets a warning, as G++'s `-Wsuggest-override` gives, except a
+destructor.  The warning is on unless a build configuration turns it off
+(`WarnMissingOverride="false"`, see [Building](building.md)).  As the compiler's other checks of
+a class, these are made where the class is first needed whole, so a class nothing uses isn't
+checked.
 
 ### BaseLib's `size` and `lsize`
 
