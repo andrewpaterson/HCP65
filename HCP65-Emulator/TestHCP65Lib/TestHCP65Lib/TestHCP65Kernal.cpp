@@ -1784,7 +1784,7 @@ static bool TestShellCommand(STestShell* psShell, const char* szCommand, CChars*
 	CChars	szText;
 	CChars	szLine;
 	bool	bPrompted;
-	int		iCommand;
+	size	uiCommand;
 
 	psShell->cTerminal.Clear();
 	psShell->pcUART->GetTTL()->HostSend((const uint8*)szCommand, strlen(szCommand));
@@ -1795,9 +1795,9 @@ static bool TestShellCommand(STestShell* psShell, const char* szCommand, CChars*
 
 	//What follows the command as it was echoed.
 	szLine.Init(szCommand);
-	iCommand = szText.Find(0, szLine.Text());
+	uiCommand = szText.Find(0, szLine.Text());
 	pszOutput->Kill();
-	pszOutput->Init((iCommand >= 0) ? szText.Text(iCommand + (int)szLine.Length()) : szText.Text());
+	pszOutput->Init((uiCommand != ARRAY_ELEMENT_NOT_FOUND) ? szText.Text(uiCommand + szLine.Length()) : szText.Text());
 	szLine.Kill();
 	szText.Kill();
 	if (getenv("TEST_HCP65_VERBOSE"))
