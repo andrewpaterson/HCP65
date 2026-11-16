@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The Video Board's test: the Small Mainboard booting TestHCP65KernalVideo's card, whose boot.exe (HCP65/VideoTest) -->
+<!-- sets 640x480 and draws a pattern on the Video Board, then exits, leaving the picture.  Files are relative to this -->
+<!-- one. -->
+<Mainboard Type="Small">
+	<Processor Index="0">
+		<Board Socket="3" Type="SD Card Board">
+			<Card Socket="0" File="../../TestHCP65Lib/TestHCP65Lib/Output/VideoCard.img"/>
+		</Board>
+		<Board Socket="4" Type="UART Board"/>
+		<Board Socket="16" Type="Video Board"/>
+		<Board Socket="17" Type="PS2 Board"/>
+		<Board Socket="18" Type="Memory Board"/>
+	</Processor>
+</Mainboard>
