@@ -1,0 +1,26 @@
+HCP65 Counter 24bit - schematic faults
+======================================
+
+1. The upper 20 bits count whether or not Count Enable is high
+
+   IC3 (74LVC161, C0-C3) has Count Enable on CEP (pin 7) and CET (pin 10)
+   tied to 3.3V.  Its TC (pin 15, TC_{0..3}) is the CEP of every other stage
+   (IC4, IC6, IC7, IC9, IC10), whose CETs carry the TC of the stage below.
+   The 74LVC161's TC is "HIGH when CET is HIGH and the counter is at terminal
+   count": it doesn't depend on CEP.
+
+   So while C0-C3 is $F, TC_{0..3} is high whatever Count Enable is, and the
+   upper stages count on every clock.
+
+   Effect: with Count Enable low the counter isn't held.  Whenever the low
+   nibble is $F the upper 20 bits go up by one each clock, so the count jumps
+   by 16 at a time.  On the Video Board's pixel address counter: a pixel
+   pattern with a 0 in it (a pixel shown for more than one clock) skips 16
+   bytes at every address ending in F, and a row start address ending in F
+   runs away through the rest of horizontal blank.
+
+   Fix: put Count Enable on IC3's CET (pin 10) too, so that TC_{0..3} is only
+   high while counting.
+
+   Every board with a Counter 24bit has this: Video Board - Memory, Blitter
+   Board, Graphics Board and SD Card Board.

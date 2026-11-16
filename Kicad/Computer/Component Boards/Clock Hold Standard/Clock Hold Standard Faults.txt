@@ -1,0 +1,29 @@
+HCP65 Clock Hold Standard - schematic faults
+============================================
+
+1. IC3 is a NOR gate where the hold code's output enables need an OR
+
+   IC3 (74LVC2G02, dual NOR) makes the nets ~{RAM}+~{RD} (1Y, pin 7, from
+   ~{Device RAM} and ~{RD}) and ~{RAM}+~{WD} (2Y, pin 3, from ~{Device RAM} and
+   ~{WD}).  They drive IC2's (74LVC244) active low output enables, ~{1OE}
+   (pin 1) and ~{2OE} (pin 19).  The nets are named as ORs, and an OR is what
+   the enables need: each half of IC2 is meant to drive the hold code only
+   during a device RAM read, or a device RAM write.
+
+   With a NOR, an output is high only when both its inputs are low, so each
+   half of IC2 is disabled during the one cycle it is for and enabled during
+   every other cycle.
+
+   Effect: on every register and ROM cycle (and when the device isn't
+   selected) both halves of IC2 drive H0-H2 together, against each other
+   (their inputs differ: device RAM read 001, write 000) and against IC5,
+   which drives the register and ROM codes.  During device RAM cycles nothing
+   but the pull-ups drives them.  The hold code is never what it should be.
+
+   The Clock Hold Select board makes the same two nets with a 74LVC32 (OR).
+
+   Fix: IC3 a 74LVC2G32 (dual OR), same pinout.
+
+   Every board with a Clock Hold Standard has this: Audio Board, Blitter
+   Board, Coprocessor Board - Main, Graphics Board, LCD Board, Default Board
+   (Main), PS2 Board, SD Card Board, UART Board and Video Board - Signals.

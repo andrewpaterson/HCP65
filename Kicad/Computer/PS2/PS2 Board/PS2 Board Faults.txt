@@ -1,0 +1,23 @@
+HCP65 PS2 Board - schematic faults
+==================================
+
+1. The Flags & Interrupt's ~{Reset} (B9 pin 32) isn't connected
+
+   B9 is a Flags & Interrupt, whose pin 32 is ~{Reset}: it is what clears
+   Enable.  The HCP65:Flags_Interrupt symbol names the pin N.C., so it is
+   left unconnected here (the netlist's unconnected-(B9-N.C.-Pad32)), and
+   the Flags board's input floats.
+
+   Effect: reset doesn't turn the board's Enable off, and Enable can come
+   up on or change by itself.
+
+   Fix: once the symbol's pin 32 is ~{Reset}, wire it to ~{Reset} (Device
+   Decode Stage A's ~{Reset}_OUT).  See Component Boards/Flags Enable
+   Interrupt/Flags Enable Interrupt Faults.txt.
+
+The board also uses standard boards with faults of their own, which it has
+with them (see each one's Faults file in Component Boards):
+  - Clock Hold Standard: a NOR where an OR is needed, so the clock hold code
+    is fought over on every cycle.
+  - PS2 FIFO (two on this board): its FIFOs are held in reset, and it latches
+    each byte at the start of the next frame.  See PS2 FIFO/PS2 FIFO Bugs.txt.

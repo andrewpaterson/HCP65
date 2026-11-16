@@ -1,0 +1,23 @@
+HCP65 Flags Enable Interrupt - schematic faults
+===============================================
+
+1. ~{Reset} is never connected: the Flags_Interrupt symbol calls its pin N.C.
+
+   On this board J1 pin 32 is ~{Reset}, into IC7 (74LVC00) 3A, pin 9: it is
+   what clears Enable ("If ~{Reset} is low then Enable is set low", the
+   sheet's note).  But the HCP65:Flags_Interrupt symbol in
+   Kicad/Symbols/HCP65.kicad_sym names pin 32 "N.C.", so no board connects it,
+   and nothing on this board pulls it up or down.
+
+   Effect: IC7's input floats.  Reset doesn't turn Enable off, and as a
+   floating CMOS input it can read either way, so Enable can come up on,
+   flip, or refuse to be set by a write of D6=1.  A floating input also draws
+   extra current.
+
+   Fix: rename the symbol's pin 32 to ~{Reset} and, on each board, wire it to
+   the board's ~{Reset} (Device Decode Stage A's ~{Reset}_OUT).  A pull-up on
+   J1.32 here would at least stop it floating.
+
+   Every board with a Flags & Interrupt has this, each with its own Faults
+   file: Audio Board, Blitter Board, Coprocessor Board - Main, Graphics
+   Board, PS2 Board, SD Card Board and Video Board - Signals.

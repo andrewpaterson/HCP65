@@ -103,3 +103,18 @@ Smaller points
   those nets float when no card is selected.
 - SD CLK has three drivers: GPIO0 (B1), SD Card Clock IC10 (Fast CLK while reading) and SD Card Write Signals IC7
   (~Fast CLK while writing).  Software has to turn the GPIO CLK output off before Read Start or Write Data.
+
+
+Found later (2026-11-16, reading the Video Board and the Component Boards it shares)
+------------------------------------------------------------------------------------
+
+11. The Flags & Interrupt's ~Reset (B9 pin 32) isn't connected.
+    B9's pin 32 is ~Reset on the Flags & Interrupt board (it clears Enable), but the HCP65:Flags_Interrupt symbol names
+    the pin N.C., so it is unconnected here and the input floats: reset doesn't turn Enable off.  Every board with a
+    Flags & Interrupt has this; see Component Boards/Flags Enable Interrupt/Flags Enable Interrupt Faults.txt.
+
+12. Two of the Component Boards it uses have faults of their own (see their Faults files in Component Boards):
+    - Clock Hold Standard (B4): a NOR where an OR is needed, so the clock hold code is fought over on every cycle.
+    - Counter 24bit (B8, the DMA address counter): its upper 20 bits count whenever the low nibble is $F, whether or not
+      Count Enable is high.  (The board's address counter only counts up by one byte at a time, so this matters only if
+      Count Enable is ever low while the low nibble is $F.)
