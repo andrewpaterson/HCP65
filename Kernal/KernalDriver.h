@@ -16,7 +16,7 @@
 
 #define KERNAL_DRIVER_NO_OWNER			0		//Process IDs are $FC to $FF.
 #define KERNAL_DRIVER_ALL_UNITS			0xFFFF	//Close's unit when the process has ended.
-#define KERNAL_DRIVER_MAX_UNITS			4		//NumUnits is at most this.
+#define KERNAL_DRIVER_MAX_UNITS			8		//NumUnits is at most this: the VIA Board's eight VIAs.
 
 
 //The driver of the board in one device slot.  A board can have several units (the SD Card Board's four card
