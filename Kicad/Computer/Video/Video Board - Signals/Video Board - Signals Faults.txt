@@ -105,8 +105,8 @@ Boards, Clock Hold Standard.
      Signals Output) is clocked by /Pixel CLK_0 although its symbol's pin 2 is
      named ~{Pixel_CLK}, and the first stage of the Signal Dragger is a whole
      clock.  Clocking B20 on ~{Pixel CLK} would give the notes' figures.
-   - $405 bit 3: the note says 1 enables the pixel clock; it stops it (Video
-     Clock Faults.txt).
+   - $405 bit 3: the note says 1 enables the pixel clock, which is what is
+     meant; as wired it stops it (Video Clock Faults.txt).
    - "All four comparators will trigger for 8 pixel clock ticks": with fault 1
      fixed, Back Porch End matches for one tick, as H is reloaded.  That is
      fine, but the note no longer holds for it.
@@ -173,11 +173,14 @@ Boards, Clock Hold Standard.
 
    Fix: the registers that make the output safe should come up in a known
    state on ~{Reset}: at least the clock select (stopped, or a VGA clock) and
-   $417 bit 7 (disabled, with the DAC's blank inputs pulled to blanking), so
-   that nothing reaches the monitor until the driver has set the board up.
-   A 74LVC574 or 573 has no clear, so that means parts with one (74LVC273),
-   or pull-ups or pull-downs held by ~{Reset} through the latch's ~OE.  And
-   document bit 7.
+   $417 bit 7 (1, output off, with the DAC's blank inputs pulled to
+   blanking), so that nothing reaches the monitor until the driver has set
+   the board up.  A 74LVC574 or 573 has no clear, so that means parts with
+   one (74LVC273), or pull-ups or pull-downs held by ~{Reset} through the
+   latch's ~OE.
+
+   $417 bit 7 is meant as it is wired, the output enable: 0 puts sync and
+   blank out to the DAC, 1 takes them off.  The notes should say so.
 
 
 Questions (possibly intended)

@@ -15,5 +15,7 @@ HCP65 Video Row Latch - schematic faults
    address: Low gets the High byte, High the Bank byte, and Bank the unused
    byte.
 
-   Fix: decode the loads from ~{Y0}, ~{Y1} and ~{Y2}, with CEP on ~{Y3}; or
-   change the notes (and the driver) to +1, +2 and +3.
+   The notes are what is meant: Low, High and Bank at +0, +1 and +2, with +3
+   unused.
+
+   Fix: decode the loads from ~{Y0}, ~{Y1} and ~{Y2}, with CEP on ~{Y3}.

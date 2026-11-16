@@ -26,7 +26,10 @@ HCP65 Video Clock - schematic faults
    Effect: writing bit 3 = 1 stops the pixel clock (the 4.7K pull down holds
    it low).
 
-   Fix: correct the note, or invert Q4.
+   The note is what is meant: 1 enables the clock, 0 stops it.
+
+   Fix: invert Q4 on its way to IC4's ~{OE} (or take bit 3 from a latch
+   output that is already inverted).
 
 
 3. Not reset
