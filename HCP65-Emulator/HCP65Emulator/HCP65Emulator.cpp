@@ -17,6 +17,9 @@
 #include "WindowLib/ComponentInput.h"
 #include "WindowLib/JewelTheme.h"
 #include "WindowLib/MenuBar.h"
+#include "WindowLib/ScrollPane.h"
+#include "WindowLib/TextArea.h"
+#include "SupportLib/FontFamily.h"
 #include "BaseLib/DiskFile.h"
 #include "WindowLib/NativeWindowFactory.h"
 #include "WindowLib/NativeSoundFactory.h"
@@ -24,6 +27,7 @@
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65VIA.h"
+#include "HCP65Lib/HCP65UART.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65Emulator.h"
 #include "HCP65EmulatorTick.h"
@@ -137,6 +141,7 @@ void CHCP65EmulatorApp::Init(void)
 	mcDebugger.Init();
 	mcRunner.Init(&mcHCP65, &mcDebugger);
 	mcKeyboard.Init();
+	mcTerminal.Init();
 	memset(&msDialogLook, 0, sizeof(msDialogLook));
 	mszMachine.Init();
 	mbValid = false;
@@ -159,7 +164,8 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 {
 	Ptr<CMenuContainer>		pFileMenu;
 	Ptr<CMenuContainer>		pHCP65Menu;
-	Ptr<CCanvas>			pScreen;
+	Ptr<CTextArea>			pScreen;
+	Ptr<CScrollPane>		pScreenPane;
 	Ptr<CGridContainer>		pMain;
 	Ptr<CClearCanvasDraw>	pBackground;
 	Ptr<CFont>				pWhite;
@@ -272,15 +278,28 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		mpMenuBar->AddMenu("File", pFileMenu);
 		pHCP65Menu = OMalloc<CMenuContainer>(mpWindow, mpTheme);
 		mpMenuBar->AddMenu("HCP65", pHCP65Menu);
-		pScreen = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Editor)));
-		pScreen->SetDrawnEveryPaint(true);  //The emulated screen changes every tick without telling the canvas.
-		pScreen->SetAlignment(CSH_Stretch, CSV_Stretch);
-		pScreen->SetCanGetFocus(true);
+		//Under it the terminal at the far end of the UART Board's RS232 port, in a fixed width font, until there is a
+		//video board.  It takes the keys for the PS/2 keyboard.
+		mpTerminalFamily = OMalloc<CFontFamily>("JetBrains Mono", HCP65_EMULATOR_TERMINAL_CHARACTERS, HCP65_EMULATOR_TERMINAL_PIXEL_SIZE, mpWindow->GetColourOrder());
+		mbValid = mpTerminalFamily->SetFace(FS_Regular, HCP65_EMULATOR_TERMINAL_FONT);
+		if (!mbValid)
+		{
+			gcLogger.Error2(__METHOD__, " Could not load the terminal's font [", HCP65_EMULATOR_TERMINAL_FONT, "].", NULL);
+			return false;
+		}
+		pScreen = OMalloc<CTextArea>(mpWindow, mpTheme, mpTerminalFamily, "");
+		pScreen->SetEditable(false);
+		pScreen->SetTiledText(true);
+		pScreen->SetAlignment(CSH_Left, CSV_Top);
 		pScreen->AddInputAction(IAF_AnyKeyDown, NULL, this, &CHCP65EmulatorApp::KeyDownAction);
 		pScreen->AddInputAction(IAF_AnyKeyUp, NULL, this, &CHCP65EmulatorApp::KeyUpAction);
+		pScreenPane = OMalloc<CScrollPane>(mpWindow, mpTheme);
+		pScreenPane->SetContent(pScreen);
+		pScreenPane->SetAlignment(CSH_Stretch, CSV_Stretch);
+		mpTick->SetTerminal(&mcTerminal, pScreen);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
-		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
+		pMain->AddComponent(pScreenPane, 0, 1, 1, 1, 1, 1);
 		mpWindow->SetContainer(pMain);
 		mpWindow->GetFocus()->SetFocus(pScreen);
 
@@ -330,6 +349,8 @@ void CHCP65EmulatorApp::Class(void)
 	M_Pointer(mpInputSource);
 	U_Unknown(CComponentInput, mcComponentInput);
 	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
+	U_Unknown(CHCP65Terminal, mcTerminal);
+	M_Pointer(mpTerminalFamily);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
@@ -359,6 +380,7 @@ void CHCP65EmulatorApp::Free(void)
 	mcRunner.Kill();
 	mcDebugger.Kill();
 	mcKeyboard.Kill();
+	mcTerminal.Kill();
 	mcHCP65.Kill();
 	mcMainboard.Kill();
 }
@@ -526,12 +548,24 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 //////////////////////////////////////////////////////////////////////////
 //
 // The keyboard into port 1 of the first PS2 Board (unplugged if there is
-// none), and nothing into its port 2.  Only while the HCP65 isn't running.
+// none), and nothing into its port 2; the terminal at the far end of the
+// first UART Board's RS232 port.  Only while the HCP65 isn't running.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65EmulatorApp::PlugInKeyboard(void)
 {
-	CHCP65PS2Board*	pcPS2;
+	CHCP65PS2Board*		pcPS2;
+	CHCP65UARTBoard*	pcUART;
+
+	pcUART = (CHCP65UARTBoard*)mcMainboard.FindBoard(HCP65_UART_NAME);
+	if (pcUART == NULL)
+	{
+		mcTerminal.Detach();
+	}
+	else if (mcTerminal.GetUART() != pcUART->GetRS232())
+	{
+		mcTerminal.Attach(pcUART->GetRS232());
+	}
 
 	pcPS2 = (CHCP65PS2Board*)mcMainboard.FindBoard(HCP65_PS2_BOARD_NAME);
 	if (pcPS2 == NULL)
