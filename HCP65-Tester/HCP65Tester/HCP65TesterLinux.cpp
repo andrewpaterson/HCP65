@@ -25,21 +25,25 @@ int main(int argc, char* argv[])
 	bool bResult;
 
 	{
-		CX11WindowFactory		cNativeFactory;
+		Ptr<CX11WindowFactory>	pNativeFactory;
 		Ptr<CTesterApp>			pApp;
 
-		bResult = cNativeFactory.Init(&gcMemoryAllocator, NULL);
+		//Rooted while the tester runs.  Its windows hold it too, so it's freed after the last of them.
+		pNativeFactory = OMalloc<CX11WindowFactory>(&gcMemoryAllocator, (const char*)NULL);
+		ORoot()->Add(pNativeFactory);
+		bResult = pNativeFactory->IsOpen();
 		if (bResult)
 		{
 			//The app (and its window) is held by the root while it runs.
 			pApp = OMalloc<CTesterApp>();
 			ORoot()->Add(pApp);
-			bResult = pApp->Setup(&cNativeFactory) && pApp->Run();
+			bResult = pApp->Setup(&pNativeFactory) && pApp->Run();
 			ORoot()->Remove(pApp);
 			pApp = NULL;
 		}
 
-		cNativeFactory.Kill();
+		ORoot()->Remove(pNativeFactory);
+		pNativeFactory = NULL;
 	}
 
 	ObjectsFlush();

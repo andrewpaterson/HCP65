@@ -138,26 +138,29 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 	//bResult = TestBoardLoop("COM3", 64);
 
 	{
-		CWinGDIWindowFactory	cNativeFactory;
-		Ptr<CTesterApp>			pApp;
+		Ptr<CWinGDIWindowFactory>	pNativeFactory;
+		Ptr<CTesterApp>				pApp;
 
-		cNativeFactory.Init(&gcMemoryAllocator,
+		//Rooted while the tester runs.  Its windows hold it too, so it's freed after the last of them.
+		pNativeFactory = OMalloc<CWinGDIWindowFactory>(&gcMemoryAllocator,
 			hInstance,
 			hPrevInstance,
 			nCmdShow,
 			"HCP65Tester");
+		ORoot()->Add(pNativeFactory);
 
 		//The app (and its window) is held by the root while it runs.
 		pApp = OMalloc<CTesterApp>();
 		ORoot()->Add(pApp);
-		if (pApp->Setup(&cNativeFactory))
+		if (pApp->Setup(&pNativeFactory))
 		{
 			pApp->Run();
 		}
 		ORoot()->Remove(pApp);
 		pApp = NULL;
 
-		cNativeFactory.Kill();
+		ORoot()->Remove(pNativeFactory);
+		pNativeFactory = NULL;
 	}
 
 

@@ -30,25 +30,29 @@ int main(int argc, char* argv[])
 	bool bResult;
 
 	{
-		CX11WindowFactory		cNativeFactory;
+		Ptr<CX11WindowFactory>	pNativeFactory;
 		CPulseAudioSoundFactory	cSoundFactory;
 		CX11Input				cX11Input;
 
-		bResult = cNativeFactory.Init(&gcMemoryAllocator, NULL);
+		//Rooted while the emulator runs.  Its windows hold it too, so it's freed after the last of them.
+		pNativeFactory = OMalloc<CX11WindowFactory>(&gcMemoryAllocator, (const char*)NULL);
+		ORoot()->Add(pNativeFactory);
+		bResult = pNativeFactory->IsOpen();
 		cSoundFactory.Init(&gcMemoryAllocator);
 		if (bResult)
 		{
 			//The emulator's input reads the devices from the XML, then adds these.
 			cX11Input.Init();
-			cNativeFactory.SetInput(&cX11Input);
+			pNativeFactory->SetInput(&cX11Input);
 
-			bResult = HCP65EmulatorRun(&cNativeFactory, &cSoundFactory, &cX11Input, "../../../CommonLibraries/Libraries/WinInputLib/xml", argc, argv);
+			bResult = HCP65EmulatorRun(&pNativeFactory, &cSoundFactory, &cX11Input, "../../../CommonLibraries/Libraries/WinInputLib/xml", argc, argv);
 
-			cNativeFactory.SetInput(NULL);
+			pNativeFactory->SetInput(NULL);
 			cX11Input.Kill();
 		}
 		cSoundFactory.Kill();
-		cNativeFactory.Kill();
+		ORoot()->Remove(pNativeFactory);
+		pNativeFactory = NULL;
 	}
 
 	ObjectsFlush();
