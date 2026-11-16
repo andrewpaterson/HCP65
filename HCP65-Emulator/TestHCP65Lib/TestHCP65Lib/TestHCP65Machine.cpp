@@ -12,6 +12,7 @@
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
 #include "HCP65Lib/HCP65VIA.h"
+#include "HCP65Lib/HCP65PS2.h"
 #include "TestLib/Assert.h"
 
 
@@ -752,6 +753,7 @@ void TestHCP65DeviceROMFromSchematic(void)
 	CDeviceROMSchematic	cSchematic;
 	CHCP65Audio			cAudio;
 	CHCP65SDCard		cSDCard;
+	CHCP65PS2Board		cPS2;
 	CChars				szError;
 
 	DataMemoryInit();
@@ -787,6 +789,13 @@ void TestHCP65DeviceROMFromSchematic(void)
 	AssertString("The board must have one Device_Decode_Stage_A", szError.Text());
 	cSchematic.Kill();
 	szError.Kill();
+
+	//The PS2 Board's emulated ROM is the schematic's.
+	cPS2.Init();
+	cSchematic.Init();
+	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "PS2" _FS_ "PS2 Board" _FS_ "PS2 Board.kicad_sch", &cPS2, &cSchematic);
+	cSchematic.Kill();
+	cPS2.Kill();
 
 	//The PS2 Board: its name from its device ROM chip's ROM_Name (the title block's is "PS2 Board PS2"), and its
 	//registers' names without KiCad's markup (the nets are "PS2 FIFO_{ 1}" and "Clear Interrupt _{1}").
@@ -1147,7 +1156,7 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
 
 	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
-	AssertSize(5, CHCP65Mainboard::NumBoardTypes());
+	AssertSize(6, CHCP65Mainboard::NumBoardTypes());
 	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
 	AssertFalse(cMainboard.CanHold(3, HCP65_AUDIO_NAME));
@@ -1741,6 +1750,298 @@ void TestHCP65VIABreakouts(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The computer sends uiByte to pcPort's far end as a driver does through
+// the GPIO: Clock low for 150us, Data low, Clock let go (the request to
+// send), then each bit while the far end holds Clock low, and Data let go
+// for the stop bit.  True if the far end acknowledged (Data low on its
+// eleventh clock).
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestHCP65PS2Send(CHCP65PS2Port* pcPort, uint8 uiByte)
+{
+	uint64	uiTick;
+	uint64	uiEnd;
+	uint16	uiFrame;
+	int		iOnes;
+	int		iFall;
+	int		i;
+	bool	bClock;
+	bool	bAcknowledged;
+
+	iOnes = 0;
+	for (i = 0; i < 8; i++)
+	{
+		iOnes += (uiByte >> i) & 1;
+	}
+	uiFrame = (uint16)(uiByte | ((iOnes & 1) ? 0 : 0x100) | 0x200);
+
+	uiTick = pcPort->GetTick();
+	pcPort->SetBoardDrive(true, false);
+	uiTick += 150;
+	pcPort->CatchUp(uiTick);
+	pcPort->SetBoardDrive(true, true);
+	pcPort->SetBoardDrive(false, true);
+
+	bAcknowledged = false;
+	iFall = 0;
+	bClock = pcPort->IsClockHigh();
+	for (uiEnd = uiTick + 3000; uiTick < uiEnd; uiTick++)
+	{
+		pcPort->CatchUp(uiTick);
+		if (bClock && !pcPort->IsClockHigh())
+		{
+			iFall++;
+			if (iFall <= 10)
+			{
+				pcPort->SetBoardDrive(false, ((uiFrame >> (iFall - 1)) & 1) == 0);
+			}
+			else if (iFall == 11)
+			{
+				bAcknowledged = !pcPort->IsDataHigh();
+			}
+		}
+		bClock = pcPort->IsClockHigh();
+	}
+	return bAcknowledged;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// One PS/2 port on its own, in microseconds: the far end's frames, the
+// packet and code they make, the FIFO, the computer inhibiting the far
+// end, and the computer sending it a byte.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65PS2Port(void)
+{
+	CHCP65PS2Port	cPort;
+	uint8			auiBytes[4];
+	uint64			uiStart;
+
+	cPort.Init();
+	cPort.SetHeld(false);
+	AssertTrue(cPort.IsClockHigh());
+	AssertTrue(cPort.IsDataHigh());
+	AssertLong((int64)HCP65_NEVER, (int64)cPort.NextEvent());
+
+	//$1C (A) goes once the gap after power on is over: bit n's Clock is low from 1020 + 80n to 1060 + 80n.  The packet
+	//ends 630 after the last rise, and the code 6700 after that.
+	cPort.HostSend((const uint8*)"\x1C", 1);
+	AssertLong(1000, (int64)cPort.NextEvent());
+	cPort.CatchUp(1859);
+	AssertFalse(cPort.IsClockHigh());
+	cPort.CatchUp(1860);
+	AssertTrue(cPort.IsClockHigh());
+	AssertSize(0, cPort.NumHostToSend());
+	cPort.CatchUp(2489);
+	AssertFalse(cPort.IsPacketWaiting());
+	AssertFalse(cPort.IsOutputReady());
+	cPort.CatchUp(2490);
+	AssertTrue(cPort.IsPacketWaiting());
+	AssertTrue(cPort.IsOutputReady());
+	AssertFalse(cPort.IsCodeWaiting());
+	AssertInt(0x1C, cPort.ReadFIFO());
+	AssertFalse(cPort.IsOutputReady());
+	AssertInt(0x1C, cPort.ReadFIFO());
+	cPort.CatchUp(9189);
+	AssertFalse(cPort.IsCodeWaiting());
+	cPort.CatchUp(9190);
+	AssertTrue(cPort.IsCodeWaiting());
+	cPort.ClearWaiting();
+	AssertFalse(cPort.IsPacketWaiting());
+	AssertFalse(cPort.IsCodeWaiting());
+
+	//E0 70 (Insert) is two packets, 1000 apart, and one code.
+	cPort.HostSend((const uint8*)"\xE0\x70", 2);
+	cPort.CatchUp(9190 + 860 + 630);
+	AssertTrue(cPort.IsPacketWaiting());
+	cPort.ClearWaiting();
+	cPort.CatchUp(9190 + 860 + 1000 + 860 + 630 - 1);
+	AssertFalse(cPort.IsPacketWaiting());
+	cPort.CatchUp(9190 + 860 + 1000 + 860 + 630);
+	AssertTrue(cPort.IsPacketWaiting());
+	cPort.CatchUp(9190 + 860 + 1000 + 860 + 630 + 6700 - 1);
+	AssertFalse(cPort.IsCodeWaiting());
+	cPort.CatchUp(9190 + 860 + 1000 + 860 + 630 + 6700);
+	AssertTrue(cPort.IsCodeWaiting());
+	AssertInt(0xE0, cPort.ReadFIFO());
+	AssertInt(0x70, cPort.ReadFIFO());
+	AssertFalse(cPort.IsOutputReady());
+	cPort.ClearWaiting();
+
+	//The computer holds Clock low: the far end waits.  Holding it is a fall of Clock that shifts and starts a packet,
+	//but the far end's frame follows within the packet's quiet, so its last eleven bits are the byte.
+	uiStart = cPort.GetTick() + 10000;
+	cPort.CatchUp(uiStart);
+	cPort.SetBoardDrive(true, false);
+	cPort.HostSend((const uint8*)"\x55", 1);
+	cPort.CatchUp(uiStart + 5000);
+	AssertSize(1, cPort.NumHostToSend());
+	AssertFalse(cPort.IsPacketWaiting());
+	cPort.SetBoardDrive(false, false);
+	cPort.CatchUp(uiStart + 5050 + 860 + 630);
+	AssertSize(0, cPort.NumHostToSend());
+	AssertTrue(cPort.IsPacketWaiting());
+	AssertInt(0x55, cPort.ReadFIFO());
+	AssertFalse(cPort.IsOutputReady());
+	cPort.ClearWaiting();
+
+	//Clock held low in the middle of a frame gives it up (at the next bit's Clock low); it is sent again after the gap.
+	//What the computer did makes a packet of its own first, which the driver must throw away.
+	uiStart = cPort.GetTick() + 10000;
+	cPort.CatchUp(uiStart);
+	cPort.HostSend((const uint8*)"\xAA", 1);
+	uiStart = cPort.NextEvent();
+	cPort.CatchUp(uiStart + 310);
+	cPort.SetBoardDrive(true, false);
+	cPort.CatchUp(uiStart + 500);
+	AssertLong(1, (int64)cPort.NumAborts());
+	AssertSize(1, cPort.NumHostToSend());
+	cPort.SetBoardDrive(false, false);
+	cPort.CatchUp(uiStart + 340 + 1000 + 860 + 630);
+	AssertSize(0, cPort.NumHostToSend());
+	cPort.ReadFIFO();
+	AssertInt(0xAA, cPort.ReadFIFO());
+	AssertFalse(cPort.IsOutputReady());
+	cPort.ClearWaiting();
+
+	//The computer sends ED (set the LEDs): the far end clocks it in and acknowledges.
+	cPort.CatchUp(cPort.GetTick() + 10000);
+	AssertTrue(TestHCP65PS2Send(&cPort, 0xED));
+	AssertSize(1, cPort.HostReceive(auiBytes, 4));
+	AssertInt(0xED, auiBytes[0]);
+	AssertLong(0, (int64)cPort.NumErrors());
+
+	cPort.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The PS2 Board decodes A0-A4 (A3 and A4 low), repeating every 32 bytes.
+// Flags, State and Direct, its interrupt from a port's packet, and its
+// GPIO pulling a line low while the board is enabled.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65PS2Board(void)
+{
+	CHCP65PS2Board	cBoard;
+	CHCP65PS2Port*	pcPort;
+
+	cBoard.Init();
+	AssertInt(0x1A, cBoard.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cBoard.Read(0x800));
+	AssertInt(0xFF, cBoard.Read(0x405));
+	AssertInt(0xFF, cBoard.Read(0x408));
+	AssertInt(0xFF, cBoard.Read(0x410));
+
+	//Enable can't be set while the board is held in reset.  D7 reads whether it is interrupting.
+	cBoard.Write(0x400, 0xC5);
+	AssertInt(0x05, cBoard.Read(0x400));
+	cBoard.SetHeldInReset(false);
+	cBoard.Write(0x400, 0xC5);
+	AssertInt(0x45, cBoard.Read(0x400));
+	AssertInt(0x45, cBoard.Read(0x7E0));
+	AssertInt(0x33, cBoard.Read(0x404));
+	AssertInt(0x0F, cBoard.Read(0x403));
+
+	//Port 1's far end sends $1C: a packet waiting interrupts, and State shows it and the byte.
+	pcPort = cBoard.GetPort(0);
+	pcPort->HostSend((const uint8*)"\x1C", 1);
+	pcPort->CatchUp(2490);
+	AssertTrue(cBoard.IsInterrupting());
+	AssertInt(0xC5, cBoard.Read(0x400));
+	AssertInt(0x36, cBoard.Read(0x404));
+	AssertInt(0x1C, cBoard.Read(0x421));
+	AssertInt(0x32, cBoard.Read(0x404));
+	cBoard.Write(0x402, 0);
+	AssertTrue(cBoard.IsInterrupting());
+	cBoard.Write(0x401, 0);
+	AssertFalse(cBoard.IsInterrupting());
+	AssertInt(0x33, cBoard.Read(0x404));
+
+	//Without the interrupt enable it doesn't interrupt, though the packet is waiting.
+	pcPort->HostSend((const uint8*)"\x1C", 1);
+	cBoard.Write(0x400, 0x45);
+	pcPort->CatchUp(pcPort->GetTick() + 3000);
+	AssertInt(0x36, cBoard.Read(0x404));
+	AssertFalse(cBoard.IsInterrupting());
+	AssertInt(0x1C, cBoard.Read(0x401));
+	cBoard.Write(0x401, 0);
+
+	//The GPIO pulls port 1's Clock low (its output enabled, its level low), but only while the board is enabled.
+	cBoard.Write(0x403, HCP65_PS2_DIRECT_CLOCK_1 << HCP65_PS2_DIRECT_DRIVE);
+	AssertInt(0x0D, cBoard.Read(0x403));
+	AssertFalse(pcPort->IsClockHigh());
+	cBoard.Write(0x400, 0x05);
+	AssertInt(0x0F, cBoard.Read(0x403));
+	cBoard.Write(0x400, 0x45);
+	AssertInt(0x0D, cBoard.Read(0x403));
+	cBoard.Write(0x403, 0);
+	AssertInt(0x0F, cBoard.Read(0x403));
+
+	//Reset turns Enable off and empties the FIFOs.
+	cBoard.SetHeldInReset(true);
+	AssertInt(0x05, cBoard.Read(0x400));
+	AssertInt(0x33, cBoard.Read(0x404));
+
+	cBoard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The PS2 Board in socket 3: port 1's far end sends $5A and the processor
+// is interrupted when its packet ends, 630us after the frame.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65PS2Interrupt(void)
+{
+	CHCP65				cHCP65;
+	CHCP65PS2Board		cPS2;
+	CHCP65MemoryBoard	cMemory;
+	uint8*				puiRAM;
+	uint64				uiDue;
+
+	static const uint8 auiIrq[] = {
+		0xAF, 0x01, 0x84, 0x11,		//lda $118401 (port 1's FIFO)
+		0x8F, 0x10, 0x00, 0x20,		//sta $200010
+		0xAF, 0x04, 0x84, 0x11,		//lda $118404 (State)
+		0x8F, 0x11, 0x00, 0x20,		//sta $200011
+		0x8F, 0x01, 0x84, 0x11,		//sta $118401 (clears port 1's waiting)
+		0xDB };						//stp
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	cPS2.Init();
+	AssertTrue(cHCP65.SetDevice(3, &cPS2));
+	puiRAM = TestHCP65WaitingKernal(&cHCP65, 0x8200, 0x8300);
+	TestHCP65Put(puiRAM, 0x8200, auiIrq, sizeof(auiIrq));
+
+	cHCP65.Reset();
+	cHCP65.Write(0x100003, 0x08);
+	AssertFalse(cPS2.IsHeldInReset());
+	cHCP65.Write(0x118400, HCP65_PS2_FLAG_ENABLE | HCP65_PS2_FLAG_INTERRUPT);
+	cPS2.GetPort(0)->HostSend((const uint8*)"\x5A", 1);
+
+	cHCP65.Run(100000);
+	AssertTrue(cHCP65.IsStopped());
+	AssertInt(0x5A, *TestHCP65Main(&cHCP65, 0x200010));
+	AssertInt(0x32, *TestHCP65Main(&cHCP65, 0x200011));
+	uiDue = cHCP65.CycleOfDeviceTick(1000 + 860 + 630, HCP65_PS2_TICK_RATE);
+	AssertTrue(cHCP65.NumCycles() >= uiDue);
+	AssertTrue(cHCP65.NumCycles() < uiDue + 60);
+	AssertFalse(cPS2.IsInterrupting());
+
+	cHCP65.Kill();
+	cPS2.Kill();
+	cMemory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -1760,6 +2061,9 @@ void TestHCP65Machine(void)
 	TestHCP65VIABoard();
 	TestHCP65VIAInterrupt();
 	TestHCP65VIABreakouts();
+	TestHCP65PS2Port();
+	TestHCP65PS2Board();
+	TestHCP65PS2Interrupt();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();
