@@ -8,8 +8,8 @@
 class CHCP65VideoBoard;
 
 
-//The HCP65's screen: the Video Board's last whole frame, a pixel to a pixel in the middle of the canvas, on the
-//background.  Just the background while there is no Video Board or it has no picture.  Update, on the window's thread,
+//The HCP65's screen: the Video Board's last whole frame in the middle of the canvas, on the background, made as big as
+//fits by a whole number so that its pixels stay square and sharp.  Just the background while there is no Video Board or it has no picture.  Update, on the window's thread,
 //takes a new frame when the board has drawn one (the board draws on the HCP65's thread and hands frames over under a
 //lock).
 class CHCP65ScreenDraw : public CCanvasDraw
@@ -19,6 +19,9 @@ DESTRUCTABLE(CHCP65ScreenDraw);
 protected:
 	Ptr<CImageCanvasDraw>	mpImageDraw;
 	Ptr<CImage>				mpImage;		//NULL until there is a frame.
+	Ptr<CImage>				mpScaled;		//mpImage muiScale times as big, NULL while muiScale is 1.
+	uint32					muiScale;		//0 until there is a frame to scale.
+	bool					mbScaledStale;	//mpImage has changed since mpScaled was made from it.
 	ARGB32					msBackground;
 	CHCP65VideoBoard*		mpcVideo;
 	uint64					muiFrames;		//The board's frame count when its frame was last taken.
@@ -36,6 +39,9 @@ public:
 
 	void	SetVideo(CHCP65VideoBoard* pcVideo);
 	bool	Update(void);
+
+protected:
+	void	Scale(SInt32Vec2 sSize);
 };
 
 
