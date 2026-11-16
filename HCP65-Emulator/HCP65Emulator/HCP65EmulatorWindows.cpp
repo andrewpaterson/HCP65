@@ -36,28 +36,30 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 	bool bResult;
 
 	{
-		Ptr<CWinGDIWindowFactory>	pNativeFactory;
-		CWinWaveoutSoundFactory		cSoundFactory;
-		CWinInput					cWinInput;
+		Ptr<CWinGDIWindowFactory>		pNativeFactory;
+		Ptr<CWinWaveoutSoundFactory>	pSoundFactory;
+		CWinInput						cWinInput;
 
-		//Rooted while the emulator runs.  Its windows hold it too, so it's freed after the last of them.
+		//Both rooted while the emulator runs.  Its windows and mixer hold them too, so they're freed after the last of those.
 		pNativeFactory = OMalloc<CWinGDIWindowFactory>(&gcMemoryAllocator,
 			hInstance,
 			hPrevInstance,
 			nCmdShow,
 			"HCP65Emulator");
 		ORoot()->Add(pNativeFactory);
-		cSoundFactory.Init(&gcMemoryAllocator);
+		pSoundFactory = OMalloc<CWinWaveoutSoundFactory>(&gcMemoryAllocator);
+		ORoot()->Add(pSoundFactory);
 
 		//The emulator's input reads the devices from the XML, then adds these.
 		cWinInput.Init(NULL, false);
 		pNativeFactory->SetRawInput(WinRawInputCallback, cWinInput.GetRaw());
 
-		bResult = HCP65EmulatorRun(&pNativeFactory, &cSoundFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml", __argc, __argv);
+		bResult = HCP65EmulatorRun(&pNativeFactory, &pSoundFactory, &cWinInput, "../../../CommonLibraries/Libraries/WinInputLib/xml", __argc, __argv);
 
 		pNativeFactory->SetRawInput(NULL, NULL);
 		cWinInput.Kill();
-		cSoundFactory.Kill();
+		ORoot()->Remove(pSoundFactory);
+		pSoundFactory = NULL;
 		ORoot()->Remove(pNativeFactory);
 		pNativeFactory = NULL;
 	}
