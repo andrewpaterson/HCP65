@@ -15,6 +15,7 @@
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Terminal.h"
+#include "HCP65Lib/HCP65Video.h"
 #include "TestLib/Assert.h"
 
 
@@ -756,6 +757,7 @@ void TestHCP65DeviceROMFromSchematic(void)
 	CHCP65Audio			cAudio;
 	CHCP65SDCard		cSDCard;
 	CHCP65PS2Board		cPS2;
+	CHCP65VideoBoard	cVideo;
 	CChars				szError;
 
 	DataMemoryInit();
@@ -791,6 +793,13 @@ void TestHCP65DeviceROMFromSchematic(void)
 	AssertString("The board must have one Device_Decode_Stage_A", szError.Text());
 	cSchematic.Kill();
 	szError.Kill();
+
+	//The Video Board's emulated ROM is the schematic's.
+	cVideo.Init();
+	cSchematic.Init();
+	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "Video" _FS_ "Video Board - Signals" _FS_ "Video Board - Signals.kicad_sch", &cVideo, &cSchematic);
+	cSchematic.Kill();
+	cVideo.Kill();
 
 	//The PS2 Board's emulated ROM is the schematic's.
 	cPS2.Init();
@@ -1158,7 +1167,7 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
 
 	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
-	AssertSize(6, CHCP65Mainboard::NumBoardTypes());
+	AssertSize(7, CHCP65Mainboard::NumBoardTypes());
 	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
 	AssertFalse(cMainboard.CanHold(3, HCP65_AUDIO_NAME));
@@ -2193,6 +2202,172 @@ void TestHCP65PS2Interrupt(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The Video Board in socket 16 of an HCP65 at 25.175MHz, its pixel clock
+// 25.175MHz too, so a cycle is a pixel clock.  A small mode: a line of 40
+// clocks, the first 16 shown, and a frame of 7 lines, the first 4 shown.
+// The interrupt at the start of vertical blank; the frame drawn from the
+// row table, the indices, the palette numbers and the palettes; the
+// pattern; the counters; the main bus windows with Palette Write and
+// Memory Frame; and reset.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65VideoBoard(void)
+{
+	CHCP65				cHCP65;
+	CHCP65VideoBoard	cVideo;
+	uint32				auiFrame[16 * 4];
+	uint32				uiWidth;
+	uint32				uiHeight;
+	uint8*				puiIndices;
+	uint8*				puiPalettes;
+	int					x;
+	int					y;
+	int					i;
+	bool				bSame;
+
+	cHCP65.Init(25175000);
+	cVideo.Init();
+	AssertFalse(cHCP65.SetDevice(3, &cVideo));
+	AssertTrue(cHCP65.SetDevice(16, &cVideo));
+	cVideo.SetHeldInReset(false);
+	AssertInt(0x1A, cVideo.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cVideo.Read(0x800));
+	AssertInt(0xFF, cVideo.Read(0x414));
+	AssertLong(25175000, (int64)CHCP65VideoBoard::GetClockRate(2));
+
+	//The timing, in 8 pixels and lines; the pattern advances every clock.
+	cVideo.Write(0x400 + HCP65_VIDEO_H_FRONT_PORCH, 2);
+	cVideo.Write(0x400 + HCP65_VIDEO_H_SYNC, 3);
+	cVideo.Write(0x400 + HCP65_VIDEO_H_BACK_PORCH, 4);
+	cVideo.Write(0x400 + HCP65_VIDEO_H_END, 5);
+	cVideo.Write(0x400 + HCP65_VIDEO_V_FRONT_PORCH, 4);
+	cVideo.Write(0x400 + HCP65_VIDEO_V_FRONT_PORCH + 1, 0);
+	cVideo.Write(0x400 + HCP65_VIDEO_V_SYNC, 5);
+	cVideo.Write(0x400 + HCP65_VIDEO_V_BACK_PORCH, 6);
+	cVideo.Write(0x400 + HCP65_VIDEO_V_END, 7);
+	cVideo.Write(0x420 + HCP65_VIDEO_PATTERN_LOW, 0x0F);
+	cVideo.Write(0x7E0 + HCP65_VIDEO_PATTERN_HIGH, 0xFF);
+	AssertInt(40, (int)cVideo.GetLineLength());
+	AssertInt(16, (int)cVideo.GetActiveWidth());
+	AssertInt(7, (int)cVideo.GetFrameLines());
+	AssertInt(4, (int)cVideo.GetActiveLines());
+
+	//Row r starts at 16r.  Frame 1 (shown while Memory Frame is 0) has index a & $FF at a; palette 0 is red = index,
+	//green $10 and blue $20.
+	for (y = 0; y < 4; y++)
+	{
+		cVideo.Write(HCP65_VIDEO_ROW_TABLE + 4 * y, (uint8)(16 * y));
+		cVideo.Write(HCP65_VIDEO_ROW_TABLE + 4 * y + 1, 0);
+		cVideo.Write(HCP65_VIDEO_ROW_TABLE + 4 * y + 2, 0);
+	}
+	AssertInt(48, cVideo.Read(HCP65_VIDEO_ROW_TABLE + 12));
+	puiIndices = cVideo.GetChip(1, 0);
+	for (i = 0; i < 64; i++)
+	{
+		puiIndices[i] = (uint8)i;
+	}
+	for (i = 0; i < 256; i++)
+	{
+		cVideo.Write(HCP65_VIDEO_RED + i, (uint8)i);
+		cVideo.Write(HCP65_VIDEO_GREEN + i, 0x10);
+		cVideo.Write(HCP65_VIDEO_BLUE + i, 0x20);
+	}
+
+	//The clock starts at cycle 0.  Vertical blank, line 4, starts at 4 x 40: the interrupt is set then.
+	cVideo.Write(0x400 + HCP65_VIDEO_SIGNAL_DELAY, 0);
+	cVideo.Write(0x400 + HCP65_VIDEO_FLAGS, HCP65_VIDEO_FLAG_ENABLE | HCP65_VIDEO_FLAG_INTERRUPT);
+	cVideo.Write(0x400 + HCP65_VIDEO_CLOCK_SELECT, HCP65_VIDEO_CLOCK_ENABLE | 2);
+	AssertLong(160, (int64)cVideo.NextEvent());
+	cVideo.CatchUp(159);
+	AssertFalse(cVideo.IsInterrupting());
+	AssertInt(3, cVideo.Read(0x400 + HCP65_VIDEO_V_FRONT_PORCH));
+	cVideo.CatchUp(160);
+	AssertTrue(cVideo.IsInterrupting());
+	AssertInt(0xC0, cVideo.Read(0x400 + HCP65_VIDEO_FLAGS));
+	AssertInt(4, cVideo.Read(0x400 + HCP65_VIDEO_V_FRONT_PORCH));
+	AssertLong((int64)HCP65_NEVER, (int64)cVideo.NextEvent());
+	AssertFalse(cVideo.IsSignal());
+
+	//The frame ends at 7 x 40.  Clear Interrupt: the next is a frame on.
+	cVideo.CatchUp(280);
+	AssertLong(1, (int64)cVideo.NumFrames());
+	AssertTrue(cVideo.IsSignal());
+	cVideo.Write(0x400 + HCP65_VIDEO_CLEAR_INTERRUPT, 0);
+	AssertFalse(cVideo.IsInterrupting());
+	AssertLong(440, (int64)cVideo.NextEvent());
+	AssertTrue(cVideo.GetFrame(auiFrame, 16, 4, &uiWidth, &uiHeight));
+	AssertInt(16, (int)uiWidth);
+	AssertInt(4, (int)uiHeight);
+	bSame = true;
+	for (y = 0; y < 4; y++)
+	{
+		for (x = 0; x < 16; x++)
+		{
+			bSame &= auiFrame[y * 16 + x] == (0xFF001020 | ((uint32)(16 * y + x) << 16));
+		}
+	}
+	AssertTrue(bSame);
+
+	//Five clocks into the line: H counts from 1, and the address has moved on 5.
+	cVideo.CatchUp(285);
+	AssertInt(6, cVideo.Read(0x400 + HCP65_VIDEO_H_FRONT_PORCH));
+	AssertInt(0, cVideo.Read(0x400 + HCP65_VIDEO_H_SYNC));
+	AssertInt(5, cVideo.Read(0x400 + HCP65_VIDEO_ADDRESS_LOW));
+	AssertInt(0, cVideo.Read(0x400 + HCP65_VIDEO_ADDRESS_HIGH));
+	AssertInt(0, cVideo.Read(0x400 + HCP65_VIDEO_ADDRESS_BANK));
+
+	//A pattern of every other clock shows each pixel twice.  Pixel 1's palette number is 1 (D7 is ignored), whose red for
+	//index 1 is $77 and green and blue 0.
+	cVideo.Write(0x400 + HCP65_VIDEO_PATTERN_LOW, 0x0A);
+	cVideo.Write(0x400 + HCP65_VIDEO_PATTERN_HIGH, 0xAA);
+	cVideo.GetChip(1, 1)[1] = 0x81;
+	cVideo.Write(HCP65_VIDEO_RED + 0x101, 0x77);
+	cVideo.CatchUp(560);
+	AssertTrue(cVideo.GetFrame(auiFrame, 16, 4, &uiWidth, &uiHeight));
+	AssertInt((int)0xFF001020, (int)auiFrame[0]);
+	AssertInt((int)0xFF001020, (int)auiFrame[1]);
+	AssertInt((int)0xFF770000, (int)auiFrame[2]);
+	AssertInt((int)0xFF770000, (int)auiFrame[3]);
+	AssertInt((int)0xFF021020, (int)auiFrame[4]);
+	AssertInt((int)0xFF171020, (int)auiFrame[16 + 15]);
+
+	//The main bus: socket Z (16) in window 1, so window A is $400000-$5FFFFF and window B $600000-$7FFFFF.  With Palette
+	//Write set, a write to window A writes the Palette Byte into window B too.
+	cHCP65.Write(0x108001, 0x40);
+	cVideo.Write(0x400 + HCP65_VIDEO_PALETTE_BYTE, 5);
+	cVideo.Write(0x400 + HCP65_VIDEO_FLAGS, HCP65_VIDEO_FLAG_ENABLE | HCP65_VIDEO_FLAG_PALETTE_WRITE);
+	cHCP65.Write(0x400010, 0x33);
+	AssertInt(0x33, cVideo.GetChip(0, 0)[0x10]);
+	AssertInt(5, cVideo.GetChip(0, 1)[0x10]);
+	cVideo.Write(0x400 + HCP65_VIDEO_FLAGS, HCP65_VIDEO_FLAG_ENABLE);
+	cHCP65.Write(0x400011, 0x44);
+	AssertInt(0x44, cVideo.GetChip(0, 0)[0x11]);
+	AssertInt(0, cVideo.GetChip(0, 1)[0x11]);
+	cHCP65.Write(0x600012, 9);
+	AssertInt(9, cVideo.GetChip(0, 1)[0x12]);
+	AssertInt(0x33, cHCP65.Read(0x400010));
+
+	//Memory Frame: the processor has frame 1 and frame 0 is shown.
+	cVideo.Write(0x400 + HCP65_VIDEO_FLAGS, HCP65_VIDEO_FLAG_ENABLE | HCP65_VIDEO_FLAG_MEMORY_FRAME);
+	AssertInt(0x10, cHCP65.Read(0x400010));
+	AssertInt(0x81, cHCP65.Read(0x600001));
+	puiPalettes = cVideo.GetChip(1, 1);
+	AssertInt(0x81, puiPalettes[1]);
+
+	//Reset stops the clock and turns the output off.
+	cVideo.Reset();
+	AssertFalse(cVideo.IsSignal());
+	AssertFalse(cVideo.GetFrame(auiFrame, 16, 4, &uiWidth, &uiHeight));
+	AssertInt(0, (int)uiWidth);
+	AssertLong((int64)HCP65_NEVER, (int64)cVideo.NextEvent());
+
+	cHCP65.Kill();
+	cVideo.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -2217,6 +2392,7 @@ void TestHCP65Machine(void)
 	TestHCP65Terminal();
 	TestHCP65PS2Board();
 	TestHCP65PS2Interrupt();
+	TestHCP65VideoBoard();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();
