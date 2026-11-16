@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TestHCP65KernalShell's Small Mainboard: the system card, and the UART Board, whose TTL port is the console (the test's -->
+<!-- terminal).  Files are relative to this one; the test writes the card into Output. -->
+<Mainboard Type="Small">
+	<Processor Index="0">
+		<Board Socket="4" Type="SD Card Board">
+			<Card Socket="2" File="../Output/SDCard.img"/>
+		</Board>
+		<Board Socket="16" Type="UART Board"/>
+		<Board Socket="18" Type="Memory Board"/>
+	</Processor>
+</Mainboard>

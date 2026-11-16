@@ -7,7 +7,7 @@
 		<Board Socket="3" Type="Test Stray Device"/>
 		<Board Socket="4" Type="SD Card Board">
 			<Card Socket="0" File="../Output/BlankCard.img"/>
-			<Card Socket="2" File="../Output/SDCard.img"/>
+			<Card Socket="2" File="../Output/BootCard.img"/>
 		</Board>
 		<Board Socket="16" Type="Sound Board"/>
 		<Board Socket="17" Type="Sound Board"/>

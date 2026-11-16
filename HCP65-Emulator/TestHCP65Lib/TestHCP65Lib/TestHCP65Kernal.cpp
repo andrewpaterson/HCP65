@@ -40,7 +40,8 @@
 #define TEST_HCP65_INPUT			".." _FS_ ".." _FS_ "HCP65Emulator" _FS_ "Input"
 #define TEST_HCP65_BLANK_SD_CARD	TEST_HCP65_INPUT _FS_ "SDCard.img"	//Freshly formatted; never written.
 #define TEST_HCP65_OUTPUT			"Output"
-#define TEST_HCP65_SD_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots these two (HCP65Emulator.h).
+#define TEST_HCP65_BOOT_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "BootCard.img"	//TestHCP65KernalBoot's (and ModPlay's, to debug it on).
+#define TEST_HCP65_SYSTEM_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "SDCard.img"	//The emulator boots this and Boot.rom (HCP65Emulator.h).
 #define TEST_HCP65_BOOT_ROM			TEST_HCP65_OUTPUT _FS_ "Boot.rom"
 #define TEST_HCP65_OS_FILE			TEST_HCP65_OUTPUT _FS_ "OS.SYS"		//What each card has as \OS\OS.SYS.
 #define TEST_HCP65_STARTUP_PATH		"\\OS\\STARTUP.TXT"
@@ -67,9 +68,15 @@
 #define TEST_HCP65_PS2_PROGRAM_PATH	"\\ps2test.exe"
 #define TEST_HCP65_PS2_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "PS2Board" _FS_ "HCP65PS2Board.vcxproj"
 #define TEST_HCP65_PS2_DRIVER_PATH	"\\OS\\Drivers\\PS2.DRV"
-#define TEST_HCP65_CONSOLE_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "ConsoleCard.img"	//The emulator's Machines/Console.xml boots it.
-#define TEST_HCP65_CONSOLE_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Console" _FS_ "HCP65Console.vcxproj"
-#define TEST_HCP65_CONSOLE_PROGRAM_PATH	"\\console.exe"
+#define TEST_HCP65_INIT_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "Init" _FS_ "HCP65Init.vcxproj"
+#define TEST_HCP65_INIT_PATH		"\\OS\\INIT.EXE"
+#define TEST_HCP65_SHELL_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Shell" _FS_ "HCP65Shell.vcxproj"
+#define TEST_HCP65_SHELL_PATH		"\\OS\\SHELL.EXE"
+#define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
+#define TEST_HCP65_HELLO_TEXT		"Hello from the SD card.\n"
+#define TEST_HCP65_SHELL_PROMPT		"> "			//After the current directory.
+#define TEST_HCP65_SHELL_BANNER		"HCP65 shell 1.  Type help for the commands."
+#define TEST_HCP65_SHELL_MAX_RUNS	3000		//Of TEST_UART_RUN_CYCLES, for a command.
 #define TEST_HCP65_VIDEO_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VideoCard.img"	//The emulator's Machines/Video.xml boots it.
 #define TEST_HCP65_VIDEO_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "VideoTest" _FS_ "HCP65VideoTest.vcxproj"
 #define TEST_HCP65_VIDEO_PROGRAM_PATH	"\\vidtest.exe"
@@ -89,7 +96,7 @@
 #define TEST_HCP65_UART_MACHINE		TEST_HCP65_MACHINES _FS_ "UART.xml"
 #define TEST_HCP65_VIA_MACHINE		TEST_HCP65_MACHINES _FS_ "VIA.xml"
 #define TEST_HCP65_PS2_MACHINE		TEST_HCP65_MACHINES _FS_ "PS2.xml"
-#define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
+#define TEST_HCP65_SHELL_MACHINE	TEST_HCP65_MACHINES _FS_ "Shell.xml"
 #define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
@@ -596,6 +603,27 @@ static void TestKernalStart(CHCP65* pcHCP65, STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The maths tables (\OS\Math\MULT.BIN and INVERT.BIN, from MathTbls' HEX
+// files) on the SD card image szImage.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalPutTables(const char* szImage)
+{
+	uint8*	puiTables;
+	bool	bResult;
+
+	puiTables = (uint8*)malloc(HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_SIZE);
+	bResult = TestKernalReadTables(puiTables);
+	bResult = bResult && FatPutFileOnImage(szImage, HCP65_MATH_MULT_PATH, puiTables, HCP65_MATH_MULT_SIZE);
+	bResult = bResult && FatPutFileOnImage(szImage, HCP65_MATH_INVERT_PATH, &puiTables[HCP65_MATH_MULT_SIZE], HCP65_MATH_INVERT_SIZE);
+	free(puiTables);
+	AssertTrue(bResult);
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Copies the blank SD card image to Output and puts boottest.exe (HCP65/BootTest),
 // modplay.exe (HCP65/ModPlay), the sound board's driver (HCP65/Drivers/
 // SoundBoard, \OS\Drivers\SOUND.DRV), the UART Board's (for the
@@ -607,12 +635,11 @@ static void TestKernalStart(CHCP65* pcHCP65, STestKernal* psKernal)
 static bool TestKernalPutFiles(void)
 {
 	static const char*	aszModPlayLibraries[] = { "StandardLib", "SupportLib", NULL };
-	uint8*				puiTables;
 	uint8*				puiBlank;
 	FILE*				pFile;
 	bool				bResult;
 
-	if (!TestKernalCopyBlankCard(TEST_HCP65_SD_CARD_IMAGE))
+	if (!TestKernalCopyBlankCard(TEST_HCP65_BOOT_CARD_IMAGE))
 	{
 		return false;
 	}
@@ -630,35 +657,29 @@ static bool TestKernalPutFiles(void)
 	}
 
 	//boottest.exe loads the maths tables, so it is built without them; modplay.exe uses them.
-	if (!TestKernalPutExe(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (!TestKernalPutExe(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, TEST_HCP65_BOOT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return false;
 	}
-	if (!TestKernalPutExe(TEST_HCP65_SD_CARD_IMAGE, "\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE, true))
+	if (!TestKernalPutExe(TEST_HCP65_BOOT_CARD_IMAGE, "\\modplay.exe", TEST_HCP65_MODPLAY_PROGRAM, aszModPlayLibraries, MODPLAY_HEAP_SIZE, true))
 	{
 		return false;
 	}
-	if (!TestKernalPutDriver(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER))
+	if (!TestKernalPutDriver(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER))
 	{
 		return false;
 	}
-	if (!TestKernalPutDriver(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER))
-	{
-		return false;
-	}
-
-	puiTables = (uint8*)malloc(HCP65_MATH_MULT_SIZE + HCP65_MATH_INVERT_SIZE);
-	bResult = TestKernalReadTables(puiTables);
-	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, HCP65_MATH_MULT_PATH, puiTables, HCP65_MATH_MULT_SIZE);
-	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SD_CARD_IMAGE, HCP65_MATH_INVERT_PATH, &puiTables[HCP65_MATH_MULT_SIZE], HCP65_MATH_INVERT_SIZE);
-	free(puiTables);
-	AssertTrue(bResult);
-	if (!bResult)
+	if (!TestKernalPutDriver(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER))
 	{
 		return false;
 	}
 
-	bResult = FatPutDiskFileOnImage(TEST_HCP65_SD_CARD_IMAGE, MODPLAY_FILE, TEST_HCP65_SONG);
+	if (!TestKernalPutTables(TEST_HCP65_BOOT_CARD_IMAGE))
+	{
+		return false;
+	}
+
+	bResult = FatPutDiskFileOnImage(TEST_HCP65_BOOT_CARD_IMAGE, MODPLAY_FILE, TEST_HCP65_SONG);
 	AssertTrue(bResult);
 	return bResult;
 }
@@ -910,7 +931,7 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	//(at the board's 25000000 it must keep the sound board fed, or what it plays won't match).
 	uiSeconds = getenv("TEST_MODPLAY_SECONDS") ? (uint32)atoi(getenv("TEST_MODPLAY_SECONDS")) : TEST_MODPLAY_SECONDS;
 	uiRunCycles = getenv("TEST_HCP65_RUN_CYCLES") ? (uint64)atoll(getenv("TEST_HCP65_RUN_CYCLES")) : TEST_HCP65_RUN_CYCLES;
-	TestKernalSetStartUp(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, (uint16)uiSeconds, &uiStatus);
+	TestKernalSetStartUp(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, (uint16)uiSeconds, &uiStatus);
 
 	cHCP65.Init(getenv("TEST_HCP65_CLOCK") ? (uint64)atoll(getenv("TEST_HCP65_CLOCK")) : TEST_HCP65_CLOCK_RATE);
 	//The kernal brings up each socket's card and mounts the first volume it finds: socket 0's card has none.
@@ -1116,7 +1137,7 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	//refuses to load it (KERNAL_PROCESS_BAD_ADDRESS) and boottest.exe exits with 100 and why.  The card is a copy.
 	acMisplaced.Init();
 	AssertTrue(TestKernalMakeMisplacedExe(TEST_HCP65_MISPLACED_AT, &acMisplaced));
-	AssertTrue(cFileUtil.Copy(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_MISPLACED_CARD));
+	AssertTrue(cFileUtil.Copy(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_MISPLACED_CARD));
 	AssertTrue(FatPutFileOnImage(TEST_HCP65_MISPLACED_CARD, "\\modplay.exe", acMisplaced.GetData(), acMisplaced.NumElements()));
 	acMisplaced.Kill();
 	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
@@ -1137,8 +1158,9 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
 	cFileUtil.Delete(TEST_HCP65_MISPLACED_CARD);
 
-	//The emulator boots Output/SDCard.img: there boottest.exe's argument is zero, so modplay.exe plays the whole song.
-	TestKernalSetStartUp(TEST_HCP65_SD_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, 0, &uiStatus);
+	//modplay.exe is debugged on this card (HCP65ModPlay.hcp65build): there boottest.exe's argument is zero, so it plays
+	//the whole song.
+	TestKernalSetStartUp(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, 0, &uiStatus);
 
 	cHCP65.Kill();
 	cMainboard.Kill();
@@ -1658,143 +1680,238 @@ void TestHCP65KernalPS2(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Copies the blank SD card image to Output/ConsoleCard.img and puts the
-// console (HCP65/Console) on it as \console.exe, with the UART Board's and
-// the PS2 Board's drivers.
+// Copies the blank SD card image to Output/SDCard.img, the system card
+// the emulator boots: \OS\INIT.EXE (HCP65/Init) and \OS\SHELL.EXE
+// (HCP65/Shell), the drivers, the maths tables and \HELLO.TXT.  It has no
+// \OS\STARTUP.TXT: the kernal runs INIT.EXE.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalPutConsoleFiles(void)
+static bool TestKernalPutSystemFiles(void)
 {
-	if (!TestKernalCopyBlankCard(TEST_HCP65_CONSOLE_CARD_IMAGE))
+	bool	bResult;
+
+	bResult = TestKernalCopyBlankCard(TEST_HCP65_SYSTEM_CARD_IMAGE);
+	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_INIT_PATH, TEST_HCP65_INIT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
+	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SHELL_PATH, TEST_HCP65_SHELL_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER);
+	bResult = bResult && TestKernalPutTables(TEST_HCP65_SYSTEM_CARD_IMAGE);
+	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_HELLO_PATH, (uint8*)TEST_HCP65_HELLO_TEXT, strlen(TEST_HCP65_HELLO_TEXT));
+	AssertTrue(bResult);
+	return bResult;
+}
+
+
+//The shell's machine and the terminal on the UART Board's TTL port, the console's.
+struct STestShell
+{
+	CHCP65				cHCP65;
+	CTestMainboard		cMainboard;
+	CHCP65UARTBoard*	pcUART;
+	CHCP65Terminal		cTerminal;
+	uint32				uiStatus;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Runs the machine until the terminal's last line is a prompt (the current
+// directory, then TEST_HCP65_SHELL_PROMPT), the cursor after it, and puts what it shows in *pszText.  False if it
+// doesn't in TEST_HCP65_SHELL_MAX_RUNS.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestShellRunToPrompt(STestShell* psShell, CChars* pszText)
+{
+	STestKernalStatus	sStatus;
+	size				uiLast;
+	char*				szLine;
+	size				uiLength;
+	int					i;
+
+	for (i = 0; i < TEST_HCP65_SHELL_MAX_RUNS; i++)
 	{
-		return false;
+		psShell->cHCP65.Run(TEST_UART_RUN_CYCLES);
+		psShell->cTerminal.Update();
+		uiLast = psShell->cTerminal.NumLines() - 1;
+		szLine = psShell->cTerminal.GetLine(uiLast);
+		uiLength = strlen(szLine);
+		if ((szLine[0] == '\\') && (uiLength >= 3) && (strcmp(&szLine[uiLength - 2], TEST_HCP65_SHELL_PROMPT) == 0) && (psShell->cTerminal.GetColumn() == uiLength) &&
+			(psShell->pcUART->GetTTL()->NumHostToSend() == 0))
+		{
+			pszText->Kill();
+			pszText->Init();
+			psShell->cTerminal.GetText(pszText);
+			return true;
+		}
+		TestKernalReadStatus(psShell->cHCP65.GetMPURAM(), psShell->uiStatus, &sStatus);
+		if (TestKernalIsDone(&sStatus) || psShell->cHCP65.IsStopped())
+		{
+			break;
+		}
 	}
-	if (!TestKernalPutExe(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_CONSOLE_PROGRAM_PATH, TEST_HCP65_CONSOLE_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	if (getenv("TEST_HCP65_VERBOSE"))
 	{
-		return false;
+		pszText->Kill();
+		pszText->Init();
+		psShell->cTerminal.GetText(pszText);
+		printf("No prompt: state %d, stopped %d, PC $%06X, process $%02X, depth %d, terminal:\n%s\n", sStatus.uiState, psShell->cHCP65.IsStopped(), psShell->cHCP65.GetMPU()->GetProgramAddress(), psShell->cHCP65.GetProcessID(), psShell->cHCP65.GetInterruptDepth(), pszText->Text());
+		fflush(stdout);
 	}
-	if (!TestKernalPutDriver(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER))
-	{
-		return false;
-	}
-	return TestKernalPutDriver(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
+	return false;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The console (Console.cpp) as \console.exe, at the real board's 25MHz, with
-// a terminal at the far end of the UART Board's RS232 port and a keyboard
-// in the PS2 Board's port 1.  Once it shows its prompt the test types
-// Shift+H, I, Caps Lock, A, B and C, Enter, then X and Backspace, all at
-// once: the terminal shows "> HiABC" and a new prompt, the X taken back, and
-// the keyboard's Caps Lock LED is on.  The keys after Caps Lock come while
-// the console sends the keyboard its LEDs, and none is lost.  The card it writes is the one the emulator's
-// Machines/Console.xml boots.
+// Types szCommand and Enter at the terminal, and runs until the shell
+// prompts again.  *pszOutput is what it showed from the command's line on.
 //
 //////////////////////////////////////////////////////////////////////////
-void TestHCP65KernalConsole(STestKernal* psKernal)
+static bool TestShellCommand(STestShell* psShell, const char* szCommand, CChars* pszOutput)
 {
-	CHCP65				cHCP65;
-	CTestMainboard		cMainboard;
-	CHCP65SDCard*		pcSDCard;
-	CHCP65PS2Board*		pcPS2;
-	CHCP65UARTBoard*	pcUART;
-	CHCP65PS2Keyboard	cKeyboard;
-	CHCP65Terminal		cTerminal;
+	CChars	szText;
+	CChars	szLine;
+	bool	bPrompted;
+	int		iCommand;
+
+	psShell->cTerminal.Clear();
+	psShell->pcUART->GetTTL()->HostSend((const uint8*)szCommand, strlen(szCommand));
+	psShell->pcUART->GetTTL()->HostSend((const uint8*)"\r", 1);
+	szText.Init();
+	bPrompted = TestShellRunToPrompt(psShell, &szText);
+	AssertTrue(bPrompted);
+
+	//What follows the command as it was echoed.
+	szLine.Init(szCommand);
+	iCommand = szText.Find(0, szLine.Text());
+	pszOutput->Kill();
+	pszOutput->Init((iCommand >= 0) ? szText.Text(iCommand + (int)szLine.Length()) : szText.Text());
+	szLine.Kill();
+	szText.Kill();
+	if (getenv("TEST_HCP65_VERBOSE"))
+	{
+		printf("%s:\n%s\n", szCommand, pszOutput->Text());
+		fflush(stdout);
+	}
+	return bPrompted;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether szText has szPart in it.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestShellHas(CChars* pszText, const char* szPart)
+{
+	return strstr(pszText->Text(), szPart) != NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Boots the system card (Output/SDCard.img) at the real board's 25MHz with
+// the SD Card Board, the UART Board and a Memory Board, and uses the shell
+// through the console, a terminal on the UART Board's TTL port.  The
+// kernal runs \OS\INIT.EXE (there is no STARTUP.TXT), which loads the
+// maths tables and runs the shell; the shell lists directories, shows,
+// copies and deletes files, makes a directory, says what the boards and
+// drivers are, what the memory is and how big the console is, refuses
+// what isn't a command or a program, and runs a program (itself).  "exit"
+// ends it, and INIT.EXE starts it again.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalShell(STestKernal* psKernal)
+{
+	STestShell			sShell;
 	STestKernalStatus	sStatus;
-	uint32				uiStatus;
-	int					i;
-	bool				bTyped;
-	bool				bDone;
+	CHCP65SDCard*		pcSDCard;
+	CChars				szOutput;
 
-	if (!TestKernalPutConsoleFiles())
+	if (!TestKernalPutSystemFiles())
 	{
 		return;
 	}
-	TestKernalSetStartUp(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_CONSOLE_PROGRAM_PATH, 0, &uiStatus);
+	sShell.uiStatus = TEST_KERNAL_STATUS_ADDRESS;
 
-	cHCP65.Init(TEST_UART_CLOCK_RATE);
-	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_CONSOLE_MACHINE))
+	sShell.cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&sShell.cMainboard, &sShell.cHCP65, TEST_HCP65_SHELL_MACHINE))
 	{
-		cHCP65.Kill();
-		cMainboard.Kill();
+		sShell.cHCP65.Kill();
+		sShell.cMainboard.Kill();
 		return;
 	}
-	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
-	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
-	pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
-	pcUART = (CHCP65UARTBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_UART_SOCKET, HCP65_UART_NAME);
-	cKeyboard.Init();
-	cKeyboard.Attach(pcPS2->GetPort(0));
-	pcPS2->GetPort(1)->SetPlugged(false);
-	cTerminal.Init();
-	cTerminal.Attach(pcUART->GetRS232());
-	TestKernalStart(&cHCP65, psKernal);
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&sShell.cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&sShell.cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	sShell.pcUART = (CHCP65UARTBoard*)TestKernalBoard(&sShell.cMainboard, TEST_HCP65_UART_SOCKET, HCP65_UART_NAME);
+	sShell.cTerminal.Init();
+	sShell.cTerminal.Attach(sShell.pcUART->GetTTL());
+	TestKernalStart(&sShell.cHCP65, psKernal);
 
-	bTyped = false;
-	bDone = false;
-	for (i = 0; (i < TEST_UART_MAX_RUNS) && !bDone; i++)
-	{
-		cHCP65.Run(TEST_UART_RUN_CYCLES);
-		cTerminal.Update();
+	//INIT.EXE ran the shell, which said what it is and prompted.
+	szOutput.Init();
+	AssertTrue(TestShellRunToPrompt(&sShell, &szOutput));
+	AssertTrue(TestShellHas(&szOutput, TEST_HCP65_SHELL_BANNER));
+	TestKernalReadStatus(sShell.cHCP65.GetMPURAM(), sShell.uiStatus, &sStatus);
+	AssertInt(TEST_KERNAL_STATE_MOUNTED, sStatus.uiState);
+	AssertInt(0, sStatus.uiDriverError);
+	AssertInt(1 << TEST_HCP65_UART_SOCKET, sStatus.uiLoadedDrivers);
 
-		if (!bTyped && (cTerminal.NumLines() == 2) && (strcmp(cTerminal.GetLine(1), "> ") == 0))
-		{
-			cKeyboard.Key("Left Shift", true);
-			cKeyboard.Key("H", true);
-			cKeyboard.Key("H", false);
-			cKeyboard.Key("Left Shift", false);
-			cKeyboard.Key("I", true);
-			cKeyboard.Key("I", false);
-			cKeyboard.Key("Caps Lock", true);
-			cKeyboard.Key("Caps Lock", false);
-			cKeyboard.Key("A", true);
-			cKeyboard.Key("A", false);
-			cKeyboard.Key("B", true);
-			cKeyboard.Key("B", false);
-			cKeyboard.Key("C", true);
-			cKeyboard.Key("C", false);
-			cKeyboard.Key("Enter", true);
-			cKeyboard.Key("Enter", false);
-			cKeyboard.Key("X", true);
-			cKeyboard.Key("X", false);
-			cKeyboard.Key("Backspace", true);
-			cKeyboard.Key("Backspace", false);
-			bTyped = true;
-		}
-		bDone = bTyped && (cTerminal.NumLines() == 3) && (cTerminal.GetColumn() == 2) && (strlen(cTerminal.GetLine(2)) == 3);
+	AssertTrue(TestShellCommand(&sShell, "dir", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "<DIR>  OS"));
+	AssertTrue(TestShellHas(&szOutput, "24  HELLO.TXT"));
+	AssertTrue(TestShellCommand(&sShell, "type hello.txt", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "\nHello from the SD card.\n"));
+	AssertTrue(TestShellCommand(&sShell, "copy hello.txt copy.txt", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "24 bytes copied."));
+	AssertTrue(TestShellCommand(&sShell, "type copy.txt", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "\nHello from the SD card.\n"));
+	AssertTrue(TestShellCommand(&sShell, "del copy.txt", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "type copy.txt", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "\\COPY.TXT isn't there.") || TestShellHas(&szOutput, "\\copy.txt isn't there."));
+	AssertTrue(TestShellCommand(&sShell, "md work", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "cd work", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "cd", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "\\work\n"));
+	AssertTrue(TestShellCommand(&sShell, "cd ..\\os", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "dir", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "SHELL.EXE"));
+	AssertTrue(TestShellHas(&szOutput, "<DIR>  Drivers") || TestShellHas(&szOutput, "<DIR>  DRIVERS"));
+	AssertTrue(TestShellCommand(&sShell, "cd \\", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "devices", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "SD Card Board"));
+	AssertTrue(TestShellHas(&szOutput, "built in"));
+	AssertTrue(TestShellHas(&szOutput, "UART Board            UART.DRV"));
+	AssertTrue(TestShellCommand(&sShell, "drivers", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "UART.DRV      UART Board"));
+	AssertTrue(TestShellCommand(&sShell, "mem", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "Main memory        4096KB (64 banks)"));
+	AssertTrue(TestShellCommand(&sShell, "mode", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "80 columns, 24 rows"));
+	AssertTrue(TestShellCommand(&sShell, "nosuch", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "nosuch isn't a command or a program."));
+	AssertTrue(TestShellCommand(&sShell, "help", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "devices  The boards in the device sockets"));
 
-		TestKernalReadStatus(cHCP65.GetMPURAM(), uiStatus, &sStatus);
-		if (getenv("TEST_HCP65_VERBOSE"))
-		{
-			printf("console run %d: state %d, exit %d, lines %d, PC $%06X\n", i, sStatus.uiState, sStatus.uiExitCode, (int)cTerminal.NumLines(), cHCP65.GetMPU()->GetProgramAddress());
-			fflush(stdout);
-		}
-		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
-		{
-			break;
-		}
-	}
+	//A program run from the shell: the shell itself, found in \OS, whose exit comes back here.
+	AssertTrue(TestShellCommand(&sShell, "shell", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, TEST_HCP65_SHELL_BANNER));
+	AssertTrue(TestShellCommand(&sShell, "exit", &szOutput));
+	AssertFalse(TestShellHas(&szOutput, TEST_HCP65_SHELL_BANNER));
 
-	AssertFalse(cHCP65.IsStopped());
-	AssertTrue(bTyped);
-	AssertTrue(bDone);
-	AssertInt((1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET), sStatus.uiLoadedDrivers);
-	AssertInt(3, (int)cTerminal.NumLines());
-	if (cTerminal.NumLines() == 3)
-	{
-		AssertString("HCP65 console.  Type on the PS/2 keyboard.", cTerminal.GetLine(0));
-		AssertString("> HiABC", cTerminal.GetLine(1));
-		AssertString(">  ", cTerminal.GetLine(2));
-	}
-	AssertInt(HCP65_PS2_KEYBOARD_LED_CAPS, cKeyboard.GetLEDs());
+	//The first shell's exit: INIT.EXE starts it again.
+	AssertTrue(TestShellCommand(&sShell, "exit", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, TEST_HCP65_SHELL_BANNER));
 
-	cTerminal.Kill();
-	cKeyboard.Kill();
+	AssertFalse(sShell.cHCP65.IsStopped());
+	AssertTrue(pcSDCard->NumSectorsWritten() > 0);
+	szOutput.Kill();
+	sShell.cTerminal.Kill();
 	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
-	cHCP65.Kill();
-	cMainboard.Kill();
+	sShell.cHCP65.Kill();
+	sShell.cMainboard.Kill();
 }
 
 
@@ -1983,6 +2100,21 @@ void TestHCP65KernalNoMainMemory(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Whether the kernal test szName (TestHCP65Kernal<szName>) runs: all of
+// them do unless TEST_HCP65_KERNAL_ONLY names one.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalRuns(const char* szName)
+{
+	const char*	szOnly;
+
+	szOnly = getenv("TEST_HCP65_KERNAL_ONLY");
+	return !szOnly || (strcmp(szOnly, szName) == 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Kernal(void)
@@ -1996,13 +2128,34 @@ void TestHCP65Kernal(void)
 	sKernal.cOS.Init(HKI_OS);
 	if (TestKernalBuild(&sKernal))
 	{
-		TestHCP65KernalBoot(&sKernal);
-		TestHCP65KernalUART(&sKernal);
-		TestHCP65KernalVIA(&sKernal);
-		TestHCP65KernalPS2(&sKernal);
-		TestHCP65KernalConsole(&sKernal);
-		TestHCP65KernalVideo(&sKernal);
-		TestHCP65KernalNoMainMemory(&sKernal);
+		if (TestKernalRuns("Boot"))
+		{
+			TestHCP65KernalBoot(&sKernal);
+		}
+		if (TestKernalRuns("UART"))
+		{
+			TestHCP65KernalUART(&sKernal);
+		}
+		if (TestKernalRuns("VIA"))
+		{
+			TestHCP65KernalVIA(&sKernal);
+		}
+		if (TestKernalRuns("PS2"))
+		{
+			TestHCP65KernalPS2(&sKernal);
+		}
+		if (TestKernalRuns("Shell"))
+		{
+			TestHCP65KernalShell(&sKernal);
+		}
+		if (TestKernalRuns("Video"))
+		{
+			TestHCP65KernalVideo(&sKernal);
+		}
+		if (TestKernalRuns("NoMainMemory"))
+		{
+			TestHCP65KernalNoMainMemory(&sKernal);
+		}
 	}
 	sKernal.cOS.Kill();
 	sKernal.cBoot.Kill();
