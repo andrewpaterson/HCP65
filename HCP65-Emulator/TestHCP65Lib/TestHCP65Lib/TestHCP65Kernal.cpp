@@ -77,6 +77,13 @@
 #define TEST_HCP65_SHELL_PROMPT		"> "			//After the current directory.
 #define TEST_HCP65_SHELL_BANNER		"HCP65 shell 1.  Type help for the commands."
 #define TEST_HCP65_SHELL_MAX_RUNS	3000		//Of TEST_UART_RUN_CYCLES, for a command.
+#define TEST_HCP65_FONT				".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.FNT"
+#define TEST_HCP65_FONT_PATH		"\\OS\\Fonts\\CONSOLE.FNT"
+#define TEST_HCP65_FONT_SIZE		4096
+#define TEST_HCP65_SCREEN_COLUMNS	80			//The console's 640x480.
+#define TEST_HCP65_SCREEN_ROWS		30
+#define TEST_HCP65_CONSOLE_INK		0xFFAAAAAA	//Light grey on black.
+#define TEST_HCP65_CONSOLE_PAPER	0xFF000000
 #define TEST_HCP65_VIDEO_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VideoCard.img"	//The emulator's Machines/Video.xml boots it.
 #define TEST_HCP65_VIDEO_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "VideoTest" _FS_ "HCP65VideoTest.vcxproj"
 #define TEST_HCP65_VIDEO_PROGRAM_PATH	"\\vidtest.exe"
@@ -97,6 +104,7 @@
 #define TEST_HCP65_VIA_MACHINE		TEST_HCP65_MACHINES _FS_ "VIA.xml"
 #define TEST_HCP65_PS2_MACHINE		TEST_HCP65_MACHINES _FS_ "PS2.xml"
 #define TEST_HCP65_SHELL_MACHINE	TEST_HCP65_MACHINES _FS_ "Shell.xml"
+#define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
 #define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
@@ -1682,7 +1690,8 @@ void TestHCP65KernalPS2(STestKernal* psKernal)
 //
 // Copies the blank SD card image to Output/SDCard.img, the system card
 // the emulator boots: \OS\INIT.EXE (HCP65/Init) and \OS\SHELL.EXE
-// (HCP65/Shell), the drivers, the maths tables and \HELLO.TXT.  It has no
+// (HCP65/Shell), the drivers, the console's font, the maths tables and
+// \HELLO.TXT.  It has no
 // \OS\STARTUP.TXT: the kernal runs INIT.EXE.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1698,6 +1707,7 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER);
 	bResult = bResult && TestKernalPutTables(TEST_HCP65_SYSTEM_CARD_IMAGE);
+	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_FONT_PATH, TEST_HCP65_FONT);
 	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_HELLO_PATH, (uint8*)TEST_HCP65_HELLO_TEXT, strlen(TEST_HCP65_HELLO_TEXT));
 	AssertTrue(bResult);
 	return bResult;
@@ -2098,6 +2108,297 @@ void TestHCP65KernalNoMainMemory(STestKernal* psKernal)
 }
 
 
+//The console's machine: the shell on the Video Board's text and the PS2 Board's keyboard.
+struct STestConsole
+{
+	CHCP65				cHCP65;
+	CTestMainboard		cMainboard;
+	CHCP65VideoBoard*	pcVideo;
+	CHCP65PS2Board*		pcPS2;
+	CHCP65PS2Keyboard	cKeyboard;
+	uint8				auiFont[TEST_HCP65_FONT_SIZE];
+	uint32*				puiFrame;
+	uint32				uiStatus;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The character whose glyph is the cell at (uiColumn, uiRow) of the
+// picture, either way round (the cursor's cell may be inverted); '?' if
+// none is.
+//
+//////////////////////////////////////////////////////////////////////////
+static char TestConsoleCell(STestConsole* psConsole, uint32 uiWidth, uint32 uiColumn, uint32 uiRow)
+{
+	uint8	auiCell[16];
+	uint8	uiByte;
+	uint32	uiPixel;
+	uint32	x;
+	uint32	y;
+	int		c;
+	int		iInverted;
+
+	for (y = 0; y < 16; y++)
+	{
+		uiByte = 0;
+		for (x = 0; x < 8; x++)
+		{
+			uiPixel = psConsole->puiFrame[(uiRow * 16 + y) * uiWidth + uiColumn * 8 + x];
+			if (uiPixel != TEST_HCP65_CONSOLE_PAPER)
+			{
+				uiByte |= (uint8)(0x80 >> x);
+			}
+		}
+		auiCell[y] = uiByte;
+	}
+	for (iInverted = 0; iInverted < 2; iInverted++)
+	{
+		for (c = ' '; c < 0x100; c++)
+		{
+			for (y = 0; y < 16; y++)
+			{
+				if (auiCell[y] != (uint8)(iInverted ? ~psConsole->auiFont[c * 16 + y] : psConsole->auiFont[c * 16 + y]))
+				{
+					break;
+				}
+			}
+			if (y == 16)
+			{
+				return (char)c;
+			}
+		}
+	}
+	return '?';
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What the Video Board shows, read back a cell at a time, each row a line
+// without its trailing spaces.  False if it isn't showing 80 by 30 text.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestConsoleScreen(STestConsole* psConsole, CChars* pszScreen)
+{
+	uint32	uiWidth;
+	uint32	uiHeight;
+	uint32	uiRow;
+	uint32	uiColumn;
+	char	szLine[TEST_HCP65_SCREEN_COLUMNS + 1];
+	int		iEnd;
+
+	pszScreen->Kill();
+	pszScreen->Init();
+	if (!psConsole->pcVideo->GetFrame(psConsole->puiFrame, 640, 480, &uiWidth, &uiHeight) || (uiWidth != 640) || (uiHeight != 480))
+	{
+		return false;
+	}
+	for (uiRow = 0; uiRow < TEST_HCP65_SCREEN_ROWS; uiRow++)
+	{
+		for (uiColumn = 0; uiColumn < TEST_HCP65_SCREEN_COLUMNS; uiColumn++)
+		{
+			szLine[uiColumn] = TestConsoleCell(psConsole, uiWidth, uiColumn, uiRow);
+		}
+		for (iEnd = TEST_HCP65_SCREEN_COLUMNS; (iEnd > 0) && (szLine[iEnd - 1] == ' '); iEnd--)
+		{
+		}
+		szLine[iEnd] = '\0';
+		pszScreen->Append(szLine);
+		pszScreen->Append('\n');
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Runs the machine until szText is on the screen, which is then in
+// *pszScreen.  False if it isn't in TEST_HCP65_SHELL_MAX_RUNS.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestConsoleRunUntil(STestConsole* psConsole, const char* szText, CChars* pszScreen)
+{
+	STestKernalStatus	sStatus;
+	int					i;
+
+	for (i = 0; i < TEST_HCP65_SHELL_MAX_RUNS; i++)
+	{
+		psConsole->cHCP65.Run(TEST_UART_RUN_CYCLES);
+		if (((i % 10) == 9) && TestConsoleScreen(psConsole, pszScreen) && strstr(pszScreen->Text(), szText))
+		{
+			return true;
+		}
+		TestKernalReadStatus(psConsole->cHCP65.GetMPURAM(), psConsole->uiStatus, &sStatus);
+		if (TestKernalIsDone(&sStatus) || psConsole->cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+	if (getenv("TEST_HCP65_VERBOSE"))
+	{
+		printf("Not on the screen: [%s], PC $%06X, screen:\n%s\n", szText, psConsole->cHCP65.GetMPU()->GetProgramAddress(), pszScreen->Text());
+		fflush(stdout);
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// szText typed on the keyboard, a key at a time: lower case letters,
+// digits, spaces, '\\', '.' and '\r' (Enter).
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestConsoleType(STestConsole* psConsole, const char* szText)
+{
+	char	szKey[2];
+	char	c;
+
+	for (; *szText; szText++)
+	{
+		c = *szText;
+		szKey[1] = '\0';
+		if ((c >= 'a') && (c <= 'z'))
+		{
+			szKey[0] = (char)(c - 'a' + 'A');
+			psConsole->cKeyboard.Key(szKey, true);
+			psConsole->cKeyboard.Key(szKey, false);
+		}
+		else if (c == ' ')
+		{
+			psConsole->cKeyboard.Key("Space", true);
+			psConsole->cKeyboard.Key("Space", false);
+		}
+		else if (c == '\r')
+		{
+			psConsole->cKeyboard.Key("Enter", true);
+			psConsole->cKeyboard.Key("Enter", false);
+		}
+		else
+		{
+			szKey[0] = c;
+			psConsole->cKeyboard.Key(szKey, true);
+			psConsole->cKeyboard.Key(szKey, false);
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Boots the system card (Output/SDCard.img) at the real board's 25MHz with
+// the SD Card Board, the Video Board, the PS2 Board (the test's keyboard
+// in port 1) and a Memory Board: the console is the Video Board's text,
+// 640x480's 80 by 30 in CONSOLE.FNT, and the keyboard.  The shell's
+// banner and prompt are on the screen; what is typed is echoed and done;
+// a listing longer than the screen scrolls it; Caps Lock types capitals
+// and lights its LED; mode 2 is 1024x768's 128 by 48.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalConsole(STestKernal* psKernal)
+{
+	STestConsole		sConsole;
+	STestKernalStatus	sStatus;
+	CHCP65SDCard*		pcSDCard;
+	CChars				szScreen;
+	FILE*				pFile;
+	uint32				uiWidth;
+	uint32				uiHeight;
+	int					i;
+
+	pFile = fopen(TEST_HCP65_FONT, "rb");
+	AssertTrue(pFile != NULL);
+	if (!pFile)
+	{
+		return;
+	}
+	AssertInt(TEST_HCP65_FONT_SIZE, (int)fread(sConsole.auiFont, 1, TEST_HCP65_FONT_SIZE, pFile));
+	fclose(pFile);
+	if (!TestKernalPutSystemFiles())
+	{
+		return;
+	}
+	sConsole.uiStatus = TEST_KERNAL_STATUS_ADDRESS;
+	sConsole.puiFrame = (uint32*)malloc(1024 * 768 * sizeof(uint32));
+
+	sConsole.cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&sConsole.cMainboard, &sConsole.cHCP65, TEST_HCP65_CONSOLE_MACHINE))
+	{
+		free(sConsole.puiFrame);
+		sConsole.cHCP65.Kill();
+		sConsole.cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	sConsole.pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
+	sConsole.pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
+	sConsole.cKeyboard.Init();
+	sConsole.cKeyboard.Attach(sConsole.pcPS2->GetPort(0));
+	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
+	TestKernalStart(&sConsole.cHCP65, psKernal);
+
+	//The shell's banner and its prompt, in light grey on black.
+	szScreen.Init();
+	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n\\>\n", &szScreen));
+	AssertTrue(szScreen.StartsWith(TEST_HCP65_SHELL_BANNER "\n\\>\n"));
+	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
+	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET), sStatus.uiLoadedDrivers);
+	AssertLong(25175000, (int64)sConsole.pcVideo->GetPixelClockRate());
+	AssertTrue(sConsole.pcVideo->GetFrame(sConsole.puiFrame, 640, 480, &uiWidth, &uiHeight));
+	AssertInt(TEST_HCP65_CONSOLE_INK, sConsole.puiFrame[4 * 640 + 1]);  //The banner's H: its left stroke, and inside it.
+	AssertInt(TEST_HCP65_CONSOLE_PAPER, sConsole.puiFrame[4 * 640 + 3]);
+
+	//What is typed is shown, then done.
+	TestConsoleType(&sConsole, "type hello.txt\r");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> type hello.txt\nHello from the SD card.\n\\>\n", &szScreen));
+	TestConsoleType(&sConsole, "mode\r");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> mode\n80 columns, 30 rows\n\\>\n", &szScreen));
+
+	//Caps Lock types capitals, and its LED is lit.
+	sConsole.cKeyboard.Key("Caps Lock", true);
+	sConsole.cKeyboard.Key("Caps Lock", false);
+	TestConsoleType(&sConsole, "ver");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> VER\n", &szScreen));
+	sConsole.cKeyboard.Key("Caps Lock", true);
+	sConsole.cKeyboard.Key("Caps Lock", false);
+	TestConsoleType(&sConsole, "\r");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "VER isn't a command or a program.\n\\>\n", &szScreen));
+	AssertInt(0, sConsole.cKeyboard.GetLEDs());
+
+	//help is longer than what is left of the screen: it scrolls, the last line at the bottom.
+	for (i = 0; i < 2; i++)
+	{
+		TestConsoleType(&sConsole, "help\r");
+		AssertTrue(TestConsoleRunUntil(&sConsole, "Anything else is a program to run, with a number for its argument.\n\\>\n", &szScreen));
+	}
+	AssertFalse(strstr(szScreen.Text(), TEST_HCP65_SHELL_BANNER) != NULL);
+	AssertTrue(szScreen.EndsWith("Anything else is a program to run, with a number for its argument.\n\\>\n"));
+
+	//mode 2: 1024x768, 128 by 48, cleared.
+	TestConsoleType(&sConsole, "mode 2\r");
+	for (i = 0; i < 2000; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+		if ((sConsole.pcVideo->GetActiveWidth() == 1024) && (sConsole.pcVideo->GetPixelClockRate() == 65000000))
+		{
+			break;
+		}
+	}
+	AssertInt(1024, (int)sConsole.pcVideo->GetActiveWidth());
+	AssertLong(65000000, (int64)sConsole.pcVideo->GetPixelClockRate());
+
+	AssertFalse(sConsole.cHCP65.IsStopped());
+	szScreen.Kill();
+	sConsole.cKeyboard.Kill();
+	free(sConsole.puiFrame);
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	sConsole.cHCP65.Kill();
+	sConsole.cMainboard.Kill();
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Whether the kernal test szName (TestHCP65Kernal<szName>) runs: all of
@@ -2147,6 +2448,10 @@ void TestHCP65Kernal(void)
 		if (TestKernalRuns("Shell"))
 		{
 			TestHCP65KernalShell(&sKernal);
+		}
+		if (TestKernalRuns("Console"))
+		{
+			TestHCP65KernalConsole(&sKernal);
 		}
 		if (TestKernalRuns("Video"))
 		{

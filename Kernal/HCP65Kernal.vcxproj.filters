@@ -54,6 +54,9 @@
     <ClCompile Include="KernalConsole.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KernalKeyboard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="KernalExports.asm">
       <Filter>Source</Filter>
     </ClCompile>
@@ -87,6 +90,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalConsole.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="KernalKeyboard.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="KernalDebug.h">
