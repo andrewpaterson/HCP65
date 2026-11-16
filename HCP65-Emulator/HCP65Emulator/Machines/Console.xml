@@ -8,7 +8,11 @@
 			<Card Socket="0" File="../../TestHCP65Lib/TestHCP65Lib/Output/ConsoleCard.img"/>
 		</Board>
 		<Board Socket="4" Type="UART Board"/>
+		<Board Socket="16" Type="VIA Board">
+			<Breakout Socket="0"/>
+		</Board>
 		<Board Socket="17" Type="PS2 Board"/>
 		<Board Socket="18" Type="Memory Board"/>
+		<Board Socket="19" Type="Sound Board"/>
 	</Processor>
 </Mainboard>
