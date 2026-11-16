@@ -23,6 +23,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
+#include "HCP65Lib/HCP65VIA.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65Emulator.h"
 #include "HCP65EmulatorTick.h"
@@ -411,6 +412,8 @@ bool CHCP65EmulatorApp::Run(void)
 void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 {
 	const char*	aszTypes[HCP65_NUM_DEVICE_SLOTS];
+	uint8		auiBreakouts[HCP65_NUM_DEVICE_SLOTS];
+	int			i;
 
 	//Only the Small Mainboard has a model.
 	if (mpBoardScene.IsNull() && (mcMainboard.GetType() == HMB_Small) && CBoardSceneDraw::HasMainboardModel())
@@ -421,7 +424,11 @@ void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 	if (mpBoardDialog->Show())
 	{
 		mpBoardDialog->GetTypes(aszTypes);
-		ChangeBoards(aszTypes);
+		for (i = 0; i < HCP65_NUM_DEVICE_SLOTS; i++)
+		{
+			auiBreakouts[i] = mpBoardDialog->GetBreakouts(i);
+		}
+		ChangeBoards(aszTypes, auiBreakouts);
 	}
 	mpBoardDialog = NULL;
 }
@@ -429,20 +436,43 @@ void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The sockets hold aszTypes, the description says so, the first Sound
+// The sockets hold aszTypes, each VIA Board with the breakouts in its
+// socket's auiBreakouts (bit n for breakout n), the description says so,
+// the first Sound
 // Board is heard and the HCP65 is reset (through the debugger, if there
 // is one, so it can tell its client).  The reset happens whatever failed.
 // The HCP65 is paused while its boards change, and the sound mixer, whose
 // thread plays the board, is locked while the board heard changes.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes)
+void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes, const uint8* auiBreakouts)
 {
-	CChars	szError;
+	CChars				szError;
+	CHCP65VIABoard*		pcVIA;
+	const char*			szType;
+	int					iSocket;
+	int					i;
+	bool				bChanged;
 
 	mcRunner.Pause();
 	szError.Init();
-	if (!mcMainboard.ChangeBoards(&mcHCP65, aszTypes, &szError) || !mcMainboard.Write(mszMachine.Text(), &szError))
+	bChanged = mcMainboard.ChangeBoards(&mcHCP65, aszTypes, &szError);
+	if (bChanged)
+	{
+		for (iSocket = 0; iSocket < HCP65_NUM_DEVICE_SLOTS; iSocket++)
+		{
+			szType = mcMainboard.GetBoardType(iSocket);
+			if (szType && (strcmp(szType, HCP65_VIA_BOARD_NAME) == 0))
+			{
+				pcVIA = (CHCP65VIABoard*)mcMainboard.GetBoard(iSocket);
+				for (i = 0; i < HCP65_VIA_NUM_BREAKOUTS; i++)
+				{
+					pcVIA->SetBreakout(i, (auiBreakouts[iSocket] & (1 << i)) != 0);
+				}
+			}
+		}
+	}
+	if (!bChanged || !mcMainboard.Write(mszMachine.Text(), &szError))
 	{
 		gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
 	}

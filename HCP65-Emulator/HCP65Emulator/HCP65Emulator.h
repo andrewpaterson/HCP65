@@ -79,7 +79,7 @@ public:
 	void	ShowBoardConfiguration(void);
 
 protected:
-	void	ChangeBoards(const char** aszTypes);
+	void	ChangeBoards(const char** aszTypes, const uint8* auiBreakouts);
 };
 
 

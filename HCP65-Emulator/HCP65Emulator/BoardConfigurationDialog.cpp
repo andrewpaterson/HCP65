@@ -26,6 +26,11 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 	PreInit();
 
 	maCombos.Init();
+	maiComboSockets.Init();
+	maiComboRows.Init();
+	maBreakouts.Init();
+	maiBreakoutsShown.Init();
+	maBreakoutBoxes.Init();
 	mpcMainboard = pcMainboard;
 	mpScene = pScene;
 	mbPainted = false;
@@ -60,6 +65,7 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 			AddSocket(gaiBoardConfigurationSockets[i]);
 		}
 	}
+	ShowBreakouts();
 
 	PostInit();
 }
@@ -75,6 +81,11 @@ void CBoardConfigurationDialog::Class(void)
 	M_Pointer(mpRows);
 	U_Int32(miNumRows);
 	M_Embedded(maCombos);
+	U_Unknown(CArrayInt, maiComboSockets);
+	U_Unknown(CArrayInt, maiComboRows);
+	M_Embedded(maBreakouts);
+	U_Unknown(CArrayInt, maiBreakoutsShown);
+	M_Embedded(maBreakoutBoxes);
 	U_Pointer(mpcMainboard);
 	M_Pointer(mpSceneCanvas);
 	M_Pointer(mpScene);
@@ -89,10 +100,23 @@ void CBoardConfigurationDialog::Class(void)
 //////////////////////////////////////////////////////////////////////////
 void CBoardConfigurationDialog::Free(void)
 {
+	size	i;
+
 	if (mpDialog.IsNotNull())
 	{
 		mpDialog->ClearTicker();
 	}
+	for (i = 0; i < maCombos.NumElements(); i++)
+	{
+		maCombos.Get(i)->GetSelectionEvent()->Remove(this);
+	}
+	for (i = 0; i < maBreakoutBoxes.NumElements(); i++)
+	{
+		maBreakoutBoxes.Get(i)->GetChangeEvent()->Remove(this);
+	}
+	maiBreakoutsShown.Kill();
+	maiComboRows.Kill();
+	maiComboSockets.Kill();
 }
 
 
@@ -217,10 +241,167 @@ void CBoardConfigurationDialog::AddSocket(int iSocket)
 	}
 	pCombo->Select(iSelected);
 	pCombo->SetAlignment(CSH_Stretch, CSV_Center);
+	pCombo->GetSelectionEvent()->Add(this, &CBoardConfigurationDialog::ShowBreakouts);
 	mpRows->AddComponent(pCombo, 1, miNumRows, 1, 1, 1, 0);
-	miNumRows++;
 
 	maCombos.Add(pCombo);
+	maiComboSockets.Add(iSocket);
+	maiComboRows.Add(miNumRows);
+	AddBreakouts(iSocket);
+	miNumRows++;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The check boxes of iSocket's VIA Breakouts, ticked where the VIA Board
+// in it now has them, or all of them if there isn't one.  They aren't in
+// the rows until ShowBreakouts puts them there.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardConfigurationDialog::AddBreakouts(int iSocket)
+{
+	CWindowTheme*		pcTheme;
+	Ptr<CGridContainer>	pGrid;
+	Ptr<CCheckBox>		pBox;
+	Ptr<CCanvas>		pGap;
+	CHCP65VIABoard*		pcVIA;
+	const char*			szCurrent;
+	char				szCaption[8];
+	uint8				uiFitted;
+	int					i;
+
+	uiFitted = BOARD_CONFIGURATION_ALL_BREAKOUTS;
+	szCurrent = mpcMainboard->GetBoardType(iSocket);
+	if (szCurrent && (strcmp(szCurrent, HCP65_VIA_BOARD_NAME) == 0))
+	{
+		pcVIA = (CHCP65VIABoard*)mpcMainboard->GetBoard(iSocket);
+		uiFitted = 0;
+		for (i = 0; i < HCP65_VIA_NUM_BREAKOUTS; i++)
+		{
+			if (pcVIA->HasBreakout(i))
+			{
+				uiFitted |= (uint8)(1 << i);
+			}
+		}
+		if (uiFitted == 0)
+		{
+			uiFitted = BOARD_CONFIGURATION_ALL_BREAKOUTS;
+		}
+	}
+
+	pcTheme = mpDialog->GetLook()->pcTheme;
+	pGrid = OMalloc<CGridContainer>(mpDialog->GetWindow());
+	pGrid->SetAlignment(CSH_Left, CSV_Center);
+	for (i = 0; i < HCP65_VIA_NUM_BREAKOUTS; i++)
+	{
+		pGap = OMalloc<CCanvas>(mpDialog->GetWindow(), OMalloc<CClearCanvasDraw>(pcTheme->GetColour(TC_DialogBackground)));
+		pGap->SetDesiredSize(pcTheme->GetMetric(TM_DialogLabelGap), 1);
+		pGrid->AddComponent(pGap, i * 2, 0);
+
+		snprintf(szCaption, sizeof(szCaption), "%s/%s", CHCP65VIABoard::GetVIAName(i * 2), CHCP65VIABoard::GetVIAName(i * 2 + 1));
+		pBox = OMalloc<CCheckBox>(mpDialog->GetWindow(), pcTheme, szCaption, (uiFitted & (1 << i)) != 0);
+		pBox->SetAlignment(CSH_Left, CSV_Center);
+		pBox->GetChangeEvent()->Add(this, &CBoardConfigurationDialog::BreakoutChanged);
+		pGrid->AddComponent(pBox, i * 2 + 1, 0);
+		maBreakoutBoxes.Add(pBox);
+	}
+	maBreakouts.Add(pGrid);
+	maiBreakoutsShown.Add(0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each combo box's breakouts are beside it while it has the VIA Board.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardConfigurationDialog::ShowBreakouts(void)
+{
+	size	i;
+	bool	bWanted;
+	bool	bShown;
+	bool	bChanged;
+
+	bChanged = false;
+	for (i = 0; i < maCombos.NumElements(); i++)
+	{
+		bWanted = strcmp(maCombos.Get(i)->GetSelectedText(), HCP65_VIA_BOARD_NAME) == 0;
+		bShown = maiBreakoutsShown.GetValue(i) != 0;
+		if (bWanted && !bShown)
+		{
+			mpRows->AddComponent(maBreakouts.Get(i), 2, maiComboRows.GetValue(i));
+			bChanged = true;
+		}
+		else if (!bWanted && bShown)
+		{
+			mpRows->RemoveComponent(maBreakouts.Get(i));
+			bChanged = true;
+		}
+		maiBreakoutsShown.SetValue(i, bWanted ? 1 : 0);
+	}
+	if (bChanged)
+	{
+		mpDialog->GetWindow()->InvalidateLayout();
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A VIA Board has at least one breakout: pcBox, just unticked, is ticked
+// again if it was the last.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardConfigurationDialog::BreakoutChanged(CCheckBox* pcBox)
+{
+	size	i;
+	size	j;
+	bool	bAny;
+
+	for (i = 0; i < maCombos.NumElements(); i++)
+	{
+		bAny = false;
+		for (j = 0; j < HCP65_VIA_NUM_BREAKOUTS; j++)
+		{
+			bAny |= maBreakoutBoxes.Get(i * HCP65_VIA_NUM_BREAKOUTS + j)->IsTicked();
+		}
+		if (!bAny)
+		{
+			pcBox->SetTicked(true);
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The VIA Breakouts ticked for iSocket's VIA Board: bit n for breakout n.
+// Every one for a socket without a row.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8 CBoardConfigurationDialog::GetBreakouts(int iSocket)
+{
+	uint8	uiFitted;
+	size	i;
+	size	j;
+
+	for (i = 0; i < maCombos.NumElements(); i++)
+	{
+		if (maiComboSockets.GetValue(i) == iSocket)
+		{
+			uiFitted = 0;
+			for (j = 0; j < HCP65_VIA_NUM_BREAKOUTS; j++)
+			{
+				if (maBreakoutBoxes.Get(i * HCP65_VIA_NUM_BREAKOUTS + j)->IsTicked())
+				{
+					uiFitted |= (uint8)(1 << j);
+				}
+			}
+			return uiFitted;
+		}
+	}
+	return BOARD_CONFIGURATION_ALL_BREAKOUTS;
 }
 
 
