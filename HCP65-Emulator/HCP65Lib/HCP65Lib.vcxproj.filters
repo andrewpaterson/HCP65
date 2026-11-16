@@ -19,6 +19,9 @@
     <ClCompile Include="HCP65PS2.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="HCP65PS2Keyboard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="HCP65VIA.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -58,6 +61,9 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65PS2.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="HCP65PS2Keyboard.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65VIA.h">

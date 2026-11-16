@@ -13,6 +13,7 @@
 #include "HCP65Lib/HCP65UART.h"
 #include "HCP65Lib/HCP65VIA.h"
 #include "HCP65Lib/HCP65PS2.h"
+#include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "TestLib/Assert.h"
 
 
@@ -1919,6 +1920,95 @@ void TestHCP65PS2Port(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The bytes in pcPort's FIFO, once the far end has nothing more to send
+// and the last packet has ended, into puiDest.
+//
+//////////////////////////////////////////////////////////////////////////
+static size TestHCP65PS2Drain(CHCP65PS2Port* pcPort, uint8* puiDest, size uiMax)
+{
+	size	uiCount;
+
+	pcPort->CatchUp(pcPort->GetTick());
+	while (pcPort->NextEvent() != HCP65_NEVER)
+	{
+		pcPort->CatchUp(pcPort->NextEvent());
+	}
+	uiCount = 0;
+	while (pcPort->IsOutputReady() && (uiCount < uiMax))
+	{
+		puiDest[uiCount++] = pcPort->ReadFIFO();
+	}
+	pcPort->ClearWaiting();
+	return uiCount;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A keyboard in a port: AA when it is plugged in, its answers to the
+// computer's commands, and its keys' scan codes, which it drops while
+// disabled.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65PS2Keyboard(void)
+{
+	CHCP65PS2Port		cPort;
+	CHCP65PS2Keyboard	cKeyboard;
+	uint8				auiBytes[16];
+	size				uiCount;
+
+	cPort.Init();
+	cPort.SetHeld(false);
+	cKeyboard.Init();
+	cKeyboard.Attach(&cPort);
+	AssertInt(1, (int)TestHCP65PS2Drain(&cPort, auiBytes, 16));
+	AssertInt(HCP65_PS2_KEYBOARD_BAT_OK, auiBytes[0]);
+
+	//A byte the computer sends makes a packet of its own (here the last 11 clocks: the acknowledge and the bits before).
+	AssertTrue(TestHCP65PS2Send(&cPort, HCP65_PS2_KEYBOARD_RESET));
+	uiCount = TestHCP65PS2Drain(&cPort, auiBytes, 16);
+	AssertInt(3, (int)uiCount);
+	AssertInt(HCP65_PS2_KEYBOARD_ACK, auiBytes[1]);
+	AssertInt(HCP65_PS2_KEYBOARD_BAT_OK, auiBytes[2]);
+
+	AssertTrue(TestHCP65PS2Send(&cPort, HCP65_PS2_KEYBOARD_SET_LEDS));
+	AssertTrue(TestHCP65PS2Send(&cPort, HCP65_PS2_KEYBOARD_LED_CAPS));
+	AssertInt(HCP65_PS2_KEYBOARD_LED_CAPS, cKeyboard.GetLEDs());
+	TestHCP65PS2Drain(&cPort, auiBytes, 16);
+
+	AssertTrue(cKeyboard.Key("Cursor Up", true));
+	AssertTrue(cKeyboard.Key("Cursor Up", false));
+	AssertFalse(cKeyboard.Key("No Such Key", true));
+	uiCount = TestHCP65PS2Drain(&cPort, auiBytes, 16);
+	AssertInt(5, (int)uiCount);
+	AssertInt(0xE0, auiBytes[0]);
+	AssertInt(0x75, auiBytes[1]);
+	AssertInt(0xE0, auiBytes[2]);
+	AssertInt(0xF0, auiBytes[3]);
+	AssertInt(0x75, auiBytes[4]);
+
+	//Disabled, it drops its keys.
+	AssertTrue(TestHCP65PS2Send(&cPort, HCP65_PS2_KEYBOARD_DISABLE));
+	TestHCP65PS2Drain(&cPort, auiBytes, 16);
+	AssertFalse(cKeyboard.IsScanning());
+	cKeyboard.Key("A", true);
+	AssertInt(0, (int)TestHCP65PS2Drain(&cPort, auiBytes, 16));
+
+	//Print Screen and Pause have codes of their own; Pause has no break code.
+	AssertInt(6, (int)CHCP65PS2Keyboard::MakeCode("Print Screen", false, auiBytes));
+	AssertInt(0x12, auiBytes[5]);
+	AssertInt(8, (int)CHCP65PS2Keyboard::MakeCode("Pause/Break", true, auiBytes));
+	AssertInt(0, (int)CHCP65PS2Keyboard::MakeCode("Pause/Break", false, auiBytes));
+	AssertInt(2, (int)CHCP65PS2Keyboard::MakeCode("A", false, auiBytes));
+
+	cKeyboard.Kill();
+	AssertTrue(cPort.GetDevice() == NULL);
+	cPort.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The PS2 Board decodes A0-A4 (A3 and A4 low), repeating every 32 bytes.
 // Flags, State and Direct, its interrupt from a port's packet, and its
 // GPIO pulling a line low while the board is enabled.
@@ -2062,6 +2152,7 @@ void TestHCP65Machine(void)
 	TestHCP65VIAInterrupt();
 	TestHCP65VIABreakouts();
 	TestHCP65PS2Port();
+	TestHCP65PS2Keyboard();
 	TestHCP65PS2Board();
 	TestHCP65PS2Interrupt();
 	TestHCP65Timer();

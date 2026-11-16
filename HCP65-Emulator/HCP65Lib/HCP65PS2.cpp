@@ -41,6 +41,8 @@ void CHCP65PS2Port::Init(void)
 	macHostReceived.Init();
 	muiAborts = 0;
 	muiErrors = 0;
+	mpcDevice = NULL;
+	mbPlugged = true;
 }
 
 
@@ -108,14 +110,57 @@ void CHCP65PS2Port::SetBoardDrive(bool bClockLow, bool bDataLow)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// What is plugged in, if it is more than the host's calls; NULL to take
+// it out.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65PS2Port::SetDevice(CHCP65PS2Device* pcDevice)
+{
+	mpcDevice = pcDevice;
+}
+
+
+CHCP65PS2Device* CHCP65PS2Port::GetDevice(void) { return mpcDevice; }
+bool CHCP65PS2Port::IsPlugged(void) { return mbPlugged; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Something is plugged into the port (the far end), or nothing is.
+// Unplugged, the far end lets go of the lines and stops what it was doing;
+// what it had to send it sends once plugged in again.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65PS2Port::SetPlugged(bool bPlugged)
+{
+	mbPlugged = bPlugged;
+	if (!bPlugged)
+	{
+		meDevice = HPD_Idle;
+		muiDeviceEvent = HCP65_NEVER;
+		SetDeviceDrive(false, false);
+	}
+	else
+	{
+		ScheduleSend();
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The far end's frames and the receiver's timers up to uiTick, an event
-// at a time.
+// at a time, after the device has sent what it has.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65PS2Port::CatchUp(uint64 uiTick)
 {
 	uint64	uiNext;
 
+	if (mpcDevice)
+	{
+		mpcDevice->CatchUp(this);
+	}
 	for (;;)
 	{
 		uiNext = NextEvent();
@@ -298,7 +343,7 @@ void CHCP65PS2Port::LinesChanged(bool bOldClock, bool bOldData)
 	else if (!bOldClock && bClock)
 	{
 		muiPacketEnd = muiTick + HCP65_PS2_PACKET_QUIET;
-		if ((meDevice != HPD_Receiving) && !bData && mbBoardDataLow)
+		if (mbPlugged && (meDevice != HPD_Receiving) && !bData && mbBoardDataLow)
 		{
 			//A frame it was sending is sent again later.
 			if (meDevice == HPD_Sending)
@@ -523,16 +568,23 @@ void CHCP65PS2Port::FinishReceiving(void)
 		iOnes += (muiDeviceFrame >> i) & 1;
 	}
 	uiByte = (uint8)muiDeviceFrame;
+	meDevice = HPD_Idle;
+	muiFrameEnd = muiTick;
 	if ((iOnes & 1) && (muiDeviceFrame & 0x200))
 	{
-		macHostReceived.Add(uiByte);
+		if (mpcDevice)
+		{
+			mpcDevice->Received(this, uiByte);
+		}
+		else
+		{
+			macHostReceived.Add(uiByte);
+		}
 	}
 	else
 	{
 		muiErrors++;
 	}
-	meDevice = HPD_Idle;
-	muiFrameEnd = muiTick;
 	ScheduleSend();
 }
 
@@ -548,7 +600,7 @@ void CHCP65PS2Port::ScheduleSend(void)
 {
 	uint64	uiStart;
 
-	if ((meDevice != HPD_Idle) || (NumHostToSend() == 0) || !IsClockHigh() || !IsDataHigh())
+	if (!mbPlugged || (meDevice != HPD_Idle) || (NumHostToSend() == 0) || !IsClockHigh() || !IsDataHigh())
 	{
 		if (meDevice == HPD_Idle)
 		{

@@ -45,6 +45,20 @@
 #define HCP65_PS2_RTS_TICKS				100		//From the computer's request to send to the far end's first clock.
 
 
+class CHCP65PS2Port;
+
+
+//What is plugged into a port (SetDevice), when it is more than the host's calls: a keyboard.  Received is each byte the
+//computer sends it, at the tick it arrives; CatchUp is called as the port is caught up, before it moves on, so the
+//device can send (HostSend) what it has been given from another thread.  Both are on the thread the HCP65 runs on.
+class CHCP65PS2Device
+{
+public:
+	virtual void	Received(CHCP65PS2Port* pcPort, uint8 uiByte) = 0;
+	virtual void	CatchUp(CHCP65PS2Port* pcPort) = 0;
+};
+
+
 enum EHCP65PS2Device
 {
 	HPD_Idle,
@@ -70,8 +84,9 @@ enum EHCP65PS2Device
 //HCP65_PS2_BYTE_GAP between frames, once both lines have been high for HCP65_PS2_IDLE_TICKS.  If Clock is held low
 //under it (the computer inhibiting it) it gives the frame up and sends it again later.  When the computer requests to
 //send (it lets Clock go with Data low) the far end clocks in eight data bits, parity and stop, and acknowledges; the
-//bytes that arrive with odd parity and a stop bit are HostReceive's, the rest counted (NumErrors).  The host's calls
-//happen at the tick the port has been caught up to.
+//bytes that arrive with odd parity and a stop bit are HostReceive's (or the device's, SetDevice), the rest counted
+//(NumErrors).  Unplugged (SetPlugged), there's no far end: nothing is sent and nothing clocks the computer's bytes in.
+//The host's calls happen at the tick the port has been caught up to.
 class CHCP65PS2Port
 {
 protected:
@@ -105,6 +120,8 @@ protected:
 	CArrayUint8		macHostReceived;
 	uint64			muiAborts;
 	uint64			muiErrors;
+	CHCP65PS2Device*	mpcDevice;
+	bool			mbPlugged;
 
 public:
 	void	Init(void);
@@ -112,6 +129,10 @@ public:
 	void	Reset(void);
 	void	SetHeld(bool bHeld);
 	void	SetBoardDrive(bool bClockLow, bool bDataLow);
+	void	SetDevice(CHCP65PS2Device* pcDevice);
+	void	SetPlugged(bool bPlugged);
+	bool	IsPlugged(void);
+	CHCP65PS2Device*	GetDevice(void);
 
 	void	CatchUp(uint64 uiTick);
 	uint64	NextEvent(void);
