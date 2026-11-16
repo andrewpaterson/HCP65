@@ -14,6 +14,7 @@
 #include "HCP65Lib/HCP65VIA.h"
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
+#include "HCP65Lib/HCP65Terminal.h"
 #include "TestLib/Assert.h"
 
 
@@ -2009,6 +2010,66 @@ void TestHCP65PS2Keyboard(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The terminal at the far end of a UART: what it is sent, as a teletype
+// shows it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65Terminal(void)
+{
+	CHCP65UART		cUART;
+	CHCP65Terminal	cTerminal;
+	CChars			szText;
+	const char*		sz;
+
+	cUART.Init(HUM_RS232);
+	cTerminal.Init();
+	cTerminal.Attach(&cUART);
+	AssertTrue(cUART.GetHost() == &cTerminal);
+	AssertInt(HCP65_UART_MSR_CTS | HCP65_UART_MSR_DSR | HCP65_UART_MSR_DCD | HCP65_UART_MSR_RI, cUART.Read(HCP65_UART_MSR) & 0xF0);
+
+	//What the UART sends is queued until Update.
+	AssertFalse(cTerminal.Update());
+	cTerminal.Received(&cUART, 'Q');
+	AssertInt(1, (int)cTerminal.NumLines());
+	AssertString("", cTerminal.GetLine(0));
+	AssertTrue(cTerminal.Update());
+	AssertString("Q", cTerminal.GetLine(0));
+
+	//Form feed clears; CR goes back over the line; tab to the next eighth column; backspace back one.
+	for (sz = "\fHello\rJ\r\nW\tX\b\bZ\a"; *sz; sz++)
+	{
+		cTerminal.Put((uint8)*sz);
+	}
+	AssertInt(2, (int)cTerminal.NumLines());
+	AssertString("Jello", cTerminal.GetLine(0));
+	AssertString("W      ZX", cTerminal.GetLine(1));
+	AssertInt(8, (int)cTerminal.GetColumn());
+	szText.Init();
+	cTerminal.GetText(&szText);
+	AssertString("Jello\nW      ZX", szText.Text());
+	szText.Kill();
+
+	//Only the last 500 lines are kept.
+	for (sz = "\f"; *sz; sz++)
+	{
+		cTerminal.Put((uint8)*sz);
+	}
+	for (int i = 0; i < 600; i++)
+	{
+		cTerminal.Put('0' + (i % 10));
+		cTerminal.Put('\n');
+	}
+	AssertInt(HCP65_TERMINAL_MAX_LINES, (int)cTerminal.NumLines());
+	AssertString("1", cTerminal.GetLine(0));
+
+	cTerminal.Kill();
+	AssertTrue(cUART.GetHost() == NULL);
+	cUART.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The PS2 Board decodes A0-A4 (A3 and A4 low), repeating every 32 bytes.
 // Flags, State and Direct, its interrupt from a port's packet, and its
 // GPIO pulling a line low while the board is enabled.
@@ -2153,6 +2214,7 @@ void TestHCP65Machine(void)
 	TestHCP65VIABreakouts();
 	TestHCP65PS2Port();
 	TestHCP65PS2Keyboard();
+	TestHCP65Terminal();
 	TestHCP65PS2Board();
 	TestHCP65PS2Interrupt();
 	TestHCP65Timer();

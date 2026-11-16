@@ -67,6 +67,18 @@
 #define HCP65_UART_MSR_DCD			0x80
 
 
+class CHCP65UART;
+
+
+//What is at the far end of a UART's line (SetHost), when it is more than the host's calls: a terminal.  Received is each
+//character the UART sends, as it reaches the far end, on the thread the HCP65 runs on.
+class CHCP65UARTHost
+{
+public:
+	virtual void	Received(CHCP65UART* pcUART, uint8 uiCharacter) = 0;
+};
+
+
 enum EHCP65UARTModule
 {
 	HUM_TTL,		//SIN, SOUT, RTS and CTS reach the connector; DSR and DCD are unconnected (read off here), DTR goes nowhere.
@@ -76,10 +88,10 @@ enum EHCP65UARTModule
 
 //One TL16C550D on its module.  Its time is in its oscillator's ticks.  The far end of its line is the host: it sends
 //what HostSend was given, one character at a time at the UART's own baud rate and format, whenever the UART's RTS is
-//on (the far end obeys RTS), and takes what the UART sends (HostReceive).  The host sets the far end's RTS and DTR,
-//which are the UART's CTS, DSR and DCD (HostSetCTS ...).  Only a character's data bits get across.  Auto-RTS turns
-//RTS off while the receive FIFO holds its trigger level or more.  A divisor of 0 is taken as 65536.  Parity, framing
-//and break errors never happen.
+//on (the far end obeys RTS), and takes what the UART sends (HostReceive, or the host SetHost gives).  The host sets the
+//far end's RTS and DTR, which are the UART's CTS, DSR and DCD (HostSetCTS ...).  Only a character's data bits get
+//across.  Auto-RTS turns RTS off while the receive FIFO holds its trigger level or more.  A divisor of 0 is taken as
+//65536.  Parity, framing and break errors never happen.
 class CHCP65UART
 {
 protected:
@@ -122,6 +134,7 @@ protected:
 	bool		mbHostHeldOff;			//The far end has a character to send and RTS is off.
 	uint64		muiHoldOffs;			//Times the far end has had to wait for RTS.
 	uint64		muiOverruns;
+	CHCP65UARTHost*	mpcHost;
 
 public:
 	void	Init(EHCP65UARTModule eModule);
@@ -142,6 +155,8 @@ public:
 	void	HostSetCTS(bool bOn);
 	void	HostSetDSR(bool bOn);
 	void	HostSetDCD(bool bOn);
+	void	SetHost(CHCP65UARTHost* pcHost);
+	CHCP65UARTHost*	GetHost(void);
 	bool	IsRTSOn(void);
 	bool	IsDTROn(void);
 	uint32	GetBaudRate(void);

@@ -17,6 +17,7 @@ void CHCP65UART::Init(EHCP65UARTModule eModule)
 	macHostSend.Init();
 	muiHostSendIndex = 0;
 	macHostReceived.Init();
+	mpcHost = NULL;
 	mbHostCTS = false;
 	mbHostDSR = false;
 	mbHostDCD = false;
@@ -460,6 +461,10 @@ void CHCP65UART::FinishShifting(void)
 	{
 		AddReceived((uint8)(muiShiftByte & DataMask()));
 	}
+	else if (mpcHost)
+	{
+		mpcHost->Received(this, (uint8)(muiShiftByte & DataMask()));
+	}
 	else
 	{
 		macHostReceived.Add((uint8)(muiShiftByte & DataMask()));
@@ -716,6 +721,8 @@ bool CHCP65UART::IsRTSOn(void)
 bool CHCP65UART::IsDTROn(void) { return !IsLoopback() && ((muiMCR & HCP65_UART_MCR_DTR) != 0); }
 size CHCP65UART::NumHostToSend(void) { return macHostSend.NumElements() - muiHostSendIndex; }
 size CHCP65UART::NumHostReceived(void) { return macHostReceived.NumElements(); }
+void CHCP65UART::SetHost(CHCP65UARTHost* pcHost) { mpcHost = pcHost; }
+CHCP65UARTHost* CHCP65UART::GetHost(void) { return mpcHost; }
 uint8 CHCP65UART::GetLineControl(void) { return muiLCR; }
 uint64 CHCP65UART::NumOverruns(void) { return muiOverruns; }
 uint64 CHCP65UART::NumHoldOffs(void) { return muiHoldOffs; }
