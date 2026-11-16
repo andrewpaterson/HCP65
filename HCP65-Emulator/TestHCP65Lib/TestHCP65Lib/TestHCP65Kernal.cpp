@@ -22,6 +22,7 @@
 #include "HCP65Lib/HCP65VIA.h"
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
+#include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "TestLib/Assert.h"
 #include "HCP65KernalBuilder.h"
@@ -58,6 +59,8 @@
 #define TEST_HCP65_PS2_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "PS2Test" _FS_ "HCP65PS2Test.vcxproj"
 #define TEST_HCP65_PS2_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "PS2Board" _FS_ "HCP65PS2Board.vcxproj"
 #define TEST_HCP65_PS2_DRIVER_PATH	"\\OS\\Drivers\\PS2.DRV"
+#define TEST_HCP65_CONSOLE_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "ConsoleCard.img"	//The emulator's Machines/Console.xml boots it.
+#define TEST_HCP65_CONSOLE_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Console" _FS_ "HCP65Console.vcxproj"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -72,6 +75,7 @@
 #define TEST_HCP65_UART_MACHINE		TEST_HCP65_MACHINES _FS_ "UART.xml"
 #define TEST_HCP65_VIA_MACHINE		TEST_HCP65_MACHINES _FS_ "VIA.xml"
 #define TEST_HCP65_PS2_MACHINE		TEST_HCP65_MACHINES _FS_ "PS2.xml"
+#define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
 #define TEST_HCP65_PRIVATE_TYPE		"Test Private Board"
@@ -1597,6 +1601,148 @@ void TestHCP65KernalPS2(CHCP65KernalBuilder* pcBuilder)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Copies the blank SD card image to Output/ConsoleCard.img and puts the
+// console (HCP65/Console) on it as \boot.exe, with the UART Board's and
+// the PS2 Board's drivers.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalPutConsoleFiles(void)
+{
+	if (!TestKernalCopyBlankCard(TEST_HCP65_CONSOLE_CARD_IMAGE))
+	{
+		return false;
+	}
+	if (!TestKernalPutExe(TEST_HCP65_CONSOLE_CARD_IMAGE, "\\boot.exe", TEST_HCP65_CONSOLE_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
+	{
+		return false;
+	}
+	if (!TestKernalPutDriver(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER))
+	{
+		return false;
+	}
+	return TestKernalPutDriver(TEST_HCP65_CONSOLE_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console (Console.cpp) as \boot.exe, at the real board's 25MHz, with
+// a terminal at the far end of the UART Board's RS232 port and a keyboard
+// in the PS2 Board's port 1.  Once it shows its prompt the test types
+// Shift+H, I, Caps Lock, A, B and C, Enter, then X and Backspace, all at
+// once: the terminal shows "> HiABC" and a new prompt, the X taken back, and
+// the keyboard's Caps Lock LED is on.  The keys after Caps Lock come while
+// the console sends the keyboard its LEDs, and none is lost.  The card it writes is the one the emulator's
+// Machines/Console.xml boots.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalConsole(CHCP65KernalBuilder* pcBuilder)
+{
+	CHCP65				cHCP65;
+	CTestMainboard		cMainboard;
+	CHCP65SDCard*		pcSDCard;
+	CHCP65PS2Board*		pcPS2;
+	CHCP65UARTBoard*	pcUART;
+	CHCP65PS2Keyboard	cKeyboard;
+	CHCP65Terminal		cTerminal;
+	STestKernalStatus	sStatus;
+	uint32				uiStatus;
+	int					i;
+	bool				bTyped;
+	bool				bDone;
+
+	if (!TestKernalPutConsoleFiles())
+	{
+		return;
+	}
+	TestKernalSetBootArgument(pcBuilder, 0, &uiStatus);
+
+	cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_CONSOLE_MACHINE))
+	{
+		cHCP65.Kill();
+		cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
+	pcUART = (CHCP65UARTBoard*)TestKernalBoard(&cMainboard, TEST_HCP65_UART_SOCKET, HCP65_UART_NAME);
+	cKeyboard.Init();
+	cKeyboard.Attach(pcPS2->GetPort(0));
+	pcPS2->GetPort(1)->SetPlugged(false);
+	cTerminal.Init();
+	cTerminal.Attach(pcUART->GetRS232());
+	TestKernalStart(&cHCP65, pcBuilder);
+
+	bTyped = false;
+	bDone = false;
+	for (i = 0; (i < TEST_UART_MAX_RUNS) && !bDone; i++)
+	{
+		cHCP65.Run(TEST_UART_RUN_CYCLES);
+		cTerminal.Update();
+
+		if (!bTyped && (cTerminal.NumLines() == 2) && (strcmp(cTerminal.GetLine(1), "> ") == 0))
+		{
+			cKeyboard.Key("Left Shift", true);
+			cKeyboard.Key("H", true);
+			cKeyboard.Key("H", false);
+			cKeyboard.Key("Left Shift", false);
+			cKeyboard.Key("I", true);
+			cKeyboard.Key("I", false);
+			cKeyboard.Key("Caps Lock", true);
+			cKeyboard.Key("Caps Lock", false);
+			cKeyboard.Key("A", true);
+			cKeyboard.Key("A", false);
+			cKeyboard.Key("B", true);
+			cKeyboard.Key("B", false);
+			cKeyboard.Key("C", true);
+			cKeyboard.Key("C", false);
+			cKeyboard.Key("Enter", true);
+			cKeyboard.Key("Enter", false);
+			cKeyboard.Key("X", true);
+			cKeyboard.Key("X", false);
+			cKeyboard.Key("Backspace", true);
+			cKeyboard.Key("Backspace", false);
+			bTyped = true;
+		}
+		bDone = bTyped && (cTerminal.NumLines() == 3) && (cTerminal.GetColumn() == 2) && (strlen(cTerminal.GetLine(2)) == 3);
+
+		TestKernalReadStatus(cHCP65.GetMPURAM(), uiStatus, &sStatus);
+		if (getenv("TEST_HCP65_VERBOSE"))
+		{
+			printf("console run %d: state %d, exit %d, lines %d, PC $%06X\n", i, sStatus.uiState, sStatus.uiExitCode, (int)cTerminal.NumLines(), cHCP65.GetMPU()->GetProgramAddress());
+			fflush(stdout);
+		}
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+
+	AssertFalse(cHCP65.IsStopped());
+	AssertTrue(bTyped);
+	AssertTrue(bDone);
+	AssertInt((1 << TEST_HCP65_UART_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET), sStatus.uiLoadedDrivers);
+	AssertInt(3, (int)cTerminal.NumLines());
+	if (cTerminal.NumLines() == 3)
+	{
+		AssertString("HCP65 console.  Type on the PS/2 keyboard.", cTerminal.GetLine(0));
+		AssertString("> HiABC", cTerminal.GetLine(1));
+		AssertString(">  ", cTerminal.GetLine(2));
+	}
+	AssertInt(HCP65_PS2_KEYBOARD_LED_CAPS, cKeyboard.GetLEDs());
+
+	cTerminal.Kill();
+	cKeyboard.Kill();
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cHCP65.Kill();
+	cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Without a memory board the kernal scans the devices and stops: the SD
 // Card Board has nothing to read into.  Its heap is MPU RAM's, so it gets
 // that far.  A private board's memory isn't main memory, though it is
@@ -1660,6 +1806,7 @@ void TestHCP65Kernal(void)
 		TestHCP65KernalUART(&cBuilder);
 		TestHCP65KernalVIA(&cBuilder);
 		TestHCP65KernalPS2(&cBuilder);
+		TestHCP65KernalConsole(&cBuilder);
 		TestHCP65KernalNoMainMemory(&cBuilder);
 	}
 	cBuilder.Kill();
