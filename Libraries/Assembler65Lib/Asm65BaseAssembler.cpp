@@ -508,8 +508,9 @@ void CAsm65BaseAssembler::Statement(void)
 		}
 		else if (psToken->IsIdentifierIgnoreCase(".section"))
 		{
-			bResult = Section();
+			//A label before it is in the section it was written in, at its end (as a vtable's label is when nothing follows it).
 			BindLabels();
+			bResult = Section();
 		}
 		else if (psToken->IsIdentifierIgnoreCase(".align"))
 		{

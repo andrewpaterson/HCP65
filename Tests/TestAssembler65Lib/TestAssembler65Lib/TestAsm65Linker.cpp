@@ -217,6 +217,40 @@ void TestAsm65LinkerOffsetAddresses(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A label that ends its section, with nothing after it, is at that
+// section's end and not at the start of the section that follows (a
+// vtable's label is, when the class has no virtual functions).
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerLabelEndsSection(void)
+{
+	SLinkTest		sTest;
+	STestAsm65Run	sRun;
+
+	LinkTestInit(&sTest);
+	LinkTestObject(&sTest,
+		"	cpy A, [Table - 8]\n"
+		"	add A, [Table - 4]\n"
+		"	stp\n"
+		"	.section rodata.table\n"
+		"	.global Table\n"
+		"	.long 40\n"
+		"	.long 2\n"
+		"Table:\n"
+		"	.section text.after\n"
+		"After:\n"
+		"	add A, 1000\n"
+		"	stp\n");
+
+	AssertLong(42, LinkAndRun(&sTest, &sRun));
+	AssertLongLongIntHex(LinkedSymbol(&sTest, "__rodata_end"), LinkedSymbol(&sTest, "Table"));
+	TestAsm65End(&sRun);
+	LinkTestKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A global definition replaces a weak one; an undefined weak name is 0.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1024,6 +1058,7 @@ void TestAsm65Linker(void)
 
 	TestAsm65LinkerCall();
 	TestAsm65LinkerOffsetAddresses();
+	TestAsm65LinkerLabelEndsSection();
 	TestAsm65LinkerWeak();
 	TestAsm65LinkerComdat();
 	TestAsm65LinkerInitFini();
