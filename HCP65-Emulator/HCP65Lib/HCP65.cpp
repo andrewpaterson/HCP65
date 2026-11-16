@@ -20,6 +20,7 @@ void CHCP65::Init(uint64 uiClockRate)
 	memset(mpuiRAM, 0, HCP65_MPU_RAM_SIZE);
 	memset(mpuiROM, 0xFF, HCP65_MPU_ROM_SIZE);
 	memset(mapuiMainBanks, 0, sizeof(mapuiMainBanks));
+	memset(mapcWatchedBanks, 0, sizeof(mapcWatchedBanks));
 
 	mcMPU.Init(ReadByte, WriteByte, this, mpuiRAM, HCP65_MPU_RAM_SIZE);
 	mcMPU.SetSignal(Signal);
@@ -739,10 +740,20 @@ void CHCP65::WriteMain(uint32 uiPhysical, uint8 uiValue)
 {
 	uint8*	puiBank;
 
-	puiBank = mapuiMainBanks[(uiPhysical >> 16) & 0xFF];
+	uint32	uiBank;
+
+	uiBank = (uiPhysical >> 16) & 0xFF;
+	puiBank = mapuiMainBanks[uiBank];
 	if (MainMemoryAccess() && puiBank)
 	{
-		puiBank[uiPhysical & 0xFFFF] = uiValue;
+		if (mapcWatchedBanks[uiBank])
+		{
+			mapcWatchedBanks[uiBank]->WriteMemoryChip(mauiWatchedChips[uiBank], ((uint32)mauiWatchedBanks[uiBank] << 16) | (uiPhysical & 0xFFFF), uiValue);
+		}
+		else
+		{
+			puiBank[uiPhysical & 0xFFFF] = uiValue;
+		}
 	}
 }
 
@@ -1180,6 +1191,7 @@ void CHCP65::MapMainMemory(void)
 	int				i;
 
 	memset(mapuiMainBanks, 0, sizeof(mapuiMainBanks));
+	memset(mapcWatchedBanks, 0, sizeof(mapcWatchedBanks));
 	for (iSocket = 0; iSocket < HCP65_MEMORY_NUM_SOCKETS; iSocket++)
 	{
 		iSlot = mcChannel.GetSocketSlot(iSocket);
@@ -1193,6 +1205,12 @@ void CHCP65::MapMainMemory(void)
 				if (!mapuiMainBanks[uiBank])
 				{
 					mapuiMainBanks[uiBank] = &puiChip[(size)i << 16];
+					if (pcDevice->IsMemoryChipWatched(iChip))
+					{
+						mapcWatchedBanks[uiBank] = pcDevice;
+						mauiWatchedChips[uiBank] = (uint8)iChip;
+						mauiWatchedBanks[uiBank] = (uint8)i;
+					}
 				}
 			}
 		}

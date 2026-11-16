@@ -61,6 +61,9 @@ protected:
 	uint8*				mpuiRAM;
 	uint8*				mpuiROM;
 	uint8*				mapuiMainBanks[HCP65_MAIN_MEMORY_BANKS];	//Each 64KB bank's memory, NULL if no chip answers it.
+	CHCP65Device*		mapcWatchedBanks[HCP65_MAIN_MEMORY_BANKS];	//The board that takes each bank's writes, NULL to write it directly.
+	uint8				mauiWatchedChips[HCP65_MAIN_MEMORY_BANKS];	//The bank's chip on that board.
+	uint8				mauiWatchedBanks[HCP65_MAIN_MEMORY_BANKS];	//The bank within the chip.
 	CHCP65Registers		mcRegisters;
 	CHCP65MemoryChannel	mcChannel;
 	CHCP65DebugPort		mcDebugPort;

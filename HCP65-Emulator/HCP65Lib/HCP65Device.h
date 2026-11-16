@@ -26,6 +26,11 @@ class CXMLWriter;
 //
 //LoadXML sets the board up from its <Board> tag in a mainboard description (CHCP65Mainboard), after Init; SaveXML
 //writes what LoadXML reads into the open <Board> tag.
+//
+//A board with memory windows gives the HCP65 its chips (GetMemoryChip), which it maps into main memory and reads and
+//writes directly.  A chip whose writes the board must see (IsMemoryChipWatched: the Video Board's, while a pixel write
+//also writes its palette byte) has them given to WriteMemoryChip in place; the board calls CHCP65::MapMainMemory when
+//what it would answer to either changes.
 class CHCP65Device
 {
 protected:
@@ -53,6 +58,8 @@ public:
 	virtual uint64	NextEvent(void);
 	virtual bool	IsInterrupting(void);
 	virtual uint8*	GetMemoryChip(int iChip);
+	virtual bool	IsMemoryChipWatched(int iChip);
+	virtual void	WriteMemoryChip(int iChip, uint32 uiOffset, uint8 uiValue);
 };
 
 
