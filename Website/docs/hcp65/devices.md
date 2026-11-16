@@ -137,6 +137,7 @@ The HCP65's own boards have the manufacturer `HCP65`:
 | `SD Card Board` | 32KB | Drives it (DMA) | `SDCARD.DRV` |
 | `Sound Board` | 128KB | Doesn't use it | `SOUND.DRV` |
 | `UART Board` | 32KB | Doesn't use it | `UART.DRV` |
+| `VIA Board` | 32KB | Doesn't use it | `VIA.DRV` |
 | `Memory Board` | 32KB | Windows A and B: it is 4MB of main memory | none: the kernel sets its window |
 | `Coprocessor Board` | 32KB | Windows A and B, private: the coprocessors' 4MB | `COPROC.DRV` |
 | `Video Board` | 128KB | Windows A and B, private: its video memory | `VIDEO.DRV` |
