@@ -1,0 +1,137 @@
+# Settings and Keys
+
+File, Settings... (Ctrl+Alt+S) has two pages: **Keymap**, and [File and Code
+Templates](templates.md#the-templates).  What OK changes applies straight away.
+
+## The keymap
+
+The Keymap page lists every command of the IDE in the groups you know them by (File, Edit, Navigate,
+Refactor, Build, Debug, Solution Explorer, Editor Actions...), each with its keys, as IntelliJ IDEA's does.
+Type in its filter to find one.  The buttons beside the list:
+
+| Button | What it does |
+|---|---|
+| Add Shortcut... | Opens **Add Shortcut**: press the keys you want for the selected command.  It says where they work ("Everywhere", or the editor) and what giving them to the command would mean (another command losing them, say).  OK isn't allowed for keys that can't be given. |
+| Remove | Takes the selected keys away from the command. |
+| Reset | Gives the command its own keys back. |
+| Reset All | Gives every command its own keys back. |
+
+- A key belongs to one command: giving it to another moves it, and the first loses it.
+- Keys that type a character can't be given to a command.
+- A command that works everywhere can't take the keys a dialog or a text field needs.
+
+Only the keys you change are kept, in `Keymap.xml` in your settings directory, so a new version of the
+IDE's own keys still reaches every command you haven't changed.
+
+## Where settings are kept
+
+| File | What is in it |
+|---|---|
+| `Keymap.xml` | The keys you have changed. |
+| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; the template Author. |
+| `RecentSolutions.xml` | File, Recent Solutions, and what was open last. |
+| `fileTemplates\` | Your Default scheme's [templates](templates.md#schemes). |
+
+They are in `%APPDATA%\HCP65IDE` on Windows and `~/.config/HCP65IDE` on Linux.  What is kept per
+solution (the layout, the breakpoints) is beside the solution: see [Solutions and
+Workspaces](solutions.md#files-kept-beside-the-solution).
+
+## Every key
+
+### File and windows
+
+| Keys | Command |
+|---|---|
+| Ctrl+S, Ctrl+Shift+S | Save, Save All |
+| Alt+Insert | New (a file from a template) |
+| Ctrl+Alt+S | Settings |
+| Ctrl+F4 | Close the document |
+| Alt+1 | Solution Explorer, with the active file selected |
+| Shift+Escape | Hide the tool window that has the keys |
+| Menu, Shift+F10 | The context menu |
+| F4 | Jump to Source (from a tool window) |
+| F7, Shift+F7 | Next and Previous Difference (in a diff) |
+
+### Edit
+
+| Keys | Command |
+|---|---|
+| Ctrl+Z, Ctrl+Shift+Z | Undo, Redo (across every open file) |
+| Ctrl+X, Shift+Delete | Cut (the line, with nothing selected) |
+| Ctrl+C, Ctrl+Insert | Copy |
+| Ctrl+V, Shift+Insert | Paste |
+| Ctrl+Shift+V | Paste from History |
+| Ctrl+A | Select All |
+| Ctrl+W, Ctrl+Shift+W | Extend Selection, Shrink Selection |
+| Ctrl+Shift+F | Find in Files |
+
+### The editor
+
+| Keys | Command |
+|---|---|
+| Arrows, Home, End, Page Up, Page Down | Move (with Shift: select) |
+| Ctrl+Left, Ctrl+Right | Previous and Next Word (with Shift: select) |
+| Ctrl+Home, Ctrl+End | Document Start and End (with Shift: select) |
+| Ctrl+Up, Ctrl+Down | Scroll Up and Down |
+| Alt+Shift+Arrows, Alt+Shift+Home, Alt+Shift+End | Column (box) select |
+| Enter, Numpad Enter | Enter |
+| Shift+Enter | Enter at Line End: a new line after this one |
+| Ctrl+Shift+Enter | Enter at Line Start: a new line before this one |
+| Tab, Shift+Tab | Tab (indent), Back Tab (outdent) |
+| Backspace, Delete | Delete a character |
+| Ctrl+Backspace, Ctrl+Delete | Delete Word Left and Right |
+| Ctrl+D | Duplicate |
+| Ctrl+Y | Delete Line |
+| Insert | Toggle Overwrite |
+| Escape | Clear the selection, end a box |
+
+### Navigate
+
+| Keys | Command |
+|---|---|
+| Ctrl+N | Go to Class |
+| Ctrl+Shift+N | Go to File |
+| Ctrl+Alt+Shift+N | Go to Symbol |
+| Ctrl+B | Go to Source (or the usages, on a declaration) |
+| F12 | Go to Definition |
+| Alt+O | Switch between header and source |
+| Alt+F7 | Find Usages |
+| Shift+F12 | Find All References |
+| Ctrl+Alt+Shift+F7 | Find Usages Settings |
+| Ctrl+Alt+Down, Ctrl+Alt+Up | Next and Previous Occurrence |
+| Ctrl+Alt+Left, Ctrl+Alt+Right | Back and Forward |
+
+### Refactor
+
+| Keys | Command |
+|---|---|
+| Alt+Enter | Show Context Actions |
+| Shift+F6 | Rename |
+| Alt+Delete | Safe Delete |
+| Ctrl+F6 | Change Signature |
+| F6 | Move |
+| Ctrl+Alt+V | Introduce Variable |
+| Ctrl+Alt+F | Introduce Field |
+| Ctrl+Alt+C | Introduce Constant |
+| Ctrl+Alt+P | Introduce Parameter |
+| Ctrl+Alt+K | Introduce Typedef |
+| Ctrl+Alt+N | Inline |
+| Ctrl+Alt+M | Extract Method |
+| Ctrl+Shift+D | Generate Definition |
+| Ctrl+Alt+O | Optimise #includes |
+
+The other refactorings have no keys: use the [Refactor menu](refactoring/index.md#the-refactor-menu) or
+Alt+Enter.
+
+### Build, run and debug
+
+| Keys | Command |
+|---|---|
+| Ctrl+Shift+B | Build |
+| F5 | Start Debugging, Continue |
+| Ctrl+F5 | Start Without Debugging |
+| Shift+F5 | Stop Debugging |
+| Ctrl+Shift+F5 | Restart |
+| Ctrl+Pause | Break All |
+| F11, F10, Shift+F11 | Step Into, Step Over, Step Out |
+| F9 | Toggle Breakpoint |

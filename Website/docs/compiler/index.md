@@ -33,7 +33,7 @@ flowchart LR
 | Assemblers | `HCP65/Libraries/Assembler65Lib` | `CAsmW65C816Assembler` and `CAsm65C64Assembler`: the same source format and directives, each processor's own instructions. |
 | Linker | `HCP65/Libraries/Assembler65Lib` | `CAsm65Linker`: one object format and one linker for both processors.  Writes executables, ROM images and relocatable modules. |
 | Libc65 | `HCP65/Libraries/Libc65` | The C standard headers and library, soft float, the maths library and the W65C816's runtime routines. |
-| `hcp65build` | `HCP65-IDE/HCP65Build` | The command line build tool.  The HCP65 IDE builds the same way from inside the editor. |
+| `hcp65build` | `HCP65-IDE/HCP65Build` | The command line build tool.  The [HCP65 IDE](../ide/index.md) builds the same way from inside the editor. |
 
 The library was called CppParserLib until November 2026: it started as a C++ parser for
 syntax highlighting and grew into the compiler.

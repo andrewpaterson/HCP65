@@ -80,6 +80,33 @@ nav:
       - Linker and Outputs: compiler/linker.md
       - Libc65: compiler/libc65.md
       - Listings, Profiling and Testing: compiler/testing.md
+  - HCP65 IDE:
+      - ide/index.md
+      - Solutions and Workspaces: ide/solutions.md
+      - The Editor: ide/editor.md
+      - Finding Your Way: ide/navigation.md
+      - Building and Running: ide/building.md
+      - Debugging: ide/debugging.md
+      - Git: ide/git.md
+      - New Files and Templates: ide/templates.md
+      - Refactoring:
+          - ide/refactoring/index.md
+          - Rename: ide/refactoring/rename.md
+          - Safe Delete: ide/refactoring/safe-delete.md
+          - Change Signature: ide/refactoring/change-signature.md
+          - Introduce: ide/refactoring/introduce.md
+          - Inline: ide/refactoring/inline.md
+          - Extract: ide/refactoring/extract.md
+          - Declarations and Definitions: ide/refactoring/definitions.md
+          - Moving Members: ide/refactoring/members.md
+          - Moving to Other Files: ide/refactoring/move.md
+          - Namespaces: ide/refactoring/namespaces.md
+          - Converting: ide/refactoring/convert.md
+          - Templates: ide/refactoring/templates.md
+          - "#includes": ide/refactoring/includes.md
+      - The Claude Tab: ide/claude-tab.md
+      - Settings and Keys: ide/settings.md
+      - Checking the IDE: ide/checks.md
   - 65C64 Microprocessor Proposal:
       - 65c64/index.md
       - Registers: 65c64/registers.md
