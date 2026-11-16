@@ -1,0 +1,51 @@
+HCP65 PS2 FIFO (V0) - schematic bugs
+====================================
+
+1. The FIFOs are held in reset whenever the computer runs
+
+   IC2 and IC6 (CD74HCT40105M) have pin 9, MR, on the net ~{Reset} (J1.9).  The
+   40105's MR is active high: "A high on the MASTER RESET (MR) sets all the
+   control logic marker bits to 0.  DOR goes low and DIR goes high."  ~{Reset}
+   is high whenever the board is out of reset, so the FIFOs are always being
+   reset: they never hold a byte and Output Ready (IC6 DOR) never goes high.
+
+   The shift registers are right: IC5 and IC9 (74LVC595) have pin 10 ~{MR},
+   which is active low, on the same net.
+
+   Fix: put pin 9 of IC2 and IC6 on Reset, ~{Reset} inverted.  IC4 (74LVC04) has
+   a spare inverter, 6A (pin 13) to 6Y (pin 12): ~{Reset} to 6A, 6Y to both MRs.
+
+2. The byte is latched, and put into the FIFO, at the start of the next frame
+
+   Packet Pulse is high while a frame is coming in: the first fall of the PS/2
+   clock charges the PS2 Timing board's C3 through D1, and it only falls once
+   the clock has been high for about 0.6ms (R3 4.7K, C3 0.1uF).  It is on IC5
+   and IC9's STCP (pin 12), and Packet Pulse_{2} (two inverters later) on IC2
+   and IC6's SI (pin 3).  STCP and SI both act on a rising edge, so both happen
+   at the start of a frame, not its end: just after that frame's first clock has
+   shifted its start bit in.  So each byte is latched a frame late (the last
+   byte of a code waits for the next key) and a bit out of place: the outputs'
+   wiring (/Q0 on IC5 Q1 ... /Q7 on IC9 Q2) is for a latch after the eleventh
+   bit.
+
+   Packet Waiting (IC3's 2CP on ~{Packet Pulse}) is set at the end of the
+   frame, as it should be, so a driver woken by it would read the byte before.
+
+   Effect: with bug 1 fixed, reading the FIFO gives the previous frame's bits
+   shifted by one: d1 to d7 and parity in place of d0 to d7.
+
+   Fix: latch and load on the fall of Packet Pulse.  ~{Packet Pulse} (J1.2) is
+   already on the sheet for STCP.  SI needs the inverse of Packet Pulse_{2}, so
+   that it still comes after STCP: the PS2 Timing board's ~{Packet Pulse}_{2}
+   (IC4 5Y, pin 10) can be taken out through a spare connector pin (J2 pins 2,
+   3, 4, 9, 11, 13 to 16, 24 to 27 and 29 to 32 are unconnected) to the FIFO's
+   SI pins in place of Packet Pulse_{2}.
+
+The emulator (HCP65Lib's CHCP65PS2Port) works as the board is meant to: the
+FIFO is only reset with the board, and a byte goes in when its packet ends.
+
+A thing to check on the real board, not a bug: a packet only ends after about
+0.6ms of the clock high (0.44ms to 0.95ms over the 74VHCT14's VN of 0.5V to
+1.5V).  Frames a device sends closer together than that run into one packet,
+and only the last byte of them is kept.  The emulator's far end leaves 1ms
+between frames.
