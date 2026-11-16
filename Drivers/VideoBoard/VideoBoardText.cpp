@@ -347,7 +347,6 @@ uint16 CKernalVideoBoard::WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::ScrollText(uint32 uiLines)
 {
-	uint16	uiCursor;
 	uint16	uiPhysical;
 	uint16	uiLine;
 	uint16	i;
@@ -356,7 +355,6 @@ uint16 CKernalVideoBoard::ScrollText(uint32 uiLines)
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
 	}
-	uiCursor = muiCursor;
 	SetCursorCell(VIDEO_CURSOR_NONE);
 	for (uiLine = 0; uiLine < uiLines; uiLine++)
 	{
@@ -373,7 +371,6 @@ uint16 CKernalVideoBoard::ScrollText(uint32 uiLines)
 			DrawCell(uiPhysical);
 		}
 	}
-	(void)uiCursor;
 	return KERNAL_DRIVER_SUCCESS;
 }
 

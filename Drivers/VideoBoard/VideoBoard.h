@@ -54,8 +54,9 @@ struct SVideoMode
 
 
 //The HCP65 Video Board's driver: its units are the board's memories (VIDEO_BOARD_PIXELS ...) and its text
-//(VIDEO_BOARD_TEXT, VIDEO_BOARD_FONT: VideoBoardText.cpp), and a program has the whole board.  The pixels and their palette numbers are the board's main memory window (the frame the processor has);
-//the palettes and the row table its device RAM.  The interrupt (trusted: only the board and the driver's own memory) is
+//(VIDEO_BOARD_TEXT, VIDEO_BOARD_FONT: VideoBoardText.cpp), and a program has the whole board.  The pixels and their
+//palette numbers are the board's main memory window (the frame the processor has); the palettes and the row table its
+//device RAM.  The interrupt (trusted: only the board and the driver's own memory) is
 //vertical blank's: it counts them and makes a flip asked for since the last.  Without a window from the kernal (or with
 //window 0, whose pixels aren't reachable in kernel mode) the pixels can't be reached: their reads and writes fail.
 class CKernalVideoBoard : public CKernalDriver
