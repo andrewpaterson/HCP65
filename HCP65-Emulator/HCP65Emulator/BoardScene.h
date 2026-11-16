@@ -18,7 +18,7 @@
 #define BOARD_SCENE_WIDTH		640
 #define BOARD_SCENE_HEIGHT		782		//With the combo boxes under it the dialog fits over the emulator's window.
 #define BOARD_SCENE_WORKERS		8		//One a core here.  More only added hyperthreads, for 4ms a frame.
-#define BOARD_SCENE_NUM_MODELS	7		//The Small Mainboard, the Processor Board and the boards CHCP65Mainboard can make.
+#define BOARD_SCENE_NUM_MODELS	8		//The Small Mainboard, the Processor Board and the boards CHCP65Mainboard can make.
 #define BOARD_SCENE_NUM_SOCKETS	7		//The Processor Board's and the six the Small Mainboard has for devices.
 
 

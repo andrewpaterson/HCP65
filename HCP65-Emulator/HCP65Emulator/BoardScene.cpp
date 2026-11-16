@@ -23,6 +23,7 @@
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
 #include "HCP65Lib/HCP65VIA.h"
+#include "HCP65Lib/HCP65PS2.h"
 #include "BoardScene.h"
 
 
@@ -102,6 +103,7 @@ static const SBoardSceneModel gasBoardSceneModels[BOARD_SCENE_NUM_MODELS] =
 	{ HCP65_AUDIO_NAME,			"../../Kicad/Computer/Audio/Audio Board/Audio Board.wrl",			"Audio Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM },
 	{ HCP65_MEMORY_BOARD_NAME,	"../../Kicad/Computer/Memory/Memory Board/Memory Board.wrl",		"Memory Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM },
 	{ HCP65_VIA_BOARD_NAME,		"../../Kicad/Computer/VIA/VIA Board/VIA Board.wrl",				"VIA Board",		2.54,	5.08,	BOARD_SCENE_CARD_MAX_ERROR_MM },
+	{ HCP65_PS2_BOARD_NAME,		"../../Kicad/Computer/PS2/PS2 Board/PS2 Board.wrl",				"PS2 Board",		2.54,	5.08,	BOARD_SCENE_CARD_MAX_ERROR_MM },
 };
 
 
