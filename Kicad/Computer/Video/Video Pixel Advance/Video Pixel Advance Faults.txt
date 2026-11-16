@@ -1,0 +1,33 @@
+HCP65 Video Pixel Advance - schematic faults
+============================================
+
+1. CEP has no pull
+
+   IC6 (74LVC163) pin 7 CEP only reaches J1.32, and the Video Board - Signals
+   leaves B1 pin 32 unconnected, so it floats (Video Board - Signals Faults.txt
+   fault 4).  A pull-up here, or tying it to 3.3V on the main board, fixes it.
+
+
+2. The pattern isn't started at the start of a line
+
+   IC6 counts 4 to 15 (a 12 step pattern) and is only loaded by its own TC or
+   ~{Reset} (IC3, 74LVC2G08: ~{PE} = ~{TC} AND ~{Reset}).  Enable Pattern
+   (~{Horizontal Blank}) only gates the output.
+
+   Effect: the pattern runs on through blanking, so each line starts at a
+   different step of it: (line length mod 12) further on each line.  A
+   640x480 line is 800 clocks, 8 steps on.  Patterns that repeat pixels
+   (every 2nd, 3rd, 6th or 12th) start in a different place on each line, so
+   the picture jags.  Patterns of all 1s are unaffected.
+
+   Fix: load the counter during horizontal blank: put ~{Horizontal Blank}
+   (Enable Pattern) into IC3's gate in place of, or ANDed with, ~{Reset}.
+
+
+3. The two muxes overlap as they change over
+
+   IC1 and IC5 (PI3B3251) are enabled by Q3 and ~{Q3}, and their
+   disable time (up to 5.5ns) is longer than their enable time (up to
+   3.5ns), so at steps 7 to 8 and 15 to 4 both are on for a moment and short
+   two of the pattern latch's outputs together.  Harmless if it settles
+   before Advance Pixel is sampled.

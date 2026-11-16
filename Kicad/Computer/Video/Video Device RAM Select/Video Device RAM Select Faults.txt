@@ -1,0 +1,22 @@
+HCP65 Video Device RAM Select - schematic faults
+================================================
+
+1. It decodes device RAM in 16KB blocks; the memory map needs 32KB blocks
+
+   IC1 (74LVC138) has A0 = A14 (J1.15), A1 = A15 (J1.14) and A2 = A16
+   (J1.10), so ~{DR0} to ~{DR3} are 16KB blocks: $00000, $04000, $08000 and
+   $0C000, and $10000-$1FFFF selects nothing.  The Video Board - Memory's
+   notes put the row table at $04000-$07FFF ("bit 14 set puts row data in the
+   second 16KB of RAM"), Red at $08000, Green at $10000 and Blue at $18000:
+   32KB blocks, with A14 an address bit inside each 32KB RAM (the RAMs are
+   addressed by AD0-14).
+
+   Effect: the CPU can only reach the row RAM's lower half ($00800-$03FFF),
+   which the video never reads (it reads the upper half, RowA14 high): the
+   row table can't be written.  $04000-$07FFF is the Red RAM's upper half,
+   palettes 64-127; Green and Blue are only reachable in their 16KB at $08000
+   and $0C000, and the Green and Blue the notes give, $10000 and $18000, are
+   nothing.  There is no usable picture.
+
+   Fix: A0 = A15, A1 = A16 and A2 = GND, so that ~{DR0} to ~{DR3} are $00000,
+   $08000, $10000 and $18000, each 32KB.

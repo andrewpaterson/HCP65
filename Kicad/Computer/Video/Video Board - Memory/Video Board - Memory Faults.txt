@@ -1,0 +1,90 @@
+HCP65 Video Board - Memory (V0) - schematic faults
+==================================================
+
+Faults in the sub-boards this sheet uses are in their own Faults files: Video
+Device RAM Select (B25), Video Data Select (B2), Video Row Latch (B1), Video
+Address Reader (B17), Video Memory 2MB, and in Component Boards, Counter 24bit
+(B22).  Bit numbers here are this board's; the Video Board - Signals reverses
+the device data bus (its Faults file, fault 2), so what the CPU writes into
+the row table and palettes arrives here bit reversed.
+
+
+1. Main bus A3 and A4 are swapped into the video memories
+
+   /AM3 (J2.4) is on pin 23 of B4, B18, B31 and B32 (Video Memory 2MB), which
+   is MA4 (the sub-board's J3.23, IC7 4I0, to SA4); /AM4 (J2.5) is on pin 24,
+   MA3 (to SA3).  The video side's AV3 and AV4 go to VA3 and VA4 (pins 50 and
+   51) straight.
+
+   Effect: a byte the CPU writes at offset X is shown at X with address bits
+   3 and 4 swapped: groups of 8 pixels are shuffled within every 32.  The
+   pixel indices and their palette numbers are both moved the same way, so
+   they stay together, but the picture is scrambled.
+
+   Fix: /AM3 to pin 24 (MA3) and /AM4 to pin 23 (MA4) on all four.
+
+
+2. The CPU and the row reload share the row RAM with no arbitration
+
+   B35 (Selector 18bit) switches the row RAM's address to the device bus
+   (AD0-14) whenever ~{Device RAM}_0 is low.  The video side reads the row
+   RAM for 3 pixel clocks at the end of every line (the row reload, during
+   the front porch).
+
+   Effect: a device bus access to the row table that overlaps a reload gives
+   the next line a wrong start address.  The Memory board's note that it is
+   "okay to use ~{Device RAM} as the select ... during blanking periods" is
+   about the palettes; for the row table, blanking is exactly when it isn't
+   safe.
+
+   Fix: change the row table only in vertical blank (a driver rule), or hold
+   the reload off while ~{Device RAM}_0 is low.
+
+
+3. The palette lookup has half a pixel clock
+
+   B19 (D Flip Flop 16bit) puts out a pixel's index and palette number on
+   the rising edge of CLK3, and the palette RAMs' output latches (B33, B30,
+   B27, Memory 32KB with Output: their LLE is CLK2) close on its falling edge
+   (a 74LVC573 holds what it has when LE falls).  The path is a 574's delay
+   (7.0ns) plus B29's 74LVC157 (5.2ns) plus the IS61C256AL-12's access time
+   (12ns) plus the 573's setup (1.7ns): about 26ns worst case, 18-20ns typical.
+
+   Effect: half a clock is 19.9ns at 25.175MHz, 15.4ns at 32.5MHz and 12.5ns
+   at 40MHz, so the colour latches can take colours that are still changing:
+   at the limit at VGA, and certainly from 32.5MHz.
+
+   Fix: the latches' LLE on ~{CLK2}, so that they close on the next rising
+   edge, a whole clock later: ~{CLK2} already reaches J4.38 and isn't used.
+   Or leave the latches open (LLE high) and let the Signals board's B38 take
+   the colour.
+
+   The other paths (the 2MB memories' read from one rising edge to the next,
+   about 24.5ns; the row reload, about 33ns) also stop the 65MHz and 74.25MHz
+   clocks working, and make the row reload marginal from 32.5MHz.
+
+
+4. IC2, the 12V to 5V linear regulator, has the whole board
+
+   IC2 (LD1117S50, SOT-223, about 110 C/W) supplies the four 5V 32KB SRAMs,
+   which are always selected, the 74CBT3257s and the logic.  At 0.3-0.5A that
+   is 2-3.5W from 12V: it will overheat, or go into thermal shutdown, without
+   a lot of copper or a heat sink.
+
+   Fix: a switching regulator, or take 5V from elsewhere.
+
+
+Questions (possibly intended)
+
+   - Rows: RowI is 10 bits (RowA12 and RowA13 are tied low), so at most 1024
+     rows, where the notes say rows 0 to 4095.
+   - Writes as ~{WD} ends: the palette RAMs' ~{WE} (~{WD} + ~{DRn}, through a
+     74LVC32) and the row RAM's ~{WE} change at about the same time as their
+     address switches back to the video side (B29 and B35, selected by
+     ~{Device RAM}).  If the device bus lets ~{WD} and ~{Device RAM} go
+     together, a write can end at the video address (the SRAMs' address hold
+     is 0).  Does the device bus hold ~{Device RAM} after ~{WD} ends?
+   - The 74CBT3257s run at 5V with their select inputs driven at 3.3V: inside
+     VIH, but about 2.5mA extra supply current each input.
+   - Memory Frame swaps the frames as soon as it is written, not at vertical
+     blank: software has to write it in vertical blank.

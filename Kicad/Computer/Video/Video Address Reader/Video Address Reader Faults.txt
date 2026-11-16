@@ -1,0 +1,19 @@
+HCP65 Video Address Reader - schematic faults
+=============================================
+
+1. Reading the pixel address keeps reloading what is being read
+
+   The three 74LVC574s are clocked by the pixel clock ANDed with Read Address
+   Low, and Read Address Low also enables the low byte's outputs.  So for the
+   whole of a read of the low byte ($402) the latches take the counter again
+   on every pixel clock while the low byte drives the bus.
+
+   Effect: the processor can take the low byte while its bits are changing,
+   and the high and bank bytes ($403, $404), read after, are from the last
+   pixel clock of the low byte's read, which may not be the address the
+   processor got in the low byte.  (Reading the low byte first is needed for
+   any snapshot at all.)
+
+   Fix: take the address once per read, for instance clock the latches from
+   a flip-flop that synchronises Read Address Low to the pixel clock.  The
+   Video Counter 12bit's read latches have the same fault.

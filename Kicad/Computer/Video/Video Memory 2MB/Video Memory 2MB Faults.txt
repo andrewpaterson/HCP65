@@ -1,0 +1,19 @@
+HCP65 Video Memory 2MB - schematic faults
+=========================================
+
+1. Two drivers on ~CE, ~OE and ~WE as ~E changes (low severity)
+
+   The 74LVC257 that selects the SRAM's ~CE, ~OE and ~WE and the 74LVC126 that
+   holds them high (deselected) share the same enable (D~OE, from ~E through
+   the 74LVC2G34) with opposite polarity: the 257's outputs are enabled when
+   it is low, the 126's when it is high.  As ~E changes, one turns on before
+   the other is off, and for a moment both drive the three lines, against
+   each other if their levels differ.
+
+   Effect: a brief fight, and a glitch on the SRAM's controls, at every
+   change of ~E: as the CPU's accesses to the frame it has begin and end, and
+   at every Memory Frame change.
+
+   Fix: pull-ups on ~CE, ~OE and ~WE in place of the 74LVC126 (the 257
+   tri-stated leaves them high), or enable the two from separate, non
+   overlapping signals.

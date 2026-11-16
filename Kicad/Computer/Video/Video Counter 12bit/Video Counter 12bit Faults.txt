@@ -1,0 +1,19 @@
+HCP65 Video Counter 12bit - schematic faults
+============================================
+
+1. Reading the position keeps reloading what is being read
+
+   IC2 (74LVC1G08) clocks both read latches (74LVC574) with ~{CLK} AND Read
+   Row Position Low, and the same strobe enables their outputs.  On the
+   horizontal counter ~{CLK} is ~{Pixel CLK}_1, so for the whole of a read of
+   the low byte ($406) the latches take the count again on every pixel
+   clock while they drive the bus.
+
+   Effect: the processor can take the byte while its bits are changing (at
+   25MHz a pixel clock is 40ns, against a 574's setup, hold and delay of
+   about 31ns), and the high byte ($407), read after, can be from a later
+   count than the low byte, off by 256.  The vertical counter's ~{CLK} is tied
+   high, so it is only taken once, at the start of the read, and is fine.
+
+   Fix: take the count once per read, for instance clock the latches from a
+   flip-flop that synchronises the read strobe to ~{CLK}.

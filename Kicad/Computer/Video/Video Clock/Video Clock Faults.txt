@@ -1,0 +1,35 @@
+HCP65 Video Clock - schematic faults
+====================================
+
+1. The clock select register takes its data as the write starts
+
+   IC1 is a 74LVC574 (edge triggered) with CP (pin 11) on Write Clock Select,
+   the positive Stage B write strobe, so it takes D on the strobe's rising
+   edge: when ~{WD} falls.  Every other write register on the Video Board is a
+   transparent 573/16373, which holds what is on the bus at the end of the
+   write.
+
+   Effect: if the device bus data isn't valid by the time ~{WD} goes low (the
+   W65C816's write data is valid some time after PHI2 rises), the register
+   takes the wrong value: the wrong clock, or none.
+
+   Fix: a 74LVC573 with LE on the strobe, or clock the 574 on the inverted
+   strobe (the end of the write).
+
+
+2. Bit 3 stops the clock, the note says it enables it
+
+   D3 (J4.11) is IC1's D4, and Q4 (pin 15) is IC4 (PI3B3251) pin 7, ~{OE}:
+   "E = H -> Hi-Z, Disable".  The Video Board - Signals note says "Bit 3 ...
+   1: Enable".
+
+   Effect: writing bit 3 = 1 stops the pixel clock (the 4.7K pull down holds
+   it low).
+
+   Fix: correct the note, or invert Q4.
+
+
+3. Not reset
+
+   IC1 has no reset, so at power on the pixel clock is any of the eight, or
+   off, until $405 is written.  See Video Board - Signals Faults.txt fault 10.

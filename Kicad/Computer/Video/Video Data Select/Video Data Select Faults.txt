@@ -1,0 +1,24 @@
+HCP65 Video Data Select - schematic faults
+==========================================
+
+1. The palette write gate (IC1, 74LVC1G98) has the wrong function
+
+   IC1 has In0 (pin 3) = Palette Write, In1 (pin 1) = 3.3V and In2 (pin 6) =
+   ~{Memory A}; Y (pin 4) is ~{Palette Write Memory B}, which selects Memory B
+   (the palette numbers) for a palette write.  The 74LVC1G98's function table
+   gives Y = NOT In1 while In2 is low and Y = NOT In0 while In2 is high.  So:
+
+     during a Memory A access (~{Memory A} low):   Y = NOT 1 = 0
+     otherwise (~{Memory A} high):                 Y = NOT Palette Write
+
+   The intent is Y low only for a Memory A access with Palette Write set.
+
+   Effect: with Palette Write set, Y is low all the time, not only during
+   Memory A accesses, and the palette chip is enabled for any main bus write
+   while Palette Write is set (~{Main WD} is the whole main bus's).  So every
+   write anywhere in the system (the stack, other boards) also writes the
+   palette byte into the palette chip of the frame the CPU has, at the
+   address on the bus.  Palette Write clear is fine.
+
+   Fix: In0 = GND and In1 = Palette Write (In2 stays ~{Memory A}): then Y is
+   NOT Palette Write during a Memory A access and 1 otherwise.

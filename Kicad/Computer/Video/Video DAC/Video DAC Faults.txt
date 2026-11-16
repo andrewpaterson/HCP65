@@ -1,0 +1,58 @@
+HCP65 Video DAC - schematic faults
+==================================
+
+1. BLANK is the wrong way round
+
+   IC2 (74LVC1G08, AND) drives IC1 (ADV7125) pin 11, ~{BLANK}, from Horizontal
+   Blank (J3.2) and Vertical Blank (J3.10).  Those two are high while blanking
+   (the Video Blank and Sync boards' Blank outputs).  The ADV7125's BLANK is
+   active low: "A Logic 0 on this control input drives the analog outputs ...
+   to the blanking level."
+
+   Effect: the outputs are blanked except where both blanks are on at once:
+   no picture in the active area.
+
+   Fix: IC2 a 74LVC1G02 (NOR), so ~{BLANK} is low while either blank is high.
+   (Or feed the board ~{Horizontal Blank} and ~{Vertical Blank} and keep the
+   AND.)
+
+
+2. The DAC is only rated to 50MHz
+
+   IC1 is the ADV7125KSTZ50: "CLOCK Frequency ... 50 MHz (50 MHz grade)",
+   clock high and low at least 8.0ns.  The Video Clock offers 65MHz and
+   74.25MHz.
+
+   Effect: the 65MHz and 74.25MHz modes are out of the DAC's specification,
+   and 65MHz is what 1024x768 at 60Hz, the board's highest mode, needs.
+
+   Fix: the ADV7125KSTZ140, or drop the two fastest clocks.
+
+
+3. The outputs are about a third too bright for VGA
+
+   RSET (R4) is 530 ohm with VREF 1.25V, so full scale is about 7989.6 x
+   1.25 / 530 = 18.8mA.  R1-R3 are 150 ohm to GND, the datasheet's RS-170
+   arrangement.  With the monitor's 75 ohm that is 50 ohm, so white is about
+   0.94V, not VGA's 0.7V.
+
+   Fix: 75 ohm terminations (the datasheet's RS-343A arrangement), or RSET
+   about 710 ohm.
+
+
+4. The half clock delays can't give half clock steps
+
+   The ADV7125 (CLOCK, pin 24) and the first of the sync flip-flops (IC5 and
+   IC8, 1CP) are clocked by the board's CLK pin, which the Video Board -
+   Signals wires to ~{Pixel CLK}_0: they take their inputs on the rising edge
+   of ~{Pixel CLK}.  The delay selector's "C" taps (C3, C4) change on that
+   same edge (the Signal Dragger clocks them on ~{Pixel CLK}_1), so they race
+   it: 74LVC574 output delay is 1.5ns minimum against the ADV7125's 1.5ns
+   hold, less clock skew.
+
+   Effect: when hold is met, delays 1 and 2 ($417) are the same, and 3 is a
+   whole clock after 2; when it isn't, the sync and blank edges jitter by a
+   clock.
+
+   Fix: select from taps on one phase (1H to 4H), or clock the DAC side on
+   the other phase.

@@ -1,0 +1,19 @@
+HCP65 Video Row Latch - schematic faults
+========================================
+
+1. A row's start address is read from bytes 1 to 3 of its entry, not 0 to 2
+
+   After MR (Last Pixel+1) IC1 (74LVC163) counts LA = 0, 1, 2, 3, 4 and stops
+   at 4 (CEP is ~{Y4}).  IC2 (74LVC138) decodes LA: Load Address Low is ~{Y1},
+   High ~{Y2} and Bank ~{Y3}; ~{Y0} is unused.  The row RAM's address bits 0
+   and 1 are LA0 and LA1 (the Video Board - Memory's B35), so each load takes
+   the byte at the entry's offset LA: Low from +1, High from +2, Bank from +3.
+   The Video Board - Memory's notes give Low, High and Bank at +0, +1 and +2
+   of each 4 byte entry.
+
+   Effect: a row table written as the notes say loads the wrong start
+   address: Low gets the High byte, High the Bank byte, and Bank the unused
+   byte.
+
+   Fix: decode the loads from ~{Y0}, ~{Y1} and ~{Y2}, with CEP on ~{Y3}; or
+   change the notes (and the driver) to +1, +2 and +3.

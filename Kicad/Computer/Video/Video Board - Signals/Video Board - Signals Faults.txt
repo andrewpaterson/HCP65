@@ -1,0 +1,197 @@
+HCP65 Video Board - Signals (V0) - schematic faults
+==================================================
+
+Bit numbers below are the local data bus's (/D0-/D7, the sub-boards' D0-D7).
+Faults in the sub-boards this sheet uses are in their own Faults files: Video
+Clock, Video Counter 12bit, Video Pixel Advance, Video DAC, and in Component
+Boards, Clock Hold Standard.
+
+
+1. The horizontal counter is loaded all through horizontal blank
+
+   B2 (Video Counter 12bit) pin 2 ~{Load} is on /~{Horizontal Blank}, B14's
+   ~{Blank} (pin 27).  ~{Load} is the 74LVC161s' synchronous ~PE, which loads
+   1.  B14 pin 18 ~{Back_Porch_End}, which is what should load it, is
+   unconnected.  The vertical counter is wired the right way: B5 ~{Load} is on
+   B7 pin 18 ~{Back_Porch_End}.
+
+   Effect: once horizontal blank starts, H is held at 1 (H3-H10 = 0), so Sync
+   Start, Back Porch Start and Back Porch End never match (unless they are
+   0).  There is no horizontal sync, and blank never ends: no picture.
+
+   Fix: B2 pin 2 to B14 pin 18.  A line is then 8 x Back Porch End pixel
+   clocks.
+
+
+2. The local data bus is bit reversed at the Device Buffer
+
+   B16 (Device Buffer) pin 34 "D0" is on /D7, pin 36 "D1" on /D6 ... pin 43
+   "D7" on /D0.  On the Device Buffer, pin 34 is the edge connector's D0.
+   Every other board wires pin 34 to /D0 (VIA, UART, Audio, PS2 ...).
+
+   Effect: the CPU's bit n is the board's bit 7-n.  Every register's bits are
+   reversed against the notes (writing Flags bit 0, VSync polarity, sets the
+   interrupt enable), and so is the device ROM (IC2): the kernal reads its
+   magic and checksum reversed and ignores the board, unless the ROM is burned
+   reversed.  What the CPU writes into device RAM (row addresses, palettes)
+   reaches the Memory board reversed too, through J4.
+
+   Fix: wire B16 pin "Dn" to /Dn.
+
+
+3. Horizontal Sync and Vertical Blank are crossed at the delay selector
+
+   B40 (Selector 1-of-4 4bit with Input) lanes: on the sub-board, output Y0
+   (J2.32) is lane 0 (inputs A0, B0, C0, E0), Y1 (J2.30) lane 1, Y2 (J2.31)
+   lane 2 and Y3 (J2.29) lane 3.  Here lane 0 is Vertical Blank, 1 Vertical
+   Sync, 2 Horizontal Blank and 3 Horizontal Sync.  But pin 32 (Y0) is on
+   Horizontal Sync _FINAL, the DAC's HSync, and pin 29 (Y3) on Vertical Blank
+   _FINAL.  The symbol also has Y1 and Y2 on the wrong pins (it puts Y1 on 31
+   and Y2 on 30); those two come out right by accident.
+
+   Effect: the VGA HSync pin carries vertical blank, and the DAC's blank gate
+   gets horizontal sync in place of vertical blank.
+
+   Fix: pin 32 to Vertical Blank _FINAL and pin 29 to Horizontal Sync _FINAL
+   (or swap lanes 0 and 3 at the inputs); correct the symbol's Y1 and Y2 pin
+   numbers.
+
+
+4. The Pixel Advance counter's count enable floats
+
+   B1 (Video Pixel Advance) pin 32 CEP is unconnected here, and on the
+   sub-board it only reaches IC6 (74LVC163) pin 7, with no pull.
+
+   Effect: the 12 step pattern counter counts or holds at random, so the
+   pixel address advances at random.
+
+   Fix: B1 pin 32 to 3.3V.
+
+
+5. The video interrupt can't be cleared
+
+   B8 (Flags & Interrupt) pin 4 ~{Set_Interrupt_on_CLK} is on /~{Vertical
+   Blank}, B7's ~{Blank}: a level, low for the whole of vertical blank.  The
+   Flags board's interrupt flip-flop samples it on every pixel clock (~Pixel
+   CLK_1), and Clear Interrupt ($401) only forces it off while its write
+   strobe is high.
+
+   Effect: the interrupt is on for all of vertical blank and comes back one
+   pixel clock after it is cleared, so the processor (IRQ is level
+   triggered) takes it again and again until vertical blank ends, unless the
+   handler turns the interrupt enable off.
+
+   Fix: set the interrupt from a pulse at the start of vertical blank, not
+   the level: for instance clock B8 with First Pixel HC and take
+   ~{Set_Interrupt_on_CLK} from B7 pin 31 ~{Front_Porch_Start} (low for one
+   line, now unconnected), so that it is set once and stays cleared.
+
+
+6. The Flags & Interrupt's ~{Reset} (B8 pin 32) isn't connected
+
+   As on every board with one: see Component Boards/Flags Enable
+   Interrupt/Flags Enable Interrupt Faults.txt.  Reset doesn't turn Enable
+   off, and Enable can float.
+
+
+7. The notes don't match the wiring
+
+   - Pattern registers: the notes say "Horizontal Shift Pattern Low 8 bits"
+     ($40A) and "High 4 bits" ($40B).  The wiring is the other way: $40A uses
+     D0-D3 (the first 4 ticks of the pattern) and $40B D0-D7 (the other 8),
+     as the Pixel Advance sheet's own note (DH7..DH0, DL3..DL0) has it.
+   - Signal delay ($417): the notes give 2½, 3, 3½ and 4 clocks.  As wired
+     they are 3, 3½, 4 and 4½ clocks after the HC signals: B20 (Video
+     Signals Output) is clocked by /Pixel CLK_0 although its symbol's pin 2 is
+     named ~{Pixel_CLK}, and the first stage of the Signal Dragger is a whole
+     clock.  Clocking B20 on ~{Pixel CLK} would give the notes' figures.
+   - $405 bit 3: the note says 1 enables the pixel clock; it stops it (Video
+     Clock Faults.txt).
+   - "All four comparators will trigger for 8 pixel clock ticks": with fault 1
+     fixed, Back Porch End matches for one tick, as H is reloaded.  That is
+     fine, but the note no longer holds for it.
+
+
+8. Each line shows the row table entry for the line before
+
+   The Memory board loads a line's start address from the row table entry
+   the vertical counter (Row0-9, J3.1-10) points at, during the front porch
+   after the line before it (Last Pixel+1 HC, J3.12).  The vertical counter
+   only counts at the start of the next line's active part (B5 is clocked by
+   First), so it still holds the line before's number.  The counter loads 1
+   at Back Porch End and the first visible line is the one where V is
+   Back Porch End, so the visible lines take entries VBPE-1, VBPE, 1, 2 ...
+   VFPS-2.  Entry 0 is never used, against the Memory board's "Row 0 Address,
+   Row 1 Address" notes.
+
+   Fix: count the vertical counter at the end of each line's active part
+   (Last Pixel+1 HC) in place of First, so that it already holds the next
+   line's number when the row table is read.  That also gives the vertical
+   comparators all of blanking to settle (fault 9).  For entry 0 to be the
+   first visible line the counter would also need to start from 0 there, not
+   1 (the Video Counter 12bit loads 1 by its wiring, IR0 high), and the
+   vertical timing registers would then count lines from 0.  Check the
+   vertical blank and sync with the new timing.
+
+
+9. Timing at high pixel clocks (worst case, from the datasheets)
+
+   - B20 has half a clock to take B14's Blank and Sync: 74LVC74 CP to Q plus
+     SD/RD to Q plus 574 setup is about 12.6ns, against 12.5ns at 40MHz and
+     7.7ns at 65MHz.
+   - The vertical comparators aren't settled when B7 samples them: B7 is
+     clocked by First Pixel HC half a clock (plus a 574's delay) after First
+     clocks the vertical counter, and the path (161, 1G86, 1G32, F521 ~OE) is
+     about 25ns.  Vertical events can come a line late or jitter above about
+     16MHz worst case, 34MHz typical.  Clocking the vertical counter at the
+     end of the line (Last Pixel+1) would give it the whole of blanking.
+   - Advance Pixel reaches the Memory board's counter half a clock after the
+     pattern changes (163, PI3B3251, 2G08: about 21ns worst case), so it is
+     too late at 65 and 74.25MHz and marginal at 40MHz; ~{Horizontal Blank}
+     changes on the very edge it is sampled on.
+   - The horizontal comparators are sampled half a clock after H changes
+     (about 19ns), so at 40MHz and above an event can come a clock late.
+   With the DAC's 50MHz limit (Video DAC Faults.txt) the 65 and 74.25MHz
+   clocks can't work; 40MHz is marginal.  1024x768 at 60Hz, the board's
+   highest mode, needs 65MHz (Y3, selection 6): so these, and the Memory
+   board's (its Faults file, fault 3), have to be fixed for it.
+
+
+10. Nothing is reset: the board comes up in any state
+
+   None of the write registers has a reset: the timing comparators' 16373s
+   (B3, B12, B6, B13, B21, B26), the pattern latch (B1), the palette byte
+   (IC3), the clock select (B37's 74LVC574) and the signal delay (B40's
+   74VHCT573).  B40's bit 7, which isn't in the notes, is the QS3253s' active
+   low enable: until $417 is written with bit 7 low, the sync and blank inputs
+   to the DAC float.
+
+   Effect: from power on until the driver has written every register, the
+   pixel clock can be any of the eight or stopped, the timing is random (the
+   monitor can be sent sync it can't take), the pixel address advances at
+   random and the DAC's sync and blank inputs can float.
+
+   Fix: the registers that make the output safe should come up in a known
+   state on ~{Reset}: at least the clock select (stopped, or a VGA clock) and
+   $417 bit 7 (disabled, with the DAC's blank inputs pulled to blanking), so
+   that nothing reaches the monitor until the driver has set the board up.
+   A 74LVC574 or 573 has no clear, so that means parts with one (74LVC273),
+   or pull-ups or pull-downs held by ~{Reset} through the latch's ~OE.  And
+   document bit 7.
+
+
+Questions (possibly intended)
+
+   - The horizontal registers are in 8 pixel steps.  The modes up to
+     1024x768 at 60Hz (1344 clocks: 1024, 24, 136, 160) are all multiples of 8.
+     1280x720 at 60Hz (CEA-861, 74.25MHz, Y4), meant for a later HDMI card,
+     isn't: 1650 clocks with a 110 front porch, 40 sync and 220 back porch, so
+     the nearest is 112/40/216, which a sink may not take.  An HDMI card would
+     want the horizontal registers to the pixel, and 74.25MHz is beyond every
+     path in fault 9 (the DAC aside, as HDMI is digital).
+   - Changing the clock select ($405) while the clock runs switches the
+     PI3B3251 live and can put runt pulses into every counter.
+   - Enable (B8) gates only the interrupt: the video runs whether or not the
+     board is enabled.
+   - IC1, the LD1117S50 (SOT-223), drops 12V to 5V for the whole board
+     including the DAC: at about 250mA that is about 1.75W.
