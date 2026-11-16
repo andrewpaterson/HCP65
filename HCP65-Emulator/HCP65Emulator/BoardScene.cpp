@@ -24,6 +24,7 @@
 #include "HCP65Lib/HCP65UART.h"
 #include "HCP65Lib/HCP65VIA.h"
 #include "HCP65Lib/HCP65PS2.h"
+#include "HCP65Lib/HCP65Video.h"
 #include "BoardScene.h"
 
 
@@ -83,6 +84,10 @@ static const SBoardSceneSocket gasBoardSceneSockets[BOARD_SCENE_NUM_SOCKETS] =
 
 //A board's model.  KiCad's exports are in the PCB's coordinates with y negated, but in what units depends on how they were
 //exported.  fEdgeY is the y in the PCB of the board's edge connector's footprint, which is the bottom of the board.
+//
+//A board can have another stacked on it (iStacked, 0 for none): the Video Board's Memory board on its Signals board.
+//The stacked board's PCB is laid out in the same coordinates, so it is only moved up, fStackHeight from the board's.
+//A stacked board's model has no type of its own: it is only shown on the board it stacks on.
 struct SBoardSceneModel
 {
 	const char*		szType;
@@ -91,19 +96,29 @@ struct SBoardSceneModel
 	float64			fMillimetresPerUnit;
 	float64			fEdgeY;
 	float64			fMaxErrorMillimetres;
+	int				iStacked;
+	float64			fStackHeight;
 };
+
+
+//The Video Board's Memory board stands on its Signals board's pin headers: the Signals board (1.6mm), a header's body
+//(2.5mm) and the Memory board's sockets (8.5mm).
+#define BOARD_SCENE_VIDEO_MEMORY		9
+#define BOARD_SCENE_VIDEO_STACK_HEIGHT	12.6
 
 
 static const SBoardSceneModel gasBoardSceneModels[BOARD_SCENE_NUM_MODELS] =
 {
-	{ NULL,						"../../Kicad/Computer/Main/Mainboard Small/Mainboard Small.wrl",	"Mainboard Small",	1000.0,	0.0,	BOARD_SCENE_MAINBOARD_MAX_ERROR_MM },
-	{ NULL,						"../../Kicad/Computer/Processor/Processor Board/Processor Board.wrl",	"Processor Board",	1000.0,	5.715,	BOARD_SCENE_CARD_MAX_ERROR_MM },
-	{ HCP65_SD_NAME,			"../../Kicad/Computer/SD Card/SD Card Board/SD Card Board.wrl",		"SD Card Board",	2.54,	4.699,	BOARD_SCENE_CARD_MAX_ERROR_MM },
-	{ HCP65_UART_NAME,			"../../Kicad/Computer/UART/UART Board/UART Board.wrl",				"UART Board",		2.54,	4.896,	BOARD_SCENE_CARD_MAX_ERROR_MM },
-	{ HCP65_AUDIO_NAME,			"../../Kicad/Computer/Audio/Audio Board/Audio Board.wrl",			"Audio Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM },
-	{ HCP65_MEMORY_BOARD_NAME,	"../../Kicad/Computer/Memory/Memory Board/Memory Board.wrl",		"Memory Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM },
-	{ HCP65_VIA_BOARD_NAME,		"../../Kicad/Computer/VIA/VIA Board/VIA Board.wrl",				"VIA Board",		2.54,	5.08,	BOARD_SCENE_CARD_MAX_ERROR_MM },
-	{ HCP65_PS2_BOARD_NAME,		"../../Kicad/Computer/PS2/PS2 Board/PS2 Board.wrl",				"PS2 Board",		2.54,	5.08,	BOARD_SCENE_CARD_MAX_ERROR_MM },
+	{ NULL,						"../../Kicad/Computer/Main/Mainboard Small/Mainboard Small.wrl",	"Mainboard Small",	1000.0,	0.0,	BOARD_SCENE_MAINBOARD_MAX_ERROR_MM,	0,	0.0 },
+	{ NULL,						"../../Kicad/Computer/Processor/Processor Board/Processor Board.wrl",	"Processor Board",	1000.0,	5.715,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_SD_NAME,			"../../Kicad/Computer/SD Card/SD Card Board/SD Card Board.wrl",		"SD Card Board",	2.54,	4.699,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_UART_NAME,			"../../Kicad/Computer/UART/UART Board/UART Board.wrl",				"UART Board",		2.54,	4.896,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_AUDIO_NAME,			"../../Kicad/Computer/Audio/Audio Board/Audio Board.wrl",			"Audio Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_MEMORY_BOARD_NAME,	"../../Kicad/Computer/Memory/Memory Board/Memory Board.wrl",		"Memory Board",		2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_VIA_BOARD_NAME,		"../../Kicad/Computer/VIA/VIA Board/VIA Board.wrl",				"VIA Board",		2.54,	5.08,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_PS2_BOARD_NAME,		"../../Kicad/Computer/PS2/PS2 Board/PS2 Board.wrl",				"PS2 Board",		2.54,	5.08,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
+	{ HCP65_VIDEO_BOARD_NAME,	"../../Kicad/Computer/Video/Video Board - Signals/Video Board - Signals.wrl",	"Video Board - Signals",	2.54,	4.445,	BOARD_SCENE_CARD_MAX_ERROR_MM,	BOARD_SCENE_VIDEO_MEMORY,	BOARD_SCENE_VIDEO_STACK_HEIGHT },
+	{ NULL,						"../../Kicad/Computer/Video/Video Board - Memory/Video Board - Memory.wrl",		"Video Board - Memory",		2.54,	0.0,	BOARD_SCENE_CARD_MAX_ERROR_MM,	0,	0.0 },
 };
 
 
@@ -193,6 +208,7 @@ void CBoardSceneDraw::InitScene(void)
 		pSocket->msLocalMatrix.pos.Init(0.0f, (float32)(BOARD_SCENE_SLOT_MIDDLE - gasBoardSceneSockets[uiSocket].fFootprintY), (float32)BOARD_SCENE_SEAT, 1.0f);
 		mpMainboard->mapConnections.Add(pSocket);
 		maiShown[uiSocket] = -1;
+		mabStackShown[uiSocket] = false;
 	}
 	mbMainboardShown = false;
 
@@ -222,6 +238,7 @@ void CBoardSceneDraw::Class(void)
 	M_Embedded(mapModels);
 	U_Data(bool[BOARD_SCENE_NUM_MODELS], mabTried);
 	U_Data(int[BOARD_SCENE_NUM_SOCKETS], maiShown);
+	U_Data(bool[BOARD_SCENE_NUM_SOCKETS], mabStackShown);
 	U_Bool(mbMainboardShown);
 	U_Unknown(CRasterRenderFactory, mcFactory);
 	M_Pointer(mpRenderScene);
@@ -385,6 +402,11 @@ bool CBoardSceneDraw::LoadNext(const char** aszTypes)
 			LoadModel(iModel);
 			return true;
 		}
+		if ((iModel >= 0) && gasBoardSceneModels[iModel].iStacked && !mabTried[gasBoardSceneModels[iModel].iStacked])
+		{
+			LoadModel(gasBoardSceneModels[iModel].iStacked);
+			return true;
+		}
 	}
 	return false;
 }
@@ -413,7 +435,7 @@ int CBoardSceneDraw::FindModel(size uiSocket, const char** aszTypes)
 	}
 	for (iModel = BOARD_SCENE_FIRST_CARD; iModel < BOARD_SCENE_NUM_MODELS; iModel++)
 	{
-		if (strcmp(szType, gasBoardSceneModels[iModel].szType) == 0)
+		if (gasBoardSceneModels[iModel].szType && (strcmp(szType, gasBoardSceneModels[iModel].szType) == 0))
 		{
 			return iModel;
 		}
@@ -635,12 +657,14 @@ void CBoardSceneDraw::FitCamera(void)
 // bottom edge sits on the floor of the socket's slot.
 //
 //////////////////////////////////////////////////////////////////////////
-void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket)
+void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket, bool bStack)
 {
 	Ptr<CInstance>		pInstance;
 	Ptr<CInstanceMesh>	pInstanceMesh;
 	Ptr<CConnection>	pConnection;
+	Ptr<CConnection>	pStacked;
 	SFloat4x4*			psLocal;
+	int					iStacked;
 
 	pConnection = OMalloc<CConnection>();
 	pConnection->mpParent = mpMainboard->mapConnections.Get(BOARD_SCENE_FIRST_SOCKET_CONNECTION + uiSocket);
@@ -655,6 +679,20 @@ void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket)
 	pInstance->mszName.Set(gasBoardSceneModels[iModel].szSaved);
 	pInstance->mapConnections.Add(pConnection);
 	pInstance->mapMeshes.Add(pInstanceMesh);
+
+	//The stacked board, moved up from this one in the PCB's coordinates.
+	if (bStack)
+	{
+		iStacked = gasBoardSceneModels[iModel].iStacked;
+		pStacked = OMalloc<CConnection>();
+		pStacked->mpParent = pConnection;
+		pStacked->msLocalMatrix.pos.Init(0.0f, 0.0f, (float32)gasBoardSceneModels[iModel].fStackHeight, 1.0f);
+
+		pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(iStacked));
+		pInstanceMesh->mapConnections.Add(pStacked);
+		pInstance->mapConnections.Add(pStacked);
+		pInstance->mapMeshes.Add(pInstanceMesh);
+	}
 	mpScene->mapInstances.Add(pInstance);
 }
 
@@ -671,6 +709,7 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 {
 	Ptr<CInstanceMesh>	pInstanceMesh;
 	int					aiShown[BOARD_SCENE_NUM_SOCKETS];
+	bool				abStackShown[BOARD_SCENE_NUM_SOCKETS];
 	bool				bMainboard;
 	bool				bChanged;
 	size				uiSocket;
@@ -682,7 +721,8 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 	{
 		iModel = FindModel(uiSocket, aszTypes);
 		aiShown[uiSocket] = ((iModel >= 0) && IsLoaded(iModel)) ? iModel : -1;
-		bChanged |= aiShown[uiSocket] != maiShown[uiSocket];
+		abStackShown[uiSocket] = (aiShown[uiSocket] >= 0) && gasBoardSceneModels[iModel].iStacked && IsLoaded(gasBoardSceneModels[iModel].iStacked);
+		bChanged |= (aiShown[uiSocket] != maiShown[uiSocket]) || (abStackShown[uiSocket] != mabStackShown[uiSocket]);
 	}
 	if (!bChanged)
 	{
@@ -703,9 +743,10 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 	for (uiSocket = 0; uiSocket < BOARD_SCENE_NUM_SOCKETS; uiSocket++)
 	{
 		maiShown[uiSocket] = aiShown[uiSocket];
+		mabStackShown[uiSocket] = abStackShown[uiSocket];
 		if (aiShown[uiSocket] >= 0)
 		{
-			AddStandingBoard(aiShown[uiSocket], uiSocket);
+			AddStandingBoard(aiShown[uiSocket], uiSocket, abStackShown[uiSocket]);
 		}
 	}
 	mpScene->UpdateConnections();

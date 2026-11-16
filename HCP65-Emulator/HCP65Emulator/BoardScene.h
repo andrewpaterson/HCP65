@@ -18,7 +18,7 @@
 #define BOARD_SCENE_WIDTH		640
 #define BOARD_SCENE_HEIGHT		782		//With the combo boxes under it the dialog fits over the emulator's window.
 #define BOARD_SCENE_WORKERS		8		//One a core here.  More only added hyperthreads, for 4ms a frame.
-#define BOARD_SCENE_NUM_MODELS	8		//The Small Mainboard, the Processor Board and the boards CHCP65Mainboard can make.
+#define BOARD_SCENE_NUM_MODELS	10		//The Small Mainboard, the Processor Board and the boards CHCP65Mainboard can make.
 #define BOARD_SCENE_NUM_SOCKETS	7		//The Processor Board's and the six the Small Mainboard has for devices.
 
 
@@ -48,6 +48,7 @@ protected:
 	CArray<CMeshEditor>		mapModels;		//BOARD_SCENE_NUM_MODELS of them, with empty meshes until loaded.
 	bool					mabTried[BOARD_SCENE_NUM_MODELS];	//It has been loaded, or couldn't be.
 	int						maiShown[BOARD_SCENE_NUM_SOCKETS];	//The model standing in each socket, or -1.
+	bool					mabStackShown[BOARD_SCENE_NUM_SOCKETS];	//The board stacked on it is shown too.
 	bool					mbMainboardShown;
 	CRasterRenderFactory	mcFactory;
 	Ptr<CRenderScene>		mpRenderScene;
@@ -84,7 +85,7 @@ protected:
 	bool		LoadSourceModel(int iModel, const char* szSaved);
 	bool		IsLoaded(int iModel);
 	int			FindModel(size uiSocket, const char** aszTypes);
-	void		AddStandingBoard(int iModel, size uiSocket);
+	void		AddStandingBoard(int iModel, size uiSocket, bool bStack);
 	void		FitCamera(void);
 };
 
