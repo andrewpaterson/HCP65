@@ -33,6 +33,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define ASM65_IMAGE_FILL			"Fill"
 #define ASM65_IMAGE_LIMIT			"Limit"
 #define ASM65_IMAGE_LOAD			"Load"
+#define ASM65_IMAGE_TEXT			"Text"
 #define ASM65_IMAGE_REGION_TAG		"Region"
 #define ASM65_IMAGE_REGION_START	"Start"
 #define ASM65_IMAGE_REGION_END		"End"
@@ -60,6 +61,7 @@ void CAsm65Image::Init(const char* szFile, uint32 uiSize, uint8 uiFill, uint32 u
 	muiFill = uiFill;
 	muiLimit = uiLimit;
 	muiLoad = uiLoad;
+	muiText = 0;
 	masRegions.Init();
 	mpuiImage = NULL;
 }
@@ -94,6 +96,17 @@ void CAsm65Image::AddRegion(uint32 uiStart, uint32 uiEnd, uint32 uiOffset)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Where the linker starts placing code, zero for its default.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Image::SetText(uint32 uiText)
+{
+	muiText = uiText;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65Image::SaveXML(CXMLWriter* pcWriter)
@@ -107,6 +120,10 @@ void CAsm65Image::SaveXML(CXMLWriter* pcWriter)
 	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_FILL, muiFill);
 	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_LIMIT, muiLimit);
 	Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_LOAD, muiLoad);
+	if (muiText != 0)
+	{
+		Asm65WriteHexAttribute(pcWriter, ASM65_IMAGE_TEXT, muiText);
+	}
 	for (i = 0; i < masRegions.NumElements(); i++)
 	{
 		psRegion = masRegions.Get(i);
@@ -124,7 +141,8 @@ void CAsm65Image::SaveXML(CXMLWriter* pcWriter)
 //
 // False if pcTag isn't an image with a file, a size and at least one
 // region, each region inside the image.  Fill (default $FF), Limit
-// (default none) and Load (default zero) may be left out.  Call it on an
+// (default none), Load (default zero) and Text (default the linker's) may
+// be left out.  Call it on an
 // image just Init'ed.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -162,6 +180,12 @@ bool CAsm65Image::LoadXML(CMarkupTag* pcTag)
 	}
 	muiLoad = 0;
 	if (pcTag->GetStringAttribute(ASM65_IMAGE_LOAD) && !Asm65ReadUint32Attribute(pcTag, ASM65_IMAGE_LOAD, &muiLoad))
+	{
+		return false;
+	}
+
+	muiText = 0;
+	if (pcTag->GetStringAttribute(ASM65_IMAGE_TEXT) && !Asm65ReadUint32Attribute(pcTag, ASM65_IMAGE_TEXT, &muiText))
 	{
 		return false;
 	}
@@ -275,6 +299,16 @@ uint32 CAsm65Image::GetSize(void)							{ return muiSize; }
 uint8 CAsm65Image::GetFill(void)							{ return muiFill; }
 uint32 CAsm65Image::GetLimit(void)							{ return muiLimit; }
 uint32 CAsm65Image::GetLoad(void)							{ return muiLoad; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CAsm65Image::GetText(void)
+{
+	return muiText;
+}
 size CAsm65Image::NumRegions(void)							{ return masRegions.NumElements(); }
 SAsm65ImageRegion* CAsm65Image::GetRegion(size uiIndex)		{ return masRegions.Get(uiIndex); }
 uint8* CAsm65Image::GetImage(void)							{ return mpuiImage; }

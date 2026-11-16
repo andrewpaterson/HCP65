@@ -42,11 +42,13 @@ typedef CArrayTemplate<SAsm65ImageRegion>	CArrayAsm65ImageRegions;
 //A linked program as a file of a fixed size: a ROM, or anything else loaded whole.  Each segment the linker output
 //goes where its region says; bytes nothing goes in are the fill (erased flash is $FF).  A segment not wholly inside
 //one region is an error.  The limit is the highest address the linker may place anything at (CCPP65Builder::
-//SetLimit, zero for none) and the load address is where a debugger writes the image.  A build configuration
-//describes one as
+//SetLimit, zero for none) and the load address is where a debugger writes the image.  The text address, if not zero,
+//is where the linker starts placing code (CAsm65Linker::SetAddress(ASK65_Text)), for an image that doesn't run from
+//$10000.  A build configuration describes one as
 //
-//	<Image File="Kernal.rom" Size="0x80000" Fill="0xFF" Limit="0x7FC00" Load="0x0">
-//		<Region Start="0x0" End="0x40000" Offset="0x0"/>
+//	<Image File="Boot.rom" Size="0x80000" Fill="0xFF" Limit="0x60000" Load="0x0" Text="0x40000">
+//		<Region Start="0xFF00" End="0x10000" Offset="0xFF00"/>
+//		<Region Start="0x40000" End="0x60000" Offset="0x40000"/>
 //	</Image>
 //
 //with numbers in hexadecimal (0x) or decimal.
@@ -58,6 +60,7 @@ protected:
 	uint8						muiFill;
 	uint32						muiLimit;
 	uint32						muiLoad;
+	uint32						muiText;
 	CArrayAsm65ImageRegions		masRegions;
 	uint8*						mpuiImage;
 
@@ -67,6 +70,7 @@ public:
 	void				Kill(void);
 
 	void				AddRegion(uint32 uiStart, uint32 uiEnd, uint32 uiOffset);
+	void				SetText(uint32 uiText);
 
 	void				SaveXML(CXMLWriter* pcWriter);
 	bool				LoadXML(CMarkupTag* pcTag);
@@ -79,6 +83,7 @@ public:
 	uint8				GetFill(void);
 	uint32				GetLimit(void);
 	uint32				GetLoad(void);
+	uint32				GetText(void);
 	size				NumRegions(void);
 	SAsm65ImageRegion*	GetRegion(size uiIndex);
 	uint8*				GetImage(void);
