@@ -43,9 +43,10 @@ struct SKernalPS2Port
 //own process (mbSeparateUnits).  The board is enabled with its interrupt on from Init, and the interrupt, which is
 //trusted (it only touches the board and the rings), takes each port's bytes as their packets end.
 //
-//A byte is sent by hand through the GPIO: once the port has been quiet long enough for any packet to have ended (and its
-//byte been taken), Clock is held low, Data taken low and Clock let go, and each bit is put on Data while the device
-//holds Clock low.  The clocks make a packet of their own, whose byte is thrown away.
+//A byte is sent by hand through the GPIO: once no packet can be under way (one has just ended, or the port has been quiet
+//longer than a packet's quiet) and the FIFO's bytes have been taken, Clock is held low, Data taken low and Clock let go,
+//and each bit is put on Data while the device holds Clock low.  The clocks make a packet of their own, whose byte is
+//thrown away.
 class CKernalPS2Board : public CKernalDriver
 {
 protected:

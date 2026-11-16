@@ -348,21 +348,34 @@ bool CKernalPS2Board::SendBits(uint16 uiPort, uint16 uiFrame)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Until Clock has been high for PS2_QUIET_TICKS, so any packet has ended,
-// then the bytes the FIFO holds into the ring: holding Clock low would
-// otherwise run into a packet that hasn't ended yet, losing its byte.  A
-// device that keeps sending is given PS2_BOARD_SEND_TICKS.
+// Until no packet can be under way, then the bytes the FIFO holds into the
+// ring: holding Clock low while a packet hasn't ended would run into it,
+// losing its byte.  With the port's waiting cleared, either a packet ends
+// (the device's last frame, a byte that is now in the FIFO), or Clock is
+// high for PS2_QUIET_TICKS, longer than any packet's quiet.  A device
+// that keeps sending ends a packet after each frame, so the send can go
+// then: a frame the device has started by the time Clock is held low is
+// given up and sent again.  It is given PS2_BOARD_SEND_TICKS in all.
 //
 //////////////////////////////////////////////////////////////////////////
 void CKernalPS2Board::WaitQuiet(uint16 uiPort)
 {
 	uint32	uiStart;
 	uint32	uiQuiet;
+	uint8	uiNoPacket;
+
+	uiNoPacket = (uint8)(PS2_STATE_NO_PACKET << (uiPort * PS2_STATE_PORT_SHIFT));
+	mpuiRegisters[PS2_FIFO + uiPort] = 0;
+	Take(uiPort, false);
 
 	uiStart = KernalTicks();
 	uiQuiet = uiStart;
 	while ((KernalTicks() - uiQuiet) < PS2_QUIET_TICKS)
 	{
+		if (!(mpuiRegisters[PS2_STATE] & uiNoPacket))
+		{
+			break;
+		}
 		if (!IsLineHigh(uiPort, PS2_DIRECT_CLOCK))
 		{
 			uiQuiet = KernalTicks();
