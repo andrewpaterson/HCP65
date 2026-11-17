@@ -47,7 +47,7 @@ void CKernalPS2Board::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalPS2Board::NumUnits(void)
+uint16 CKernalPS2Board::NumUnits(void) const
 {
 	return PS2_NUM_PORTS;
 }

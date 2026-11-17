@@ -65,7 +65,7 @@ void CKernalVIABoard::Kill(void)
 // All eight, fitted or not, so that a unit is always the same VIA.
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalVIABoard::NumUnits(void)
+uint16 CKernalVIABoard::NumUnits(void) const
 {
 	return VIA_BOARD_NUM_VIAS;
 }

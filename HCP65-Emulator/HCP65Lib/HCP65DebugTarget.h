@@ -27,39 +27,39 @@ public:
 	void			Init(CHCP65* pcHCP65);
 	void			Kill(void);
 
-	const char*		GetProcessorName(void) override;
-	size			NumAddressBits(void) override;
-	EDebugAddressFormat	GetAddressFormat(void) override;
-	size			NumRegisters(void) override;
+	const char*		GetProcessorName(void) const override;
+	size			NumAddressBits(void) const override;
+	EDebugAddressFormat	GetAddressFormat(void) const override;
+	size			NumRegisters(void) const override;
 	void			GetRegister(size uiRegister, SDebugRegister* psDest) override;
 	uint64			GetRegisterValue(size uiRegister) override;
 	bool			SetRegisterValue(size uiRegister, uint64 uiValue) override;
 
 	uint32			GetProgramAddress(void) override;
 	void			SetProgramAddress(uint32 uiAddress) override;
-	uint32			GetStackPointer(void) override;
+	uint32			GetStackPointer(void) const override;
 
 	CBreakpoints*	GetBreakpoints(void) override;
-	size			NumBreakpointSpaces(void) override;
+	size			NumBreakpointSpaces(void) const override;
 	const char*		GetBreakpointSpaceName(size uiSpace) override;
 	CBreakpoints*	GetSpaceBreakpoints(size uiSpace) override;
 	CBreakpoints*	GetProcessBreakpoints(size uiSpace, uint32 uiProcess) override;
 	void			ClearBreakpoints(void) override;
 	void			EnableAllBreakpoints(bool bEnabled) override;
 
-	bool			HasProcesses(void) override;
-	size			NumProcesses(void) override;
+	bool			HasProcesses(void) const override;
+	size			NumProcesses(void) const override;
 	bool			GetProcess(size uiIndex, SDebugProcess* psDest) override;
 	void			WatchEvents(bool bWatch) override;
 	bool			TakeProcessEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest) override;
-	bool			HasModules(void) override;
-	size			NumModules(void) override;
+	bool			HasModules(void) const override;
+	size			NumModules(void) const override;
 	bool			GetModule(size uiIndex, SDebugModule* psDest) override;
 	bool			TakeModuleEvent(EDebugModuleEvent* peEvent, SDebugModule* psDest) override;
-	uint32			GetCurrentSpace(void) override;
-	uint32			GetCurrentProcess(void) override;
-	bool			IsAtBreakpoint(void) override;
-	bool			IsStopped(void) override;
+	uint32			GetCurrentSpace(void) const override;
+	uint32			GetCurrentProcess(void) const override;
+	bool			IsAtBreakpoint(void) const override;
+	bool			IsStopped(void) const override;
 
 	void			Run(uint64 uiBudget) override;
 	bool			Step(void) override;

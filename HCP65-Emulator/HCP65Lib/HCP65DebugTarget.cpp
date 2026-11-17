@@ -26,9 +26,9 @@ void CHCP65DebugTarget::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-const char* CHCP65DebugTarget::GetProcessorName(void)	{ return "W65C816"; }
-size CHCP65DebugTarget::NumAddressBits(void)			{ return 24; }
-size CHCP65DebugTarget::NumRegisters(void)				{ return HCP65_DEBUG_NUM_REGISTERS; }
+const char* CHCP65DebugTarget::GetProcessorName(void) const	{ return "W65C816"; }
+size CHCP65DebugTarget::NumAddressBits(void) const			{ return 24; }
+size CHCP65DebugTarget::NumRegisters(void) const				{ return HCP65_DEBUG_NUM_REGISTERS; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -77,11 +77,11 @@ bool CHCP65DebugTarget::SetRegisterValue(size uiRegister, uint64 uiValue)
 	return SetW65C816DebugRegisterValue(mpcHCP65->GetMPU(), uiRegister, uiValue);
 }
 uint32 CHCP65DebugTarget::GetProgramAddress(void)		{ return mpcHCP65->GetMPU()->GetProgramAddress(); }
-uint32 CHCP65DebugTarget::GetStackPointer(void)			{ return mpcHCP65->GetMPU()->GetS(); }
+uint32 CHCP65DebugTarget::GetStackPointer(void) const			{ return mpcHCP65->GetMPU()->GetS(); }
 CBreakpoints* CHCP65DebugTarget::GetBreakpoints(void)	{ return mpcHCP65->GetModeBreakpoints(true); }
-size CHCP65DebugTarget::NumBreakpointSpaces(void)		{ return 2; }
-bool CHCP65DebugTarget::IsAtBreakpoint(void)			{ return mpcHCP65->IsAtBreakpoint(); }
-bool CHCP65DebugTarget::IsStopped(void)					{ return mpcHCP65->IsStopped(); }
+size CHCP65DebugTarget::NumBreakpointSpaces(void) const		{ return 2; }
+bool CHCP65DebugTarget::IsAtBreakpoint(void) const			{ return mpcHCP65->IsAtBreakpoint(); }
+bool CHCP65DebugTarget::IsStopped(void) const					{ return mpcHCP65->IsStopped(); }
 void CHCP65DebugTarget::Run(uint64 uiBudget)			{ mpcHCP65->Run(uiBudget); }
 void CHCP65DebugTarget::Reset(void)						{ mpcHCP65->Reset(); }
 
@@ -156,7 +156,7 @@ size CHCP65DebugTarget::PokeMemory(uint32 uiAddress, void* pvSource, size uiSize
 
 
 CDebugDecoder* CHCP65DebugTarget::GetDecoder(void)				{ return &mcDecoder; }
-EDebugAddressFormat CHCP65DebugTarget::GetAddressFormat(void)	{ return DAF_Bank; }
+EDebugAddressFormat CHCP65DebugTarget::GetAddressFormat(void) const	{ return DAF_Bank; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -203,8 +203,8 @@ CBreakpoints* CHCP65DebugTarget::GetProcessBreakpoints(size uiSpace, uint32 uiPr
 // mode is space 2, in the process the kernal says is running.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65DebugTarget::GetCurrentSpace(void)		{ return mpcHCP65->IsKernelMode() ? 1 : 2; }
-uint32 CHCP65DebugTarget::GetCurrentProcess(void)	{ return mpcHCP65->IsKernelMode() ? DEBUG_PROCESS_ANY : mpcHCP65->GetProcessID(); }
+uint32 CHCP65DebugTarget::GetCurrentSpace(void) const		{ return mpcHCP65->IsKernelMode() ? 1 : 2; }
+uint32 CHCP65DebugTarget::GetCurrentProcess(void) const	{ return mpcHCP65->IsKernelMode() ? DEBUG_PROCESS_ANY : mpcHCP65->GetProcessID(); }
 
 
 void CHCP65DebugTarget::ClearBreakpoints(void)					{ mpcHCP65->ClearBreakpoints(); }
@@ -216,8 +216,8 @@ void CHCP65DebugTarget::EnableAllBreakpoints(bool bEnabled)		{ mpcHCP65->EnableA
 // The kernal's processes, as it tells the debug port of them.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65DebugTarget::HasProcesses(void)								{ return true; }
-size CHCP65DebugTarget::NumProcesses(void)								{ return mpcHCP65->GetDebugPort()->NumProcesses(); }
+bool CHCP65DebugTarget::HasProcesses(void) const								{ return true; }
+size CHCP65DebugTarget::NumProcesses(void) const								{ return mpcHCP65->GetDebugPort()->NumProcesses(); }
 bool CHCP65DebugTarget::GetProcess(size uiIndex, SDebugProcess* psDest)	{ return mpcHCP65->GetDebugPort()->GetProcess(uiIndex, psDest); }
 
 
@@ -265,8 +265,8 @@ static void HCP65DebugModule(SHCP65DebugDriver* psDriver, SDebugModule* psDest)
 }
 
 
-bool CHCP65DebugTarget::HasModules(void)								{ return true; }
-size CHCP65DebugTarget::NumModules(void)								{ return mpcHCP65->GetDebugPort()->NumDrivers(); }
+bool CHCP65DebugTarget::HasModules(void) const								{ return true; }
+size CHCP65DebugTarget::NumModules(void) const								{ return mpcHCP65->GetDebugPort()->NumDrivers(); }
 
 
 //////////////////////////////////////////////////////////////////////////

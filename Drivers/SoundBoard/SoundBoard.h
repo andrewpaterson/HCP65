@@ -15,7 +15,7 @@ protected:
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
 
-	uint16	NumUnits(void) override;
+	uint16	NumUnits(void) const override;
 	void	Interrupt(void) override;
 
 	uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone) override;

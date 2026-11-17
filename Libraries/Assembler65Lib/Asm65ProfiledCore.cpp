@@ -55,7 +55,7 @@ bool CAsm65ProfiledCore::SetsFrame(uint32 uiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CAsm65ProfiledCore::GetFrame(void)
+uint16 CAsm65ProfiledCore::GetFrame(void) const
 {
 	return 0;
 }
@@ -76,7 +76,7 @@ void CAsm65ProfiledW65C816::Init(CAsm65Memory* pcMemory, CFastW65C816* pcFast)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65ProfiledW65C816::IsStopped(void)
+bool CAsm65ProfiledW65C816::IsStopped(void) const
 {
 	return mpcFast->IsStopped();
 }
@@ -86,7 +86,7 @@ bool CAsm65ProfiledW65C816::IsStopped(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CAsm65ProfiledW65C816::NumCycles(void)
+uint64 CAsm65ProfiledW65C816::NumCycles(void) const
 {
 	return mpcFast->NumCycles();
 }
@@ -170,7 +170,7 @@ bool CAsm65ProfiledW65C816::SetsFrame(uint32 uiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CAsm65ProfiledW65C816::GetFrame(void)
+uint16 CAsm65ProfiledW65C816::GetFrame(void) const
 {
 	return mpcFast->GetD();
 }
@@ -182,7 +182,7 @@ uint16 CAsm65ProfiledW65C816::GetFrame(void)
 // on the stack between them).
 //
 //////////////////////////////////////////////////////////////////////////
-const char* CAsm65ProfiledW65C816::GetRegisterEntryLetters(void)
+const char* CAsm65ProfiledW65C816::GetRegisterEntryLetters(void) const
 {
 	return "axys";
 }
@@ -203,7 +203,7 @@ void CAsm65Profiled65C64::Init(CAsm65Memory* pcMemory, CFast65C64* pcFast)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65Profiled65C64::IsStopped(void)
+bool CAsm65Profiled65C64::IsStopped(void) const
 {
 	return mpcFast->IsStopped();
 }
@@ -213,7 +213,7 @@ bool CAsm65Profiled65C64::IsStopped(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CAsm65Profiled65C64::NumCycles(void)
+uint64 CAsm65Profiled65C64::NumCycles(void) const
 {
 	return mpcFast->NumCycles();
 }
@@ -278,7 +278,7 @@ bool CAsm65Profiled65C64::IsReturn(uint32 uiAddress)
 // on the stack between them).
 //
 //////////////////////////////////////////////////////////////////////////
-const char* CAsm65Profiled65C64::GetRegisterEntryLetters(void)
+const char* CAsm65Profiled65C64::GetRegisterEntryLetters(void) const
 {
 	return "abys";
 }

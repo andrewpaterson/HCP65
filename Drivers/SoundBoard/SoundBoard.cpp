@@ -34,7 +34,7 @@ uint16 CKernalSoundBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSoundBoard::NumUnits(void)
+uint16 CKernalSoundBoard::NumUnits(void) const
 {
 	return 2;
 }

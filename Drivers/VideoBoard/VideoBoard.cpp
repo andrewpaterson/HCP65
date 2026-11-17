@@ -59,7 +59,7 @@ void CKernalVideoBoard::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalVideoBoard::NumUnits(void)
+uint16 CKernalVideoBoard::NumUnits(void) const
 {
 	return VIDEO_BOARD_FONT + 1;
 }

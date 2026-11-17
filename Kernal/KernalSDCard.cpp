@@ -95,7 +95,7 @@ void CKernalSDCardBoard::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSDCardBoard::NumUnits(void)
+uint16 CKernalSDCardBoard::NumUnits(void) const
 {
 	return KERNAL_SD_NUM_SOCKETS;
 }

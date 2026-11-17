@@ -74,7 +74,7 @@ public:
 	uint16			Init(SKernalDevice* psDevice, uint16 uiSlot) override;
 	void			Kill(void) override;
 
-	uint16			NumUnits(void) override;
+	uint16			NumUnits(void) const override;
 	void			Interrupt(void) override;
 
 	CKernalSDCard*	GetCard(uint16 uiSocket);

@@ -52,7 +52,7 @@ void CKernalDriver::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalDriver::NumUnits(void)
+uint16 CKernalDriver::NumUnits(void) const
 {
 	return 1;
 }

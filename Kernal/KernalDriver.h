@@ -54,7 +54,7 @@ public:
 	virtual uint16	Init(SKernalDevice* psDevice, uint16 uiSlot);
 	virtual void	Kill(void);
 
-	virtual uint16	NumUnits(void);
+	virtual uint16	NumUnits(void) const;
 	virtual void	Interrupt(void);
 
 	uint16			Open(uint16 uiUnit, uint8 uiProcess);

@@ -32,8 +32,8 @@ class CAsm65ProfiledCore
 public:
 	virtual					~CAsm65ProfiledCore(void);
 
-	virtual bool			IsStopped(void) =0;
-	virtual uint64			NumCycles(void) =0;
+	virtual bool			IsStopped(void) const =0;
+	virtual uint64			NumCycles(void) const =0;
 	virtual uint32			GetProgramAddress(void) =0;		//Of the instruction Step runs next.
 	virtual uint32			GetStack(void) =0;				//S: lower while a call runs than when it was made.
 	virtual void			Step(void) =0;
@@ -44,10 +44,10 @@ public:
 	//A frame register whose value says whose frame an instruction's operand is in (the W65C816's D): none by default.
 	virtual bool			HasFrameOperand(uint32 uiAddress);	//The instruction there reads or writes through it.
 	virtual bool			SetsFrame(uint32 uiAddress);		//The instruction there sets it.
-	virtual uint16			GetFrame(void);
+	virtual uint16			GetFrame(void) const;
 
 	//The letters after a function's label and a dot that name its register argument entry ("axy").
-	virtual const char*		GetRegisterEntryLetters(void) =0;
+	virtual const char*		GetRegisterEntryLetters(void) const =0;
 };
 
 
@@ -61,8 +61,8 @@ protected:
 public:
 	void			Init(CAsm65Memory* pcMemory, CFastW65C816* pcFast);
 
-	bool			IsStopped(void) override;
-	uint64			NumCycles(void) override;
+	bool			IsStopped(void) const override;
+	uint64			NumCycles(void) const override;
 	uint32			GetProgramAddress(void) override;
 	uint32			GetStack(void) override;
 	void			Step(void) override;
@@ -70,8 +70,8 @@ public:
 	bool			IsReturn(uint32 uiAddress) override;
 	bool			HasFrameOperand(uint32 uiAddress) override;
 	bool			SetsFrame(uint32 uiAddress) override;
-	uint16			GetFrame(void) override;
-	const char*		GetRegisterEntryLetters(void) override;
+	uint16			GetFrame(void) const override;
+	const char*		GetRegisterEntryLetters(void) const override;
 };
 
 
@@ -85,14 +85,14 @@ protected:
 public:
 	void			Init(CAsm65Memory* pcMemory, CFast65C64* pcFast);
 
-	bool			IsStopped(void) override;
-	uint64			NumCycles(void) override;
+	bool			IsStopped(void) const override;
+	uint64			NumCycles(void) const override;
 	uint32			GetProgramAddress(void) override;
 	uint32			GetStack(void) override;
 	void			Step(void) override;
 	bool			IsCall(uint32 uiAddress) override;
 	bool			IsReturn(uint32 uiAddress) override;
-	const char*		GetRegisterEntryLetters(void) override;
+	const char*		GetRegisterEntryLetters(void) const override;
 };
 
 

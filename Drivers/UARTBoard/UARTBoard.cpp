@@ -481,7 +481,7 @@ void CKernalUARTBoard::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalUARTBoard::NumUnits(void)
+uint16 CKernalUARTBoard::NumUnits(void) const
 {
 	return 2;
 }
