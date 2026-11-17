@@ -26,8 +26,9 @@
 //has happened by then).
 //
 //Text (VIDEO_BOARD_SET_TEXT_MODE) is a mode's Width / 8 by Height / 16 cells, each a character in a colour, drawn with
-//the font VIDEO_BOARD_FONT was given (256 glyphs of 16 bytes, a row a byte, its leftmost pixel bit 7).  The colours are
-//a VGA's sixteen (HCP65User.h's KERNAL_COLOUR_*): a cell's colour is its foreground (D0-D3) and background (D4-D6).
+//the font VIDEO_BOARD_FONT had been given when the mode was set (256 glyphs of 16 bytes, a row a byte, its leftmost
+//pixel bit 7).  The colours are a VGA's sixteen (HCP65User.h's KERNAL_COLOUR_*): a cell's colour is its foreground
+//(D0-D3) and background (D4-D6).
 //Writing VIDEO_BOARD_TEXT at an offset (row x columns + column) puts characters there in the text colour.  The driver
 //draws each cell in both frames, one at a vertical blank after the other, so what is written is shown at the next one;
 //the cursor's cell blinks.  The console (the kernal's) uses it this way: a program that wants the board while the

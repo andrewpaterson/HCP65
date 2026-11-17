@@ -79,6 +79,7 @@
   <ItemGroup>
     <ClCompile Include="VideoBoard.cpp" />
     <ClCompile Include="VideoBoardText.cpp" />
+    <ClCompile Include="VideoBoardRender.asm" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VideoBoard.h" />

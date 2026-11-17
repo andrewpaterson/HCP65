@@ -34,8 +34,13 @@
 //Text.
 #define VIDEO_TEXT_CELL_WIDTH			8
 #define VIDEO_TEXT_CELL_HEIGHT			16
-#define VIDEO_TEXT_MAX_CELLS			(128 * 48)	//1024x768's.
-#define VIDEO_TEXT_MAX_PENDING			512			//Cells owed to the other frame before it is all drawn again.
+#define VIDEO_TEXT_MAX_COLUMNS			128			//1024x768's.
+#define VIDEO_TEXT_MAX_ROWS				48
+#define VIDEO_TEXT_MAX_CELLS			(VIDEO_TEXT_MAX_COLUMNS * VIDEO_TEXT_MAX_ROWS)
+#define VIDEO_TEXT_MAX_PENDING			2048		//Cells owed to the other frame before it is all drawn again.
+#define VIDEO_TEXT_GLYPH_SIZE			(VIDEO_TEXT_CELL_WIDTH * VIDEO_TEXT_CELL_HEIGHT)	//A glyph expanded: a byte a pixel.
+#define VIDEO_TEXT_FONT_OFFSET			0x1F0000	//Where the expanded font is in each frame: its last 64KB, far above the picture.
+#define VIDEO_TEXT_NO_CLEAR				0xFF		//mauiRowClears: the row isn't owed a clear.
 #define VIDEO_TEXT_DEFAULT_COLOUR		0x07		//Light grey on black.
 #define VIDEO_TEXT_BLINK_FRAMES			16			//The cursor's blink: about a quarter of a second on, then off.
 #define VIDEO_TEXT_FLIP_TICKS			16			//The longest a mode change waits for a vertical blank (KERNAL_TICKS_PER_SECOND).
@@ -71,8 +76,11 @@ protected:
 	uint32			muiWindow;		//The main memory window's first address, 0 if it can't be reached.
 
 	//Text.  A cell's physical row is its row moved down by the scroll, muiTop (the row table shows physical row muiTop
-	//first).  What each cell is (mauiChars, mauiColours) is drawn in the frame being drawn, and the cells the other
-	//frame is owed are kept (mauiPending, or all of them) to draw in it once the frames have flipped (mbFlipped).
+	//first); a cell is its physical row (D8-D15) and column (D0-D7).  What each cell is (mauiChars, mauiColours, at
+	//mauiRowCells[row] + column) is drawn in the frame being drawn, and what the other frame is owed is kept to draw in
+	//it once the frames have flipped (mbFlipped): rows to clear (mauiRowClears, the colour), then cells (mauiPending,
+	//or all of them).  A cell is drawn from its glyph expanded to a byte a pixel, which is in each frame's own memory
+	//at VIDEO_TEXT_FONT_OFFSET (the driver must fit a bank), by VideoBoardRender.asm.
 	bool			mbText;
 	uint16			muiColumns;
 	uint16			muiRows;
@@ -84,11 +92,13 @@ protected:
 	uint16			muiPending;
 	bool			mbPendingAll;
 	volatile bool	mbFlipped;
+	uint16			mauiRowCells[VIDEO_TEXT_MAX_ROWS + 1];		//Each row's first cell in mauiChars: row x columns.
+	uint32			mauiRowPixels[VIDEO_TEXT_MAX_ROWS + 1];	//Each row's first pixel in a frame: row x 16 x width.
+	uint8			mauiRowClears[VIDEO_TEXT_MAX_ROWS];
 	uint8			mauiChars[VIDEO_TEXT_MAX_CELLS];
 	uint8			mauiColours[VIDEO_TEXT_MAX_CELLS];
 	uint16			mauiPending[VIDEO_TEXT_MAX_PENDING];
 	uint8			mauiFont[VIDEO_FONT_SIZE];
-	uint8			mauiExpand[256 * 8];	//A glyph row's byte as its eight pixels, 0 or 1.
 
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
@@ -113,12 +123,15 @@ protected:
 	bool	SetTextMode(uint8 uiMode);
 	void	SetTextPalette(uint8 uiPalette, uint8 uiBackground, uint8 uiForeground);
 	void	ClearTextFrame(void);
+	void	ExpandFont(void);
 	void	WriteTextRows(uint16 uiTop);
-	uint16	PhysicalCell(uint16 uiCell);
+	uint16	PhysicalCell(uint32 uiCell);
+	uint16	PhysicalRow(uint16 uiRow);
 	void	RenderCell(uint16 uiCell);
+	void	RenderRowClear(uint16 uiRow, uint8 uiColour);
 	void	CatchUp(void);
 	void	DrawCell(uint16 uiCell);
-	void	DrawAll(void);
+	void	ClearRow(uint16 uiRow);
 	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	uint16	ScrollText(uint32 uiLines);
 	uint16	ClearText(void);
