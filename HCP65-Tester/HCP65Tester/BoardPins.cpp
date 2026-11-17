@@ -794,7 +794,7 @@ bool CBoardPins::Is5VStyleB(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CBoardPins::NumPins(void)
+size CBoardPins::NumPins(void) const
 {
 	return miNumPins;
 }

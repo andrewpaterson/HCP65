@@ -110,7 +110,7 @@ public:
 
 	char*	GetPin(size iPinNumber);
 	
-	size	NumPins(void);
+	size	NumPins(void) const;
 
 	bool	Get(char* szPinName);
 	bool	Get(size iPinNumber);
