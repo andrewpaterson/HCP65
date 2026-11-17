@@ -1,14 +1,18 @@
-; The Video Board driver's text drawing (VideoBoardText.cpp), where the time goes: a cell's pixels and a row's clearing.
-; C functions without arguments, m and x 16 bit, D and the data bank kept; what they draw is in the driver's globals.
-; A cell's pixels never cross a bank (its address is a multiple of 8, a row's of 16), so the pointers to its words are
-; made by adding to the low word alone; the lines down it may, which [direct page],y carries into the bank.
+; The Video Board driver's text drawing (VideoBoardText.cpp), where the time goes: a glyph's runs, a cell's clearing and
+; a row's.  C functions without arguments, m and x 16 bit, D and the data bank kept; what they draw is in the driver's
+; globals.  A cell's pixels never cross a bank (its address is a multiple of 8, a row's of 16); the lines down it may.
 
-R_PIXEL0	= 1				; The cell's top row's four words (4 byte pointers).
-R_PIXEL1	= 5
-R_PIXEL2	= 9
-R_PIXEL3	= 13
-R_WIDTH		= 17			; The pixels in a line of the screen.
-R_FRAME		= 18
+R_DEST		= 1				; The row of the cell being drawn: its first pixel (a 4 byte pointer).
+R_WIDTH		= 5				; The pixels in a line of the screen.
+R_COUNT		= 7				; Pixels, or rows, still to do.
+R_FRAME		= 8
+
+C_PIXEL0	= 1				; The cell's top row's four words (4 byte pointers).
+C_PIXEL1	= 5
+C_PIXEL2	= 9
+C_PIXEL3	= 13
+C_WIDTH		= 17
+C_FRAME		= 18
 
 F_WORD0		= 1				; A row's first sixteen bytes, a word each (4 byte pointers).
 F_FRAME		= 32
@@ -18,11 +22,12 @@ F_FRAME		= 32
 		.relax
 
 
-; extern "C" void VideoDrawGlyph(void): the 8 by 16 pixels at guiVideoCellPixel from the expanded glyph at
-; guiVideoCellGlyph (128 bytes, a byte a pixel, in main memory), a word at a time with nothing looped.  The glyph is
-; read through the data bank and X, the pixels written through four pointers and Y, which steps down the lines.
-		.global _VideoDrawGlyph
-_VideoDrawGlyph:
+; extern "C" void VideoDrawRuns(void): a transparent SFT image's runs (UserLib/HCP65SFT.h), from the code at
+; guiVideoCellGlyph, drawn with the image's top left at guiVideoCellPixel.  The driver has checked the image: every
+; run is inside a cell.  The codes and pixels are read through the data bank and X; a row's pixels are written through
+; its pointer and Y, the pixel across.  A is 8 bit throughout, with its high byte 0 so that Y can be made from it.
+		.global _VideoDrawRuns
+_VideoDrawRuns:
 		.width (A, X), 16
 		phb
 		phd
@@ -32,239 +37,148 @@ _VideoDrawGlyph:
 		tcs
 		tcd
 		lda [_guiVideoCellPixel]:24
-		sta [D + R_PIXEL0]
-		clc
-		adc 2
-		sta [D + R_PIXEL1]
-		adc 2
-		sta [D + R_PIXEL2]
-		adc 2
-		sta [D + R_PIXEL3]
+		sta [D + R_DEST]
 		lda [_guiVideoCellPixel + 2]:24
-		sta [D + R_PIXEL0 + 2]
-		sta [D + R_PIXEL1 + 2]
-		sta [D + R_PIXEL2 + 2]
-		sta [D + R_PIXEL3 + 2]
+		sta [D + R_DEST + 2]
 		lda [_guiVideoWidth]:24
 		sta [D + R_WIDTH]
 		lda [_guiVideoCellGlyph]:24
 		tax
+		lda 0
 		sep m
 		lda [_guiVideoCellGlyph + 2]:24
 		pha
 		plb
-		rep m
 		ldy 0
-		; Row 0.
+RunNext:
 		lda [0 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [2 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [4 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [6 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
+		beq RunDone
+		bmi RunMove
+		; 1 to 127: that many pixels, most often one.
+		inx
+		cmp 1
+		bne RunMany
+		lda [0 + X]
+		sta [[D + R_DEST]:24 + Y]
+		inx
+		iny
+		bra RunNext
+RunMany:
+		sta [D + R_COUNT]
+RunPixel:
+		lda [0 + X]
+		sta [[D + R_DEST]:24 + Y]
+		inx
+		iny
+		dec [D + R_COUNT]
+		bne RunPixel
+		bra RunNext
+RunMove:
+		inx
+		cmp 0xC0
+		bcs RunRows
+		; $80 + (n - 1): n pixels across, most often one.
+		and 0x3F
+		bne RunSkipMany
+		iny
+		bra RunNext
+RunSkipMany:
+		sta [D + R_COUNT]
 		tya
-		clc
-		adc [D + R_WIDTH]
+		sec
+		adc [D + R_COUNT]
 		tay
-		; Row 1.
-		lda [8 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [10 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [12 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [14 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
+		bra RunNext
+RunRows:
+		; $C0 + (n - 1): n rows down, to the row's left, most often one.
+		and 0x3F
+		bne RunRowsMany
 		clc
+		lda [D + R_DEST]
 		adc [D + R_WIDTH]
-		tay
-		; Row 2.
-		lda [16 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [18 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [20 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [22 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
+		sta [D + R_DEST]
+		lda [D + R_DEST + 1]
+		adc [D + R_WIDTH + 1]
+		sta [D + R_DEST + 1]
+		bcc RunRowOne
+		inc [D + R_DEST + 2]
+RunRowOne:
+		ldy 0
+		bra RunNext
+RunRowsMany:
+		sta [D + R_COUNT]
+RunRow:
 		clc
+		lda [D + R_DEST]
 		adc [D + R_WIDTH]
-		tay
-		; Row 3.
-		lda [24 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [26 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [28 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [30 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 4.
-		lda [32 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [34 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [36 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [38 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 5.
-		lda [40 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [42 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [44 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [46 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 6.
-		lda [48 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [50 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [52 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [54 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 7.
-		lda [56 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [58 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [60 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [62 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 8.
-		lda [64 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [66 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [68 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [70 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 9.
-		lda [72 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [74 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [76 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [78 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 10.
-		lda [80 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [82 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [84 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [86 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 11.
-		lda [88 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [90 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [92 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [94 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 12.
-		lda [96 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [98 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [100 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [102 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 13.
-		lda [104 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [106 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [108 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [110 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 14.
-		lda [112 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [114 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [116 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [118 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
-		tya
-		clc
-		adc [D + R_WIDTH]
-		tay
-		; Row 15.
-		lda [120 + X]
-		sta [[D + R_PIXEL0]:24 + Y]
-		lda [122 + X]
-		sta [[D + R_PIXEL1]:24 + Y]
-		lda [124 + X]
-		sta [[D + R_PIXEL2]:24 + Y]
-		lda [126 + X]
-		sta [[D + R_PIXEL3]:24 + Y]
+		sta [D + R_DEST]
+		lda [D + R_DEST + 1]
+		adc [D + R_WIDTH + 1]
+		sta [D + R_DEST + 1]
+		bcc RunRowSame
+		inc [D + R_DEST + 2]
+RunRowSame:
+		dec [D + R_COUNT]
+		bpl RunRow
+		ldy 0
+		bra RunNext
+RunDone:
+		rep m
 		tdc
 		clc
 		adc R_FRAME
 		tcs
 		pld
 		plb
+		rtl
+
+
+; extern "C" void VideoClearCell(void): the 8 by 16 pixels at guiVideoCellPixel made 0, a word at a time through four
+; pointers and Y, which steps down the lines.
+		.global _VideoClearCell
+_VideoClearCell:
+		.width (A, X), 16
+		phd
+		tsc
+		sec
+		sbc C_FRAME
+		tcs
+		tcd
+		lda [_guiVideoCellPixel]:24
+		sta [D + C_PIXEL0]
+		clc
+		adc 2
+		sta [D + C_PIXEL1]
+		adc 2
+		sta [D + C_PIXEL2]
+		adc 2
+		sta [D + C_PIXEL3]
+		lda [_guiVideoCellPixel + 2]:24
+		sta [D + C_PIXEL0 + 2]
+		sta [D + C_PIXEL1 + 2]
+		sta [D + C_PIXEL2 + 2]
+		sta [D + C_PIXEL3 + 2]
+		lda [_guiVideoWidth]:24
+		sta [D + C_WIDTH]
+		ldy 0
+		ldx 16
+ClearRow:
+		lda 0
+		sta [[D + C_PIXEL0]:24 + Y]
+		sta [[D + C_PIXEL1]:24 + Y]
+		sta [[D + C_PIXEL2]:24 + Y]
+		sta [[D + C_PIXEL3]:24 + Y]
+		tya
+		clc
+		adc [D + C_WIDTH]
+		tay
+		dex
+		bne ClearRow
+		tdc
+		clc
+		adc C_FRAME
+		tcs
+		pld
 		rtl
 
 

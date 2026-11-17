@@ -9,8 +9,8 @@
 #define KERNAL_CONSOLE_BUFFER_SIZE		64		//Bytes the console moves at a time.
 #define KERNAL_CONSOLE_UART_COLUMNS		80		//What a terminal on the UART is taken to be.
 #define KERNAL_CONSOLE_UART_ROWS		24
-#define KERNAL_CONSOLE_FONT_FILE		"\\OS\\Fonts\\CONSOLE.FNT"	//256 8x16 glyphs, Latin-1 (HCP65/Fonts).
-#define KERNAL_CONSOLE_FONT_SIZE		4096
+#define KERNAL_CONSOLE_FONT_FILE		"\\OS\\Fonts\\CONSOLE.SFT"	//256 8x16 glyphs, Latin-1, as SFT images (HCP65/Fonts).
+#define KERNAL_CONSOLE_FONT_CHUNK		512		//Bytes of it given to the Video Board's driver at a time.
 #define KERNAL_CONSOLE_TYPED_SIZE		32		//Characters typed and not yet read.
 
 

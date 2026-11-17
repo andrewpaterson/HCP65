@@ -25,6 +25,7 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	uiResult = CKernalDriver::Init(psDevice, uiSlot);
 	mbSeparateUnits = false;
 	muiMode = 0xFF;
+	muiFontSize = 0;
 	muiWidth = 0;
 	muiHeight = 0;
 	mbFlip = false;
@@ -122,9 +123,14 @@ uint16 CKernalVideoBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAdd
 	}
 	if (uiUnit == VIDEO_BOARD_FONT)
 	{
-		if ((uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&mauiFont[uiOffset], uiUserAddress, uiLength))
+		//The font is what was written from offset 0 on.  It can't change under text that is being drawn with it.
+		if (mbText || (uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&mauiFont[uiOffset], uiUserAddress, uiLength))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		if ((uiOffset == 0) || (uiOffset + uiLength > muiFontSize))
+		{
+			muiFontSize = (uint16)(uiOffset + uiLength);
 		}
 		*puiDone += uiLength;
 		return KERNAL_DRIVER_SUCCESS;

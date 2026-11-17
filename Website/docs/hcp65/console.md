@@ -42,24 +42,27 @@ sixteen colours on a background of the first eight.
 ### Text on the Video Board
 
 The Video Board's driver draws the text.  Each cell is a character from the font
-`\OS\Fonts\CONSOLE.FNT`: 256 glyphs of 8 by 16 pixels, in Latin-1 order, 4096 bytes.  It is made
-from Terminus Font (SIL Open Font License) by `HCP65/Fonts/MakeConsoleFont.py`.
+`\OS\Fonts\CONSOLE.SFT`: an [SFT container](screen.md#blits) of 256 transparent images of 8 by 16
+pixels, in Latin-1 order.  It is made from Terminus Font (SIL Open Font License) by
+`HCP65/Fonts/MakeConsoleFont.py`.
 
-- **Colours.**  A cell's pixels are 0 (its background) or 1 (its foreground).  Its colour is its
-  palette number, which the board's Palette Write sets as the pixels are written.  Palette *p* is
-  foreground *p* & 15 on background (*p* >> 4) & 7, so 127 colours need no work per pixel.  Palette
-  127 is the cursor's, which the vertical blank interrupt swaps to make it blink.
+- **Colours.**  A cell's pixels are 0 (its background) or `$FF` (its foreground, what a glyph's
+  pixels are).  Its colour is its palette number, which the board's Palette Write sets as the
+  pixels are written.  Palette *p* is foreground *p* & 15 on background (*p* >> 4) & 7, so 127
+  colours need no work per pixel.  Palette 127 is the cursor's, which the vertical blank interrupt
+  swaps to make it blink.
 - **Two frames.**  The processor can only write the frame that isn't shown, so each cell is drawn
   in that frame and the frames flip at the next vertical blank.  The cell is then drawn again in the
   other frame, so the two always match.
 - **Scrolling** moves no pixels.  The row table says where each line of the screen comes from, so
   scrolling up a row starts the table one row of cells further on and blanks the row that comes in
   at the bottom.  The interrupt changes the table at the same vertical blank as the flip.
-- **Speed.**  Drawing a cell is 64 word copies in assembly, about 1000 cycles: at mode set each
-  glyph is expanded to a byte a pixel in a spare part of each frame's memory, and a cell is copied
-  from there.  A row that scrolls in is blanked with one fill.  A cell that is already what is
-  written isn't drawn, and the cursor is only drawn while a program reads or waits for what is
-  typed, not while text is written.  The shell sends its output a line at a time.
+- **Speed.**  A glyph is drawn by walking its image's runs in assembly, so only its own pixels
+  are written.  That needs the cell under it blank, so the driver keeps which cells of each frame
+  have pixels and clears one first only if it has.  A row that scrolls in is blanked with one
+  fill.  A cell that is already what is written isn't drawn, and the cursor is only drawn while a
+  program reads or waits for what is typed, not while text is written.  The shell sends its output
+  a line at a time.
 
 ## The shell
 

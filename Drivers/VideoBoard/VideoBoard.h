@@ -38,9 +38,11 @@
 #define VIDEO_TEXT_MAX_COLUMNS			128			//1024x768's.
 #define VIDEO_TEXT_MAX_ROWS				48
 #define VIDEO_TEXT_MAX_CELLS			(VIDEO_TEXT_MAX_COLUMNS * VIDEO_TEXT_MAX_ROWS)
-#define VIDEO_TEXT_MAX_PENDING			2048		//Cells owed to the other frame before it is all drawn again.
-#define VIDEO_TEXT_GLYPH_SIZE			(VIDEO_TEXT_CELL_WIDTH * VIDEO_TEXT_CELL_HEIGHT)	//A glyph expanded: a byte a pixel.
-#define VIDEO_TEXT_FONT_OFFSET			0x1F0000	//Where the expanded font is in each frame: its last 64KB, far above the picture.
+#define VIDEO_TEXT_MAX_PENDING			1024		//Cells owed to the other frame before it is all drawn again.
+#define VIDEO_TEXT_GLYPHS				256
+#define VIDEO_TEXT_PIXEL				0xFF		//The palette entry that is a cell's foreground: what a glyph's pixels are.
+#define VIDEO_TEXT_ROW_BYTES			(VIDEO_TEXT_MAX_COLUMNS / 8)	//A row's cells as bits: 16, which the shifts know.
+#define VIDEO_TEXT_FRAME_BYTES			(VIDEO_TEXT_MAX_ROWS * VIDEO_TEXT_ROW_BYTES)
 #define VIDEO_TEXT_NO_CLEAR				0xFF		//mauiRowClears: the row isn't owed a clear.
 #define VIDEO_TEXT_DEFAULT_COLOUR		0x07		//Light grey on black.
 #define VIDEO_TEXT_BLINK_FRAMES			16			//The cursor's blink: about a quarter of a second on, then off.
@@ -80,8 +82,13 @@ protected:
 	//first); a cell is its physical row (D8-D15) and column (D0-D7).  What each cell is (mauiChars, mauiColours, at
 	//mauiRowCells[row] + column) is drawn in the frame being drawn, and what the other frame is owed is kept to draw in
 	//it once the frames have flipped (mbFlipped): rows to clear (mauiRowClears, the colour), then cells (mauiPending,
-	//or all of them).  A cell is drawn from its glyph expanded to a byte a pixel, which is in each frame's own memory
-	//at VIDEO_TEXT_FONT_OFFSET (the driver must fit a bank), by VideoBoardRender.asm.
+	//or all of them).
+	//
+	//The font is an SFT container of 256 transparent images of 8 by 16 (UserLib/HCP65SFT.h), which SetTextMode checks:
+	//mauiGlyphs is where each one's runs start in it, 0 for one without a pixel.  A glyph's runs draw only its pixels
+	//(VideoBoardRender.asm), so the cell under them must be blank in the colour's background: each frame keeps which of
+	//its cells aren't (mauiDirty, a bit a cell) and the background each row was last cleared to (mauiRowGround), and a
+	//cell that isn't is cleared first.
 	bool			mbText;
 	uint16			muiColumns;
 	uint16			muiRows;
@@ -100,6 +107,10 @@ protected:
 	uint8			mauiColours[VIDEO_TEXT_MAX_CELLS];
 	uint16			mauiPending[VIDEO_TEXT_MAX_PENDING];
 	uint8			mauiFont[VIDEO_FONT_SIZE];
+	uint16			muiFontSize;	//The bytes of it written.
+	uint16			mauiGlyphs[VIDEO_TEXT_GLYPHS];
+	uint8			mauiDirty[2 * VIDEO_TEXT_FRAME_BYTES];	//Frame 0's rows, each VIDEO_TEXT_ROW_BYTES, then frame 1's.
+	uint8			mauiRowGround[2 * VIDEO_TEXT_MAX_ROWS];
 
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
@@ -125,7 +136,7 @@ protected:
 	bool	SetTextMode(uint8 uiMode);
 	void	SetTextPalette(uint8 uiPalette, uint8 uiBackground, uint8 uiForeground);
 	void	ClearTextFrame(void);
-	void	ExpandFont(void);
+	bool	ReadFont(void);
 	void	WriteTextRows(uint16 uiTop);
 	uint16	PhysicalCell(uint32 uiCell);
 	uint16	PhysicalRow(uint16 uiRow);

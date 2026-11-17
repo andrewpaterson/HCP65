@@ -10,7 +10,7 @@
 
 
 CKernalConsole	gcKernalConsole;
-static uint8	gauiKernalConsoleFont[KERNAL_CONSOLE_FONT_SIZE];
+static uint8	gauiKernalConsoleFont[KERNAL_CONSOLE_FONT_CHUNK];
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -78,6 +78,7 @@ bool CKernalConsole::TakeVideo(void)
 	CKernalDriver*	pcVideo;
 	CFatFile		cFile;
 	lsize			uiRead;
+	uint32			uiOffset;
 	uint32			uiDone;
 	bool			bResult;
 
@@ -87,19 +88,29 @@ bool CKernalConsole::TakeVideo(void)
 		return false;
 	}
 
+	//The font file to the driver, a chunk at a time: the driver says if it is too big, and when the mode is set if it
+	//isn't a font.
 	cFile.Init(&gcKernalVolume);
-	uiRead = 0;
+	uiOffset = 0;
 	bResult = cFile.Open(KERNAL_CONSOLE_FONT_FILE, FAT_FILE_ACCESS_READ) == FAT_SUCCESS;
 	if (bResult)
 	{
-		bResult = (cFile.Read(gauiKernalConsoleFont, KERNAL_CONSOLE_FONT_SIZE, &uiRead) == FAT_SUCCESS) && (uiRead == KERNAL_CONSOLE_FONT_SIZE);
+		do
+		{
+			uiRead = 0;
+			bResult = cFile.Read(gauiKernalConsoleFont, KERNAL_CONSOLE_FONT_CHUNK, &uiRead) == FAT_SUCCESS;
+			if (bResult && (uiRead > 0))
+			{
+				uiDone = 0;
+				KernalSetKernalCopy(true);
+				bResult = pcVideo->Write(VIDEO_BOARD_FONT, uiOffset, (uint32)gauiKernalConsoleFont, uiRead, &uiDone) == KERNAL_DRIVER_SUCCESS;
+				KernalSetKernalCopy(false);
+				uiOffset += uiRead;
+			}
+		}
+		while (bResult && (uiRead == KERNAL_CONSOLE_FONT_CHUNK));
 		cFile.Close();
 	}
-
-	uiDone = 0;
-	KernalSetKernalCopy(true);
-	bResult = bResult && (pcVideo->Write(VIDEO_BOARD_FONT, 0, (uint32)gauiKernalConsoleFont, KERNAL_CONSOLE_FONT_SIZE, &uiDone) == KERNAL_DRIVER_SUCCESS);
-	KernalSetKernalCopy(false);
 	mpcOutput = pcVideo;
 	muiOutputUnit = VIDEO_BOARD_TEXT;
 	bResult = bResult && (VideoMode(VIDEO_MODE_640_480) == KERNAL_DRIVER_SUCCESS);
