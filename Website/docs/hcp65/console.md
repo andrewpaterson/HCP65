@@ -55,6 +55,11 @@ from Terminus Font (SIL Open Font License) by `HCP65/Fonts/MakeConsoleFont.py`.
 - **Scrolling** moves no pixels.  The row table says where each line of the screen comes from, so
   scrolling up a row starts the table one row of cells further on and blanks the row that comes in
   at the bottom.  The interrupt changes the table at the same vertical blank as the flip.
+- **Speed.**  Drawing a cell is 64 word copies in assembly, about 1000 cycles: at mode set each
+  glyph is expanded to a byte a pixel in a spare part of each frame's memory, and a cell is copied
+  from there.  A row that scrolls in is blanked with one fill.  A cell that is already what is
+  written isn't drawn, and the cursor is only drawn while a program reads or waits for what is
+  typed, not while text is written.  The shell sends its output a line at a time.
 
 ## The shell
 
