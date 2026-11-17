@@ -34,8 +34,8 @@ public:
 	void			SetMathTables(bool bMathTables);
 	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szUser, const char* szProjectFile, const char** aszLibraries = NULL);
 
-	uint8*			GetExecutable(void);
-	size			GetExecutableSize(void);
+	uint8*			GetExecutable(void) const;
+	size			GetExecutableSize(void) const;
 	const char*		GetErrors(void);
 
 protected:

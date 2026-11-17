@@ -53,10 +53,10 @@ public:
 	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szKernal, const char* szBoot);
 	bool			Write(const char* szFilename);
 
-	uint8*			GetImage(void);
-	uint32			GetImageSize(void);
+	uint8*			GetImage(void) const;
+	uint32			GetImageSize(void) const;
 	uint8*			GetImageAt(uint32 uiAddress);
-	uint32			GetCodeEnd(void);
+	uint32			GetCodeEnd(void) const;
 	bool			GetSymbol(const char* szName, uint32* puiAddress);
 	const char*		GetErrors(void);
 	CCPP65Builder*	GetBuilder(void);

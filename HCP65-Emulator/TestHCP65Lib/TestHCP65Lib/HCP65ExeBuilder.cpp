@@ -102,7 +102,7 @@ bool CHCP65ExeBuilder::MakeExecutable(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65ExeBuilder::GetExecutable(void)
+uint8* CHCP65ExeBuilder::GetExecutable(void) const
 {
 	return mcExecutable.GetBytes();
 }
@@ -112,7 +112,7 @@ uint8* CHCP65ExeBuilder::GetExecutable(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CHCP65ExeBuilder::GetExecutableSize(void)
+size CHCP65ExeBuilder::GetExecutableSize(void) const
 {
 	return mcExecutable.GetSize();
 }

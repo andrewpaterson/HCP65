@@ -159,7 +159,7 @@ bool CHCP65KernalBuilder::GetSymbol(const char* szName, uint32* puiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65KernalBuilder::GetImage(void)
+uint8* CHCP65KernalBuilder::GetImage(void) const
 {
 	return mcImage.GetImage();
 }
@@ -169,7 +169,7 @@ uint8* CHCP65KernalBuilder::GetImage(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65KernalBuilder::GetImageSize(void)
+uint32 CHCP65KernalBuilder::GetImageSize(void) const
 {
 	return mcImage.GetSize();
 }
@@ -202,7 +202,7 @@ uint8* CHCP65KernalBuilder::GetImageAt(uint32 uiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65KernalBuilder::GetCodeEnd(void)
+uint32 CHCP65KernalBuilder::GetCodeEnd(void) const
 {
 	return muiCodeEnd;
 }
