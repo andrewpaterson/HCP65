@@ -33,7 +33,7 @@ uint8	gauiVideoTestColours[3 * 256];
 #define VIDEO_TEST_OPAQUE			6		//Where each image is in it.
 #define VIDEO_TEST_OPAQUE_SIZE		18
 #define VIDEO_TEST_TRANSPARENT		26
-#define VIDEO_TEST_TRANSPARENT_SIZE	34
+#define VIDEO_TEST_TRANSPARENT_SIZE	17
 
 static const uint8	gauiVideoTestImages[] =
 {
@@ -42,20 +42,26 @@ static const uint8	gauiVideoTestImages[] =
 	0x57, 0xE4, 4, 0, 3, 0,
 	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
 	0, 0,
-	0xF9, 0xE4, 4, 0, 4, 0,
-	0x01, 0x00, 2, 0, 0xA1, 0xA2,
-	0x04, 0x80, 0, 0,
-	0x00, 0x80, 1, 0, 0xA3,
-	0x02, 0x00, 1, 0, 0xA4,
-	0x04, 0x80, 0, 0,
-	0, 0, 0, 0,
+	0xFA, 0xE4, 4, 0, 4, 0,
+	0x80, 2, 0xA1, 0xA2,			//Skip 1, then two pixels.
+	0xC1,						//Down two rows.
+	1, 0xA3,
+	0x81, 1, 0xA4,				//Skip 2, then a pixel.
+	0,
 };
 
 static const uint8	gauiVideoTestWide[] =		//A transparent image whose run goes past its right.
 {
-	0xF9, 0xE4, 2, 0, 1, 0,
-	0x01, 0x00, 2, 0, 0xB1, 0xB2,
-	0, 0, 0, 0,
+	0xFA, 0xE4, 2, 0, 1, 0,
+	0x80, 2, 0xB1, 0xB2,
+	0,
+};
+
+static const uint8	gauiVideoTestTall[] =		//A transparent image whose run is below its last row.
+{
+	0xFA, 0xE4, 2, 0, 1, 0,
+	0xC0, 1, 0xB1,
+	0,
 };
 
 
@@ -372,7 +378,8 @@ uint16 VideoTestBlit(uint16 uiPixels, uint16 uiPalettes)
 		(VideoTestBlitAt(uiPixels, puiOpaque, 5, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize - 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(uiPixels, puiTransparent, uiTransparentSize - 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
-		(VideoTestBlitAt(uiPixels, puiTransparent, 6 + 4 + 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, puiTransparent, 6 + 2 + 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, gauiVideoTestTall, sizeof(gauiVideoTestTall), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(uiPixels, gauiVideoTestWide, sizeof(gauiVideoTestWide), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(uiPixels, (const void*)0xF00000, 100, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(uiPalettes, puiOpaque, uiOpaqueSize, 0, 0) != KERNAL_DEVICE_NOT_SUPPORTED) ||

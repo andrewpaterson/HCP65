@@ -130,16 +130,18 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 //////////////////////////////////////////////////////////////////////////
 //
 // A transparent image: the part of each of its runs that is inside the
-// clip rectangle.  A run that isn't in the image (past its right or its
-// last row, or its size) is KERNAL_DRIVER_BAD_ARGUMENT.
+// clip rectangle.  A run that isn't in the image (past its right, its
+// last row or its size) is KERNAL_DRIVER_BAD_ARGUMENT.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip)
 {
-	SSFTRun	sRun;
+	uint8*	puiCode;
+	uint8	uiCode;
+	uint16	uiCount;
 	uint32	uiOffset;
 	uint32	uiX;
-	uint16	uiRow;
+	uint32	uiRow;
 	int32	iY;
 	int32	iRowPixel;
 	int32	iLeft;
@@ -152,37 +154,47 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 	iRowPixel = iY * (int32)muiWidth;
 	for (;;)
 	{
-		if ((psBlit->uiSize - uiOffset < sizeof(SSFTRun)) || !KernalCopyFromUser((uint8*)&sRun, psBlit->uiImage + uiOffset, sizeof(SSFTRun)))
+		puiCode = (uiOffset < psBlit->uiSize) ? KernalUserPointer(psBlit->uiImage + uiOffset, NULL) : NULL;
+		if (!puiCode)
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
-		uiOffset += sizeof(SSFTRun);
-		if ((sRun.uiFlags == 0) && (sRun.uiLength == 0))
+		uiCode = *puiCode;
+		uiOffset++;
+		if (uiCode == SFT_RUN_END)
 		{
 			return KERNAL_DRIVER_SUCCESS;
 		}
 
-		if (sRun.uiFlags & SFT_RUN_START)
+		if (uiCode >= SFT_RUN_SKIP)
 		{
-			uiRow++;
-			iY++;
-			iRowPixel += muiWidth;
-			uiX = 0;
-		}
-		uiX += sRun.uiFlags & SFT_RUN_SKIP;
-		if (sRun.uiLength == 0)
-		{
+			uiCount = (uint16)((uiCode & SFT_RUN_COUNT_MASK) + 1);
+			if (uiCode >= SFT_RUN_ROWS)
+			{
+				uiRow += uiCount;
+				iY += uiCount;
+				uiX = 0;
+				for (; uiCount > 0; uiCount--)
+				{
+					iRowPixel += muiWidth;
+				}
+			}
+			else
+			{
+				uiX += uiCount;
+			}
 			continue;
 		}
-		if ((uiRow >= uiHeight) || (uiX + sRun.uiLength > uiWidth) || (psBlit->uiSize - uiOffset < sRun.uiLength))
+
+		//A run of uiCode pixels.
+		if ((uiRow >= uiHeight) || (uiX + uiCode > uiWidth) || (psBlit->uiSize - uiOffset < uiCode))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
-
 		if ((iY >= paiClip[VIDEO_CLIP_TOP]) && (iY < paiClip[VIDEO_CLIP_BOTTOM]))
 		{
 			iLeft = psBlit->iX + (int32)uiX;
-			iRight = iLeft + sRun.uiLength;
+			iRight = iLeft + uiCode;
 			if (iRight > paiClip[VIDEO_CLIP_RIGHT])
 			{
 				iRight = paiClip[VIDEO_CLIP_RIGHT];
@@ -199,8 +211,8 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 				}
 			}
 		}
-		uiOffset += sRun.uiLength;
-		uiX += sRun.uiLength;
+		uiOffset += uiCode;
+		uiX += uiCode;
 	}
 }
 

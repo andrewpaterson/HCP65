@@ -196,8 +196,10 @@ SFT is the image format CommonLibraries' SupportLib reads and writes (`SFTReader
 `HCP65SFT.h` has it for a program.  A pixel is a byte.
 
 - **Opaque** images are a width and height, then their rows.
-- **Transparent** images are a width and height, then runs: each says how many pixels to skip and
-  how many follow.  What no run covers isn't drawn, so they are sprites, pointers and glyphs.
+- **Transparent** images are a width and height, then one byte codes: 1 to 127 draws that many
+  pixels, which follow; `$80` + *n* - 1 skips *n* pixels across; `$C0` + *n* - 1 moves *n* rows
+  down; 0 ends the image.  What isn't drawn stays as it was, so they are sprites, pointers and
+  glyphs.
 - **Containers** hold many images in one file.  `SFTContainedImage` finds one by its number.
 
 What the blit takes (`SKernalBlit` in `HCP65User.h`):

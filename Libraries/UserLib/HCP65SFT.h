@@ -8,19 +8,26 @@
 //
 //An opaque image is an SSFTImage (SFT_TYPE_OPAQUE), then its rows from the top, each its width of pixels.
 //
-//A transparent image is an SSFTImage (SFT_TYPE_TRANSPARENT), then its runs, and after the last an SSFTRun that is all
-//zero.  A run is an SSFTRun then its uiLength pixels: it is drawn uiFlags' SFT_RUN_SKIP pixels to the right of where the
-//run before it ended, or of the row's start if it is the row's first.  A row's first run has SFT_RUN_START, but the
-//first row's; a row without a pixel is a run of no pixels that skips the row.  What no run covers isn't drawn.
+//A transparent image is an SSFTImage (SFT_TYPE_TRANSPARENT), then bytes that say where its pixels are, starting at
+//its top left:
+//  SFT_RUN_END              the image is done.
+//  $01-$7F                  that many pixels follow: they are drawn from here to the right.
+//  SFT_RUN_SKIP + (n - 1)   n pixels (1 to SFT_RUN_MAX_COUNT) are skipped to the right.
+//  SFT_RUN_ROWS + (n - 1)   n rows (1 to SFT_RUN_MAX_COUNT) down, at the row's left.
+//A longer run, skip or move down is several of them.  What isn't drawn stays as it was.
 //
 //A container is an SSFTContainer, then its uiCount images, each after a word: how many bytes that word is before the
 //next image's (0 for the last).
 #define SFT_TYPE_OPAQUE			0xE457
-#define SFT_TYPE_TRANSPARENT	0xE4F9
+#define SFT_TYPE_TRANSPARENT	0xE4FA
 #define SFT_TYPE_CONTAINER		0xE4EF
 
-#define SFT_RUN_START			0x8000
-#define SFT_RUN_SKIP			0x7FFF
+#define SFT_RUN_END				0x00
+#define SFT_RUN_MAX_PIXELS		0x7F
+#define SFT_RUN_SKIP			0x80
+#define SFT_RUN_ROWS			0xC0
+#define SFT_RUN_COUNT_MASK		0x3F
+#define SFT_RUN_MAX_COUNT		0x40
 
 
 struct SSFTImage
@@ -28,13 +35,6 @@ struct SSFTImage
 	uint16	uiType;
 	uint16	uiWidth;
 	uint16	uiHeight;
-};
-
-
-struct SSFTRun
-{
-	uint16	uiFlags;
-	uint16	uiLength;
 };
 
 

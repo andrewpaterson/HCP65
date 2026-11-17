@@ -25,9 +25,12 @@ DEFAULT_FONT = "/usr/share/consolefonts/Lat15-Terminus16.psf.gz"
 DEFAULT_OUTPUT = "CONSOLE.FNT"
 DEFAULT_SFT_OUTPUT = "CONSOLE.SFT"
 
-SFT_TYPE_TRANSPARENT = 0xE4F9
+SFT_TYPE_TRANSPARENT = 0xE4FA
 SFT_TYPE_CONTAINER = 0xE4EF
-SFT_START_OF_RUN = 0x8000
+SFT_RUN_END = 0x00
+SFT_RUN_SKIP = 0x80
+SFT_RUN_ROWS = 0xC0
+SFT_RUN_MAX_COUNT = 0x40
 SFT_PIXEL = 0xFF
 SFT_BLOCK = 0x10000
 
@@ -76,33 +79,42 @@ def ReadFont(szPath):
     raise ValueError(szPath + " isn't a PC Screen Font.")
 
 
+def AddSFTCount(abImage, iCode, iCount):
+    """iCount pixels skipped (SFT_RUN_SKIP) or rows moved down (SFT_RUN_ROWS), SFT_RUN_MAX_COUNT at a time."""
+    while iCount > 0:
+        iChunk = min(iCount, SFT_RUN_MAX_COUNT)
+        abImage.append(iCode | (iChunk - 1))
+        iCount -= iChunk
+
+
 def MakeSFTImage(abGlyph):
     """The glyph (a row a byte, its leftmost pixel bit 7) as a transparent SFT image.
 
-    A row's runs are each a skip (with SFT_START_OF_RUN on the first of every row but the first), a length and the
-    pixels; a row without a pixel is a run of none that skips the whole row; a run of zeros ends the image.
+    After its type, width and height it is bytes: 1 to 127 is that many pixels, which follow; SFT_RUN_SKIP + (n - 1)
+    skips n pixels across; SFT_RUN_ROWS + (n - 1) moves n rows down to the row's left; SFT_RUN_END ends it.  A row
+    that has pixels is reached by moving down from the last that had.
     """
     abImage = bytearray(struct.pack("<3H", SFT_TYPE_TRANSPARENT, GLYPH_WIDTH, GLYPH_HEIGHT))
+    iRows = 0
     for iRow in range(GLYPH_HEIGHT):
-        iFlags = SFT_START_OF_RUN if iRow else 0
         iSkip = 0
         iLength = 0
-        bWritten = False
         for iColumn in range(GLYPH_WIDTH + 1):
             bPixel = (iColumn < GLYPH_WIDTH) and bool(abGlyph[iRow] & (0x80 >> iColumn))
             if bPixel:
                 iLength += 1
             elif iLength:
-                abImage += struct.pack("<2H", iFlags | iSkip, iLength) + bytes([SFT_PIXEL]) * iLength
-                iFlags = 0
+                AddSFTCount(abImage, SFT_RUN_ROWS, iRows)
+                AddSFTCount(abImage, SFT_RUN_SKIP, iSkip)
+                abImage.append(iLength)
+                abImage += bytes([SFT_PIXEL]) * iLength
+                iRows = 0
                 iSkip = 1
                 iLength = 0
-                bWritten = True
             else:
                 iSkip += 1
-        if not bWritten:
-            abImage += struct.pack("<2H", iFlags | GLYPH_WIDTH, 0)
-    abImage += struct.pack("<2H", 0, 0)
+        iRows += 1
+    abImage.append(SFT_RUN_END)
     return bytes(abImage)
 
 
