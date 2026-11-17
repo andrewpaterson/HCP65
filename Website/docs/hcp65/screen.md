@@ -35,6 +35,9 @@ A pixel is a byte.  The colour it shows is that entry of its palette, and there 
 
 The screen calls are one kernel call (COP 14) with a block of arguments.
 
+`sprites` in the shell (`HCP65/Sprites`) draws a picture with them: coloured tiles, and letters
+blitted from the console's font.  A key ends it.
+
 ## Blits
 
 A blit draws an SFT image from the program's memory with its top left at an x and y, which can be

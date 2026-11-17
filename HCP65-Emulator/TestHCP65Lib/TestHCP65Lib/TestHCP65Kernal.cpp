@@ -72,13 +72,16 @@
 #define TEST_HCP65_INIT_PATH		"\\OS\\INIT.EXE"
 #define TEST_HCP65_SHELL_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Shell" _FS_ "HCP65Shell.vcxproj"
 #define TEST_HCP65_SHELL_PATH		"\\OS\\SHELL.EXE"
+#define TEST_HCP65_SPRITES_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Sprites" _FS_ "HCP65Sprites.vcxproj"
+#define TEST_HCP65_SPRITES_PATH		"\\SPRITES.EXE"
 #define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
 #define TEST_HCP65_HELLO_TEXT		"Hello from the SD card.\n"
 #define TEST_HCP65_SHELL_PROMPT		" $ "			//After the current directory.
 #define TEST_HCP65_SHELL_BANNER		"HCP65 shell 1.  Type help for the commands."
 #define TEST_HCP65_SHELL_MAX_RUNS	3000		//Of TEST_UART_RUN_CYCLES, for a command.
-#define TEST_HCP65_FONT				".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.FNT"
-#define TEST_HCP65_FONT_PATH		"\\OS\\Fonts\\CONSOLE.FNT"
+#define TEST_HCP65_FONT				".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.SFT"
+#define TEST_HCP65_FONT_PATH		"\\OS\\Fonts\\CONSOLE.SFT"
+#define TEST_HCP65_FONT_BITMAP		".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.FNT"	//The same glyphs a row a byte, to read the screen with.
 #define TEST_HCP65_FONT_SIZE		4096
 #define TEST_HCP65_SCREEN_COLUMNS	80			//The console's 640x480.
 #define TEST_HCP65_SCREEN_ROWS		30
@@ -1702,6 +1705,7 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = TestKernalCopyBlankCard(TEST_HCP65_SYSTEM_CARD_IMAGE);
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_INIT_PATH, TEST_HCP65_INIT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SHELL_PATH, TEST_HCP65_SHELL_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
+	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SPRITES_PATH, TEST_HCP65_SPRITES_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
@@ -2292,7 +2296,7 @@ static void TestConsoleType(STestConsole* psConsole, const char* szText)
 // Boots the system card (Output/SDCard.img) at the real board's 25MHz with
 // the SD Card Board, the Video Board, the PS2 Board (the test's keyboard
 // in port 1) and a Memory Board: the console is the Video Board's text,
-// 640x480's 80 by 30 in CONSOLE.FNT, and the keyboard.  The shell's
+// 640x480's 80 by 30 in CONSOLE.SFT, and the keyboard.  The shell's
 // banner and prompt are on the screen; what is typed is echoed and done;
 // a listing longer than the screen scrolls it; Caps Lock types capitals
 // and lights its LED; mode 2 is 1024x768's 128 by 48.
@@ -2307,9 +2311,12 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	FILE*				pFile;
 	uint32				uiWidth;
 	uint32				uiHeight;
+	uint32				uiWhite;
+	uint32				x;
+	uint32				y;
 	int					i;
 
-	pFile = fopen(TEST_HCP65_FONT, "rb");
+	pFile = fopen(TEST_HCP65_FONT_BITMAP, "rb");
 	AssertTrue(pFile != NULL);
 	if (!pFile)
 	{
@@ -2377,6 +2384,48 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	}
 	AssertFalse(strstr(szScreen.Text(), TEST_HCP65_SHELL_BANNER) != NULL);
 	AssertTrue(szScreen.EndsWith("Anything else is a program to run, with a number for its argument.\n/ $\n"));
+
+	//sprites has the screen for its picture (Sprites.cpp): black, with tiles of colour, letters drawn on the first
+	//of them, and a white tile half off the left.  Then a key ends it and the console's text is back, blank.
+	TestConsoleType(&sConsole, "sprites\r");
+	uiWhite = 0;
+	for (i = 0; i < 4000; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+		if (((i % 10) == 9) && sConsole.pcVideo->GetFrame(sConsole.puiFrame, 640, 480, &uiWidth, &uiHeight) && (sConsole.puiFrame[479 * 640 + 630] == 0xFF242455))
+		{
+			break;
+		}
+	}
+	AssertInt(640, (int)uiWidth);
+	AssertInt((int)0xFF000000, (int)sConsole.puiFrame[200 * 640 + 10]);
+	AssertInt((int)0xFFFF0000, (int)sConsole.puiFrame[66 * 640 + 70]);
+	AssertInt((int)0xFF00FF00, (int)sConsole.puiFrame[66 * 640 + 118]);
+	AssertInt((int)0xFF0000FF, (int)sConsole.puiFrame[66 * 640 + 166]);
+	AssertInt((int)0xFF000000, (int)sConsole.puiFrame[66 * 640 + 100]);
+	AssertInt((int)0xFFFFFFFF, (int)sConsole.puiFrame[140 * 640 + 10]);
+	AssertInt((int)0xFF000000, (int)sConsole.puiFrame[140 * 640 + 16]);
+	AssertInt((int)0xFF242455, (int)sConsole.puiFrame[479 * 640 + 630]);
+	for (y = 72; y < 88; y++)
+	{
+		for (x = 72; x < 80; x++)
+		{
+			//The "B" of Blits on the red tile: white where it is, the tile where it isn't.
+			if (sConsole.puiFrame[y * 640 + x] == 0xFFFFFFFF)
+			{
+				uiWhite++;
+			}
+			else
+			{
+				AssertInt((int)0xFFFF0000, (int)sConsole.puiFrame[y * 640 + x]);
+			}
+		}
+	}
+	AssertTrue((uiWhite > 10) && (uiWhite < 60));
+	TestConsoleType(&sConsole, " ");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
+	AssertFalse(strstr(szScreen.Text(), "sprites") != NULL);
+	AssertFalse(strstr(szScreen.Text(), "?") != NULL);
 
 	//mode 2: 1024x768, 128 by 48, cleared.
 	TestConsoleType(&sConsole, "mode 2\r");
