@@ -20,6 +20,7 @@
 #define KERNAL_CALL_FILE_READ		11			//Part of a file: the path, the offset, the destination and the size.
 #define KERNAL_CALL_DEVICE			12			//A device call's block (KernalDeviceCalls.h).  6 to 10 were the sound board's.
 #define KERNAL_CALL_SYSTEM			13			//A system call's block (KernalSystemCalls.h).
+#define KERNAL_CALL_SCREEN			14			//A screen call's block (KernalScreen.h).
 
 //Call results (KERNAL_RESULT_* in HCP65User.h).
 #define KERNAL_PROCESS_NONE				0

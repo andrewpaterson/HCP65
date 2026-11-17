@@ -54,6 +54,9 @@
     <ClCompile Include="KernalConsole.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="KernalScreen.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="KernalKeyboard.cpp">
       <Filter>Source</Filter>
     </ClCompile>

@@ -9,6 +9,7 @@
 #include "KernalMemory.h"
 #include "KernalStartUp.h"
 #include "KernalConsole.h"
+#include "KernalScreen.h"
 
 
 //Libc65's heap.
@@ -127,6 +128,7 @@ int main(void)
 	}
 	KernalLoadDrivers();
 	gcKernalConsole.Init();
+	gcKernalScreen.Init();
 
 	KernalReadStartUp(szStartUp, &uiArgument);
 	gsKernalStatus.uiBootArgument = uiArgument;

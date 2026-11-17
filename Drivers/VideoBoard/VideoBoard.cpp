@@ -199,6 +199,7 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
+		mbText = false;
 		SetMode((uint8)uiValue);
 		return KERNAL_DRIVER_SUCCESS;
 

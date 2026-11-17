@@ -18,6 +18,9 @@
     <ClCompile Include="..\Libraries\UserLib\UserDevices.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserScreen.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\Libraries\UserLib\UserSFT.cpp">
       <Filter>Source</Filter>
     </ClCompile>

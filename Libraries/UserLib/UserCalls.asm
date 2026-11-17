@@ -201,3 +201,23 @@ _KernalSystemCall:
 		adc 4
 		cop 13
 		rtl
+
+		.section text.KernalScreenCall
+		.global _KernalScreenCall.ax
+_KernalScreenCall.ax:
+		.width (A, X), 16
+		phx
+		pha
+		jsl _KernalScreenCall
+		ply
+		ply
+		rtl
+
+		.global _KernalScreenCall
+_KernalScreenCall:
+		.width (A, X), 16
+		tsc
+		clc
+		adc 4
+		cop 14
+		rtl

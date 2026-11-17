@@ -164,17 +164,3 @@ extern "C" uint16 KernalDeviceWait(uint16 uiHandle, uint32 uiValue, uint16 uiTic
 	return KernalDeviceCall(&sCall);
 }
 
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
-extern "C" uint16 KernalDeviceBlit(uint16 uiHandle, const SKernalBlit* psBlit)
-{
-	SKernalDeviceCall	sCall;
-
-	UserDeviceCall(&sCall, KERNAL_DEVICE_CALL_BLIT, uiHandle);
-	sCall.uiAddress = (uint32)psBlit;
-	return KernalDeviceCall(&sCall);
-}
-

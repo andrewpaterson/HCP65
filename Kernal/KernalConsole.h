@@ -19,7 +19,8 @@
 //KERNAL_CONSOLE_FONT_FILE) or else the UART Board's TTL port; its input the PS2 Board's keyboard in port 1, or else
 //that port.  It takes the boards' units when a process first uses it (so a program that opens one itself can, if it
 //does so first) and keeps them, as KERNAL_CONSOLE_OWNER.  Without a board for one it is quiet: what is written is
-//dropped, and nothing is read.
+//dropped, and nothing is read.  While a process has the picture (the screen's calls: KernalScreen.h) what is written
+//isn't drawn either; when the picture is given back the text starts again, blank.
 //
 //Output is text.  '\n' starts the next line (a terminal on the UART is sent "\r\n"), '\r' goes back to the line's
 //start, '\b' back a character, '\t' on to the next multiple of 8 and '\f' clears the screen.  On the Video Board a
@@ -42,6 +43,8 @@ protected:
 	uint16			muiRows;
 	CKernalKeyboard	mcKeyboard;
 	bool			mbCapsLock;			//What the keyboard's LED shows.
+	bool			mbGraphics;			//A process has the picture (KernalScreen.h): the text isn't drawn.
+	uint8			muiVideoMode;		//The text's VIDEO_MODE_*.
 	bool			mbCursorShown;		//The Video Board shows the cursor, where the next character goes.
 	char			macTyped[KERNAL_CONSOLE_TYPED_SIZE];
 	uint16			muiTyped;
@@ -54,6 +57,9 @@ public:
 	uint16	Write(uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	uint16	Control(uint16 uiCode, uint32 uiValue, uint32* puiResult);
 	uint16	Wait(uint32 uiValue, uint16 uiTicks);
+
+	bool	IsVideo(void);
+	void	SetGraphics(bool bGraphics);
 
 protected:
 	void	Take(void);

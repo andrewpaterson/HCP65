@@ -15,6 +15,7 @@
 #include "KernalMemory.h"
 #include "KernalStartUp.h"
 #include "KernalSystemCalls.h"
+#include "KernalScreen.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
@@ -616,6 +617,7 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 	*puiExitCode = gsKernalCall.uiExitCode;
 	KernalDebugProcessEnded(uiProcess, *puiExitCode);
 
+	gcKernalScreen.ProcessEnded(uiProcess);
 	KernalCloseHandles(uiProcess);
 	KernalCloseDrivers(uiProcess);
 	KernalFreeProcess(uiProcess);
@@ -822,6 +824,10 @@ extern "C" void KernalCopCall(void)
 
 	case KERNAL_CALL_SYSTEM:
 		gsKernalCall.uiA = KernalCallSystem(KernalArgumentLong(0));
+		break;
+
+	case KERNAL_CALL_SCREEN:
+		gsKernalCall.uiA = gcKernalScreen.Call(KernalArgumentLong(0));
 		break;
 
 	default:

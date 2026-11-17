@@ -40,7 +40,7 @@ struct SKernalBlit;
 //running process's memory at uiUserAddress and the unit at uiOffset, and set *puiDone to how many they moved;
 //Control's codes are the driver's own; Wait waits up to uiTicks (KERNAL_TICKS_PER_SECOND) for what uiValue says,
 //which a driver can do with WaitFor and IsWaitOver.  Blit draws an image, which is in the running process's memory
-//(UserLib/HCP65User.h's SKernalBlit), on a unit that is a picture.
+//(UserLib/HCP65User.h's SKernalBlit), on a unit that is a picture: the screen's calls ask it (KernalScreen.h).
 class CKernalDriver
 {
 protected:

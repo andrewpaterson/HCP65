@@ -32,8 +32,37 @@ void CKernalConsole::Init(void)
 	muiRows = 0;
 	mcKeyboard.Init();
 	mbCapsLock = false;
+	mbGraphics = false;
+	muiVideoMode = VIDEO_MODE_640_480;
 	mbCursorShown = false;
 	muiTyped = 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's output is the Video Board's text.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalConsole::IsVideo(void)
+{
+	return mbVideo;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process has the picture (the text isn't drawn) or has given it back:
+// the text starts again in its mode, blank.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalConsole::SetGraphics(bool bGraphics)
+{
+	mbGraphics = bGraphics;
+	if (!bGraphics && mbVideo)
+	{
+		VideoMode(muiVideoMode);
+	}
 }
 
 
@@ -119,6 +148,15 @@ void CKernalConsole::Take(void)
 
 	if (mpcOutput && mpcInput)
 	{
+		return;
+	}
+	if (mbGraphics && !mpcOutput)
+	{
+		//A process has the picture: the output is taken once it is given back.
+		if (!mpcInput)
+		{
+			TakeKeyboard();
+		}
 		return;
 	}
 	if (!mpcOutput)
@@ -228,6 +266,7 @@ uint16 CKernalConsole::VideoMode(uint32 uiMode)
 	}
 	VideoControl(VIDEO_BOARD_GET_COLUMNS, 0, &uiColumns);
 	VideoControl(VIDEO_BOARD_GET_ROWS, 0, &uiRows);
+	muiVideoMode = (uint8)uiMode;
 	muiColumns = (uint16)uiColumns;
 	muiRows = (uint16)uiRows;
 	muiColumn = 0;
@@ -257,7 +296,7 @@ void CKernalConsole::VideoCursor(void)
 //////////////////////////////////////////////////////////////////////////
 void CKernalConsole::ShowCursor(void)
 {
-	if (mbVideo && !mbCursorShown)
+	if (mbVideo && !mbGraphics && !mbCursorShown)
 	{
 		if (muiColumn >= muiColumns)
 		{
@@ -435,7 +474,10 @@ uint16 CKernalConsole::Write(uint32 uiUserAddress, uint32 uiLength, uint32* puiD
 		}
 		if (mbVideo)
 		{
-			VideoWrite(puiIn, uiChunk);
+			if (!mbGraphics)
+			{
+				VideoWrite(puiIn, uiChunk);
+			}
 		}
 		else
 		{
@@ -583,6 +625,10 @@ uint16 CKernalConsole::Control(uint16 uiCode, uint32 uiValue, uint32* puiResult)
 		return KERNAL_DRIVER_SUCCESS;
 
 	case KERNAL_CONSOLE_CLEAR:
+		if (mbVideo && mbGraphics)
+		{
+			return KERNAL_DRIVER_SUCCESS;
+		}
 		if (mbVideo)
 		{
 			muiColumn = 0;
@@ -599,6 +645,10 @@ uint16 CKernalConsole::Control(uint16 uiCode, uint32 uiValue, uint32* puiResult)
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
+		if (mbGraphics)
+		{
+			return KERNAL_DRIVER_IN_USE;
+		}
 		return VideoMode(uiValue);
 
 	case KERNAL_CONSOLE_SET_COLOUR:
@@ -606,7 +656,7 @@ uint16 CKernalConsole::Control(uint16 uiCode, uint32 uiValue, uint32* puiResult)
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
-		return mbVideo ? VideoControl(VIDEO_BOARD_SET_TEXT_COLOUR, uiValue, NULL) : KERNAL_DRIVER_SUCCESS;
+		return (mbVideo && !mbGraphics) ? VideoControl(VIDEO_BOARD_SET_TEXT_COLOUR, uiValue, NULL) : KERNAL_DRIVER_SUCCESS;
 
 	default:
 		return KERNAL_DRIVER_NOT_SUPPORTED;

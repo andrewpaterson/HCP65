@@ -64,6 +64,7 @@ nav:
       - Devices and Main Memory: hcp65/devices.md
       - Starting Up: hcp65/boot.md
       - The Console and the Shell: hcp65/console.md
+      - The Screen: hcp65/screen.md
       - Drivers and Runtime:
           - hcp65/runtime/index.md
           - W65C816 Runtime: hcp65/runtime/w65c816.md

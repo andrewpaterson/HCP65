@@ -93,6 +93,7 @@
     <ClCompile Include="KernalDeviceCalls.cpp" />
     <ClCompile Include="KernalSystemCalls.cpp" />
     <ClCompile Include="KernalConsole.cpp" />
+    <ClCompile Include="KernalScreen.cpp" />
     <ClCompile Include="KernalKeyboard.cpp" />
     <ClCompile Include="KernalExports.asm" />
     <ClCompile Include="KernalInterrupts.cpp" />
@@ -107,6 +108,7 @@
     <ClInclude Include="KernalDeviceCalls.h" />
     <ClInclude Include="KernalSystemCalls.h" />
     <ClInclude Include="KernalConsole.h" />
+    <ClInclude Include="KernalScreen.h" />
     <ClInclude Include="KernalKeyboard.h" />
     <ClInclude Include="KernalDebug.h" />
     <ClInclude Include="KernalInterrupts.h" />

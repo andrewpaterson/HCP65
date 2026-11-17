@@ -202,11 +202,54 @@ extern "C" uint16	KernalDeviceControl(uint16 uiHandle, uint16 uiCode, uint32 uiV
 //didn't happen.
 extern "C" uint16	KernalDeviceWait(uint16 uiHandle, uint32 uiValue, uint16 uiTicks);
 
-//A blit: an image drawn on a board's unit (the Video Board's pixels: HCP65VideoBoard.h) with its top left at (iX, iY).
-//The image is an opaque or a transparent SFT image (HCP65SFT.h) in the program's memory, of which no more than uiSize
-//bytes are read.  What is outside the unit isn't drawn, nor with KERNAL_BLIT_CLIP what is outside the rectangle from
-//(iClipLeft, iClipTop) to just before (iClipRight, iClipBottom).  KERNAL_DEVICE_BAD_ARGUMENT for what isn't an image
-//or is cut short (what came before the fault has been drawn).
+
+//How the device calls reach the kernal (UserDevices.cpp, COP 12 in UserCalls.asm): one block, which the kernal reads
+//and writes in the program's memory.
+#define KERNAL_DEVICE_CALL_INFO			0
+#define KERNAL_DEVICE_CALL_OPEN			1
+#define KERNAL_DEVICE_CALL_CLOSE		2
+#define KERNAL_DEVICE_CALL_READ			3
+#define KERNAL_DEVICE_CALL_WRITE		4
+#define KERNAL_DEVICE_CALL_CONTROL		5
+#define KERNAL_DEVICE_CALL_WAIT			6
+
+struct SKernalDeviceCall
+{
+	uint16	uiCall;			//+0   KERNAL_DEVICE_CALL_*.
+	uint16	uiHandle;		//+2   Open: the board's index.  Info: the index.
+	uint16	uiUnit;			//+4
+	uint16	uiCode;			//+6   Control: the code.  Wait: the ticks.
+	uint32	uiValue;		//+8   Read and Write: the offset.  Control and Wait: the value.
+	uint32	uiAddress;		//+12  Read, Write and Info: the program's memory.  Open: the manufacturer.
+	uint32	uiLength;		//+16  Read and Write: the length.  Open: the name.
+	uint32	uiResult;		//+20  Control: what it gives back.  Open: the handle.  Read and Write: the bytes moved.
+};
+
+extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);
+
+
+//The screen: the picture the computer shows, which is the kernal's (it is drawn on the Video Board, and by a Blitter
+//Board when there is one to give the drawing to).  It shows the console's text until a program asks for a mode
+//(KernalScreenSetMode): then it is that program's picture until the program gives it back (KernalScreenSetText) or
+//ends, and what is written to the console meanwhile isn't shown.  KERNAL_DEVICE_IN_USE while another program has it;
+//KERNAL_DEVICE_NOT_OPEN for what needs a mode from a program that hasn't set one.  The results are KERNAL_DEVICE_*.
+//
+//The picture is two frames: one is shown while the other is drawn, and KernalScreenFlip swaps them at the next
+//vertical blank (KernalScreenWaitBlank waits for it).  A pixel is a byte at y x width + x in the frame being drawn
+//(KernalScreenWrite, KernalScreenRead): the colour it shows is its palette's (KernalScreenSetColours gives a palette
+//its 256 reds, then greens, then blues).  A pixel takes the palette set (KernalScreenSetPalette) as it is drawn.
+#define KERNAL_SCREEN_640_480			0			//60Hz.
+#define KERNAL_SCREEN_800_600			1
+#define KERNAL_SCREEN_1024_768			2
+#define KERNAL_SCREEN_NUM_PALETTES		128
+#define KERNAL_SCREEN_NO_PALETTE		0xFF		//KernalScreenSetPalette: pixels keep the palette they have.
+#define KERNAL_SCREEN_COLOURS_SIZE		768
+
+//A blit: an image drawn with its top left at (iX, iY).  The image is an opaque or a transparent SFT image (HCP65SFT.h)
+//in the program's memory, of which no more than uiSize bytes are read.  What is outside the picture isn't drawn, nor
+//with KERNAL_BLIT_CLIP what is outside the rectangle from (iClipLeft, iClipTop) to just before (iClipRight,
+//iClipBottom).  KERNAL_DEVICE_BAD_ARGUMENT for what isn't an image or is cut short (what came before the fault has
+//been drawn).
 #define KERNAL_BLIT_CLIP				0x0001
 
 struct SKernalBlit
@@ -222,33 +265,41 @@ struct SKernalBlit
 	int16	iClipBottom;	//+20
 };
 
-extern "C" uint16	KernalDeviceBlit(uint16 uiHandle, const SKernalBlit* psBlit);
+extern "C" uint16	KernalScreenSetMode(uint16 uiMode);
+extern "C" uint16	KernalScreenSetText(void);
+extern "C" uint16	KernalScreenGetSize(uint16* puiWidth, uint16* puiHeight);
+extern "C" uint16	KernalScreenBlit(const SKernalBlit* psBlit);
+extern "C" uint16	KernalScreenFlip(void);
+extern "C" uint16	KernalScreenWaitBlank(uint16 uiTicks);
+extern "C" uint16	KernalScreenSetColours(uint16 uiPalette, const uint8* puiColours);
+extern "C" uint16	KernalScreenSetPalette(uint16 uiPalette);
+extern "C" uint16	KernalScreenWrite(uint32 uiOffset, const void* pvSource, uint32 uiLength);
+extern "C" uint16	KernalScreenRead(uint32 uiOffset, void* pvDest, uint32 uiLength);
 
 
-//How the device calls reach the kernal (UserDevices.cpp, COP 12 in UserCalls.asm): one block, which the kernal reads
-//and writes in the program's memory.
-#define KERNAL_DEVICE_CALL_INFO			0
-#define KERNAL_DEVICE_CALL_OPEN			1
-#define KERNAL_DEVICE_CALL_CLOSE		2
-#define KERNAL_DEVICE_CALL_READ			3
-#define KERNAL_DEVICE_CALL_WRITE		4
-#define KERNAL_DEVICE_CALL_CONTROL		5
-#define KERNAL_DEVICE_CALL_WAIT			6
-#define KERNAL_DEVICE_CALL_BLIT			7
+//How the screen calls reach the kernal (UserScreen.cpp, COP 14 in UserCalls.asm): one block in the program's memory.
+#define KERNAL_SCREEN_CALL_SET_MODE		0
+#define KERNAL_SCREEN_CALL_SET_TEXT		1
+#define KERNAL_SCREEN_CALL_GET_SIZE		2
+#define KERNAL_SCREEN_CALL_BLIT			3
+#define KERNAL_SCREEN_CALL_FLIP			4
+#define KERNAL_SCREEN_CALL_WAIT_BLANK	5
+#define KERNAL_SCREEN_CALL_SET_COLOURS	6
+#define KERNAL_SCREEN_CALL_SET_PALETTE	7
+#define KERNAL_SCREEN_CALL_WRITE		8
+#define KERNAL_SCREEN_CALL_READ			9
 
-struct SKernalDeviceCall
+struct SKernalScreenCall
 {
-	uint16	uiCall;			//+0   KERNAL_DEVICE_CALL_*.
-	uint16	uiHandle;		//+2   Open: the board's index.  Info: the index.
-	uint16	uiUnit;			//+4
-	uint16	uiCode;			//+6   Control: the code.  Wait: the ticks.
-	uint32	uiValue;		//+8   Read and Write: the offset.  Control and Wait: the value.
-	uint32	uiAddress;		//+12  Read, Write and Info: the program's memory.  Open: the manufacturer.  Blit: its SKernalBlit.
-	uint32	uiLength;		//+16  Read and Write: the length.  Open: the name.
-	uint32	uiResult;		//+20  Control: what it gives back.  Open: the handle.  Read and Write: the bytes moved.
+	uint16	uiCall;			//+0   KERNAL_SCREEN_CALL_*.
+	uint16	uiValue;		//+2   The mode, the palette or the ticks.
+	uint32	uiOffset;		//+4   Write and Read: the first pixel.
+	uint32	uiAddress;		//+8   The program's memory: the blit, the colours or the pixels.
+	uint32	uiLength;		//+12  Write and Read: the pixels.
+	uint32	uiResult;		//+16  Get Size: the width, and the height in its high word.
 };
 
-extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);
+extern "C" uint16	KernalScreenCall(SKernalScreenCall* psCall);
 
 
 #endif // __HCP65_USER_H__

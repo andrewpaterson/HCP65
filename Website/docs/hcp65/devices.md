@@ -180,45 +180,9 @@ A program uses a board through its driver with the device calls (`HCP65User.h`):
   means is the driver's: `HCP65SoundBoard.h` has the sound board's, `HCP65UARTBoard.h` the UART
   Board's, `HCP65VIABoard.h` the VIA Board's, `HCP65PS2Board.h` the PS2 Board's and `HCP65VideoBoard.h` the
   Video Board's.
-- `KernalDeviceBlit(handle, &blit)` draws an image on a unit that is a picture: see
-  [Blits](#blits).
 - `KernalDeviceClose(handle)`.
 
 They are one kernel call (COP 12) with a block of arguments.
-
-### Blits
-
-A blit draws an SFT image from the program's memory on the Video Board's pixels (the frame being
-drawn), with its top left at an x and y that can be off the picture.  The program flips the frames
-to show it.
-
-SFT is the image format CommonLibraries' SupportLib reads and writes (`SFTReader`, `SFTWriter`);
-`HCP65SFT.h` has it for a program.  A pixel is a byte.
-
-- **Opaque** images are a width and height, then their rows.
-- **Transparent** images are a width and height, then one byte codes: 1 to 127 draws that many
-  pixels, which follow; `$80` + *n* - 1 skips *n* pixels across; `$C0` + *n* - 1 moves *n* rows
-  down; 0 ends the image.  What isn't drawn stays as it was, so they are sprites, pointers and
-  glyphs.
-- **Containers** hold many images in one file.  `SFTContainedImage` finds one by its number.
-
-What the blit takes (`SKernalBlit` in `HCP65User.h`):
-
-| Field | What |
-|---|---|
-| `uiImage`, `uiSize` | The image and how many bytes it is.  No more than that is read. |
-| `iX`, `iY` | Where its top left goes.  What is off the picture isn't drawn. |
-| `uiFlags` | `KERNAL_BLIT_CLIP` draws only inside the clip rectangle. |
-| `iClipLeft` to `iClipBottom` | The clip rectangle, up to but not including its right and bottom. |
-
-Each pixel drawn gets the palette number `VIDEO_BOARD_SET_PALETTE` set, as any pixel write does.
-An SFT pixel is a colour with red in bits 0 to 2, green in bits 3 to 5 and blue in bits 6 and 7:
-`SFTColours` gives the palette that shows them as they are.
-
-What isn't an image, or is cut short, is `KERNAL_DEVICE_BAD_ARGUMENT`.
-
-The Video Board's driver draws the blit in software.  The call is where a Blitter Board's driver
-will be handed it instead.
 
 ## Main memory
 
