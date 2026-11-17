@@ -129,7 +129,7 @@ uint16 CKernalSDCardBoard::OpenUnit(uint16 uiUnit)
 
 
 CKernalSDCard* CKernalSDCardBoard::GetCard(uint16 uiSocket) { return &macCards[uiSocket]; }
-uint16 CKernalSDCardBoard::GetReadyCards(void) { return muiReadyCards; }
+uint16 CKernalSDCardBoard::GetReadyCards(void) const { return muiReadyCards; }
 
 
 //x^7 + x^3 + 1, a byte at a time: the CRC is kept shifted up a bit (in D7-D1, D0 zero), and the next is
@@ -742,7 +742,7 @@ bool CKernalSDCard::Erase(uint64 uiStartSector, uint64 uiStopSectorInclusive)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalSDCard::GetError(void)
+uint16 CKernalSDCard::GetError(void) const
 {
 	return muiError;
 }

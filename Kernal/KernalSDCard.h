@@ -46,7 +46,7 @@ public:
 	bool	Write(uint64 uiSector, uint32 uiNumSectors, void* pvData) override;
 	bool	Erase(uint64 uiStartSector, uint64 uiStopSectorInclusive) override;
 
-	uint16	GetError(void);
+	uint16	GetError(void) const;
 
 protected:
 	void	Select(void);
@@ -78,7 +78,7 @@ public:
 	void			Interrupt(void) override;
 
 	CKernalSDCard*	GetCard(uint16 uiSocket);
-	uint16			GetReadyCards(void);
+	uint16			GetReadyCards(void) const;
 
 protected:
 	uint16			OpenUnit(uint16 uiUnit) override;

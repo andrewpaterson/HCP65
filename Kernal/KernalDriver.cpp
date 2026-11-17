@@ -293,9 +293,9 @@ void CKernalDriver::SetInterrupt(volatile uint8* puiFlags, bool bTrusted)
 }
 
 
-SKernalDevice* CKernalDriver::GetDevice(void) { return mpsDevice; }
-uint16 CKernalDriver::GetSlot(void) { return muiSlot; }
-volatile uint8* CKernalDriver::GetRegisters(void) { return mpuiRegisters; }
+SKernalDevice* CKernalDriver::GetDevice(void) const { return mpsDevice; }
+uint16 CKernalDriver::GetSlot(void) const { return muiSlot; }
+volatile uint8* CKernalDriver::GetRegisters(void) const { return mpuiRegisters; }
 
 
 //////////////////////////////////////////////////////////////////////////

@@ -23,7 +23,7 @@ protected:
 public:
 	void	Init(void);
 	uint8	Decode(uint8 uiCode, char* szChars);
-	bool	IsCapsLock(void);
+	bool	IsCapsLock(void) const;
 };
 
 

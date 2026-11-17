@@ -66,9 +66,9 @@ public:
 	virtual uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks);
 	virtual uint16	Blit(uint16 uiUnit, const SKernalBlit* psBlit);
 
-	SKernalDevice*		GetDevice(void);
-	uint16				GetSlot(void);
-	volatile uint8*		GetRegisters(void);
+	SKernalDevice*		GetDevice(void) const;
+	uint16				GetSlot(void) const;
+	volatile uint8*		GetRegisters(void) const;
 
 protected:
 	virtual uint16	OpenUnit(uint16 uiUnit);

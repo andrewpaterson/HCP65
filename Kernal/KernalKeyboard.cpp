@@ -176,7 +176,7 @@ uint8 CKernalKeyboard::Decode(uint8 uiCode, char* szChars)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CKernalKeyboard::IsCapsLock(void)
+bool CKernalKeyboard::IsCapsLock(void) const
 {
 	return mbCapsLock;
 }
