@@ -32,6 +32,7 @@ void CKernalConsole::Init(void)
 	muiRows = 0;
 	mcKeyboard.Init();
 	mbCapsLock = false;
+	mbCursorShown = false;
 	muiTyped = 0;
 }
 
@@ -231,7 +232,7 @@ uint16 CKernalConsole::VideoMode(uint32 uiMode)
 	muiRows = (uint16)uiRows;
 	muiColumn = 0;
 	muiRow = 0;
-	VideoCursor();
+	mbCursorShown = false;
 	return KERNAL_DRIVER_SUCCESS;
 }
 
@@ -249,7 +250,45 @@ void CKernalConsole::VideoCursor(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The cursor shown where the next character goes, if it isn't: when a
+// process asks for what is typed.  It isn't drawn while text is written,
+// which is most of what writing a little at a time would cost.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalConsole::ShowCursor(void)
+{
+	if (mbVideo && !mbCursorShown)
+	{
+		if (muiColumn >= muiColumns)
+		{
+			VideoNewLine();
+		}
+		VideoCursor();
+		mbCursorShown = true;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The cursor hidden, before the text moves on without writing over it.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalConsole::HideCursor(void)
+{
+	if (mbCursorShown)
+	{
+		VideoControl(VIDEO_BOARD_SET_CURSOR, VIDEO_CURSOR_NONE, NULL);
+		mbCursorShown = false;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // uiLength characters of kernal memory at the cursor, all on its row.
+// The first is written over the cursor's cell, which the Video Board's
+// driver then no longer shows as the cursor's.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalConsole::VideoText(const uint8* puiChars, uint32 uiLength)
@@ -257,6 +296,7 @@ uint16 CKernalConsole::VideoText(const uint8* puiChars, uint32 uiLength)
 	uint32	uiDone;
 	uint16	uiResult;
 
+	mbCursorShown = false;
 	uiDone = 0;
 	KernalSetKernalCopy(true);
 	uiResult = mpcOutput->Write(muiOutputUnit, (uint32)muiRow * muiColumns + muiColumn, (uint32)puiChars, uiLength, &uiDone);
@@ -274,6 +314,7 @@ uint16 CKernalConsole::VideoText(const uint8* puiChars, uint32 uiLength)
 //////////////////////////////////////////////////////////////////////////
 void CKernalConsole::VideoNewLine(void)
 {
+	HideCursor();
 	muiColumn = 0;
 	if (muiRow + 1 < muiRows)
 	{
@@ -324,10 +365,12 @@ void CKernalConsole::VideoWrite(const uint8* puiBytes, uint32 uiLength)
 		}
 		else if (c == '\r')
 		{
+			HideCursor();
 			muiColumn = 0;
 		}
 		else if (c == '\b')
 		{
+			HideCursor();
 			if (muiColumn > 0)
 			{
 				muiColumn--;
@@ -349,6 +392,7 @@ void CKernalConsole::VideoWrite(const uint8* puiBytes, uint32 uiLength)
 		else if (c == '\f')
 		{
 			VideoControl(VIDEO_BOARD_CLEAR_TEXT, 0, NULL);
+			mbCursorShown = false;
 			muiColumn = 0;
 			muiRow = 0;
 		}
@@ -413,14 +457,6 @@ uint16 CKernalConsole::Write(uint32 uiUserAddress, uint32 uiLength, uint32* puiD
 		*puiDone += uiChunk;
 		uiUserAddress += uiChunk;
 		uiLength -= uiChunk;
-	}
-	if (mbVideo)
-	{
-		if (muiColumn >= muiColumns)
-		{
-			VideoNewLine();
-		}
-		VideoCursor();
 	}
 	return KERNAL_DRIVER_SUCCESS;
 }
@@ -498,6 +534,7 @@ uint16 CKernalConsole::Read(uint32 uiUserAddress, uint32 uiLength, uint32* puiDo
 	{
 		return KERNAL_DRIVER_SUCCESS;
 	}
+	ShowCursor();
 
 	if (mbKeyboard)
 	{
@@ -551,7 +588,7 @@ uint16 CKernalConsole::Control(uint16 uiCode, uint32 uiValue, uint32* puiResult)
 			muiColumn = 0;
 			muiRow = 0;
 			VideoControl(VIDEO_BOARD_CLEAR_TEXT, 0, NULL);
-			VideoCursor();
+			mbCursorShown = false;
 			return KERNAL_DRIVER_SUCCESS;
 		}
 		//A VT100's: erase the screen, then the cursor to the top left.
@@ -594,6 +631,7 @@ uint16 CKernalConsole::Wait(uint32 uiValue, uint16 uiTicks)
 	{
 		return KERNAL_DRIVER_TIMEOUT;
 	}
+	ShowCursor();
 	if (mbKeyboard)
 	{
 		ReadKeyboard();

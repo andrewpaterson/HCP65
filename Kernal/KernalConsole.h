@@ -24,9 +24,9 @@
 //Output is text.  '\n' starts the next line (a terminal on the UART is sent "\r\n"), '\r' goes back to the line's
 //start, '\b' back a character, '\t' on to the next multiple of 8 and '\f' clears the screen.  On the Video Board a
 //line that reaches the right edge goes on on the next, and the text scrolls up from the bottom; the cursor blinks where
-//the next character goes.  Input is bytes as they come: the UART's as a terminal sends them (Enter is '\r'), the
-//keyboard's as the characters a terminal would send (CKernalKeyboard).  Nothing is echoed: a program that wants what
-//is typed shown writes it.
+//the next character goes while a process reads or waits for what is typed (it isn't drawn while text is written).
+//Input is bytes as they come: the UART's as a terminal sends them (Enter is '\r'), the keyboard's as the characters a
+//terminal would send (CKernalKeyboard).  Nothing is echoed: a program that wants what is typed shown writes it.
 class CKernalConsole
 {
 protected:
@@ -42,6 +42,7 @@ protected:
 	uint16			muiRows;
 	CKernalKeyboard	mcKeyboard;
 	bool			mbCapsLock;			//What the keyboard's LED shows.
+	bool			mbCursorShown;		//The Video Board shows the cursor, where the next character goes.
 	char			macTyped[KERNAL_CONSOLE_TYPED_SIZE];
 	uint16			muiTyped;
 	uint8			mauiBuffer[KERNAL_CONSOLE_BUFFER_SIZE * 2];
@@ -65,6 +66,8 @@ protected:
 	void	VideoNewLine(void);
 	void	VideoWrite(const uint8* puiBytes, uint32 uiLength);
 	void	VideoCursor(void);
+	void	ShowCursor(void);
+	void	HideCursor(void);
 	uint16	VideoMode(uint32 uiMode);
 	void	ReadKeyboard(void);
 };
