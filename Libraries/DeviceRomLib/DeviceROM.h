@@ -70,7 +70,7 @@ public:
 	bool	LoadXML(CMarkupTag* pcTag, CChars* pszError);
 
 	uint8	Read(uint32 uiOffset);
-	uint16	NumRegisters(void);
+	uint16	NumRegisters(void) const;
 	uint8*	GetROM(void);
 
 protected:

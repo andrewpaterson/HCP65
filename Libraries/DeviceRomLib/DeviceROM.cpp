@@ -133,7 +133,7 @@ uint8 CDeviceROM::Read(uint32 uiOffset)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CDeviceROM::NumRegisters(void)
+uint16 CDeviceROM::NumRegisters(void) const
 {
 	return (uint16)(mauiROM[DEVICE_ROM_COUNT_OFFSET] | (mauiROM[DEVICE_ROM_COUNT_OFFSET + 1] << 8));
 }

@@ -712,8 +712,8 @@ bool CDeviceROMSchematic::WriteXML(const char* szFileName)
 char* CDeviceROMSchematic::GetName(void) { return mszName.Text(); }
 char* CDeviceROMSchematic::GetManufacturer(void) { return mszManufacturer.Text(); }
 char* CDeviceROMSchematic::GetDriver(void) { return mszDriver.Text(); }
-uint8 CDeviceROMSchematic::GetRevision(void) { return muiRevision; }
-uint8 CDeviceROMSchematic::GetDeviceBus(void) { return muiDeviceBus; }
-uint8 CDeviceROMSchematic::GetMainBus(void) { return muiMainBus; }
-size CDeviceROMSchematic::NumRegisters(void) { return masRegisters.NumElements(); }
+uint8 CDeviceROMSchematic::GetRevision(void) const { return muiRevision; }
+uint8 CDeviceROMSchematic::GetDeviceBus(void) const { return muiDeviceBus; }
+uint8 CDeviceROMSchematic::GetMainBus(void) const { return muiMainBus; }
+size CDeviceROMSchematic::NumRegisters(void) const { return masRegisters.NumElements(); }
 SDeviceROMSchematicRegister* CDeviceROMSchematic::GetRegister(size uiIndex) { return masRegisters.Get(uiIndex); }

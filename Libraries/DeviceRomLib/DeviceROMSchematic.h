@@ -76,10 +76,10 @@ public:
 	char*			GetName(void);
 	char*			GetManufacturer(void);
 	char*			GetDriver(void);
-	uint8			GetRevision(void);
-	uint8			GetDeviceBus(void);
-	uint8			GetMainBus(void);
-	size			NumRegisters(void);
+	uint8			GetRevision(void) const;
+	uint8			GetDeviceBus(void) const;
+	uint8			GetMainBus(void) const;
+	size			NumRegisters(void) const;
 	SDeviceROMSchematicRegister*	GetRegister(size uiIndex);
 
 protected:
