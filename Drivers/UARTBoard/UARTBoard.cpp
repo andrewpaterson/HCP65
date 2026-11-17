@@ -442,8 +442,8 @@ void CKernalUARTPort::Discard(uint8 uiRegister)
 void CKernalUARTPort::SetIER(uint8 uiIER) { muiIER = uiIER; mpuiRegisters[UART_IER] = uiIER; }
 void CKernalUARTPort::SetLCR(uint8 uiLCR) { muiLCR = uiLCR; mpuiRegisters[UART_LCR] = uiLCR; }
 void CKernalUARTPort::SetMCR(uint8 uiMCR) { muiMCR = uiMCR; mpuiRegisters[UART_MCR] = uiMCR; }
-uint8 CKernalUARTPort::NumReceived(void) { return (uint8)(muiRxHead - muiRxTail); }
-uint8 CKernalUARTPort::NumQueued(void) { return (uint8)(muiTxHead - muiTxTail); }
+uint8 CKernalUARTPort::NumReceived(void) const { return (uint8)(muiRxHead - muiRxTail); }
+uint8 CKernalUARTPort::NumQueued(void) const { return (uint8)(muiTxHead - muiTxTail); }
 bool CKernalUARTPort::IsSent(void) { return (ReadLineStatus() & UART_LSR_TX_EMPTY) != 0; }
 
 

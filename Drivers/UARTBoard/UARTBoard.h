@@ -103,8 +103,8 @@ protected:
 	uint8	ReadLineStatus(void);
 	void	Receive(void);
 	void	Transmit(void);
-	uint8	NumReceived(void);
-	uint8	NumQueued(void);
+	uint8	NumReceived(void) const;
+	uint8	NumQueued(void) const;
 	bool	IsSent(void);
 };
 
