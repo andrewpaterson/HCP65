@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
-"""Makes CONSOLE.FNT and CONSOLE.SFT, the HCP65 console's 8x16 font, from a PC Screen Font (.psf or .psf.gz) with a
-Unicode table.
+"""Makes CONSOLE.SFT, the HCP65 console's 8x16 font, from a PC Screen Font (.psf or .psf.gz) with a Unicode table.
 
-CONSOLE.FNT is 256 glyphs of 16 bytes, in Latin-1 order (glyph n is the character U+00n), each byte a row from the top
-with its leftmost pixel in bit 7: 4096 bytes.  The control characters ($00-$1F and $7F to $9F) are blank, as is any
-character the font hasn't.  The console driver loads it from the SD card's \\OS\\Fonts\\CONSOLE.FNT.
+CONSOLE.SFT is an SFT container (CommonLibraries' SupportLib/SFTCommon.h) of 256 transparent images of 8 by 16, in
+Latin-1 order (image n is the character U+00n): what a blit draws.  A glyph's pixels are $FF, and the rest of it
+isn't drawn.  The control characters ($00-$1F and $7F to $9F) are blank, as is any character the font hasn't.  The
+console loads it from the SD card's \\OS\\Fonts\\CONSOLE.SFT.
 
-CONSOLE.SFT is the same glyphs as an SFT container (CommonLibraries' SupportLib/SFTCommon.h) of 256 transparent images
-of 8 by 16, in the same order: what a blit draws.  A glyph's pixels are $FF, and the rest of it isn't drawn.
-
-CONSOLE.FNT in this directory was made from Terminus Font 16 (Lat15-Terminus16.psf.gz, as Debian's console-setup has
+CONSOLE.SFT in this directory was made from Terminus Font 16 (Lat15-Terminus16.psf.gz, as Debian's console-setup has
 it), which is under the SIL Open Font License 1.1: Terminus-OFL.txt beside it.
 
-    MakeConsoleFont.py [font.psf.gz] [CONSOLE.FNT] [CONSOLE.SFT]
+    MakeConsoleFont.py [font.psf.gz] [CONSOLE.SFT]
 """
 import gzip
 import struct
@@ -22,8 +19,7 @@ GLYPH_WIDTH = 8
 GLYPH_HEIGHT = 16
 NUM_GLYPHS = 256
 DEFAULT_FONT = "/usr/share/consolefonts/Lat15-Terminus16.psf.gz"
-DEFAULT_OUTPUT = "CONSOLE.FNT"
-DEFAULT_SFT_OUTPUT = "CONSOLE.SFT"
+DEFAULT_OUTPUT = "CONSOLE.SFT"
 
 SFT_TYPE_TRANSPARENT = 0xE4FA
 SFT_TYPE_CONTAINER = 0xE4EF
@@ -143,29 +139,26 @@ def IsControl(iCode):
 def main(aszArguments):
     szFont = aszArguments[1] if len(aszArguments) > 1 else DEFAULT_FONT
     szOutput = aszArguments[2] if len(aszArguments) > 2 else DEFAULT_OUTPUT
-    szSFTOutput = aszArguments[3] if len(aszArguments) > 3 else DEFAULT_SFT_OUTPUT
     iWidth, iHeight, aGlyphs, dMap = ReadFont(szFont)
     if (iWidth != GLYPH_WIDTH) or (iHeight != GLYPH_HEIGHT):
         raise ValueError("%s is %dx%d, not %dx%d." % (szFont, iWidth, iHeight, GLYPH_WIDTH, GLYPH_HEIGHT))
 
-    abOutput = bytearray()
+    #Each glyph a row a byte, its leftmost pixel bit 7.
+    aabGlyphs = []
     aiMissing = []
     for iCode in range(NUM_GLYPHS):
         if IsControl(iCode):
-            abOutput += bytes(GLYPH_HEIGHT)
+            aabGlyphs.append(bytes(GLYPH_HEIGHT))
         elif iCode in dMap:
-            abOutput += aGlyphs[dMap[iCode]][:GLYPH_HEIGHT]
+            aabGlyphs.append(aGlyphs[dMap[iCode]][:GLYPH_HEIGHT])
         else:
-            abOutput += bytes(GLYPH_HEIGHT)
+            aabGlyphs.append(bytes(GLYPH_HEIGHT))
             aiMissing.append(iCode)
-    with open(szOutput, "wb") as cFile:
-        cFile.write(abOutput)
-    print("%s: %d bytes from %s%s" % (szOutput, len(abOutput), szFont, (", blank for " + " ".join("$%02X" % i for i in aiMissing)) if aiMissing else ""))
 
-    abSFT = MakeSFTContainer([MakeSFTImage(abOutput[i * GLYPH_HEIGHT:(i + 1) * GLYPH_HEIGHT]) for i in range(NUM_GLYPHS)])
-    with open(szSFTOutput, "wb") as cFile:
+    abSFT = MakeSFTContainer([MakeSFTImage(abGlyph) for abGlyph in aabGlyphs])
+    with open(szOutput, "wb") as cFile:
         cFile.write(abSFT)
-    print("%s: %d bytes" % (szSFTOutput, len(abSFT)))
+    print("%s: %d bytes from %s%s" % (szOutput, len(abSFT), szFont, (", blank for " + " ".join("$%02X" % i for i in aiMissing)) if aiMissing else ""))
     return 0
 
 

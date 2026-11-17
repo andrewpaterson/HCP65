@@ -81,8 +81,7 @@
 #define TEST_HCP65_SHELL_MAX_RUNS	3000		//Of TEST_UART_RUN_CYCLES, for a command.
 #define TEST_HCP65_FONT				".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.SFT"
 #define TEST_HCP65_FONT_PATH		"\\OS\\Fonts\\CONSOLE.SFT"
-#define TEST_HCP65_FONT_BITMAP		".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.FNT"	//The same glyphs a row a byte, to read the screen with.
-#define TEST_HCP65_FONT_SIZE		4096
+#define TEST_HCP65_FONT_SIZE		4096		//Its 256 glyphs, a row a byte, to read the screen with.
 #define TEST_HCP65_SCREEN_COLUMNS	80			//The console's 640x480.
 #define TEST_HCP65_SCREEN_ROWS		30
 #define TEST_HCP65_CONSOLE_INK		0xFFAAAAAA	//Light grey on black.
@@ -2135,6 +2134,82 @@ struct STestConsole
 // none is.
 //
 //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's font (an SFT container of 256 transparent images of 8 by
+// 16: UserLib/HCP65SFT.h) as each glyph's 16 rows, a row a byte with its
+// leftmost pixel bit 7.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestConsoleReadFont(uint8* puiFont)
+{
+	static uint8	auiFile[0x10000];
+	FILE*			pFile;
+	size			uiSize;
+	size			uiPosition;
+	size			uiCode;
+	size			uiNext;
+	size			uiGlyph;
+	size			x;
+	size			y;
+	size			i;
+	uint8			c;
+
+	pFile = fopen(TEST_HCP65_FONT, "rb");
+	if (!pFile)
+	{
+		return false;
+	}
+	uiSize = fread(auiFile, 1, sizeof(auiFile), pFile);
+	fclose(pFile);
+	memset(auiFile + uiSize, 0, sizeof(auiFile) - uiSize);
+	memset(puiFont, 0, TEST_HCP65_FONT_SIZE);
+	if ((uiSize < 4) || (auiFile[2] != 0) || (auiFile[3] != 1))
+	{
+		return false;
+	}
+
+	uiPosition = 4;
+	for (uiGlyph = 0; uiGlyph < 256; uiGlyph++)
+	{
+		uiNext = auiFile[uiPosition] | ((size)auiFile[uiPosition + 1] << 8);
+		x = 0;
+		y = 0;
+		for (uiCode = uiPosition + 8; (uiCode < uiSize) && (auiFile[uiCode] != 0); )
+		{
+			c = auiFile[uiCode++];
+			if (c >= 0xC0)
+			{
+				y += (c & 0x3F) + 1;
+				x = 0;
+			}
+			else if (c >= 0x80)
+			{
+				x += (c & 0x3F) + 1;
+			}
+			else
+			{
+				if ((y >= 16) || (x + c > 8))
+				{
+					return false;
+				}
+				for (i = 0; i < c; i++, x++)
+				{
+					puiFont[uiGlyph * 16 + y] |= (uint8)(0x80 >> x);
+				}
+				uiCode += c;
+			}
+		}
+		if ((uiGlyph < 255) && ((uiNext == 0) || (uiPosition + uiNext + 8 > uiSize)))
+		{
+			return false;
+		}
+		uiPosition += uiNext;
+	}
+	return true;
+}
+
+
 static char TestConsoleCell(STestConsole* psConsole, uint32 uiWidth, uint32 uiColumn, uint32 uiRow)
 {
 	uint8	auiCell[16];
@@ -2308,7 +2383,6 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	STestKernalStatus	sStatus;
 	CHCP65SDCard*		pcSDCard;
 	CChars				szScreen;
-	FILE*				pFile;
 	uint32				uiWidth;
 	uint32				uiHeight;
 	uint32				uiWhite;
@@ -2316,14 +2390,7 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	uint32				y;
 	int					i;
 
-	pFile = fopen(TEST_HCP65_FONT_BITMAP, "rb");
-	AssertTrue(pFile != NULL);
-	if (!pFile)
-	{
-		return;
-	}
-	AssertInt(TEST_HCP65_FONT_SIZE, (int)fread(sConsole.auiFont, 1, TEST_HCP65_FONT_SIZE, pFile));
-	fclose(pFile);
+	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
 	if (!TestKernalPutSystemFiles())
 	{
 		return;
