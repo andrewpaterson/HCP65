@@ -4,9 +4,10 @@
 
 //\OS\SHELL.EXE: the HCP65's command line, which \OS\INIT.EXE keeps running.  It reads a line from the console
 //(KERNAL_STANDARD_INPUT), echoing it, and does what it says: one of the commands below (SHELL_COMMANDS), or else runs
-//the program it names.  Paths are FAT paths on the SD card; one that doesn't start with '\' is from the current
-//directory.  A program is looked for as given, then in \OS, with ".EXE" added if it has no extension; a number after it
-//is its argument (KernalGetArgument).  "exit" ends the shell, and INIT.EXE starts it again.
+//the program it names.  The commands have their Linux names (ls, cat, cp ...).  Paths are FAT paths on the SD card;
+//one that doesn't start with '\' is from the current directory.  A program is looked for as given, then in \OS, with
+//".EXE" added if it has no extension; a number after it is its argument (KernalGetArgument).  "exit" ends the shell,
+//and INIT.EXE starts it again.
 #define SHELL_LINE_LENGTH		128
 #define SHELL_PATH_LENGTH		128
 #define SHELL_MAX_WORDS			8
@@ -354,24 +355,21 @@ static bool ShellHelp(uint16 uiWords, char** aszWords);
 
 //////////////////////////////////////////////////////////////////////////
 //
-// dir [path]: the directory's entries.
+// ls [path]: the directory's entries, a file's size before its name and a
+// directory's name with a '/' after it.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellDir(uint16 uiWords, char** aszWords)
+static bool ShellLs(uint16 uiWords, char** aszWords)
 {
 	SKernalDirectoryEntry	sEntry;
 	char					szPath[SHELL_PATH_LENGTH];
 	uint16					uiIndex;
 	uint16					uiResult;
-	uint16					uiFiles;
-	uint32					uiBytes;
 
 	if (!ShellPathOf((uiWords > 1) ? aszWords[1] : ".", szPath))
 	{
 		return true;
 	}
-	uiFiles = 0;
-	uiBytes = 0;
 	for (uiIndex = 0;; uiIndex++)
 	{
 		uiResult = KernalDirectoryEntry(szPath, uiIndex, &sEntry);
@@ -381,53 +379,44 @@ static bool ShellDir(uint16 uiWords, char** aszWords)
 		}
 		if (sEntry.uiAttributes & KERNAL_FILE_DIRECTORY)
 		{
-			ShellWrite("     <DIR>  ");
+			ShellWrite("            ");
+			ShellWrite(sEntry.szName);
+			ShellWriteChar('/');
 		}
 		else
 		{
 			ShellWriteNumber(sEntry.uiSize, 10);
 			ShellWrite("  ");
-			uiFiles++;
-			uiBytes += sEntry.uiSize;
+			ShellWrite(sEntry.szName);
 		}
-		ShellWrite(sEntry.szName);
 		ShellWriteChar('\n');
 	}
 	if (uiResult != KERNAL_RESULT_END)
 	{
+		ShellWrite("ls: ");
 		ShellWrite(szPath);
 		ShellWrite(" isn't a directory.\n");
-		return true;
 	}
-	ShellWriteNumber(uiFiles, 5);
-	ShellWrite(" files, ");
-	ShellWriteNumber(uiBytes, 0);
-	ShellWrite(" bytes\n");
 	return true;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// cd [path]: the current directory, or a new one.
+// cd [path]: the current directory changed, to the root without a path.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool ShellCd(uint16 uiWords, char** aszWords)
 {
 	char	szPath[SHELL_PATH_LENGTH];
 
-	if (uiWords < 2)
-	{
-		ShellWrite(gszShellDirectory);
-		ShellWriteChar('\n');
-		return true;
-	}
-	if (!ShellPathOf(aszWords[1], szPath))
+	if (!ShellPathOf((uiWords > 1) ? aszWords[1] : "\\", szPath))
 	{
 		return true;
 	}
 	if (!ShellIsDirectory(szPath))
 	{
+		ShellWrite("cd: ");
 		ShellWrite(szPath);
 		ShellWrite(" isn't a directory.\n");
 		return true;
@@ -439,17 +428,30 @@ static bool ShellCd(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// type file: the file's bytes, to the console.
+// pwd: the current directory.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellType(uint16 uiWords, char** aszWords)
+static bool ShellPwd(uint16 uiWords, char** aszWords)
+{
+	ShellWrite(gszShellDirectory);
+	ShellWriteChar('\n');
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// cat file: the file's bytes, to the console.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool ShellCat(uint16 uiWords, char** aszWords)
 {
 	char	szPath[SHELL_PATH_LENGTH];
 	uint32	uiSize;
 	uint32	uiOffset;
 	uint32	uiChunk;
 
-	if (!ShellNeeds(uiWords, 1, "type <file>") || !ShellPathOf(aszWords[1], szPath))
+	if (!ShellNeeds(uiWords, 1, "cat <file>") || !ShellPathOf(aszWords[1], szPath))
 	{
 		return true;
 	}
@@ -480,17 +482,17 @@ static bool ShellType(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// copy from to: a file of up to SHELL_COPY_SIZE bytes, replacing to if it
+// cp from to: a file of up to SHELL_COPY_SIZE bytes, replacing to if it
 // is there.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellCopy(uint16 uiWords, char** aszWords)
+static bool ShellCp(uint16 uiWords, char** aszWords)
 {
 	char	szFrom[SHELL_PATH_LENGTH];
 	char	szTo[SHELL_PATH_LENGTH];
 	uint32	uiSize;
 
-	if (!ShellNeeds(uiWords, 2, "copy <from> <to>") || !ShellPathOf(aszWords[1], szFrom) || !ShellPathOf(aszWords[2], szTo))
+	if (!ShellNeeds(uiWords, 2, "cp <from> <to>") || !ShellPathOf(aszWords[1], szFrom) || !ShellPathOf(aszWords[2], szTo))
 	{
 		return true;
 	}
@@ -525,14 +527,14 @@ static bool ShellCopy(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// del file.
+// rm file.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellDel(uint16 uiWords, char** aszWords)
+static bool ShellRm(uint16 uiWords, char** aszWords)
 {
 	char	szPath[SHELL_PATH_LENGTH];
 
-	if (!ShellNeeds(uiWords, 1, "del <file>") || !ShellPathOf(aszWords[1], szPath))
+	if (!ShellNeeds(uiWords, 1, "rm <file>") || !ShellPathOf(aszWords[1], szPath))
 	{
 		return true;
 	}
@@ -547,14 +549,14 @@ static bool ShellDel(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// md directory.
+// mkdir directory.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellMd(uint16 uiWords, char** aszWords)
+static bool ShellMkdir(uint16 uiWords, char** aszWords)
 {
 	char	szPath[SHELL_PATH_LENGTH];
 
-	if (!ShellNeeds(uiWords, 1, "md <directory>") || !ShellPathOf(aszWords[1], szPath))
+	if (!ShellNeeds(uiWords, 1, "mkdir <directory>") || !ShellPathOf(aszWords[1], szPath))
 	{
 		return true;
 	}
@@ -569,10 +571,10 @@ static bool ShellMd(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// devices: each board in the device sockets, and its driver.
+// lsdev: each board in the device sockets, and its driver.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellDevices(uint16 uiWords, char** aszWords)
+static bool ShellLsdev(uint16 uiWords, char** aszWords)
 {
 	SKernalDeviceInfo	sInfo;
 	uint16				uiIndex;
@@ -597,10 +599,10 @@ static bool ShellDevices(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// drivers: each driver file loaded, and the boards it drives.
+// lsmod: each driver file loaded, and the boards it drives.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellDrivers(uint16 uiWords, char** aszWords)
+static bool ShellLsmod(uint16 uiWords, char** aszWords)
 {
 	SKernalDeviceInfo	sInfo;
 	SKernalDeviceInfo	sOther;
@@ -652,10 +654,10 @@ static bool ShellDrivers(uint16 uiWords, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// mem: main memory and the kernal's heaps.
+// free: main memory and the kernal's heap.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellMem(uint16 uiWords, char** aszWords)
+static bool ShellFree(uint16 uiWords, char** aszWords)
 {
 	SKernalMemoryInfo	sInfo;
 
@@ -723,14 +725,14 @@ static bool ShellMode(uint16 uiWords, char** aszWords)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-static bool ShellCls(uint16 uiWords, char** aszWords)
+static bool ShellClear(uint16 uiWords, char** aszWords)
 {
 	KernalDeviceControl(KERNAL_STANDARD_OUTPUT, KERNAL_CONSOLE_CLEAR, 0, NULL);
 	return true;
 }
 
 
-static bool ShellVer(uint16 uiWords, char** aszWords)
+static bool ShellUname(uint16 uiWords, char** aszWords)
 {
 	ShellWrite(SHELL_VERSION "\n");
 	return true;
@@ -746,18 +748,19 @@ static bool ShellExit(uint16 uiWords, char** aszWords)
 static const SShellCommand	gasShellCommands[] =
 {
 	{ "help",		ShellHelp,		"What the commands are" },
-	{ "dir",		ShellDir,		"dir [path]: a directory's files" },
-	{ "cd",			ShellCd,		"cd [path]: the current directory, or change it" },
-	{ "type",		ShellType,		"type <file>: show a file" },
-	{ "copy",		ShellCopy,		"copy <from> <to>: copy a file" },
-	{ "del",		ShellDel,		"del <file>: delete a file" },
-	{ "md",			ShellMd,		"md <directory>: make a directory" },
-	{ "devices",	ShellDevices,	"The boards in the device sockets" },
-	{ "drivers",	ShellDrivers,	"The drivers loaded" },
-	{ "mem",		ShellMem,		"Main memory and the kernal's heap" },
+	{ "ls",			ShellLs,		"ls [path]: a directory's files" },
+	{ "cd",			ShellCd,		"cd [path]: change the current directory (to the root without a path)" },
+	{ "pwd",		ShellPwd,		"The current directory" },
+	{ "cat",		ShellCat,		"cat <file>: show a file" },
+	{ "cp",			ShellCp,		"cp <from> <to>: copy a file" },
+	{ "rm",			ShellRm,		"rm <file>: delete a file" },
+	{ "mkdir",		ShellMkdir,		"mkdir <directory>: make a directory" },
+	{ "lsdev",		ShellLsdev,		"The boards in the device sockets" },
+	{ "lsmod",		ShellLsmod,		"The drivers loaded" },
+	{ "free",		ShellFree,		"Main memory and the kernal's heap" },
 	{ "mode",		ShellMode,		"mode [0|1|2]: the console's size, or its video mode" },
-	{ "cls",		ShellCls,		"Clear the screen" },
-	{ "ver",		ShellVer,		"The shell's version" },
+	{ "clear",		ShellClear,		"Clear the screen" },
+	{ "uname",		ShellUname,		"The shell's version" },
 	{ "exit",		ShellExit,		"End the shell" },
 	{ NULL,			NULL,			NULL }
 };

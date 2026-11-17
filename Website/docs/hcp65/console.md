@@ -59,24 +59,25 @@ from Terminus Font (SIL Open Font License) by `HCP65/Fonts/MakeConsoleFont.py`.
 ## The shell
 
 The shell prompts with the current directory (`\>` at first) and reads a line.  Backspace takes
-back the last character and Ctrl-C drops the line.  Paths are FAT paths, from the current directory
-unless they start with `\`, and case doesn't matter.
+back the last character and Ctrl-C drops the line.  The commands have their Linux names.  Paths are
+FAT paths, from the current directory unless they start with `\`, and case doesn't matter.
 
 | Command | What it does |
 |---|---|
 | `help` | Lists the commands |
-| `dir [path]` | A directory's files and directories, with their sizes |
-| `cd [path]` | Shows the current directory, or changes it |
-| `type <file>` | Shows a file |
-| `copy <from> <to>` | Copies a file of up to 32KB |
-| `del <file>` | Deletes a file |
-| `md <directory>` | Makes a directory |
-| `devices` | The boards in the device sockets, their drivers and units |
-| `drivers` | The drivers loaded from `\OS\Drivers`, and the boards each drives |
-| `mem` | Main memory, what programs can have, and the kernel's heap |
+| `ls [path]` | A directory's files with their sizes, and its directories with a `/` after their names |
+| `cd [path]` | Changes the current directory; to the root without a path |
+| `pwd` | Shows the current directory |
+| `cat <file>` | Shows a file |
+| `cp <from> <to>` | Copies a file of up to 32KB |
+| `rm <file>` | Deletes a file |
+| `mkdir <directory>` | Makes a directory |
+| `lsdev` | The boards in the device sockets, their drivers and units |
+| `lsmod` | The drivers loaded from `\OS\Drivers`, and the boards each drives |
+| `free` | Main memory, what programs can have, and the kernel's heap |
 | `mode [0\|1\|2]` | The console's size, or the Video Board's mode |
-| `cls` | Clears the screen |
-| `ver` | The shell's version |
+| `clear` | Clears the screen |
+| `uname` | The shell's version |
 | `exit` | Ends the shell (`INIT.EXE` starts it again) |
 
 Anything else is a program to run.  It is looked for as given and then in `\OS`, with `.EXE` added

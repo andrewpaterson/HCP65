@@ -1869,41 +1869,43 @@ void TestHCP65KernalShell(STestKernal* psKernal)
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt(1 << TEST_HCP65_UART_SOCKET, sStatus.uiLoadedDrivers);
 
-	AssertTrue(TestShellCommand(&sShell, "dir", &szOutput));
-	AssertTrue(TestShellHas(&szOutput, "<DIR>  OS"));
+	AssertTrue(TestShellCommand(&sShell, "ls", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "  OS/\n"));
 	AssertTrue(TestShellHas(&szOutput, "24  HELLO.TXT"));
-	AssertTrue(TestShellCommand(&sShell, "type hello.txt", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "cat hello.txt", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "\nHello from the SD card.\n"));
-	AssertTrue(TestShellCommand(&sShell, "copy hello.txt copy.txt", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "cp hello.txt copy.txt", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "24 bytes copied."));
-	AssertTrue(TestShellCommand(&sShell, "type copy.txt", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "cat copy.txt", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "\nHello from the SD card.\n"));
-	AssertTrue(TestShellCommand(&sShell, "del copy.txt", &szOutput));
-	AssertTrue(TestShellCommand(&sShell, "type copy.txt", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "rm copy.txt", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "cat copy.txt", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "\\COPY.TXT isn't there.") || TestShellHas(&szOutput, "\\copy.txt isn't there."));
-	AssertTrue(TestShellCommand(&sShell, "md work", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "mkdir work", &szOutput));
 	AssertTrue(TestShellCommand(&sShell, "cd work", &szOutput));
-	AssertTrue(TestShellCommand(&sShell, "cd", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "pwd", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "\\work\n"));
 	AssertTrue(TestShellCommand(&sShell, "cd ..\\os", &szOutput));
-	AssertTrue(TestShellCommand(&sShell, "dir", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "ls", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "SHELL.EXE"));
-	AssertTrue(TestShellHas(&szOutput, "<DIR>  Drivers") || TestShellHas(&szOutput, "<DIR>  DRIVERS"));
-	AssertTrue(TestShellCommand(&sShell, "cd \\", &szOutput));
-	AssertTrue(TestShellCommand(&sShell, "devices", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "  Drivers/\n") || TestShellHas(&szOutput, "  DRIVERS/\n"));
+	AssertTrue(TestShellCommand(&sShell, "cd", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "pwd", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "\n\\\n"));
+	AssertTrue(TestShellCommand(&sShell, "lsdev", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "SD Card Board"));
 	AssertTrue(TestShellHas(&szOutput, "built in"));
 	AssertTrue(TestShellHas(&szOutput, "UART Board            UART.DRV"));
-	AssertTrue(TestShellCommand(&sShell, "drivers", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "lsmod", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "UART.DRV      UART Board"));
-	AssertTrue(TestShellCommand(&sShell, "mem", &szOutput));
+	AssertTrue(TestShellCommand(&sShell, "free", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "Main memory        4096KB (64 banks)"));
 	AssertTrue(TestShellCommand(&sShell, "mode", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "80 columns, 24 rows"));
 	AssertTrue(TestShellCommand(&sShell, "nosuch", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "nosuch isn't a command or a program."));
 	AssertTrue(TestShellCommand(&sShell, "help", &szOutput));
-	AssertTrue(TestShellHas(&szOutput, "devices  The boards in the device sockets"));
+	AssertTrue(TestShellHas(&szOutput, "lsdev    The boards in the device sockets"));
 
 	//A program run from the shell: the shell itself, found in \OS, whose exit comes back here.
 	AssertTrue(TestShellCommand(&sShell, "shell", &szOutput));
@@ -2351,20 +2353,20 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	AssertInt(TEST_HCP65_CONSOLE_PAPER, sConsole.puiFrame[4 * 640 + 3]);
 
 	//What is typed is shown, then done.
-	TestConsoleType(&sConsole, "type hello.txt\r");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> type hello.txt\nHello from the SD card.\n\\>\n", &szScreen));
+	TestConsoleType(&sConsole, "cat hello.txt\r");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> cat hello.txt\nHello from the SD card.\n\\>\n", &szScreen));
 	TestConsoleType(&sConsole, "mode\r");
 	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> mode\n80 columns, 30 rows\n\\>\n", &szScreen));
 
 	//Caps Lock types capitals, and its LED is lit.
 	sConsole.cKeyboard.Key("Caps Lock", true);
 	sConsole.cKeyboard.Key("Caps Lock", false);
-	TestConsoleType(&sConsole, "ver");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> VER\n", &szScreen));
+	TestConsoleType(&sConsole, "pwd");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> PWD\n", &szScreen));
 	sConsole.cKeyboard.Key("Caps Lock", true);
 	sConsole.cKeyboard.Key("Caps Lock", false);
 	TestConsoleType(&sConsole, "\r");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "VER isn't a command or a program.\n\\>\n", &szScreen));
+	AssertTrue(TestConsoleRunUntil(&sConsole, "PWD isn't a command or a program.\n\\>\n", &szScreen));
 	AssertInt(0, sConsole.cKeyboard.GetLEDs());
 
 	//help is longer than what is left of the screen: it scrolls, the last line at the bottom.
