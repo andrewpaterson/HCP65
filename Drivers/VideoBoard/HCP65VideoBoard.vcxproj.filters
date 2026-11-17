@@ -12,6 +12,9 @@
     <ClCompile Include="VideoBoard.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="VideoBoardBlit.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="VideoBoardText.cpp">
       <Filter>Source</Filter>
     </ClCompile>

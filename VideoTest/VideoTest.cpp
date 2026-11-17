@@ -1,11 +1,13 @@
 #include <string.h>
 #include "HCP65User.h"
+#include "HCP65SFT.h"
 #include "HCP65VideoBoard.h"
 
 
 //TestHCP65KernalVideo runs this (\vidtest.exe) as its start up program with a Video Board, and checks the picture it leaves: 640x480, the pixel
 //at (x, y) palette 0's colour (x + y) & $FF, but row 0, whose palette number is 5 (all red), and row 1, which the row
-//table makes row 0 again.  Palette 0's colour i is red i, green 255 - i and blue $40.
+//table makes row 0 again.  Palette 0's colour i is red i, green 255 - i and blue $40.  Before it draws that it checks
+//blits, reading back the pixels they should and shouldn't have drawn.
 #define VIDEO_TEST_MAX_BOARDS	20
 #define VIDEO_TEST_WAIT_TICKS	KERNAL_DEVICE_TICKS_PER_SECOND
 #define VIDEO_TEST_WIDTH		640
@@ -13,7 +15,48 @@
 #define VIDEO_TEST_RED			5
 
 
+#define VIDEO_TEST_GROUND		0x77	//What is under the blits.
+
+
 uint8	gauiVideoTestRow[VIDEO_TEST_WIDTH];
+uint8	gauiVideoTestColours[3 * 256];
+
+//A container of two images.  The first is opaque, 4 by 3:
+//  01 02 03 04
+//  05 06 07 08
+//  09 0A 0B 0C
+//The second is transparent, 4 by 4, with rows without a pixel:
+//  .. A1 A2 ..
+//  .. .. .. ..
+//  A3 .. .. A4
+//  .. .. .. ..
+#define VIDEO_TEST_OPAQUE			6		//Where each image is in it.
+#define VIDEO_TEST_OPAQUE_SIZE		18
+#define VIDEO_TEST_TRANSPARENT		26
+#define VIDEO_TEST_TRANSPARENT_SIZE	34
+
+static const uint8	gauiVideoTestImages[] =
+{
+	0xEF, 0xE4, 2, 0,
+	20, 0,
+	0x57, 0xE4, 4, 0, 3, 0,
+	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
+	0, 0,
+	0xF9, 0xE4, 4, 0, 4, 0,
+	0x01, 0x00, 2, 0, 0xA1, 0xA2,
+	0x04, 0x80, 0, 0,
+	0x00, 0x80, 1, 0, 0xA3,
+	0x02, 0x00, 1, 0, 0xA4,
+	0x04, 0x80, 0, 0,
+	0, 0, 0, 0,
+};
+
+static const uint8	gauiVideoTestWide[] =		//A transparent image whose run goes past its right.
+{
+	0xF9, 0xE4, 2, 0, 1, 0,
+	0x01, 0x00, 2, 0, 0xB1, 0xB2,
+	0, 0, 0, 0,
+};
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -126,6 +169,216 @@ uint16 VideoTestMode(uint16 uiPixels, uint16 uiPalettes)
 		(KernalDeviceWrite(uiPalettes, VIDEO_BOARD_BLUE + VIDEO_TEST_RED * 256, gauiVideoTestRow, 256, NULL) != KERNAL_DEVICE_SUCCESS))
 	{
 		return 7;
+	}
+	return 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// uiLength pixels from (x, y) of the frame being drawn made the ground.
+//
+//////////////////////////////////////////////////////////////////////////
+bool VideoTestGround(uint16 uiPixels, uint16 x, uint16 y, uint16 uiLength)
+{
+	memset(gauiVideoTestRow, VIDEO_TEST_GROUND, uiLength);
+	return KernalDeviceWrite(uiPixels, (uint32)y * VIDEO_TEST_WIDTH + x, gauiVideoTestRow, uiLength, NULL) == KERNAL_DEVICE_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The frame being drawn's pixels from (x, y) are the uiLength at
+// puiExpected.
+//
+//////////////////////////////////////////////////////////////////////////
+bool VideoTestPixels(uint16 uiPixels, uint16 x, uint16 y, const uint8* puiExpected, uint16 uiLength)
+{
+	if (KernalDeviceRead(uiPixels, (uint32)y * VIDEO_TEST_WIDTH + x, gauiVideoTestRow, uiLength, NULL) != KERNAL_DEVICE_SUCCESS)
+	{
+		return false;
+	}
+	return memcmp(gauiVideoTestRow, puiExpected, uiLength) == 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The image of uiSize bytes at pvImage blitted to (x, y).
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 VideoTestBlitAt(uint16 uiPixels, const void* pvImage, uint32 uiSize, int16 x, int16 y)
+{
+	SKernalBlit	sBlit;
+
+	memset(&sBlit, 0, sizeof(SKernalBlit));
+	sBlit.uiImage = (uint32)pvImage;
+	sBlit.uiSize = uiSize;
+	sBlit.iX = x;
+	sBlit.iY = y;
+	return KernalDeviceBlit(uiPixels, &sBlit);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Blits: an opaque and a transparent image, whole, off each edge of the
+// picture and through a clip rectangle; and what isn't an image.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 VideoTestBlit(uint16 uiPixels, uint16 uiPalettes)
+{
+	static const uint8	auiOpaque0[] = { 0x77, 0x01, 0x02, 0x03, 0x04, 0x77 };
+	static const uint8	auiOpaque1[] = { 0x77, 0x05, 0x06, 0x07, 0x08, 0x77 };
+	static const uint8	auiOpaque2[] = { 0x77, 0x09, 0x0A, 0x0B, 0x0C, 0x77 };
+	static const uint8	auiGround[] = { 0x77, 0x77, 0x77, 0x77, 0x77, 0x77 };
+	static const uint8	auiClear0[] = { 0x77, 0x77, 0xA1, 0xA2, 0x77, 0x77 };
+	static const uint8	auiClear2[] = { 0x77, 0xA3, 0x77, 0x77, 0xA4, 0x77 };
+	static const uint8	auiCorner0[] = { 0x07, 0x08, 0x77 };
+	static const uint8	auiCorner1[] = { 0x0B, 0x0C, 0x77 };
+	static const uint8	auiLast[] = { 0x77, 0x01, 0x02, 0x77 };
+	static const uint8	auiClip1[] = { 0x77, 0x06, 0x07, 0x77, 0x77 };
+	static const uint8	auiLeft0[] = { 0xA2, 0x77, 0x77 };
+	static const uint8	auiLeft2[] = { 0x77, 0xA4, 0x77 };
+	const uint8*	puiOpaque;
+	const uint8*	puiTransparent;
+	uint32			uiOpaqueSize;
+	uint32			uiTransparentSize;
+	uint32			uiSize;
+	SKernalBlit		sBlit;
+	uint16			y;
+
+	//The images are where they should be in their container.
+	puiOpaque = (const uint8*)SFTContainedImage(gauiVideoTestImages, sizeof(gauiVideoTestImages), 0, &uiOpaqueSize);
+	puiTransparent = (const uint8*)SFTContainedImage(gauiVideoTestImages, sizeof(gauiVideoTestImages), 1, &uiTransparentSize);
+	if ((puiOpaque != &gauiVideoTestImages[VIDEO_TEST_OPAQUE]) || (uiOpaqueSize != VIDEO_TEST_OPAQUE_SIZE) ||
+		(puiTransparent != &gauiVideoTestImages[VIDEO_TEST_TRANSPARENT]) || (uiTransparentSize != VIDEO_TEST_TRANSPARENT_SIZE) ||
+		(SFTContainedImage(gauiVideoTestImages, sizeof(gauiVideoTestImages), 2, &uiSize) != NULL) ||
+		(SFTContainedImage(gauiVideoTestWide, sizeof(gauiVideoTestWide), 0, &uiSize) != NULL))
+	{
+		return 1;
+	}
+
+	//The colours a pixel's bits are: $FF white, $07 red, $38 green, $C0 blue, $49 a dark grey.
+	SFTColours(&gauiVideoTestColours[0], &gauiVideoTestColours[256], &gauiVideoTestColours[512]);
+	if ((gauiVideoTestColours[0xFF] != 0xFF) || (gauiVideoTestColours[0x07] != 0xFF) || (gauiVideoTestColours[0x38] != 0) || (gauiVideoTestColours[0x49] != 0x24) ||
+		(gauiVideoTestColours[256 + 0x38] != 0xFF) || (gauiVideoTestColours[256 + 0x07] != 0) || (gauiVideoTestColours[256 + 0x49] != 0x24) ||
+		(gauiVideoTestColours[512 + 0xC0] != 0xFF) || (gauiVideoTestColours[512 + 0x49] != 0x55) || (gauiVideoTestColours[512 + 0x3F] != 0))
+	{
+		return 14;
+	}
+
+	//Whole, with the ground around them.
+	for (y = 50; y < 56; y++)
+	{
+		if (!VideoTestGround(uiPixels, 100, y, 6) || !VideoTestGround(uiPixels, 110, y, 6))
+		{
+			return 2;
+		}
+	}
+	if ((VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize, 101, 51) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, 100, 50, auiGround, 6) ||
+		!VideoTestPixels(uiPixels, 100, 51, auiOpaque0, 6) ||
+		!VideoTestPixels(uiPixels, 100, 52, auiOpaque1, 6) ||
+		!VideoTestPixels(uiPixels, 100, 53, auiOpaque2, 6) ||
+		!VideoTestPixels(uiPixels, 100, 54, auiGround, 6))
+	{
+		return 3;
+	}
+	if ((VideoTestBlitAt(uiPixels, puiTransparent, uiTransparentSize, 111, 51) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, 110, 50, auiGround, 6) ||
+		!VideoTestPixels(uiPixels, 110, 51, auiClear0, 6) ||
+		!VideoTestPixels(uiPixels, 110, 52, auiGround, 6) ||
+		!VideoTestPixels(uiPixels, 110, 53, auiClear2, 6) ||
+		!VideoTestPixels(uiPixels, 110, 54, auiGround, 6) ||
+		!VideoTestPixels(uiPixels, 110, 55, auiGround, 6))
+	{
+		return 4;
+	}
+
+	//Off the top left, and off the bottom right (the row after the picture's last isn't drawn on).
+	if (!VideoTestGround(uiPixels, 0, 0, 6) || !VideoTestGround(uiPixels, 0, 1, 6) || !VideoTestGround(uiPixels, 0, 2, 6) ||
+		!VideoTestGround(uiPixels, VIDEO_TEST_WIDTH - 3, VIDEO_TEST_HEIGHT - 1, 3 + 6))
+	{
+		return 5;
+	}
+	if ((VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize, -2, -1) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, 0, 0, auiCorner0, 3) ||
+		!VideoTestPixels(uiPixels, 0, 1, auiCorner1, 3) ||
+		!VideoTestPixels(uiPixels, 0, 2, auiGround, 3))
+	{
+		return 6;
+	}
+	if ((VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize, VIDEO_TEST_WIDTH - 2, VIDEO_TEST_HEIGHT - 1) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, VIDEO_TEST_WIDTH - 3, VIDEO_TEST_HEIGHT - 1, auiLast, 3) ||
+		!VideoTestPixels(uiPixels, 0, VIDEO_TEST_HEIGHT, auiGround, 6))
+	{
+		return 7;
+	}
+	if ((VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize, VIDEO_TEST_WIDTH, 0) != KERNAL_DEVICE_SUCCESS) ||
+		(VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize, 0, VIDEO_TEST_HEIGHT) != KERNAL_DEVICE_SUCCESS) ||
+		(VideoTestBlitAt(uiPixels, puiTransparent, uiTransparentSize, -4, -4) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, 0, VIDEO_TEST_HEIGHT, auiGround, 6) ||
+		!VideoTestPixels(uiPixels, 0, 2, auiGround, 3))
+	{
+		return 8;
+	}
+
+	//A transparent image off the left: its first row's second pixel and its third row's last are left.
+	for (y = 20; y < 24; y++)
+	{
+		if (!VideoTestGround(uiPixels, 0, y, 3))
+		{
+			return 9;
+		}
+	}
+	if ((VideoTestBlitAt(uiPixels, puiTransparent, uiTransparentSize, -2, 20) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, 0, 20, auiLeft0, 3) ||
+		!VideoTestPixels(uiPixels, 0, 21, auiGround, 3) ||
+		!VideoTestPixels(uiPixels, 0, 22, auiLeft2, 3) ||
+		!VideoTestPixels(uiPixels, 0, 23, auiGround, 3))
+	{
+		return 10;
+	}
+
+	//Through a clip rectangle that has only the middle row's middle two pixels.
+	for (y = 100; y < 103; y++)
+	{
+		if (!VideoTestGround(uiPixels, 200, y, 5))
+		{
+			return 11;
+		}
+	}
+	memset(&sBlit, 0, sizeof(SKernalBlit));
+	sBlit.uiImage = (uint32)puiOpaque;
+	sBlit.uiSize = uiOpaqueSize;
+	sBlit.iX = 200;
+	sBlit.iY = 100;
+	sBlit.uiFlags = KERNAL_BLIT_CLIP;
+	sBlit.iClipLeft = 201;
+	sBlit.iClipTop = 101;
+	sBlit.iClipRight = 203;
+	sBlit.iClipBottom = 102;
+	if ((KernalDeviceBlit(uiPixels, &sBlit) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(uiPixels, 200, 100, auiGround, 5) ||
+		!VideoTestPixels(uiPixels, 200, 101, auiClip1, 5) ||
+		!VideoTestPixels(uiPixels, 200, 102, auiGround, 5))
+	{
+		return 12;
+	}
+
+	//What isn't an image, is cut short or has a run outside it; a unit that isn't a picture; no blit at all.
+	if ((VideoTestBlitAt(uiPixels, gauiVideoTestImages, sizeof(gauiVideoTestImages), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, puiOpaque, 5, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, puiOpaque, uiOpaqueSize - 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, puiTransparent, uiTransparentSize - 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, puiTransparent, 6 + 4 + 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, gauiVideoTestWide, sizeof(gauiVideoTestWide), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPixels, (const void*)0xF00000, 100, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(uiPalettes, puiOpaque, uiOpaqueSize, 0, 0) != KERNAL_DEVICE_NOT_SUPPORTED) ||
+		(KernalDeviceBlit(uiPixels, (const SKernalBlit*)0xF00000) != KERNAL_DEVICE_BAD_ARGUMENT))
+	{
+		return 13;
 	}
 	return 0;
 }
@@ -254,6 +507,11 @@ int main(void)
 	if (uiResult != 0)
 	{
 		return 200 + uiResult;
+	}
+	uiResult = VideoTestBlit(uiPixels, uiPalettes);
+	if (uiResult != 0)
+	{
+		return 500 + uiResult;
 	}
 	uiResult = VideoTestDraw(uiPixels, uiNumbers);
 	if (uiResult != 0)
