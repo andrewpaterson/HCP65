@@ -98,7 +98,7 @@ bool CHCP65EmulatorDebugger::ParseArguments(int argc, char* argv[])
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65EmulatorDebugger::IsEnabled(void)
+bool CHCP65EmulatorDebugger::IsEnabled(void) const
 {
 	return meTransport != HDT_None;
 }
@@ -110,7 +110,7 @@ bool CHCP65EmulatorDebugger::IsEnabled(void)
 // program first.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65EmulatorDebugger::IsWaiting(void)
+bool CHCP65EmulatorDebugger::IsWaiting(void) const
 {
 	return IsEnabled() && mbWait;
 }
@@ -204,7 +204,7 @@ bool CHCP65EmulatorDebugger::Tick(uint64 uiCycles)
 // or is stepping it, nor while it waits for a debugger (DEBUG_ARGUMENT_WAIT).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65EmulatorDebugger::IsRunning(void)
+bool CHCP65EmulatorDebugger::IsRunning(void) const
 {
 	return mcServer.GetState() == DSS_Running;
 }

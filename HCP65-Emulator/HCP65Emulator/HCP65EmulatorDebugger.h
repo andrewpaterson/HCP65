@@ -48,12 +48,12 @@ public:
 	void	Kill(void);
 
 	bool	ParseArguments(int argc, char* argv[]);
-	bool	IsEnabled(void);
-	bool	IsWaiting(void);
+	bool	IsEnabled(void) const;
+	bool	IsWaiting(void) const;
 
 	bool	Start(CHCP65* pcHCP65);
 	bool	Tick(uint64 uiCycles);
-	bool	IsRunning(void);
+	bool	IsRunning(void) const;
 	void	Reset(void);
 
 protected:
