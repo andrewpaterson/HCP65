@@ -214,6 +214,16 @@ uint16 CKernalDriver::Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks)
 
 //////////////////////////////////////////////////////////////////////////
 //
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalDriver::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
+{
+	return KERNAL_DRIVER_NOT_SUPPORTED;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A process that hadn't uiUnit open is opening it: the driver gets it
 // ready, or refuses (KERNAL_DRIVER_NOT_SUPPORTED for a board only the
 // kernal uses).

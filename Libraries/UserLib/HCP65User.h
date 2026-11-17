@@ -202,6 +202,28 @@ extern "C" uint16	KernalDeviceControl(uint16 uiHandle, uint16 uiCode, uint32 uiV
 //didn't happen.
 extern "C" uint16	KernalDeviceWait(uint16 uiHandle, uint32 uiValue, uint16 uiTicks);
 
+//A blit: an image drawn on a board's unit (the Video Board's pixels: HCP65VideoBoard.h) with its top left at (iX, iY).
+//The image is an opaque or a transparent SFT image (HCP65SFT.h) in the program's memory, of which no more than uiSize
+//bytes are read.  What is outside the unit isn't drawn, nor with KERNAL_BLIT_CLIP what is outside the rectangle from
+//(iClipLeft, iClipTop) to just before (iClipRight, iClipBottom).  KERNAL_DEVICE_BAD_ARGUMENT for what isn't an image
+//or is cut short (what came before the fault has been drawn).
+#define KERNAL_BLIT_CLIP				0x0001
+
+struct SKernalBlit
+{
+	uint32	uiImage;		//+0
+	uint32	uiSize;			//+4
+	int16	iX;				//+8
+	int16	iY;				//+10
+	uint16	uiFlags;		//+12  KERNAL_BLIT_*.
+	int16	iClipLeft;		//+14
+	int16	iClipTop;		//+16
+	int16	iClipRight;		//+18
+	int16	iClipBottom;	//+20
+};
+
+extern "C" uint16	KernalDeviceBlit(uint16 uiHandle, const SKernalBlit* psBlit);
+
 
 //How the device calls reach the kernal (UserDevices.cpp, COP 12 in UserCalls.asm): one block, which the kernal reads
 //and writes in the program's memory.
@@ -212,6 +234,7 @@ extern "C" uint16	KernalDeviceWait(uint16 uiHandle, uint32 uiValue, uint16 uiTic
 #define KERNAL_DEVICE_CALL_WRITE		4
 #define KERNAL_DEVICE_CALL_CONTROL		5
 #define KERNAL_DEVICE_CALL_WAIT			6
+#define KERNAL_DEVICE_CALL_BLIT			7
 
 struct SKernalDeviceCall
 {
@@ -220,7 +243,7 @@ struct SKernalDeviceCall
 	uint16	uiUnit;			//+4
 	uint16	uiCode;			//+6   Control: the code.  Wait: the ticks.
 	uint32	uiValue;		//+8   Read and Write: the offset.  Control and Wait: the value.
-	uint32	uiAddress;		//+12  Read, Write and Info: the program's memory.  Open: the manufacturer.
+	uint32	uiAddress;		//+12  Read, Write and Info: the program's memory.  Open: the manufacturer.  Blit: its SKernalBlit.
 	uint32	uiLength;		//+16  Read and Write: the length.  Open: the name.
 	uint32	uiResult;		//+20  Control: what it gives back.  Open: the handle.  Read and Write: the bytes moved.
 };

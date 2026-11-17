@@ -244,6 +244,7 @@ static uint16 KernalConsoleCall(SKernalDeviceCall* psCall, uint32 uiAddress)
 uint16 KernalCallDevice(uint32 uiAddress)
 {
 	SKernalDeviceCall	sCall;
+	SKernalBlit			sBlit;
 	CKernalDriver*		pcDriver;
 	uint16				uiUnit;
 	uint16				uiResult;
@@ -299,6 +300,14 @@ uint16 KernalCallDevice(uint32 uiAddress)
 
 	case KERNAL_DEVICE_CALL_WAIT:
 		return pcDriver->Wait(uiUnit, sCall.uiValue, sCall.uiCode);
+
+	case KERNAL_DEVICE_CALL_BLIT:
+		//The unit's own driver draws it.  This is where a Blitter Board's would be given it to do instead.
+		if (!KernalCopyFromUser((uint8*)&sBlit, sCall.uiAddress, sizeof(SKernalBlit)))
+		{
+			return KERNAL_DEVICE_BAD_ARGUMENT;
+		}
+		return pcDriver->Blit(uiUnit, &sBlit);
 	}
 	return KERNAL_DEVICE_BAD_ARGUMENT;
 }

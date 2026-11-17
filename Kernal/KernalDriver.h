@@ -14,6 +14,9 @@
 #define KERNAL_DRIVER_FAILED			6
 #define KERNAL_DRIVER_TIMEOUT			7
 
+struct SKernalBlit;
+
+
 #define KERNAL_DRIVER_NO_OWNER			0		//Process IDs are $FC to $FF.
 #define KERNAL_DRIVER_ALL_UNITS			0xFFFF	//Close's unit when the process has ended.
 #define KERNAL_DRIVER_MAX_UNITS			8		//NumUnits is at most this: the VIA Board's eight VIAs.
@@ -36,7 +39,8 @@
 //(KERNAL_DRIVER_NOT_SUPPORTED) unless the driver does them.  Read and Write move up to uiLength bytes between the
 //running process's memory at uiUserAddress and the unit at uiOffset, and set *puiDone to how many they moved;
 //Control's codes are the driver's own; Wait waits up to uiTicks (KERNAL_TICKS_PER_SECOND) for what uiValue says,
-//which a driver can do with WaitFor and IsWaitOver.
+//which a driver can do with WaitFor and IsWaitOver.  Blit draws an image, which is in the running process's memory
+//(UserLib/HCP65User.h's SKernalBlit), on a unit that is a picture.
 class CKernalDriver
 {
 protected:
@@ -60,6 +64,7 @@ public:
 	virtual uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	virtual uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult);
 	virtual uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks);
+	virtual uint16	Blit(uint16 uiUnit, const SKernalBlit* psBlit);
 
 	SKernalDevice*		GetDevice(void);
 	uint16				GetSlot(void);
