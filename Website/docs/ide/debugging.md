@@ -35,11 +35,14 @@ Start Debugging uses the chosen run configuration's build configuration:
 1. It starts the emulator: the run configuration's tool, or the default emulator for a W65C816
    configuration.  An emulator for another processor than the configuration's is refused as soon as it
    says what it is.  MSVC and GCC configurations can't be debugged.
-2. It loads each `<Load>` of the configuration (a kernal) into the emulator at its address, then the
-   configuration's own built image, while the emulator waits at its first instruction.
-3. A built executable or module is written onto the configuration's SD card image (Card, at Path on
-   card) for the kernal to run or load.
-4. It resets the emulator so it starts from what was loaded, and runs.
+2. It loads each `<Load>` of the configuration (the HCP65's boot loader ROM) into the emulator at its
+   address, then the configuration's own built image if it has no card, while the emulator waits at
+   its first instruction.
+3. A built executable, module or image with a card is written onto the configuration's SD card image
+   (Card, at Path on card): a program for the kernal to run, a driver for it to load, or the kernal
+   itself, `\OS\OS.SYS`, for the boot loader to load.
+4. It checks the kernal on the card (see [The kernal on the card](#the-kernal-on-the-card)).
+5. It resets the emulator so it starts from what was loaded, and runs.
 
 What it did, and the emulator's own output, go in the Build tab.
 
@@ -61,7 +64,10 @@ drawn as a red cell; a red `o` means it isn't **bound** yet.  A build writes a l
 program (`<program>.lines`), and a line's breakpoint is bound to the addresses its code is at:
 
 - in the configuration's own program, in its [breakpoint space](#breakpoint-spaces);
-- in what is loaded with it (a kernal), in every space;
+- in what is loaded with it (the boot loader's ROM), in every space;
+- in the kernal on the card, `OS.SYS`, in its own breakpoint space and every process: from another
+  solution of the workspace that builds an image onto the card, or from a `<Lines>` of the
+  configuration ([Building Programs](../compiler/building.md));
 - in a program of another solution of the workspace that the kernal runs from the card, in that
   program's own process, and only while it runs;
 - in a driver the kernal loads, once it is loaded, wherever it was loaded.
@@ -78,9 +84,18 @@ breakpoints go in; empty, they stop in every space.
 ### A program the kernal runs
 
 When the configuration's program is one the kernal runs as a process (its file on the card, say
-`\boot.exe`), its breakpoints stop only in that process.  The emulator tells the IDE as each process
+`\OS\SHELL.EXE`), its breakpoints stop only in that process.  The emulator tells the IDE as each process
 starts and ends; when the program's process starts, the emulator stops before it runs so its breakpoints
 can be given, and goes on.  That stop isn't shown.
+
+### The kernal on the card
+
+The kernal isn't loaded by the IDE: the boot loader reads it from the card.  Its line table is only
+right if the card's `OS.SYS` is the one that was built, so when debugging starts the IDE compares
+them (a `<Lines>` says which file on the card with its `CardPath`).  If they differ, the Build tab
+says that the card's `\OS\OS.SYS` isn't the one built and its source lines may be wrong; if the
+card hasn't one, that the source lines aren't of what runs.  Debugging goes on either way.
+Debugging the kernal's own configuration once puts the one built on the card.
 
 ## Attaching
 
