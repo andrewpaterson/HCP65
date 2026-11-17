@@ -12,7 +12,8 @@
 #define SHELL_LINE_LENGTH		128
 #define SHELL_PATH_LENGTH		128
 #define SHELL_MAX_WORDS			8
-#define SHELL_READ_SIZE			256			//What type and copy move at a time.
+#define SHELL_READ_SIZE			256			//What cat moves at a time.
+#define SHELL_OUTPUT_SIZE		256			//The most kept before it is sent to the console.
 #define SHELL_COPY_SIZE			0x8000		//The largest file copy copies.
 #define SHELL_PROGRAM_DIRECTORY	"\\OS\\"
 #define SHELL_VERSION			"HCP65 shell 1"
@@ -38,16 +39,46 @@ struct SShellCommand
 
 char	gszShellDirectory[SHELL_PATH_LENGTH];	//The current directory as FAT has it: "\" or "\NAME\NAME", no '\' at the end.
 uint8	gauiShellBuffer[SHELL_COPY_SIZE];
+char	gacShellOutput[SHELL_OUTPUT_SIZE];		//What is written and not yet sent to the console.
+uint16	guiShellOutput;
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The console's output.
+// The console's output: what ShellWriteBytes has kept, sent.
+//
+//////////////////////////////////////////////////////////////////////////
+static void ShellFlush(void)
+{
+	if (guiShellOutput > 0)
+	{
+		KernalDeviceWrite(KERNAL_STANDARD_OUTPUT, 0, gacShellOutput, guiShellOutput, NULL);
+		guiShellOutput = 0;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Bytes for the console, kept until a line of them ends (or there are
+// SHELL_OUTPUT_SIZE): a call to the kernal for a line, not for each
+// character of it.  ShellFlush sends what there is.
 //
 //////////////////////////////////////////////////////////////////////////
 static void ShellWriteBytes(const void* pvBytes, uint32 uiLength)
 {
-	KernalDeviceWrite(KERNAL_STANDARD_OUTPUT, 0, pvBytes, uiLength, NULL);
+	const char*	pc;
+	uint32		i;
+
+	pc = (const char*)pvBytes;
+	for (i = 0; i < uiLength; i++)
+	{
+		gacShellOutput[guiShellOutput++] = pc[i];
+		if ((pc[i] == '\n') || (guiShellOutput == SHELL_OUTPUT_SIZE))
+		{
+			ShellFlush();
+		}
+	}
 }
 
 
@@ -144,6 +175,7 @@ static char ShellReadChar(void)
 	uint32	uiDone;
 	char	c;
 
+	ShellFlush();
 	for (;;)
 	{
 		uiDone = 0;
@@ -754,6 +786,7 @@ static bool ShellMode(uint16 uiWords, char** aszWords)
 //////////////////////////////////////////////////////////////////////////
 static bool ShellClear(uint16 uiWords, char** aszWords)
 {
+	ShellFlush();
 	KernalDeviceControl(KERNAL_STANDARD_OUTPUT, KERNAL_CONSOLE_CLEAR, 0, NULL);
 	return true;
 }
@@ -875,6 +908,7 @@ static void ShellRun(uint16 uiWords, char** aszWords)
 		}
 	}
 	uiExitCode = 0;
+	ShellFlush();
 	uiResult = KernalExecute(szPath, uiArgument, &uiExitCode);
 	if (uiResult != KERNAL_RESULT_EXITED)
 	{
@@ -939,6 +973,7 @@ int main(void)
 		ShellReadLine(szLine);
 		if (!ShellDo(szLine))
 		{
+			ShellFlush();
 			return 0;
 		}
 	}
