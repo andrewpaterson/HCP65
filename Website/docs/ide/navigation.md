@@ -56,7 +56,8 @@ Usages of Init in Solution  14 usages
 The tree groups the usages by **how each is used** (a call, a value read, a value written, a type in a
 field's declaration, a base class...), then **project**, **file** and **class**, with each usage's line
 under them, its line number dim and the name itself highlighted.  Select a line and its code is shown in
-the preview on the right.
+the preview on the right.  Every group and file starts open, however many usages there are: tens of
+thousands in one file open and scroll as quickly as ten.
 
 | In the tree | What it does |
 |---|---|
