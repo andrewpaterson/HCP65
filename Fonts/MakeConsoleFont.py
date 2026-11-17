@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Makes CONSOLE.SFT, the HCP65 console's 8x16 font, from a PC Screen Font (.psf or .psf.gz) with a Unicode table.
+"""Makes CONSOLE.SFT, the HCP65 console's 8x16 font, and CONSOLE.bmp, a picture of it, from a PC Screen Font (.psf or
+.psf.gz) with a Unicode table.
 
 CONSOLE.SFT is an SFT container (CommonLibraries' SupportLib/SFTCommon.h) of 256 transparent images of 8 by 16, in
 Latin-1 order (image n is the character U+00n): what a blit draws.  A glyph's pixels are $FF, and the rest of it
 isn't drawn.  The control characters ($00-$1F and $7F to $9F) are blank, as is any character the font hasn't.  The
 console loads it from the SD card's \\OS\\Fonts\\CONSOLE.SFT.
 
+CONSOLE.bmp is the same glyphs as a 24 bit Windows bitmap of 128 by 256, white on black: sixteen to a row, glyph n at
+(8 x (n mod 16), 16 x (n div 16)).  It is to look at, and for the tests to compare the SFT font with.
+
 CONSOLE.SFT in this directory was made from Terminus Font 16 (Lat15-Terminus16.psf.gz, as Debian's console-setup has
 it), which is under the SIL Open Font License 1.1: Terminus-OFL.txt beside it.
 
-    MakeConsoleFont.py [font.psf.gz] [CONSOLE.SFT]
+    MakeConsoleFont.py [font.psf.gz] [CONSOLE.SFT] [CONSOLE.bmp]
 """
 import gzip
 import struct
@@ -20,6 +24,8 @@ GLYPH_HEIGHT = 16
 NUM_GLYPHS = 256
 DEFAULT_FONT = "/usr/share/consolefonts/Lat15-Terminus16.psf.gz"
 DEFAULT_OUTPUT = "CONSOLE.SFT"
+DEFAULT_BITMAP_OUTPUT = "CONSOLE.bmp"
+BITMAP_GLYPHS_ACROSS = 16
 
 SFT_TYPE_TRANSPARENT = 0xE4FA
 SFT_TYPE_CONTAINER = 0xE4EF
@@ -132,6 +138,24 @@ def MakeSFTContainer(aabImages):
     return bytes(abFile)
 
 
+def MakeBitmap(aabGlyphs):
+    """The glyphs as a 24 bit Windows bitmap, BITMAP_GLYPHS_ACROSS to a row, white on black."""
+    iWidth = BITMAP_GLYPHS_ACROSS * GLYPH_WIDTH
+    iHeight = (len(aabGlyphs) // BITMAP_GLYPHS_ACROSS) * GLYPH_HEIGHT
+    iRowSize = (iWidth * 3 + 3) & ~3
+    abPixels = bytearray()
+    for y in range(iHeight - 1, -1, -1):    #A bitmap's rows are bottom first.
+        abRow = bytearray()
+        for x in range(iWidth):
+            abGlyph = aabGlyphs[(y // GLYPH_HEIGHT) * BITMAP_GLYPHS_ACROSS + x // GLYPH_WIDTH]
+            bPixel = bool(abGlyph[y % GLYPH_HEIGHT] & (0x80 >> (x % GLYPH_WIDTH)))
+            abRow += b"\xff\xff\xff" if bPixel else b"\x00\x00\x00"
+        abPixels += abRow + bytes(iRowSize - len(abRow))
+    abHeader = struct.pack("<2sIHHI", b"BM", 54 + len(abPixels), 0, 0, 54)
+    abInfo = struct.pack("<IiiHHIIiiII", 40, iWidth, iHeight, 1, 24, 0, len(abPixels), 2835, 2835, 0, 0)
+    return abHeader + abInfo + bytes(abPixels)
+
+
 def IsControl(iCode):
     return (iCode < 0x20) or ((iCode >= 0x7F) and (iCode < 0xA0))
 
@@ -139,6 +163,7 @@ def IsControl(iCode):
 def main(aszArguments):
     szFont = aszArguments[1] if len(aszArguments) > 1 else DEFAULT_FONT
     szOutput = aszArguments[2] if len(aszArguments) > 2 else DEFAULT_OUTPUT
+    szBitmapOutput = aszArguments[3] if len(aszArguments) > 3 else DEFAULT_BITMAP_OUTPUT
     iWidth, iHeight, aGlyphs, dMap = ReadFont(szFont)
     if (iWidth != GLYPH_WIDTH) or (iHeight != GLYPH_HEIGHT):
         raise ValueError("%s is %dx%d, not %dx%d." % (szFont, iWidth, iHeight, GLYPH_WIDTH, GLYPH_HEIGHT))
@@ -159,6 +184,11 @@ def main(aszArguments):
     with open(szOutput, "wb") as cFile:
         cFile.write(abSFT)
     print("%s: %d bytes from %s%s" % (szOutput, len(abSFT), szFont, (", blank for " + " ".join("$%02X" % i for i in aiMissing)) if aiMissing else ""))
+
+    abBitmap = MakeBitmap(aabGlyphs)
+    with open(szBitmapOutput, "wb") as cFile:
+        cFile.write(abBitmap)
+    print("%s: %d bytes" % (szBitmapOutput, len(abBitmap)))
     return 0
 
 
