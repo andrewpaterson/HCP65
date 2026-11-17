@@ -132,15 +132,15 @@ public:
 	void		WriteMemoryChip(int iChip, uint32 uiOffset, uint8 uiValue) override;
 
 	bool		GetFrame(uint32* puiDest, uint32 uiMaxWidth, uint32 uiMaxHeight, uint32* puiWidth, uint32* puiHeight);
-	uint64		NumFrames(void);
-	bool		IsSignal(void);
-	uint64		GetPixelClockRate(void);
-	uint32		GetLineLength(void);
-	uint32		GetActiveWidth(void);
-	uint32		GetFrameLines(void);
-	uint32		GetActiveLines(void);
-	uint16		GetLine(void);
-	uint32		GetHorizontal(void);
+	uint64		NumFrames(void) const;
+	bool		IsSignal(void) const;
+	uint64		GetPixelClockRate(void) const;
+	uint32		GetLineLength(void) const;
+	uint32		GetActiveWidth(void) const;
+	uint32		GetFrameLines(void) const;
+	uint32		GetActiveLines(void) const;
+	uint16		GetLine(void) const;
+	uint32		GetHorizontal(void) const;
 	uint32		GetPixelAddress(void);
 	uint8*		GetChip(int iFrame, int iKind);
 	uint8*		GetDeviceRAM(uint32 uiOffset);
@@ -152,10 +152,10 @@ protected:
 	void		WriteRegister(uint32 uiRegister, uint8 uiValue);
 	void		WriteFlags(uint8 uiValue);
 	void		SetClock(uint8 uiClockSelect);
-	bool		IsClockRunning(void);
+	bool		IsClockRunning(void) const;
 	uint64		TickAt(uint64 uiCycle);
 	void		Rebase(void);
-	bool		IsTiming(void);
+	bool		IsTiming(void) const;
 	void		EndLine(void);
 	void		EndFrame(void);
 	void		DrawRow(uint16 uiRow, uint32 uiWidth);

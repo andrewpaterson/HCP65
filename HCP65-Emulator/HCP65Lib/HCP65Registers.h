@@ -61,7 +61,7 @@ public:
 
 	void	StartTimer(uint64 uiCycle);
 	void	SetBreak(int iBreak);
-	bool	IsNMILow(void);
+	bool	IsNMILow(void) const;
 	void	SetMPUID(uint8 uiMPUID);
 	void	SetBoardPresence(uint16 uiPresence);
 

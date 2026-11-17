@@ -230,7 +230,7 @@ void CHCP65Audio::WriteFlags(uint8 uiValue)
 // bit (rate - 1).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65Audio::IsSampleEdge(void)
+bool CHCP65Audio::IsSampleEdge(void) const
 {
 	uint8	uiRate;
 	uint8	uiMask;
@@ -481,7 +481,7 @@ uint64 CHCP65Audio::NumDroppedFrames(void)
 // In Hz.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65Audio::GetSampleRate(void)
+uint32 CHCP65Audio::GetSampleRate(void) const
 {
 	return HCP65_CRYSTAL_RATE >> (muiFlags & HCP65_AUDIO_FLAG_RATE);
 }
@@ -491,7 +491,7 @@ uint32 CHCP65Audio::GetSampleRate(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65Audio::GetRAMA(void)
+uint8* CHCP65Audio::GetRAMA(void) const
 {
 	return mpuiRAMA;
 }
@@ -501,7 +501,7 @@ uint8* CHCP65Audio::GetRAMA(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65Audio::GetRAMB(void)
+uint8* CHCP65Audio::GetRAMB(void) const
 {
 	return mpuiRAMB;
 }
@@ -511,7 +511,7 @@ uint8* CHCP65Audio::GetRAMB(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CHCP65Audio::GetCounter(void)
+uint16 CHCP65Audio::GetCounter(void) const
 {
 	return muiCounter;
 }
@@ -521,7 +521,7 @@ uint16 CHCP65Audio::GetCounter(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65Audio::IsEnabled(void)
+bool CHCP65Audio::IsEnabled(void) const
 {
 	return mbEnabled;
 }

@@ -43,7 +43,7 @@ public:
 	virtual void	Kill(void);
 
 	void			Attach(CHCP65* pcHCP65);
-	uint32			GetMinimumSlotSize(void);
+	uint32			GetMinimumSlotSize(void) const;
 	virtual bool	LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError);
 	virtual void	SaveXML(CXMLWriter* pcWriter);
 
@@ -52,7 +52,7 @@ public:
 
 	virtual void	Reset(void);
 	virtual void	SetHeldInReset(bool bHeld);
-	bool			IsHeldInReset(void);
+	bool			IsHeldInReset(void) const;
 
 	virtual void	CatchUp(uint64 uiCycle);
 	virtual uint64	NextEvent(void);

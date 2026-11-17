@@ -123,7 +123,7 @@ void CHCP65DebugPort::TellProcess(SHCP65DebugMessage* psMessage)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CHCP65DebugPort::NumProcesses(void)
+size CHCP65DebugPort::NumProcesses(void) const
 {
 	size	i;
 	size	uiCount;
@@ -228,7 +228,7 @@ void CHCP65DebugPort::TellDriver(SHCP65DebugMessage* psMessage)
 // The drivers the kernal loaded since the last reset, in load order.
 //
 //////////////////////////////////////////////////////////////////////////
-size CHCP65DebugPort::NumDrivers(void)
+size CHCP65DebugPort::NumDrivers(void) const
 {
 	return masDrivers.NumElements();
 }

@@ -76,21 +76,21 @@ public:
 	uint64	NextEvent(void) override;
 	bool	IsInterrupting(void) override;
 
-	uint32	GetSampleRate(void);
+	uint32	GetSampleRate(void) const;
 	uint32	NumFrames(void);
 	uint32	ReadFrames(uint8* puiDest, uint32 uiMaxFrames);
 	void	ClearFrames(void);
 	uint64	NumDroppedFrames(void);
-	uint8*	GetRAMA(void);
-	uint8*	GetRAMB(void);
-	uint16	GetCounter(void);
-	bool	IsEnabled(void);
+	uint8*	GetRAMA(void) const;
+	uint8*	GetRAMB(void) const;
+	uint16	GetCounter(void) const;
+	bool	IsEnabled(void) const;
 
 protected:
 	uint8	ReadRegister(uint32 uiRegister);
 	void	WriteRegister(uint32 uiRegister, uint8 uiValue);
 	void	WriteFlags(uint8 uiValue);
-	bool	IsSampleEdge(void);
+	bool	IsSampleEdge(void) const;
 	void	Sample(void);
 	void	AddFrame(uint8 uiLeft, uint8 uiRight);
 	uint32	SamplesUntilInterrupt(void);

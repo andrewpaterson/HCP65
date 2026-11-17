@@ -32,16 +32,16 @@ public:
 
 	void		Attach(CHCP65UART* pcUART);
 	void		Detach(void);
-	CHCP65UART*	GetUART(void);
+	CHCP65UART*	GetUART(void) const;
 
 	void		Received(CHCP65UART* pcUART, uint8 uiCharacter) override;
 	bool		Update(void);
 
 	void		Put(uint8 uiCharacter);
 	void		Clear(void);
-	size		NumLines(void);
+	size		NumLines(void) const;
 	char*		GetLine(size uiLine);
-	size		GetColumn(void);
+	size		GetColumn(void) const;
 	void		GetText(CChars* pszDest);
 };
 

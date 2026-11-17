@@ -131,27 +131,27 @@ public:
 	void	SetBoardDrive(bool bClockLow, bool bDataLow);
 	void	SetDevice(CHCP65PS2Device* pcDevice);
 	void	SetPlugged(bool bPlugged);
-	bool	IsPlugged(void);
-	CHCP65PS2Device*	GetDevice(void);
+	bool	IsPlugged(void) const;
+	CHCP65PS2Device*	GetDevice(void) const;
 
 	void	CatchUp(uint64 uiTick);
 	uint64	NextEvent(void);
 
 	uint8	ReadFIFO(void);
 	void	ClearWaiting(void);
-	bool	IsPacketWaiting(void);
-	bool	IsCodeWaiting(void);
-	bool	IsOutputReady(void);
-	bool	IsClockHigh(void);
-	bool	IsDataHigh(void);
+	bool	IsPacketWaiting(void) const;
+	bool	IsCodeWaiting(void) const;
+	bool	IsOutputReady(void) const;
+	bool	IsClockHigh(void) const;
+	bool	IsDataHigh(void) const;
 
 	void	HostSend(const uint8* puiData, size uiLength);
 	size	HostReceive(uint8* puiDest, size uiMaxLength);
-	size	NumHostToSend(void);
-	size	NumHostReceived(void);
-	uint64	NumAborts(void);
-	uint64	NumErrors(void);
-	uint64	GetTick(void);
+	size	NumHostToSend(void) const;
+	size	NumHostReceived(void) const;
+	uint64	NumAborts(void) const;
+	uint64	NumErrors(void) const;
+	uint64	GetTick(void) const;
 
 protected:
 	void	SetDeviceDrive(bool bClockLow, bool bDataLow);

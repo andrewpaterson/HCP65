@@ -158,7 +158,7 @@ public:
 	void	Write(uint8 uiRegister, uint8 uiValue);
 	void	CatchUp(uint64 uiTick);
 	uint64	NextEvent(void);
-	bool	IsInterrupting(void);
+	bool	IsInterrupting(void) const;
 
 	void	HostDrivePortA(uint8 uiLevels, uint8 uiMask);
 	void	HostDrivePortB(uint8 uiLevels, uint8 uiMask);
@@ -166,16 +166,16 @@ public:
 	void	HostSetCA2(bool bHigh);
 	void	HostSetCB1(bool bHigh);
 	void	HostSetCB2(bool bHigh);
-	uint8	GetPortA(void);
-	uint8	GetPortB(void);
+	uint8	GetPortA(void) const;
+	uint8	GetPortB(void) const;
 	bool	GetCA2(void);
 	bool	GetCB1(void);
 	bool	GetCB2(void);
-	uint64	NumCA2Pulses(void);
-	uint64	NumCB2Pulses(void);
+	uint64	NumCA2Pulses(void) const;
+	uint64	NumCB2Pulses(void) const;
 	uint16	GetT1Counter(void);
 	uint16	GetT2Counter(void);
-	uint64	GetTick(void);
+	uint64	GetTick(void) const;
 
 protected:
 	uint8	ReadPortA(void);
@@ -189,8 +189,8 @@ protected:
 	uint8	SRMode(void);
 	bool	IsCB1Output(void);
 	bool	IsCB2Output(void);
-	bool	IsT1Continuous(void);
-	bool	IsT2Timed(void);
+	bool	IsT1Continuous(void) const;
+	bool	IsT2Timed(void) const;
 
 	uint16	T1Value(uint64 uiTick);
 	uint64	T1FirstTimeout(void);
@@ -248,7 +248,7 @@ public:
 
 	void		SetBreakout(int iBreakout, bool bFitted);
 	bool		HasBreakout(int iBreakout);
-	int			NumVIAs(void);
+	int			NumVIAs(void) const;
 	CHCP65VIA*	GetVIA(int iVIA);
 	uint8		ReadInterrupts(void);
 

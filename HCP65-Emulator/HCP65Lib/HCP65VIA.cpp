@@ -435,7 +435,7 @@ uint64 CHCP65VIA::NextEvent(void)
 // IRQB is low.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65VIA::IsInterrupting(void)
+bool CHCP65VIA::IsInterrupting(void) const
 {
 	return (muiIFR & muiIER & HCP65_VIA_INT_FLAGS) != 0;
 }
@@ -610,7 +610,7 @@ void CHCP65VIA::HostSetCB2(bool bHigh)
 // does, and the bus holders' elsewhere.
 //
 //////////////////////////////////////////////////////////////////////////
-uint8 CHCP65VIA::GetPortA(void)
+uint8 CHCP65VIA::GetPortA(void) const
 {
 	uint8	uiInputs;
 
@@ -624,7 +624,7 @@ uint8 CHCP65VIA::GetPortA(void)
 // With T1's output on, PB7 is T1's whatever DDRB says.
 //
 //////////////////////////////////////////////////////////////////////////
-uint8 CHCP65VIA::GetPortB(void)
+uint8 CHCP65VIA::GetPortB(void) const
 {
 	uint8	uiInputs;
 	uint8	uiPins;
@@ -703,11 +703,11 @@ bool CHCP65VIA::GetCB2(void)
 // these count them.
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CHCP65VIA::NumCA2Pulses(void) { return muiCA2Pulses; }
-uint64 CHCP65VIA::NumCB2Pulses(void) { return muiCB2Pulses; }
+uint64 CHCP65VIA::NumCA2Pulses(void) const { return muiCA2Pulses; }
+uint64 CHCP65VIA::NumCB2Pulses(void) const { return muiCB2Pulses; }
 uint16 CHCP65VIA::GetT1Counter(void) { return T1Value(muiTick); }
 uint16 CHCP65VIA::GetT2Counter(void) { return T2Value(muiTick); }
-uint64 CHCP65VIA::GetTick(void) { return muiTick; }
+uint64 CHCP65VIA::GetTick(void) const { return muiTick; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -807,8 +807,8 @@ void CHCP65VIA::PortBChanged(uint8 uiOldPins)
 uint8 CHCP65VIA::CA2Mode(void) { return (uint8)((muiPCR & HCP65_VIA_PCR_CA2) >> 1); }
 uint8 CHCP65VIA::CB2Mode(void) { return (uint8)((muiPCR & HCP65_VIA_PCR_CB2) >> 5); }
 uint8 CHCP65VIA::SRMode(void) { return (uint8)((muiACR & HCP65_VIA_ACR_SR) >> HCP65_VIA_ACR_SR_SHIFT); }
-bool CHCP65VIA::IsT1Continuous(void) { return (muiACR & HCP65_VIA_ACR_T1_CONTINUOUS) != 0; }
-bool CHCP65VIA::IsT2Timed(void) { return (muiACR & HCP65_VIA_ACR_T2_PULSES) == 0; }
+bool CHCP65VIA::IsT1Continuous(void) const { return (muiACR & HCP65_VIA_ACR_T1_CONTINUOUS) != 0; }
+bool CHCP65VIA::IsT2Timed(void) const { return (muiACR & HCP65_VIA_ACR_T2_PULSES) == 0; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -1449,7 +1449,7 @@ bool CHCP65VIABoard::HasBreakout(int iBreakout)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-int CHCP65VIABoard::NumVIAs(void)
+int CHCP65VIABoard::NumVIAs(void) const
 {
 	int		i;
 	int		iCount;

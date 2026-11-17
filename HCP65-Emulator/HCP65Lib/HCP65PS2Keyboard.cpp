@@ -112,9 +112,9 @@ void CHCP65PS2Keyboard::Detach(void)
 }
 
 
-CHCP65PS2Port* CHCP65PS2Keyboard::GetPort(void) { return mpcPort; }
-uint8 CHCP65PS2Keyboard::GetLEDs(void) { return muiLEDs; }
-bool CHCP65PS2Keyboard::IsScanning(void) { return mbScanning; }
+CHCP65PS2Port* CHCP65PS2Keyboard::GetPort(void) const { return mpcPort; }
+uint8 CHCP65PS2Keyboard::GetLEDs(void) const { return muiLEDs; }
+bool CHCP65PS2Keyboard::IsScanning(void) const { return mbScanning; }
 
 
 //////////////////////////////////////////////////////////////////////////

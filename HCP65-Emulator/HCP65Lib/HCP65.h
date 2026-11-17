@@ -97,8 +97,8 @@ public:
 
 	void				Reset(void);
 	uint64				Run(uint64 uiCycles);
-	bool				IsStopped(void);
-	bool				IsAtBreakpoint(void);
+	bool				IsStopped(void) const;
+	bool				IsAtBreakpoint(void) const;
 	CBreakpoints*		GetModeBreakpoints(bool bKernel);
 	CBreakpoints*		GetProcessBreakpoints(uint8 uiProcess);
 	void				ClearProcessBreakpoints(uint8 uiProcess);
@@ -110,36 +110,36 @@ public:
 	CFastW65C816*		GetMPU(void);
 	CHCP65Registers*	GetRegisters(void);
 	CHCP65DebugPort*	GetDebugPort(void);
-	uint8*				GetMPURAM(void);
+	uint8*				GetMPURAM(void) const;
 	CHCP65MemoryChannel*	GetMemoryChannel(void);
-	uint8*				GetMPUROM(void);
+	uint8*				GetMPUROM(void) const;
 	uint8*				MainMemoryAt(uint32 uiPhysical);
 	void				MapMainMemory(void);
-	uint64				NumCycles(void);
-	uint64				GetClockRate(void);
+	uint64				NumCycles(void) const;
+	uint64				GetClockRate(void) const;
 	uint64				DeviceTick(uint64 uiCycle, uint64 uiRate);
 	uint64				CycleOfDeviceTick(uint64 uiTick, uint64 uiRate);
 	uint64				CrystalTick(uint64 uiCycle);
 	uint64				CycleOfCrystalTick(uint64 uiTick);
 
-	bool				IsKernelMode(void);
-	bool				IsNativeLatched(void);
-	uint8				GetInterruptDepth(void);
+	bool				IsKernelMode(void) const;
+	bool				IsNativeLatched(void) const;
+	uint8				GetInterruptDepth(void) const;
 	void				SetInterruptDepth(uint8 uiDepth);
-	uint8				GetProcessID(void);
+	uint8				GetProcessID(void) const;
 	void				SetProcessID(uint8 uiProcessID);
-	uint32				GetDeviceEnables(void);
+	uint32				GetDeviceEnables(void) const;
 	void				SetDeviceEnables(uint32 uiEnables);
 	bool				IsDeviceInterrupting(int iSlot);
-	uint32				GetInstructionCount(void);
+	uint32				GetInstructionCount(void) const;
 	void				ClearInstructionCount(void);
 	void				UpdateInterrupts(void);
 
 	void				SetMemoryFill(bool bFill, uint8 uiFillByte = HCP65_DEBUG_FILL_BYTE);
-	bool				IsMemoryFill(void);
+	bool				IsMemoryFill(void) const;
 	void				FillMainMemoryBank(uint8 uiBank);
 	void				SetMainMemoryBusy(uint64 uiUntil);
-	bool				IsContention(void);
+	bool				IsContention(void) const;
 
 	uint8				Read(uint32 uiAddress);
 	void				Write(uint32 uiAddress, uint8 uiValue);

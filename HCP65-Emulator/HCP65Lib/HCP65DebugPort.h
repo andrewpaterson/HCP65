@@ -56,11 +56,11 @@ public:
 	void				Tell(SHCP65DebugMessage* psMessage);
 	void				Reset(void);
 
-	size				NumProcesses(void);
+	size				NumProcesses(void) const;
 	bool				GetProcess(size uiIndex, SDebugProcess* psDest);
 	void				Watch(bool bWatch);
 	bool				TakeEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDest);
-	size				NumDrivers(void);
+	size				NumDrivers(void) const;
 	SHCP65DebugDriver*	GetDriver(size uiIndex);
 	bool				TakeDriverEvent(SHCP65DebugDriver* psDest);
 	bool				TakeDriversCleared(void);

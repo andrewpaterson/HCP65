@@ -138,8 +138,8 @@ public:
 
 	uint8*	GetImage(int iSocket = 0);
 	uint32	NumSectors(int iSocket = 0);
-	uint32	NumSectorsRead(void);
-	uint32	NumSectorsWritten(void);
+	uint32	NumSectorsRead(void) const;
+	uint32	NumSectorsWritten(void) const;
 
 	static uint8	CRC7(uint8* puiData, uint32 uiLength);
 	static uint16	CRC16(uint8* puiBits, uint32 uiLength);
@@ -152,7 +152,7 @@ protected:
 	void	ResetCard(SHCP65SDCardSocket* psCard);
 	bool	FlushCard(SHCP65SDCardSocket* psCard);
 	void	WriteGPIO(uint8 uiValue);
-	bool	HasCard(void);
+	bool	HasCard(void) const;
 	uint8	CardDrivenLines(void);
 	void	RisingEdge(void);
 	void	FallingEdge(void);

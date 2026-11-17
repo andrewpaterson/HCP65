@@ -290,7 +290,7 @@ void CHCP65Registers::SetBreak(int iBreak)
 // NMI is low while any source is latched and NMIs are enabled.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65Registers::IsNMILow(void)
+bool CHCP65Registers::IsNMILow(void) const
 {
 	return (muiNMIState & HCP65_NMI_ENABLED) && (muiNMIState & HCP65_NMI_SOURCES);
 }

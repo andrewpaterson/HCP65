@@ -351,7 +351,7 @@ void CHCP65VideoBoard::Rebase(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65VideoBoard::IsClockRunning(void)
+bool CHCP65VideoBoard::IsClockRunning(void) const
 {
 	return mpcHCP65 && !mbHeldInReset && (muiClockSelect & HCP65_VIDEO_CLOCK_ENABLE);
 }
@@ -380,7 +380,7 @@ uint64 CHCP65VideoBoard::TickAt(uint64 uiCycle)
 // The timing makes lines and frames.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65VideoBoard::IsTiming(void)
+bool CHCP65VideoBoard::IsTiming(void) const
 {
 	return (mauiHorizontal[3] != 0) && (mauiVertical[3] != 0);
 }
@@ -714,17 +714,17 @@ bool CHCP65VideoBoard::GetFrame(uint32* puiDest, uint32 uiMaxWidth, uint32 uiMax
 // frames and one has been drawn.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65VideoBoard::IsSignal(void)
+bool CHCP65VideoBoard::IsSignal(void) const
 {
 	return IsClockRunning() && !(muiSignalDelay & HCP65_VIDEO_DELAY_OFF) && IsTiming() && (muiFrames > 0);
 }
 
 
-uint64 CHCP65VideoBoard::NumFrames(void) { return muiFrames; }
-uint64 CHCP65VideoBoard::GetPixelClockRate(void) { return gauiHCP65VideoClocks[muiClockSelect & HCP65_VIDEO_CLOCK_RATE]; }
-uint32 CHCP65VideoBoard::GetLineLength(void) { return 8 * (uint32)mauiHorizontal[3]; }
-uint32 CHCP65VideoBoard::GetFrameLines(void) { return mauiVertical[3]; }
-uint16 CHCP65VideoBoard::GetLine(void) { return muiLine; }
+uint64 CHCP65VideoBoard::NumFrames(void) const { return muiFrames; }
+uint64 CHCP65VideoBoard::GetPixelClockRate(void) const { return gauiHCP65VideoClocks[muiClockSelect & HCP65_VIDEO_CLOCK_RATE]; }
+uint32 CHCP65VideoBoard::GetLineLength(void) const { return 8 * (uint32)mauiHorizontal[3]; }
+uint32 CHCP65VideoBoard::GetFrameLines(void) const { return mauiVertical[3]; }
+uint16 CHCP65VideoBoard::GetLine(void) const { return muiLine; }
 int CHCP65VideoBoard::ProcessorFrame(void) { return (muiFlags & HCP65_VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0; }
 int CHCP65VideoBoard::ShownFrame(void) { return 1 - ProcessorFrame(); }
 uint64 CHCP65VideoBoard::GetClockRate(int iSelect) { return gauiHCP65VideoClocks[iSelect & HCP65_VIDEO_CLOCK_RATE]; }
@@ -747,7 +747,7 @@ uint8* CHCP65VideoBoard::GetChip(int iFrame, int iKind)
 // at most HCP65_VIDEO_MAX_WIDTH.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65VideoBoard::GetActiveWidth(void)
+uint32 CHCP65VideoBoard::GetActiveWidth(void) const
 {
 	uint32	uiWidth;
 
@@ -766,7 +766,7 @@ uint32 CHCP65VideoBoard::GetActiveWidth(void)
 // HCP65_VIDEO_MAX_ROWS.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65VideoBoard::GetActiveLines(void)
+uint32 CHCP65VideoBoard::GetActiveLines(void) const
 {
 	uint32	uiLines;
 
@@ -784,7 +784,7 @@ uint32 CHCP65VideoBoard::GetActiveLines(void)
 // The horizontal counter: 1 at the start of a line.  0 without timing.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65VideoBoard::GetHorizontal(void)
+uint32 CHCP65VideoBoard::GetHorizontal(void) const
 {
 	if (!IsTiming())
 	{

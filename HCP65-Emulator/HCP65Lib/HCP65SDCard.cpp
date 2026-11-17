@@ -396,7 +396,7 @@ bool CHCP65SDCard::FlushCard(SHCP65SDCardSocket* psCard)
 // socket has one.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65SDCard::HasCard(void)
+bool CHCP65SDCard::HasCard(void) const
 {
 	return mbEnabled && (mpsCard->puiImage != NULL);
 }
@@ -1295,7 +1295,7 @@ uint32 CHCP65SDCard::NumSectors(int iSocket)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65SDCard::NumSectorsRead(void)
+uint32 CHCP65SDCard::NumSectorsRead(void) const
 {
 	return muiSectorsRead;
 }
@@ -1305,7 +1305,7 @@ uint32 CHCP65SDCard::NumSectorsRead(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65SDCard::NumSectorsWritten(void)
+uint32 CHCP65SDCard::NumSectorsWritten(void) const
 {
 	return muiSectorsWritten;
 }

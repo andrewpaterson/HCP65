@@ -671,7 +671,7 @@ const char* CHCP65Mainboard::GetBoardTypeName(size uiIndex)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-EHCP65Mainboard CHCP65Mainboard::GetType(void)
+EHCP65Mainboard CHCP65Mainboard::GetType(void) const
 {
 	return meType;
 }

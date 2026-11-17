@@ -61,7 +61,7 @@ void CHCP65Terminal::Detach(void)
 }
 
 
-CHCP65UART* CHCP65Terminal::GetUART(void) { return mpcUART; }
+CHCP65UART* CHCP65Terminal::GetUART(void) const { return mpcUART; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -180,9 +180,9 @@ void CHCP65Terminal::Clear(void)
 }
 
 
-size CHCP65Terminal::NumLines(void) { return maszLines.NumElements(); }
+size CHCP65Terminal::NumLines(void) const { return maszLines.NumElements(); }
 char* CHCP65Terminal::GetLine(size uiLine) { return maszLines.GetText(uiLine); }
-size CHCP65Terminal::GetColumn(void) { return muiColumn; }
+size CHCP65Terminal::GetColumn(void) const { return muiColumn; }
 
 
 //////////////////////////////////////////////////////////////////////////

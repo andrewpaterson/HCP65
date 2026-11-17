@@ -56,12 +56,12 @@ public:
 
 	void	Attach(CHCP65PS2Port* pcPort);
 	void	Detach(void);
-	CHCP65PS2Port*	GetPort(void);
+	CHCP65PS2Port*	GetPort(void) const;
 
 	bool	Key(const char* szName, bool bDown);
 
-	uint8	GetLEDs(void);
-	bool	IsScanning(void);
+	uint8	GetLEDs(void) const;
+	bool	IsScanning(void) const;
 
 	void	Received(CHCP65PS2Port* pcPort, uint8 uiByte) override;
 	void	CatchUp(CHCP65PS2Port* pcPort) override;

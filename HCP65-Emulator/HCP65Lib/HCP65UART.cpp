@@ -371,7 +371,7 @@ uint8 CHCP65UART::TriggerLevel(void)
 }
 
 
-bool CHCP65UART::IsLoopback(void) { return (muiMCR & HCP65_UART_MCR_LOOP) != 0; }
+bool CHCP65UART::IsLoopback(void) const { return (muiMCR & HCP65_UART_MCR_LOOP) != 0; }
 uint8 CHCP65UART::DataMask(void) { return (uint8)(0xFF >> (3 - (muiLCR & HCP65_UART_LCR_DATA))); }
 
 
@@ -718,21 +718,21 @@ bool CHCP65UART::IsRTSOn(void)
 }
 
 
-bool CHCP65UART::IsDTROn(void) { return !IsLoopback() && ((muiMCR & HCP65_UART_MCR_DTR) != 0); }
-size CHCP65UART::NumHostToSend(void) { return macHostSend.NumElements() - muiHostSendIndex; }
-size CHCP65UART::NumHostReceived(void) { return macHostReceived.NumElements(); }
+bool CHCP65UART::IsDTROn(void) const { return !IsLoopback() && ((muiMCR & HCP65_UART_MCR_DTR) != 0); }
+size CHCP65UART::NumHostToSend(void) const { return macHostSend.NumElements() - muiHostSendIndex; }
+size CHCP65UART::NumHostReceived(void) const { return macHostReceived.NumElements(); }
 void CHCP65UART::SetHost(CHCP65UARTHost* pcHost) { mpcHost = pcHost; }
-CHCP65UARTHost* CHCP65UART::GetHost(void) { return mpcHost; }
-uint8 CHCP65UART::GetLineControl(void) { return muiLCR; }
-uint64 CHCP65UART::NumOverruns(void) { return muiOverruns; }
-uint64 CHCP65UART::NumHoldOffs(void) { return muiHoldOffs; }
+CHCP65UARTHost* CHCP65UART::GetHost(void) const { return mpcHost; }
+uint8 CHCP65UART::GetLineControl(void) const { return muiLCR; }
+uint64 CHCP65UART::NumOverruns(void) const { return muiOverruns; }
+uint64 CHCP65UART::NumHoldOffs(void) const { return muiHoldOffs; }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65UART::GetBaudRate(void)
+uint32 CHCP65UART::GetBaudRate(void) const
 {
 	return HCP65_UART_CLOCK_RATE / (16 * ((muiDivisor == 0) ? 0x10000 : (uint32)muiDivisor));
 }

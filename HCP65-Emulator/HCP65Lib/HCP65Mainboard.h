@@ -83,7 +83,7 @@ public:
 	bool			PlugIn(CHCP65* pcHCP65);
 	bool			ChangeBoards(CHCP65* pcHCP65, const char** aszTypes, CChars* pszError);
 
-	EHCP65Mainboard	GetType(void);
+	EHCP65Mainboard	GetType(void) const;
 	CHCP65Device*	GetBoard(int iSocket);
 	const char*		GetBoardType(int iSocket);
 	CHCP65Device*	FindBoard(const char* szType);

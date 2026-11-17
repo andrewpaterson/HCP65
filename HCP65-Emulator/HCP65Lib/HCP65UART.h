@@ -150,19 +150,19 @@ public:
 
 	void	HostSend(const uint8* puiData, size uiLength);
 	size	HostReceive(uint8* puiDest, size uiMaxLength);
-	size	NumHostToSend(void);
-	size	NumHostReceived(void);
+	size	NumHostToSend(void) const;
+	size	NumHostReceived(void) const;
 	void	HostSetCTS(bool bOn);
 	void	HostSetDSR(bool bOn);
 	void	HostSetDCD(bool bOn);
 	void	SetHost(CHCP65UARTHost* pcHost);
-	CHCP65UARTHost*	GetHost(void);
+	CHCP65UARTHost*	GetHost(void) const;
 	bool	IsRTSOn(void);
-	bool	IsDTROn(void);
-	uint32	GetBaudRate(void);
-	uint8	GetLineControl(void);
-	uint64	NumOverruns(void);
-	uint64	NumHoldOffs(void);
+	bool	IsDTROn(void) const;
+	uint32	GetBaudRate(void) const;
+	uint8	GetLineControl(void) const;
+	uint64	NumOverruns(void) const;
+	uint64	NumHoldOffs(void) const;
 
 protected:
 	uint8	Identify(void);
@@ -172,7 +172,7 @@ protected:
 	void	UpdateModemDeltas(void);
 	uint8	FIFODepth(void);
 	uint8	TriggerLevel(void);
-	bool	IsLoopback(void);
+	bool	IsLoopback(void) const;
 	uint8	DataMask(void);
 	bool	IsTimedOut(void);
 	uint64	TimeoutTick(void);

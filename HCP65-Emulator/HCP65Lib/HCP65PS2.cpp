@@ -120,8 +120,8 @@ void CHCP65PS2Port::SetDevice(CHCP65PS2Device* pcDevice)
 }
 
 
-CHCP65PS2Device* CHCP65PS2Port::GetDevice(void) { return mpcDevice; }
-bool CHCP65PS2Port::IsPlugged(void) { return mbPlugged; }
+CHCP65PS2Device* CHCP65PS2Port::GetDevice(void) const { return mpcDevice; }
+bool CHCP65PS2Port::IsPlugged(void) const { return mbPlugged; }
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -244,16 +244,16 @@ void CHCP65PS2Port::ClearWaiting(void)
 }
 
 
-bool CHCP65PS2Port::IsPacketWaiting(void) { return mbPacketWaiting; }
-bool CHCP65PS2Port::IsCodeWaiting(void) { return mbCodeWaiting; }
-bool CHCP65PS2Port::IsOutputReady(void) { return muiFIFOCount > 0; }
-bool CHCP65PS2Port::IsClockHigh(void) { return !mbBoardClockLow && !mbDeviceClockLow; }
-bool CHCP65PS2Port::IsDataHigh(void) { return !mbBoardDataLow && !mbDeviceDataLow; }
-size CHCP65PS2Port::NumHostToSend(void) { return macHostSend.NumElements() - muiHostSendIndex; }
-size CHCP65PS2Port::NumHostReceived(void) { return macHostReceived.NumElements(); }
-uint64 CHCP65PS2Port::NumAborts(void) { return muiAborts; }
-uint64 CHCP65PS2Port::NumErrors(void) { return muiErrors; }
-uint64 CHCP65PS2Port::GetTick(void) { return muiTick; }
+bool CHCP65PS2Port::IsPacketWaiting(void) const { return mbPacketWaiting; }
+bool CHCP65PS2Port::IsCodeWaiting(void) const { return mbCodeWaiting; }
+bool CHCP65PS2Port::IsOutputReady(void) const { return muiFIFOCount > 0; }
+bool CHCP65PS2Port::IsClockHigh(void) const { return !mbBoardClockLow && !mbDeviceClockLow; }
+bool CHCP65PS2Port::IsDataHigh(void) const { return !mbBoardDataLow && !mbDeviceDataLow; }
+size CHCP65PS2Port::NumHostToSend(void) const { return macHostSend.NumElements() - muiHostSendIndex; }
+size CHCP65PS2Port::NumHostReceived(void) const { return macHostReceived.NumElements(); }
+uint64 CHCP65PS2Port::NumAborts(void) const { return muiAborts; }
+uint64 CHCP65PS2Port::NumErrors(void) const { return muiErrors; }
+uint64 CHCP65PS2Port::GetTick(void) const { return muiTick; }
 
 
 //////////////////////////////////////////////////////////////////////////

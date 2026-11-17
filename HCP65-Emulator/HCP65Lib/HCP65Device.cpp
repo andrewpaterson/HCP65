@@ -38,7 +38,7 @@ void CHCP65Device::Attach(CHCP65* pcHCP65)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65Device::GetMinimumSlotSize(void)
+uint32 CHCP65Device::GetMinimumSlotSize(void) const
 {
 	return muiMinimumSlotSize;
 }
@@ -96,7 +96,7 @@ void CHCP65Device::SetHeldInReset(bool bHeld)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65Device::IsHeldInReset(void)
+bool CHCP65Device::IsHeldInReset(void) const
 {
 	return mbHeldInReset;
 }

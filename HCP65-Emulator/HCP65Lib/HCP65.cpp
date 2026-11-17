@@ -277,7 +277,7 @@ void CHCP65::EndChunk(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65::IsStopped(void)
+bool CHCP65::IsStopped(void) const
 {
 	return mcMPU.IsStopped();
 }
@@ -289,7 +289,7 @@ bool CHCP65::IsStopped(void)
 // breakpoints; the next Run executes it.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65::IsAtBreakpoint(void)
+bool CHCP65::IsAtBreakpoint(void) const
 {
 	return mcMPU.IsAtBreakpoint();
 }
@@ -448,7 +448,7 @@ void CHCP65::SetMemoryFill(bool bFill, uint8 uiFillByte)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65::IsMemoryFill(void)
+bool CHCP65::IsMemoryFill(void) const
 {
 	return mbFill;
 }
@@ -511,7 +511,7 @@ void CHCP65::SetMainMemoryBusy(uint64 uiUntil)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65::IsContention(void)
+bool CHCP65::IsContention(void) const
 {
 	return mbContention;
 }
@@ -994,7 +994,7 @@ void CHCP65::SetDeviceEnables(uint32 uiEnables)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65::GetDeviceEnables(void)
+uint32 CHCP65::GetDeviceEnables(void) const
 {
 	return muiDeviceEnables;
 }
@@ -1030,7 +1030,7 @@ void CHCP65::SetInterruptDepth(uint8 uiDepth)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8 CHCP65::GetInterruptDepth(void)
+uint8 CHCP65::GetInterruptDepth(void) const
 {
 	return muiInterruptDepth;
 }
@@ -1051,7 +1051,7 @@ void CHCP65::SetProcessID(uint8 uiProcessID)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8 CHCP65::GetProcessID(void)
+uint8 CHCP65::GetProcessID(void) const
 {
 	return muiProcessID;
 }
@@ -1062,7 +1062,7 @@ uint8 CHCP65::GetProcessID(void)
 // Instructions (opcode fetches) since the counter was last cleared.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CHCP65::GetInstructionCount(void)
+uint32 CHCP65::GetInstructionCount(void) const
 {
 	return muiInstructions - muiInstructionsCleared;
 }
@@ -1082,7 +1082,7 @@ void CHCP65::ClearInstructionCount(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65::IsKernelMode(void)
+bool CHCP65::IsKernelMode(void) const
 {
 	return mbKernel;
 }
@@ -1092,7 +1092,7 @@ bool CHCP65::IsKernelMode(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CHCP65::IsNativeLatched(void)
+bool CHCP65::IsNativeLatched(void) const
 {
 	return mbNativeLatch;
 }
@@ -1132,7 +1132,7 @@ CHCP65DebugPort* CHCP65::GetDebugPort(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65::GetMPURAM(void)
+uint8* CHCP65::GetMPURAM(void) const
 {
 	return mpuiRAM;
 }
@@ -1153,7 +1153,7 @@ CHCP65MemoryChannel* CHCP65::GetMemoryChannel(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint8* CHCP65::GetMPUROM(void)
+uint8* CHCP65::GetMPUROM(void) const
 {
 	return mpuiROM;
 }
@@ -1222,7 +1222,7 @@ void CHCP65::MapMainMemory(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CHCP65::NumCycles(void)
+uint64 CHCP65::NumCycles(void) const
 {
 	return mcMPU.NumCycles();
 }
@@ -1232,7 +1232,7 @@ uint64 CHCP65::NumCycles(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CHCP65::GetClockRate(void)
+uint64 CHCP65::GetClockRate(void) const
 {
 	return muiClockRate;
 }
