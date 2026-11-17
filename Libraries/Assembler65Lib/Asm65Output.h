@@ -49,7 +49,7 @@ public:
 
 	void			Write(uint32 uiAddress, uint8 uiByte);
 
-	size			NumSegments(void);
+	size			NumSegments(void) const;
 	SAsm65Segment*	GetSegment(size uiIndex);
 	size			NumBytes(void);
 	bool			Get(uint32 uiAddress, uint8* puiByte);

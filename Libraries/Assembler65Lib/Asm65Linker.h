@@ -223,14 +223,14 @@ public:
 	CAsm65LineTable*	GetLineTable(void);
 	char*				GetMap(void);
 	char*				GetErrors(void);
-	size				NumErrors(void);
+	size				NumErrors(void) const;
 	bool				GetSymbol(const char* szName, int64* piValue);
 	void				DescribeMissing(const char* szWhat, const char* szName, CChars* pszDest);
-	size				NumMissing(void);
+	size				NumMissing(void) const;
 	char*				GetMissing(size uiIndex);
-	size				NumFixups(void);
+	size				NumFixups(void) const;
 	SAsm65Fixup*		GetFixup(size uiIndex);
-	size				NumUnits(void);
+	size				NumUnits(void) const;
 	CArrayUint8*		GetLazyImage(void);
 
 protected:

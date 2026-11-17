@@ -61,7 +61,7 @@ public:
 	const char*		TokeniseLine(const char* szLine, uint32 uiLine, bool* pbResult);
 	void			SetErrors(CAsm65Errors* pcErrors);
 
-	size			NumTokens(void);
+	size			NumTokens(void) const;
 	SAsm65Token*	Get(size uiIndex);
 	char*			GetString(SAsm65Token* psToken);
 	void			Print(CChars* psz);

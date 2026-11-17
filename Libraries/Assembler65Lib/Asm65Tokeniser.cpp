@@ -538,7 +538,7 @@ void CAsm65Tokeniser::Error(const char* szStart, const char* szMessage)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Tokeniser::NumTokens(void)
+size CAsm65Tokeniser::NumTokens(void) const
 {
 	return mcTokens.NumElements();
 }

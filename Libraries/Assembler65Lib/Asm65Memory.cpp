@@ -88,7 +88,7 @@ void CAsm65Memory::CopyFrom(CAsm65Memory* pcSource)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CAsm65Memory::GetLowSize(void)
+uint32 CAsm65Memory::GetLowSize(void) const
 {
 	return muiLowSize;
 }
@@ -270,7 +270,7 @@ void CAsm65Memory::LoadProgram(CAsm65Output* pcOutput, uint32 uiResetAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Memory::NumBadAccesses(void)
+size CAsm65Memory::NumBadAccesses(void) const
 {
 	return muiBadAccesses;
 }
@@ -281,7 +281,7 @@ size CAsm65Memory::NumBadAccesses(void)
 // The bus cycles TickHigh65C64 has answered since Init.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Memory::NumCycles(void)
+size CAsm65Memory::NumCycles(void) const
 {
 	return muiCycles;
 }
@@ -509,7 +509,7 @@ void CAsm65Memory::HostCommand(uint8 uiCommand)
 // How many read commands the program has run.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Memory::NumDriveReads(void)
+size CAsm65Memory::NumDriveReads(void) const
 {
 	return muiDriveReads;
 }

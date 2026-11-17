@@ -46,7 +46,7 @@ public:
 
 	char*			GetName(void);
 	CAsm65Object*	AddObject(const char* szName);
-	size			NumObjects(void);
+	size			NumObjects(void) const;
 	CAsm65Object*	GetObject(size uiIndex);
 
 	bool			Write(CAbstractFile* pcFile);

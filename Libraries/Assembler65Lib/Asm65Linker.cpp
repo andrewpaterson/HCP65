@@ -287,7 +287,7 @@ void CAsm65Linker::SetRelocatable(bool bRelocatable)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Linker::NumFixups(void)
+size CAsm65Linker::NumFixups(void) const
 {
 	return masFixups.NumElements();
 }
@@ -1970,7 +1970,7 @@ char* CAsm65Linker::GetErrors(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Linker::NumErrors(void)
+size CAsm65Linker::NumErrors(void) const
 {
 	return mcErrors.NumErrors();
 }
@@ -2026,7 +2026,7 @@ void CAsm65Linker::DescribeMissing(const char* szWhat, const char* szName, CChar
 // The names nothing defined (stp stubs with SetStubMissing).
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Linker::NumMissing(void)
+size CAsm65Linker::NumMissing(void) const
 {
 	return maszMissing.NumElements();
 }

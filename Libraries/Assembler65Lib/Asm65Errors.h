@@ -37,7 +37,7 @@ public:
 
 	void	Add(uint32 uiLine, uint32 uiColumn, const char* szMessage, const char* szDetail = NULL);
 	void	Add(const char* szSource, uint32 uiLine, uint32 uiColumn, const char* szMessage, const char* szDetail = NULL);
-	size	NumErrors(void);
+	size	NumErrors(void) const;
 	char*	Text(void);
 
 protected:

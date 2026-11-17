@@ -82,7 +82,7 @@ void CAsm65Output::Write(uint32 uiAddress, uint8 uiByte)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Output::NumSegments(void)
+size CAsm65Output::NumSegments(void) const
 {
 	return mcSegments.NumElements();
 }

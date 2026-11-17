@@ -65,7 +65,7 @@ bool SAsm65Token::IsIdentifierIgnoreCase(const char* szName)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool SAsm65Token::IsEndOfStatement(void)
+bool SAsm65Token::IsEndOfStatement(void) const
 {
 	return (eType == AT65_NewLine) || (eType == AT65_End);
 }

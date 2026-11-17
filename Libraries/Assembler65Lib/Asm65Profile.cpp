@@ -1246,7 +1246,7 @@ SAsm65FunctionProfile* CAsm65Profile::Get(const char* szLabel)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint64 CAsm65Profile::NumCycles(void)
+uint64 CAsm65Profile::NumCycles(void) const
 {
 	return mulliCycles;
 }

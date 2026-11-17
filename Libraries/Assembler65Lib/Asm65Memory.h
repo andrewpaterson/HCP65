@@ -93,7 +93,7 @@ public:
 	void			Init(uint32 uiLowSize = ASM65_MEMORY_LOW_SIZE);
 	void			Kill(void);
 	void			CopyFrom(CAsm65Memory* pcSource);
-	uint32			GetLowSize(void);
+	uint32			GetLowSize(void) const;
 
 	uint8*			Byte(uint32 uiAddress);
 	uint8			GetByte(uint32 uiAddress);
@@ -105,13 +105,13 @@ public:
 	void			Load(CAsm65Output* pcOutput);
 	void			LoadProgram(CAsm65Output* pcOutput, uint32 uiResetAddress);
 
-	size			NumBadAccesses(void);
-	size			NumCycles(void);
+	size			NumBadAccesses(void) const;
+	size			NumCycles(void) const;
 
 	void			SetDrive(CFileDrive* pcDrive);
 	void			SetConsole(CChars* pszConsole);
 	void			SetHostFiles(CAsm65HostFiles* pcHostFiles);
-	size			NumDriveReads(void);
+	size			NumDriveReads(void) const;
 
 	static void		TickHigh65C64(C65C64Meta* pcMPU, void* pvMemory);
 	static void		TickLow65C64(C65C64Meta* pcMPU, void* pvMemory);

@@ -47,7 +47,7 @@ public:
 	void			Clear(void);
 
 	SAsm65Token*	Add(SAsm65Token* psToken);
-	lsize			NumTokens(void);
+	lsize			NumTokens(void) const;
 	SAsm65Token*	Get(lsize uiIndex);
 };
 

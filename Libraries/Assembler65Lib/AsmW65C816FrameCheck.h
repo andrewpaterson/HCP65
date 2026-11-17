@@ -73,7 +73,7 @@ public:
 	uint8	BeforeStep(void);
 	void	AfterStep(uint8 uiOpcode);
 
-	size					NumWrites(void);
+	size					NumWrites(void) const;
 	SAsmW65C816FrameWrite*	GetWrite(size uiIndex);
 	char*					GetWrites(void);
 	static void				AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest);

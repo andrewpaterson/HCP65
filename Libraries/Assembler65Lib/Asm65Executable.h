@@ -70,12 +70,12 @@ public:
 
 	char*		GetFile(void);
 	char*		GetEntry(void);
-	uint32		GetLimit(void);
-	size		NumSymbols(void);
+	uint32		GetLimit(void) const;
+	size		NumSymbols(void) const;
 	char*		GetSymbolName(size uiIndex);
 	int64		GetSymbolValue(size uiIndex);
-	uint8*		GetBytes(void);
-	size		GetSize(void);
+	uint8*		GetBytes(void) const;
+	size		GetSize(void) const;
 };
 
 

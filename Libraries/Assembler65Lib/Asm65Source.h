@@ -83,7 +83,7 @@ public:
 	void			Rewind(void) override;
 	const char*		NextLine(void) override;
 	char*			GetFile(void);
-	uint32			GetLine(void);
+	uint32			GetLine(void) const;
 
 protected:
 	bool			Include(const char* szLine);

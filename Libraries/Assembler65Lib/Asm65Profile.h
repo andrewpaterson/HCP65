@@ -93,7 +93,7 @@ public:
 	SAsm65LineProfile*		GetLine(const char* szLabel, const char* szFile, uint32 uiLine);
 	SAsm65CallSiteProfile*	GetCallSite(const char* szCallee, const char* szFile, uint32 uiLine);
 	uint64					LineEntries(const char* szFile, uint32 uiLine);
-	uint64					NumCycles(void);
+	uint64					NumCycles(void) const;
 
 protected:
 	SAsm65FunctionProfile*	PutFunction(const char* szLabel);

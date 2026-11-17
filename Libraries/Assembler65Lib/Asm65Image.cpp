@@ -295,21 +295,21 @@ bool CAsm65Image::Write(const char* szFilename)
 
 
 char* CAsm65Image::GetFile(void)							{ return mszFile.Text(); }
-uint32 CAsm65Image::GetSize(void)							{ return muiSize; }
-uint8 CAsm65Image::GetFill(void)							{ return muiFill; }
-uint32 CAsm65Image::GetLimit(void)							{ return muiLimit; }
-uint32 CAsm65Image::GetLoad(void)							{ return muiLoad; }
+uint32 CAsm65Image::GetSize(void) const							{ return muiSize; }
+uint8 CAsm65Image::GetFill(void) const							{ return muiFill; }
+uint32 CAsm65Image::GetLimit(void) const							{ return muiLimit; }
+uint32 CAsm65Image::GetLoad(void) const							{ return muiLoad; }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CAsm65Image::GetText(void)
+uint32 CAsm65Image::GetText(void) const
 {
 	return muiText;
 }
-size CAsm65Image::NumRegions(void)							{ return masRegions.NumElements(); }
+size CAsm65Image::NumRegions(void) const							{ return masRegions.NumElements(); }
 SAsm65ImageRegion* CAsm65Image::GetRegion(size uiIndex)		{ return masRegions.Get(uiIndex); }
-uint8* CAsm65Image::GetImage(void)							{ return mpuiImage; }
+uint8* CAsm65Image::GetImage(void) const							{ return mpuiImage; }
 

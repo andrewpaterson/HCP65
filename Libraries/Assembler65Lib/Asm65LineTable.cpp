@@ -174,7 +174,7 @@ void CAsm65LineTable::Move(int64 iOffset)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65LineTable::NumLines(void)
+size CAsm65LineTable::NumLines(void) const
 {
 	return masLines.NumElements();
 }
@@ -230,7 +230,7 @@ SAsm65LineEntry* CAsm65LineTable::FindLine(uint32 uiAddress)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65LineTable::NumFiles(void)
+size CAsm65LineTable::NumFiles(void) const
 {
 	return maszFiles.NumElements();
 }
@@ -250,7 +250,7 @@ char* CAsm65LineTable::GetFile(size uiIndex)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65LineTable::NumFingerprints(void)
+size CAsm65LineTable::NumFingerprints(void) const
 {
 	return masFingerprints.NumElements();
 }

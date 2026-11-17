@@ -175,25 +175,25 @@ public:
 	char*				GetName(void);
 
 	uint32				AddSection(const char* szName, const char* szGroup, EAsm65SectionKind eKind);
-	size				NumSections(void);
+	size				NumSections(void) const;
 	SAsm65Section*		GetSection(size uiIndex);
 	int32				FindSection(const char* szName, const char* szGroup);
 
 	uint32				PutSymbol(const char* szName);
-	size				NumSymbols(void);
+	size				NumSymbols(void) const;
 	SAsm65ObjectSymbol*	GetSymbol(size uiIndex);
 	int32				FindSymbol(const char* szName);
 
 	SAsm65Relocation*	AddRelocation(void);
-	size				NumRelocations(void);
+	size				NumRelocations(void) const;
 	SAsm65Relocation*	GetRelocation(size uiIndex);
 
 	void				AddSourceLine(uint32 uiSection, uint32 uiOffset, const char* szFile, uint32 uiLine);
-	size				NumSourceLines(void);
+	size				NumSourceLines(void) const;
 	SAsm65SourceLine*	GetSourceLine(size uiIndex);
 	char*				GetSourceFile(size uiIndex);
 	void				AddFingerprint(const char* szLabel, uint32 uiHash, int64 iTime);
-	size				NumFingerprints(void);
+	size				NumFingerprints(void) const;
 	SAsm65Fingerprint*	GetFingerprint(size uiIndex);
 
 	void				Dump(CChars* psz);

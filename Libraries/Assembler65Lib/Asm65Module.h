@@ -70,10 +70,10 @@ public:
 
 	char*		GetFile(void);
 	char*		GetEntry(void);
-	uint32		GetLimit(void);
-	uint32		GetBase(void);
-	uint8*		GetBytes(void);
-	size		GetSize(void);
+	uint32		GetLimit(void) const;
+	uint32		GetBase(void) const;
+	uint8*		GetBytes(void) const;
+	size		GetSize(void) const;
 };
 
 

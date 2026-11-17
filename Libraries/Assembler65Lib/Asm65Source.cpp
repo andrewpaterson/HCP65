@@ -280,7 +280,7 @@ char* CAsm65IncludeSource::GetFile(void)
 // The line (1 based) in its file of the line NextLine last gave.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CAsm65IncludeSource::GetLine(void)
+uint32 CAsm65IncludeSource::GetLine(void) const
 {
 	return mauiLines[muiDepth];
 }

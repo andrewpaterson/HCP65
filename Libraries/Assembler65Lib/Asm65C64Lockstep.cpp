@@ -160,7 +160,7 @@ char* CAsm65C64Lockstep::GetDifferences(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65C64Lockstep::IsStopped(void)
+bool CAsm65C64Lockstep::IsStopped(void) const
 {
 	return mbStopped;
 }

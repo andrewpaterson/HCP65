@@ -260,10 +260,10 @@ bool CAsm65Executable::Write(const char* szFilename)
 
 char* CAsm65Executable::GetFile(void)						{ return mszFile.Text(); }
 char* CAsm65Executable::GetEntry(void)						{ return mszEntry.Text(); }
-uint32 CAsm65Executable::GetLimit(void)						{ return muiLimit; }
-size CAsm65Executable::NumSymbols(void)						{ return maszSymbols.NumElements(); }
+uint32 CAsm65Executable::GetLimit(void) const						{ return muiLimit; }
+size CAsm65Executable::NumSymbols(void) const						{ return maszSymbols.NumElements(); }
 char* CAsm65Executable::GetSymbolName(size uiIndex)			{ return maszSymbols.GetText(uiIndex); }
 int64 CAsm65Executable::GetSymbolValue(size uiIndex)		{ return *maiValues.Get(uiIndex); }
-uint8* CAsm65Executable::GetBytes(void)						{ return macBytes.GetData(); }
-size CAsm65Executable::GetSize(void)						{ return macBytes.NumElements(); }
+uint8* CAsm65Executable::GetBytes(void) const						{ return macBytes.GetData(); }
+size CAsm65Executable::GetSize(void) const						{ return macBytes.NumElements(); }
 

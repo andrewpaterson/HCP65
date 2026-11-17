@@ -1793,7 +1793,7 @@ char* CAsm65BaseAssembler::GetErrors(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65BaseAssembler::NumErrors(void)
+size CAsm65BaseAssembler::NumErrors(void) const
 {
 	return mcErrors.NumErrors();
 }
@@ -1813,7 +1813,7 @@ char* CAsm65BaseAssembler::GetWarnings(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65BaseAssembler::NumWarnings(void)
+size CAsm65BaseAssembler::NumWarnings(void) const
 {
 	return mcWarnings.NumErrors();
 }
@@ -1841,7 +1841,7 @@ bool CAsm65BaseAssembler::GetSymbol(const char* szName, int64* piValue)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 CAsm65BaseAssembler::NumPasses(void)
+uint32 CAsm65BaseAssembler::NumPasses(void) const
 {
 	return muiPasses;
 }

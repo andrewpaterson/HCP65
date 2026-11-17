@@ -213,7 +213,7 @@ uint32 CAsm65Object::AddSection(const char* szName, const char* szGroup, EAsm65S
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Object::NumSections(void)
+size CAsm65Object::NumSections(void) const
 {
 	return mcSections.NumElements();
 }
@@ -283,7 +283,7 @@ uint32 CAsm65Object::PutSymbol(const char* szName)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Object::NumSymbols(void)
+size CAsm65Object::NumSymbols(void) const
 {
 	return mcSymbols.NumElements();
 }
@@ -334,7 +334,7 @@ SAsm65Relocation* CAsm65Object::AddRelocation(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Object::NumRelocations(void)
+size CAsm65Object::NumRelocations(void) const
 {
 	return mcRelocations.NumElements();
 }
@@ -385,7 +385,7 @@ void CAsm65Object::AddSourceLine(uint32 uiSection, uint32 uiOffset, const char* 
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Object::NumSourceLines(void)
+size CAsm65Object::NumSourceLines(void) const
 {
 	return mcSourceLines.NumElements();
 }
@@ -430,7 +430,7 @@ void CAsm65Object::AddFingerprint(const char* szLabel, uint32 uiHash, int64 iTim
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Object::NumFingerprints(void)
+size CAsm65Object::NumFingerprints(void) const
 {
 	return mcFingerprints.NumElements();
 }

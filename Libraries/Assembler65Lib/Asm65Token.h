@@ -75,7 +75,7 @@ struct SAsm65Token
 	bool	Is(EAsm65Punctuator ePunctuator);
 	bool	IsIdentifier(const char* szName);
 	bool	IsIdentifierIgnoreCase(const char* szName);
-	bool	IsEndOfStatement(void);
+	bool	IsEndOfStatement(void) const;
 };
 
 

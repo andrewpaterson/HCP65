@@ -131,11 +131,11 @@ public:
 
 	CAsm65Output*	GetOutput(void);
 	char*			GetErrors(void);
-	size			NumErrors(void);
+	size			NumErrors(void) const;
 	char*			GetWarnings(void);
-	size			NumWarnings(void);
+	size			NumWarnings(void) const;
 	bool			GetSymbol(const char* szName, int64* piValue);
-	uint32			NumPasses(void);
+	uint32			NumPasses(void) const;
 
 protected:
 	//Provided by each processor's assembler.

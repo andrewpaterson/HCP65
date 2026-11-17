@@ -77,16 +77,16 @@ public:
 	void					Sort(void);
 	void					Move(int64 iOffset);
 
-	size					NumLines(void);
+	size					NumLines(void) const;
 	SAsm65LineEntry*		GetLine(size uiIndex);
 	SAsm65LineEntry*		FindLine(uint32 uiAddress);
 	uint32					FindLineAddresses(const char* szFile, uint32 uiLine, CArrayUint32* pauiAddresses);
 	bool					FindLineRanges(uint32 uiAddress, CArrayUint32* pauiRanges);
 	bool					FindNextLine(uint32 uiAddress, uint32* puiNext);
 	bool					FindFile(const char* szFile, uint32* puiFile);
-	size					NumFiles(void);
+	size					NumFiles(void) const;
 	char*					GetFile(size uiIndex);
-	size					NumFingerprints(void);
+	size					NumFingerprints(void) const;
 	SAsm65LineFingerprint*	GetFingerprint(size uiIndex);
 	SAsm65LineFingerprint*	FindFingerprint(const char* szLabel);
 

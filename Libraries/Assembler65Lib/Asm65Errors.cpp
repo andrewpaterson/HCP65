@@ -109,7 +109,7 @@ void CAsm65Errors::AppendMessage(const char* szMessage, const char* szDetail)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Errors::NumErrors(void)
+size CAsm65Errors::NumErrors(void) const
 {
 	return muiErrors;
 }

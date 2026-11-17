@@ -48,7 +48,7 @@ public:
 	bool	CompareMemory(void);
 
 	char*	GetDifferences(void);
-	bool	IsStopped(void);
+	bool	IsStopped(void) const;
 };
 
 

@@ -153,7 +153,7 @@ void CAsm65Linker::SetLazy(uint32 uiCodeEnd, uint32 uiSectorSize, uint32 uiFirst
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Linker::NumUnits(void)
+size CAsm65Linker::NumUnits(void) const
 {
 	return masUnits.NumElements();
 }

@@ -230,7 +230,7 @@ void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 // The stores to callers' stacks kept (the first few found).
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsmW65C816FrameCheck::NumWrites(void)
+size CAsmW65C816FrameCheck::NumWrites(void) const
 {
 	return masWrites.NumElements();
 }

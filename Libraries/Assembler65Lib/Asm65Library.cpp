@@ -86,7 +86,7 @@ CAsm65Object* CAsm65Library::AddObject(const char* szName)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65Library::NumObjects(void)
+size CAsm65Library::NumObjects(void) const
 {
 	return mapcObjects.NumElements();
 }

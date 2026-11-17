@@ -79,14 +79,14 @@ public:
 	bool				Write(const char* szFilename);
 
 	char*				GetFile(void);
-	uint32				GetSize(void);
-	uint8				GetFill(void);
-	uint32				GetLimit(void);
-	uint32				GetLoad(void);
-	uint32				GetText(void);
-	size				NumRegions(void);
+	uint32				GetSize(void) const;
+	uint8				GetFill(void) const;
+	uint32				GetLimit(void) const;
+	uint32				GetLoad(void) const;
+	uint32				GetText(void) const;
+	size				NumRegions(void) const;
 	SAsm65ImageRegion*	GetRegion(size uiIndex);
-	uint8*				GetImage(void);
+	uint8*				GetImage(void) const;
 
 protected:
 	SAsm65ImageRegion*	FindRegion(uint32 uiStart, uint32 uiEnd);

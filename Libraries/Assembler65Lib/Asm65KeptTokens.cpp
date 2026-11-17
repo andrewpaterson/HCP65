@@ -75,7 +75,7 @@ SAsm65Token* CAsm65KeptTokens::Add(SAsm65Token* psToken)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-lsize CAsm65KeptTokens::NumTokens(void)
+lsize CAsm65KeptTokens::NumTokens(void) const
 {
 	return masTokens.NumElements();
 }
