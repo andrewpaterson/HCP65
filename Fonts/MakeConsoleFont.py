@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Makes CONSOLE.FNT, the HCP65 console's 8x16 font, from a PC Screen Font (.psf or .psf.gz) with a Unicode table.
+"""Makes CONSOLE.FNT and CONSOLE.SFT, the HCP65 console's 8x16 font, from a PC Screen Font (.psf or .psf.gz) with a
+Unicode table.
 
 CONSOLE.FNT is 256 glyphs of 16 bytes, in Latin-1 order (glyph n is the character U+00n), each byte a row from the top
 with its leftmost pixel in bit 7: 4096 bytes.  The control characters ($00-$1F and $7F to $9F) are blank, as is any
 character the font hasn't.  The console driver loads it from the SD card's \\OS\\Fonts\\CONSOLE.FNT.
 
+CONSOLE.SFT is the same glyphs as an SFT container (CommonLibraries' SupportLib/SFTCommon.h) of 256 transparent images
+of 8 by 16, in the same order: what a blit draws.  A glyph's pixels are $FF, and the rest of it isn't drawn.
+
 CONSOLE.FNT in this directory was made from Terminus Font 16 (Lat15-Terminus16.psf.gz, as Debian's console-setup has
 it), which is under the SIL Open Font License 1.1: Terminus-OFL.txt beside it.
 
-    MakeConsoleFont.py [font.psf.gz] [CONSOLE.FNT]
+    MakeConsoleFont.py [font.psf.gz] [CONSOLE.FNT] [CONSOLE.SFT]
 """
 import gzip
 import struct
@@ -19,6 +23,13 @@ GLYPH_HEIGHT = 16
 NUM_GLYPHS = 256
 DEFAULT_FONT = "/usr/share/consolefonts/Lat15-Terminus16.psf.gz"
 DEFAULT_OUTPUT = "CONSOLE.FNT"
+DEFAULT_SFT_OUTPUT = "CONSOLE.SFT"
+
+SFT_TYPE_TRANSPARENT = 0xE4F9
+SFT_TYPE_CONTAINER = 0xE4EF
+SFT_START_OF_RUN = 0x8000
+SFT_PIXEL = 0xFF
+SFT_BLOCK = 0x10000
 
 
 def ReadFont(szPath):
@@ -65,6 +76,54 @@ def ReadFont(szPath):
     raise ValueError(szPath + " isn't a PC Screen Font.")
 
 
+def MakeSFTImage(abGlyph):
+    """The glyph (a row a byte, its leftmost pixel bit 7) as a transparent SFT image.
+
+    A row's runs are each a skip (with SFT_START_OF_RUN on the first of every row but the first), a length and the
+    pixels; a row without a pixel is a run of none that skips the whole row; a run of zeros ends the image.
+    """
+    abImage = bytearray(struct.pack("<3H", SFT_TYPE_TRANSPARENT, GLYPH_WIDTH, GLYPH_HEIGHT))
+    for iRow in range(GLYPH_HEIGHT):
+        iFlags = SFT_START_OF_RUN if iRow else 0
+        iSkip = 0
+        iLength = 0
+        bWritten = False
+        for iColumn in range(GLYPH_WIDTH + 1):
+            bPixel = (iColumn < GLYPH_WIDTH) and bool(abGlyph[iRow] & (0x80 >> iColumn))
+            if bPixel:
+                iLength += 1
+            elif iLength:
+                abImage += struct.pack("<2H", iFlags | iSkip, iLength) + bytes([SFT_PIXEL]) * iLength
+                iFlags = 0
+                iSkip = 1
+                iLength = 0
+                bWritten = True
+            else:
+                iSkip += 1
+        if not bWritten:
+            abImage += struct.pack("<2H", iFlags | GLYPH_WIDTH, 0)
+    abImage += struct.pack("<2H", 0, 0)
+    return bytes(abImage)
+
+
+def MakeSFTContainer(aabImages):
+    """The images as an SFT container: its type and count, then each image after the distance from that word to the
+    next image's (0 for the last).  An image doesn't cross a 64KB boundary of the file: it starts at the next instead.
+    """
+    abFile = bytearray(struct.pack("<2H", SFT_TYPE_CONTAINER, len(aabImages)))
+    iPrevious = None
+    for abImage in aabImages:
+        iPosition = len(abFile)
+        if (iPosition // SFT_BLOCK) != ((iPosition + len(abImage)) // SFT_BLOCK):
+            iPosition = (iPosition // SFT_BLOCK + 1) * SFT_BLOCK
+            abFile += bytes(iPosition - len(abFile))
+        if iPrevious is not None:
+            struct.pack_into("<H", abFile, iPrevious, iPosition - iPrevious)
+        iPrevious = iPosition
+        abFile += struct.pack("<H", 0) + abImage
+    return bytes(abFile)
+
+
 def IsControl(iCode):
     return (iCode < 0x20) or ((iCode >= 0x7F) and (iCode < 0xA0))
 
@@ -72,6 +131,7 @@ def IsControl(iCode):
 def main(aszArguments):
     szFont = aszArguments[1] if len(aszArguments) > 1 else DEFAULT_FONT
     szOutput = aszArguments[2] if len(aszArguments) > 2 else DEFAULT_OUTPUT
+    szSFTOutput = aszArguments[3] if len(aszArguments) > 3 else DEFAULT_SFT_OUTPUT
     iWidth, iHeight, aGlyphs, dMap = ReadFont(szFont)
     if (iWidth != GLYPH_WIDTH) or (iHeight != GLYPH_HEIGHT):
         raise ValueError("%s is %dx%d, not %dx%d." % (szFont, iWidth, iHeight, GLYPH_WIDTH, GLYPH_HEIGHT))
@@ -89,6 +149,11 @@ def main(aszArguments):
     with open(szOutput, "wb") as cFile:
         cFile.write(abOutput)
     print("%s: %d bytes from %s%s" % (szOutput, len(abOutput), szFont, (", blank for " + " ".join("$%02X" % i for i in aiMissing)) if aiMissing else ""))
+
+    abSFT = MakeSFTContainer([MakeSFTImage(abOutput[i * GLYPH_HEIGHT:(i + 1) * GLYPH_HEIGHT]) for i in range(NUM_GLYPHS)])
+    with open(szSFTOutput, "wb") as cFile:
+        cFile.write(abSFT)
+    print("%s: %d bytes" % (szSFTOutput, len(abSFT)))
     return 0
 
 

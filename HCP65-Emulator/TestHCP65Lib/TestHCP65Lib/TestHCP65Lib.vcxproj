@@ -232,6 +232,7 @@
     <ClCompile Include="TestHCP65Lib.cpp" />
     <ClCompile Include="TestHCP65Machine.cpp" />
     <ClCompile Include="TestHCP65Debugger.cpp" />
+    <ClCompile Include="TestHCP65Font.cpp" />
     <ClCompile Include="TestHCP65Kernal.cpp" />
     <ClCompile Include="HCP65KernalBuilder.cpp" />
     <ClCompile Include="HCP65ExeBuilder.cpp" />

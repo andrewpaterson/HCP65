@@ -8,6 +8,7 @@
 
 void TestHCP65Machine(void);
 void TestHCP65Debugger(void);
+void TestHCP65Font(void);
 void TestHCP65Kernal(void);
 
 
@@ -27,6 +28,7 @@ int __cdecl main(int argc, char** argv)
 	NumberInit();
 	MemoryInit();
 
+	TestHCP65Font();
 	TestHCP65Machine();
 	TestHCP65Debugger();
 	TestHCP65Kernal();
