@@ -4,10 +4,11 @@
 
 //\OS\SHELL.EXE: the HCP65's command line, which \OS\INIT.EXE keeps running.  It reads a line from the console
 //(KERNAL_STANDARD_INPUT), echoing it, and does what it says: one of the commands below (SHELL_COMMANDS), or else runs
-//the program it names.  The commands have their Linux names (ls, cat, cp ...).  Paths are FAT paths on the SD card;
-//one that doesn't start with '\' is from the current directory.  A program is looked for as given, then in \OS, with
-//".EXE" added if it has no extension; a number after it is its argument (KernalGetArgument).  "exit" ends the shell,
-//and INIT.EXE starts it again.
+//the program it names.  The commands have their Linux names (ls, cat, cp ...) and paths are written with '/', as
+//Linux's are ('\' is taken too): the SD card's FAT paths, which the shell gives the kernal with '\'.  One that doesn't
+//start with '/' is from the current directory, which the prompt shows before its '$'.  A program is looked for as
+//given, then in \OS, with ".EXE" added if it has no extension; a number after it is its argument (KernalGetArgument).
+//"exit" ends the shell, and INIT.EXE starts it again.
 #define SHELL_LINE_LENGTH		128
 #define SHELL_PATH_LENGTH		128
 #define SHELL_MAX_WORDS			8
@@ -35,7 +36,7 @@ struct SShellCommand
 };
 
 
-char	gszShellDirectory[SHELL_PATH_LENGTH];	//The current directory: "\" or "\NAME\NAME", no '\' at the end.
+char	gszShellDirectory[SHELL_PATH_LENGTH];	//The current directory as FAT has it: "\" or "\NAME\NAME", no '\' at the end.
 uint8	gauiShellBuffer[SHELL_COPY_SIZE];
 
 
@@ -59,6 +60,31 @@ static void ShellWrite(const char* szText)
 static void ShellWriteChar(char c)
 {
 	ShellWriteBytes(&c, 1);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A FAT path as the shell shows it: with '/' for each '\'.
+//
+//////////////////////////////////////////////////////////////////////////
+static void ShellWritePath(const char* szPath)
+{
+	for (; *szPath; szPath++)
+	{
+		ShellWriteChar((*szPath == '\\') ? '/' : *szPath);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether c separates a path's parts as it is typed: '/', or FAT's '\'.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool ShellIsSeparator(char c)
+{
+	return (c == '/') || (c == '\\');
 }
 
 
@@ -223,8 +249,9 @@ static uint16 ShellSplit(char* szLine, char** aszWords)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// szName as a full path in szPath (SHELL_PATH_LENGTH): from the current
-// directory unless it starts with '\', and with "." and ".." taken out.
+// szName as a full FAT path in szPath (SHELL_PATH_LENGTH): from the
+// current directory unless it starts with '/', its parts joined with '\',
+// and with "." and ".." taken out.
 // False if it is too long.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -236,7 +263,7 @@ static bool ShellMakePath(const char* szName, char* szPath)
 	uint16		uiLength;
 
 	szJoined[0] = '\0';
-	if (szName[0] != '\\')
+	if (!ShellIsSeparator(szName[0]))
 	{
 		strcpy(szJoined, gszShellDirectory);
 		strcat(szJoined, "\\");
@@ -252,7 +279,7 @@ static bool ShellMakePath(const char* szName, char* szPath)
 	szPart = szJoined;
 	for (;;)
 	{
-		while (*szPart == '\\')
+		while (ShellIsSeparator(*szPart))
 		{
 			szPart++;
 		}
@@ -261,7 +288,7 @@ static bool ShellMakePath(const char* szName, char* szPath)
 			break;
 		}
 		uiPartLength = 0;
-		while ((szPart[uiPartLength] != '\0') && (szPart[uiPartLength] != '\\'))
+		while ((szPart[uiPartLength] != '\0') && !ShellIsSeparator(szPart[uiPartLength]))
 		{
 			uiPartLength++;
 		}
@@ -394,7 +421,7 @@ static bool ShellLs(uint16 uiWords, char** aszWords)
 	if (uiResult != KERNAL_RESULT_END)
 	{
 		ShellWrite("ls: ");
-		ShellWrite(szPath);
+		ShellWritePath(szPath);
 		ShellWrite(" isn't a directory.\n");
 	}
 	return true;
@@ -417,7 +444,7 @@ static bool ShellCd(uint16 uiWords, char** aszWords)
 	if (!ShellIsDirectory(szPath))
 	{
 		ShellWrite("cd: ");
-		ShellWrite(szPath);
+		ShellWritePath(szPath);
 		ShellWrite(" isn't a directory.\n");
 		return true;
 	}
@@ -433,7 +460,7 @@ static bool ShellCd(uint16 uiWords, char** aszWords)
 //////////////////////////////////////////////////////////////////////////
 static bool ShellPwd(uint16 uiWords, char** aszWords)
 {
-	ShellWrite(gszShellDirectory);
+	ShellWritePath(gszShellDirectory);
 	ShellWriteChar('\n');
 	return true;
 }
@@ -458,7 +485,7 @@ static bool ShellCat(uint16 uiWords, char** aszWords)
 	uiSize = KernalFileSize(szPath);
 	if (uiSize == KERNAL_FILE_NOT_FOUND)
 	{
-		ShellWrite(szPath);
+		ShellWritePath(szPath);
 		ShellWrite(" isn't there.\n");
 		return true;
 	}
@@ -499,7 +526,7 @@ static bool ShellCp(uint16 uiWords, char** aszWords)
 	uiSize = KernalFileSize(szFrom);
 	if (uiSize == KERNAL_FILE_NOT_FOUND)
 	{
-		ShellWrite(szFrom);
+		ShellWritePath(szFrom);
 		ShellWrite(" isn't there.\n");
 		return true;
 	}
@@ -515,7 +542,7 @@ static bool ShellCp(uint16 uiWords, char** aszWords)
 	}
 	if (KernalFileWrite(szTo, gauiShellBuffer, uiSize) != KERNAL_RESULT_SUCCESS)
 	{
-		ShellWrite(szTo);
+		ShellWritePath(szTo);
 		ShellWrite(" couldn't be written.\n");
 		return true;
 	}
@@ -540,7 +567,7 @@ static bool ShellRm(uint16 uiWords, char** aszWords)
 	}
 	if (KernalFileDelete(szPath) != KERNAL_RESULT_SUCCESS)
 	{
-		ShellWrite(szPath);
+		ShellWritePath(szPath);
 		ShellWrite(" couldn't be deleted.\n");
 	}
 	return true;
@@ -562,7 +589,7 @@ static bool ShellMkdir(uint16 uiWords, char** aszWords)
 	}
 	if (KernalMakeDirectory(szPath) != KERNAL_RESULT_SUCCESS)
 	{
-		ShellWrite(szPath);
+		ShellWritePath(szPath);
 		ShellWrite(" couldn't be made.\n");
 	}
 	return true;
@@ -809,7 +836,7 @@ static bool ShellFindProgram(const char* szName, char* szPath)
 	{
 		return true;
 	}
-	if (strchr(szName, '\\') || (strlen(SHELL_PROGRAM_DIRECTORY) + strlen(szWithExtension) >= SHELL_PATH_LENGTH))
+	if (strchr(szName, '\\') || strchr(szName, '/') || (strlen(SHELL_PROGRAM_DIRECTORY) + strlen(szWithExtension) >= SHELL_PATH_LENGTH))
 	{
 		return false;
 	}
@@ -851,7 +878,7 @@ static void ShellRun(uint16 uiWords, char** aszWords)
 	uiResult = KernalExecute(szPath, uiArgument, &uiExitCode);
 	if (uiResult != KERNAL_RESULT_EXITED)
 	{
-		ShellWrite(szPath);
+		ShellWritePath(szPath);
 		ShellWrite(" couldn't be run (");
 		ShellWriteNumber(uiResult, 0);
 		ShellWrite(").\n");
@@ -907,8 +934,8 @@ int main(void)
 	ShellWrite(SHELL_VERSION ".  Type help for the commands.\n");
 	for (;;)
 	{
-		ShellWrite(gszShellDirectory);
-		ShellWrite("> ");
+		ShellWritePath(gszShellDirectory);
+		ShellWrite(" $ ");
 		ShellReadLine(szLine);
 		if (!ShellDo(szLine))
 		{

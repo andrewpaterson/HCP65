@@ -58,9 +58,10 @@ from Terminus Font (SIL Open Font License) by `HCP65/Fonts/MakeConsoleFont.py`.
 
 ## The shell
 
-The shell prompts with the current directory (`\>` at first) and reads a line.  Backspace takes
-back the last character and Ctrl-C drops the line.  The commands have their Linux names.  Paths are
-FAT paths, from the current directory unless they start with `\`, and case doesn't matter.
+The shell prompts with the current directory and a `$` (`/ $` at first) and reads a line.  Backspace takes
+back the last character and Ctrl-C drops the line.  The commands have their Linux names, and
+paths are written with `/` as Linux's are (`\` is taken too): they are the card's FAT paths, from the
+current directory unless they start with `/`, and case doesn't matter.
 
 | Command | What it does |
 |---|---|

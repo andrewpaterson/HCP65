@@ -74,7 +74,7 @@
 #define TEST_HCP65_SHELL_PATH		"\\OS\\SHELL.EXE"
 #define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
 #define TEST_HCP65_HELLO_TEXT		"Hello from the SD card.\n"
-#define TEST_HCP65_SHELL_PROMPT		"> "			//After the current directory.
+#define TEST_HCP65_SHELL_PROMPT		" $ "			//After the current directory.
 #define TEST_HCP65_SHELL_BANNER		"HCP65 shell 1.  Type help for the commands."
 #define TEST_HCP65_SHELL_MAX_RUNS	3000		//Of TEST_UART_RUN_CYCLES, for a command.
 #define TEST_HCP65_FONT				".." _FS_ ".." _FS_ ".." _FS_ "Fonts" _FS_ "CONSOLE.FNT"
@@ -1747,7 +1747,7 @@ static bool TestShellRunToPrompt(STestShell* psShell, CChars* pszText)
 		uiLast = psShell->cTerminal.NumLines() - 1;
 		szLine = psShell->cTerminal.GetLine(uiLast);
 		uiLength = strlen(szLine);
-		if ((szLine[0] == '\\') && (uiLength >= 3) && (strcmp(&szLine[uiLength - 2], TEST_HCP65_SHELL_PROMPT) == 0) && (psShell->cTerminal.GetColumn() == uiLength) &&
+		if ((szLine[0] == '/') && (uiLength >= 4) && (strcmp(&szLine[uiLength - 3], TEST_HCP65_SHELL_PROMPT) == 0) && (psShell->cTerminal.GetColumn() == uiLength) &&
 			(psShell->pcUART->GetTTL()->NumHostToSend() == 0))
 		{
 			pszText->Kill();
@@ -1880,18 +1880,18 @@ void TestHCP65KernalShell(STestKernal* psKernal)
 	AssertTrue(TestShellHas(&szOutput, "\nHello from the SD card.\n"));
 	AssertTrue(TestShellCommand(&sShell, "rm copy.txt", &szOutput));
 	AssertTrue(TestShellCommand(&sShell, "cat copy.txt", &szOutput));
-	AssertTrue(TestShellHas(&szOutput, "\\COPY.TXT isn't there.") || TestShellHas(&szOutput, "\\copy.txt isn't there."));
+	AssertTrue(TestShellHas(&szOutput, "/copy.txt isn't there."));
 	AssertTrue(TestShellCommand(&sShell, "mkdir work", &szOutput));
 	AssertTrue(TestShellCommand(&sShell, "cd work", &szOutput));
 	AssertTrue(TestShellCommand(&sShell, "pwd", &szOutput));
-	AssertTrue(TestShellHas(&szOutput, "\\work\n"));
-	AssertTrue(TestShellCommand(&sShell, "cd ..\\os", &szOutput));
+	AssertTrue(TestShellHas(&szOutput, "\n/work\n"));
+	AssertTrue(TestShellCommand(&sShell, "cd ../os", &szOutput));
 	AssertTrue(TestShellCommand(&sShell, "ls", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "SHELL.EXE"));
 	AssertTrue(TestShellHas(&szOutput, "  Drivers/\n") || TestShellHas(&szOutput, "  DRIVERS/\n"));
 	AssertTrue(TestShellCommand(&sShell, "cd", &szOutput));
 	AssertTrue(TestShellCommand(&sShell, "pwd", &szOutput));
-	AssertTrue(TestShellHas(&szOutput, "\n\\\n"));
+	AssertTrue(TestShellHas(&szOutput, "\n/\n"));
 	AssertTrue(TestShellCommand(&sShell, "lsdev", &szOutput));
 	AssertTrue(TestShellHas(&szOutput, "SD Card Board"));
 	AssertTrue(TestShellHas(&szOutput, "built in"));
@@ -2343,8 +2343,8 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 
 	//The shell's banner and its prompt, in light grey on black.
 	szScreen.Init();
-	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n\\>\n", &szScreen));
-	AssertTrue(szScreen.StartsWith(TEST_HCP65_SHELL_BANNER "\n\\>\n"));
+	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
+	AssertTrue(szScreen.StartsWith(TEST_HCP65_SHELL_BANNER "\n/ $\n"));
 	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
 	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET), sStatus.uiLoadedDrivers);
 	AssertLong(25175000, (int64)sConsole.pcVideo->GetPixelClockRate());
@@ -2354,29 +2354,29 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 
 	//What is typed is shown, then done.
 	TestConsoleType(&sConsole, "cat hello.txt\r");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> cat hello.txt\nHello from the SD card.\n\\>\n", &szScreen));
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $ cat hello.txt\nHello from the SD card.\n/ $\n", &szScreen));
 	TestConsoleType(&sConsole, "mode\r");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> mode\n80 columns, 30 rows\n\\>\n", &szScreen));
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $ mode\n80 columns, 30 rows\n/ $\n", &szScreen));
 
 	//Caps Lock types capitals, and its LED is lit.
 	sConsole.cKeyboard.Key("Caps Lock", true);
 	sConsole.cKeyboard.Key("Caps Lock", false);
 	TestConsoleType(&sConsole, "pwd");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "\\> PWD\n", &szScreen));
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $ PWD\n", &szScreen));
 	sConsole.cKeyboard.Key("Caps Lock", true);
 	sConsole.cKeyboard.Key("Caps Lock", false);
 	TestConsoleType(&sConsole, "\r");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "PWD isn't a command or a program.\n\\>\n", &szScreen));
+	AssertTrue(TestConsoleRunUntil(&sConsole, "PWD isn't a command or a program.\n/ $\n", &szScreen));
 	AssertInt(0, sConsole.cKeyboard.GetLEDs());
 
 	//help is longer than what is left of the screen: it scrolls, the last line at the bottom.
 	for (i = 0; i < 2; i++)
 	{
 		TestConsoleType(&sConsole, "help\r");
-		AssertTrue(TestConsoleRunUntil(&sConsole, "Anything else is a program to run, with a number for its argument.\n\\>\n", &szScreen));
+		AssertTrue(TestConsoleRunUntil(&sConsole, "Anything else is a program to run, with a number for its argument.\n/ $\n", &szScreen));
 	}
 	AssertFalse(strstr(szScreen.Text(), TEST_HCP65_SHELL_BANNER) != NULL);
-	AssertTrue(szScreen.EndsWith("Anything else is a program to run, with a number for its argument.\n\\>\n"));
+	AssertTrue(szScreen.EndsWith("Anything else is a program to run, with a number for its argument.\n/ $\n"));
 
 	//mode 2: 1024x768, 128 by 48, cleared.
 	TestConsoleType(&sConsole, "mode 2\r");
