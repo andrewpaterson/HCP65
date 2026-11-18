@@ -305,7 +305,7 @@ void TestLibc65String16(void)
 	//The program's pc is 0x108000 (TestLibc65Bytes' offset 0); the banks start at offsets 0x8000, 0x18000 and on.
 	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
 		"#include <string.h>\n"
-		"void MemSwp16(const void* pv1, const void* pv2, unsigned short uiLength);\n"
+		"void MemSwp16(const void* pv1, const void* pv2, unsigned int uiLength);\n"
 		"int main()\n"
 		"{\n"
 		"	unsigned char*	pc;\n"
