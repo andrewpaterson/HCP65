@@ -66,6 +66,7 @@ configuration whose files and settings it builds, and what to link.  This is
 | `PreferSize="true"` | Prefer smaller code to faster where the compiler has the choice. |
 | `Exceptions="true"` | Compiles the program with C++ exceptions: `throw`, `try` and `catch`.  Without it they are errors, and no code pays for them.  See [The C++ language](language.md). |
 | `WarnMissingOverride="false"` | No warning for a function that overrides a base class's virtual function without being declared `override` (or `final`).  The warning is on unless a configuration says this. |
+| `KeepUnusedObjects="true"` | Link a global whose making or destroying runs code (a constructor, a destructor, an initialiser that isn't a constant) though nothing refers to it, so it is made and destroyed as the standard says.  Without it such a global goes with the rest of what nothing uses. |
 | `BreakpointSpace` | The emulator's address space (`Kernel` or `User`) that the IDE's breakpoints go in. |
 | `Card`, `CardPath` | An SD card image, and the path on its FAT volume, that `-card` and the IDE's debugger copy the program to. |
 
@@ -117,6 +118,7 @@ units are linked only when something uses them.  Sources can be `.cpp` or `.asm`
 | `-prefer-size` | Prefer smaller code to faster. |
 | `-no-override-warning` | No warning for an override not declared `override`. |
 | `-exceptions` | C++ exceptions: `throw`, `try` and `catch` are compiled. |
+| `-keep-unused-objects` | Link a global that is made or destroyed by code though nothing uses it. |
 | `-exe <file> -entry <symbol> [-limit <n>] [-symbol <name>=<n>]...` | Link an executable. |
 | `-image <file> -size <n> [-fill <n>] [-limit <n>] [-load <n>] -region <start>,<end>,<offset>...` | Link an image. |
 | `-module <file> -entry <symbol> [-limit <n>]` | Link a module (a driver). |

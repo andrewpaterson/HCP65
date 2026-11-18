@@ -41,6 +41,7 @@ selected in a form on the right:
 | Prefer size to speed | The compiler picks smaller code where it has the choice (a ROM's kernal). |
 | Warn about overrides not declared override | Ticked to begin with: a function that overrides a base class's virtual function without `override` (or `final`) is a warning in the Build tab.  Unticked writes `WarnMissingOverride="false"`. |
 | C++ exceptions | Unticked to begin with.  Ticked writes `Exceptions="true"`: the program is compiled with `throw`, `try` and `catch`, which are errors without it. |
+| Keep unused globals that are made or destroyed | Unticked to begin with: a global nothing refers to is left out with its constructor and destructor.  Ticked writes `KeepUnusedObjects="true"`, and such globals are linked, made and destroyed. |
 | Card | The emulator's SD card image the program is written onto. |
 | Path on card | Where on the card's FAT volume (`\boot.exe`). |
 
