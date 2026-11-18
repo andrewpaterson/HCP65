@@ -93,30 +93,30 @@ _gauiKernalExports:
 		.long Export_KernalWriteRegister__Fhh_ax
 		.long _KernalWriteRegister__Fhh.ax
 		.long Export_KernalEnableDevice__Ft
-		.long _KernalEnableDevice__Ft
+		.long _KernalEnableDevice__Fj
 		.long Export_KernalEnableDevice__Ft_a
-		.long _KernalEnableDevice__Ft.a
+		.long _KernalEnableDevice__Fj.a
 		.long Export_KernalDisableDevice__Ft
-		.long _KernalDisableDevice__Ft
+		.long _KernalDisableDevice__Fj
 		.long Export_KernalDisableDevice__Ft_a
-		.long _KernalDisableDevice__Ft.a
+		.long _KernalDisableDevice__Fj.a
 		.long Export_KernalGetDriver__Ft
-		.long _KernalGetDriver__Ft
+		.long _KernalGetDriver__Fj
 		.long Export_KernalGetDriver__Ft_a
-		.long _KernalGetDriver__Ft.a
+		.long _KernalGetDriver__Fj.a
 		.long Export_KernalFindDriver__FPKcPKct
-		.long _KernalFindDriver__FPKcPKct
+		.long _KernalFindDriver__FPKcPKcj
 		.long Export_KernalFindDriver__FPKcPKct_axssy
-		.long _KernalFindDriver__FPKcPKct.axssy
+		.long _KernalFindDriver__FPKcPKcj.axssy
 		; Interrupts and time (KernalInterrupts.h).
 		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb
-		.long _KernalSetInterruptHandler__FtPFvPvEPvPVhb
+		.long _KernalSetInterruptHandler__FjPFvPvEPvPVhb
 		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb_axy
-		.long _KernalSetInterruptHandler__FtPFvPvEPvPVhb.axy
+		.long _KernalSetInterruptHandler__FjPFvPvEPvPVhb.axy
 		.long Export_KernalClearInterruptHandler__Ft
-		.long _KernalClearInterruptHandler__Ft
+		.long _KernalClearInterruptHandler__Fj
 		.long Export_KernalClearInterruptHandler__Ft_a
-		.long _KernalClearInterruptHandler__Ft.a
+		.long _KernalClearInterruptHandler__Fj.a
 		.long Export_KernalTicks
 		.long _KernalTicks
 		.long Export_KernalWaitForInterrupt
@@ -132,23 +132,23 @@ _gauiKernalExports:
 		.long Export_guiKernalTicks
 		.long _guiKernalTicks
 		; The running process's memory (KernalProcess.h).
-		.long Export_KernalUserPointer__FjPj
-		.long _KernalUserPointer__FjPj
-		.long Export_KernalUserPointer__FjPj_ax
-		.long _KernalUserPointer__FjPj.ax
-		.long Export_KernalCopyToUser__FjPKhj
-		.long _KernalCopyToUser__FjPKhj
-		.long Export_KernalCopyToUser__FjPKhj_ax
-		.long _KernalCopyToUser__FjPKhj.ax
-		.long Export_KernalCopyFromUser__FPhjj
-		.long _KernalCopyFromUser__FPhjj
-		.long Export_KernalCopyFromUser__FPhjj_ax
-		.long _KernalCopyFromUser__FPhjj.ax
+		.long Export_KernalUserPointer__FmPm
+		.long _KernalUserPointer__FmPm
+		.long Export_KernalUserPointer__FmPm_ax
+		.long _KernalUserPointer__FmPm.ax
+		.long Export_KernalCopyToUser__FmPKhm
+		.long _KernalCopyToUser__FmPKhm
+		.long Export_KernalCopyToUser__FmPKhm_ax
+		.long _KernalCopyToUser__FmPKhm.ax
+		.long Export_KernalCopyFromUser__FPhmm
+		.long _KernalCopyFromUser__FPhmm
+		.long Export_KernalCopyFromUser__FPhmm_ax
+		.long _KernalCopyFromUser__FPhmm.ax
 		; The kernal's main memory heap (KernalMemory.h).
-		.long Export_KernalMainMalloc__Fjb
-		.long _KernalMainMalloc__Fjb
-		.long Export_KernalMainMalloc__Fjb_axy
-		.long _KernalMainMalloc__Fjb.axy
+		.long Export_KernalMainMalloc__Fmb
+		.long _KernalMainMalloc__Fmb
+		.long Export_KernalMainMalloc__Fmb_axy
+		.long _KernalMainMalloc__Fmb.axy
 		.long Export_KernalMainFree__FPv
 		.long _KernalMainFree__FPv
 		.long Export_KernalMainFree__FPv_ax
@@ -238,29 +238,29 @@ Export_KernalWriteRegister__Fhh:
 Export_KernalWriteRegister__Fhh_ax:
 		.byte "_KernalWriteRegister__Fhh.ax", 0
 Export_KernalEnableDevice__Ft:
-		.byte "_KernalEnableDevice__Ft", 0
+		.byte "_KernalEnableDevice__Fj", 0
 Export_KernalEnableDevice__Ft_a:
-		.byte "_KernalEnableDevice__Ft.a", 0
+		.byte "_KernalEnableDevice__Fj.a", 0
 Export_KernalDisableDevice__Ft:
-		.byte "_KernalDisableDevice__Ft", 0
+		.byte "_KernalDisableDevice__Fj", 0
 Export_KernalDisableDevice__Ft_a:
-		.byte "_KernalDisableDevice__Ft.a", 0
+		.byte "_KernalDisableDevice__Fj.a", 0
 Export_KernalGetDriver__Ft:
-		.byte "_KernalGetDriver__Ft", 0
+		.byte "_KernalGetDriver__Fj", 0
 Export_KernalGetDriver__Ft_a:
-		.byte "_KernalGetDriver__Ft.a", 0
+		.byte "_KernalGetDriver__Fj.a", 0
 Export_KernalFindDriver__FPKcPKct:
-		.byte "_KernalFindDriver__FPKcPKct", 0
+		.byte "_KernalFindDriver__FPKcPKcj", 0
 Export_KernalFindDriver__FPKcPKct_axssy:
-		.byte "_KernalFindDriver__FPKcPKct.axssy", 0
+		.byte "_KernalFindDriver__FPKcPKcj.axssy", 0
 Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb:
-		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPVhb", 0
+		.byte "_KernalSetInterruptHandler__FjPFvPvEPvPVhb", 0
 Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb_axy:
-		.byte "_KernalSetInterruptHandler__FtPFvPvEPvPVhb.axy", 0
+		.byte "_KernalSetInterruptHandler__FjPFvPvEPvPVhb.axy", 0
 Export_KernalClearInterruptHandler__Ft:
-		.byte "_KernalClearInterruptHandler__Ft", 0
+		.byte "_KernalClearInterruptHandler__Fj", 0
 Export_KernalClearInterruptHandler__Ft_a:
-		.byte "_KernalClearInterruptHandler__Ft.a", 0
+		.byte "_KernalClearInterruptHandler__Fj.a", 0
 Export_KernalTicks:
 		.byte "_KernalTicks", 0
 Export_KernalWaitForInterrupt:
@@ -275,22 +275,22 @@ Export_gbKernalMainBusBusy:
 		.byte "_gbKernalMainBusBusy", 0
 Export_guiKernalTicks:
 		.byte "_guiKernalTicks", 0
-Export_KernalUserPointer__FjPj:
-		.byte "_KernalUserPointer__FjPj", 0
-Export_KernalUserPointer__FjPj_ax:
-		.byte "_KernalUserPointer__FjPj.ax", 0
-Export_KernalCopyToUser__FjPKhj:
-		.byte "_KernalCopyToUser__FjPKhj", 0
-Export_KernalCopyToUser__FjPKhj_ax:
-		.byte "_KernalCopyToUser__FjPKhj.ax", 0
-Export_KernalCopyFromUser__FPhjj:
-		.byte "_KernalCopyFromUser__FPhjj", 0
-Export_KernalCopyFromUser__FPhjj_ax:
-		.byte "_KernalCopyFromUser__FPhjj.ax", 0
-Export_KernalMainMalloc__Fjb:
-		.byte "_KernalMainMalloc__Fjb", 0
-Export_KernalMainMalloc__Fjb_axy:
-		.byte "_KernalMainMalloc__Fjb.axy", 0
+Export_KernalUserPointer__FmPm:
+		.byte "_KernalUserPointer__FmPm", 0
+Export_KernalUserPointer__FmPm_ax:
+		.byte "_KernalUserPointer__FmPm.ax", 0
+Export_KernalCopyToUser__FmPKhm:
+		.byte "_KernalCopyToUser__FmPKhm", 0
+Export_KernalCopyToUser__FmPKhm_ax:
+		.byte "_KernalCopyToUser__FmPKhm.ax", 0
+Export_KernalCopyFromUser__FPhmm:
+		.byte "_KernalCopyFromUser__FPhmm", 0
+Export_KernalCopyFromUser__FPhmm_ax:
+		.byte "_KernalCopyFromUser__FPhmm.ax", 0
+Export_KernalMainMalloc__Fmb:
+		.byte "_KernalMainMalloc__Fmb", 0
+Export_KernalMainMalloc__Fmb_axy:
+		.byte "_KernalMainMalloc__Fmb.axy", 0
 Export_KernalMainFree__FPv:
 		.byte "_KernalMainFree__FPv", 0
 Export_KernalMainFree__FPv_ax:

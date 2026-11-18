@@ -69,7 +69,7 @@ function and the linker still joins the right ones.
 |---|---|
 | `int Add(int, int)` | `_Add__Fii` |
 | `size_t Length(const char*)` | `_Length__FPKc` |
-| `int32_t Sum(const int16_t*, uint16_t)` | `_Sum__FPKst` |
+| `int32_t Sum(const int16_t*, uint16_t)` | `_Sum__FPKij` on the W65C816, `_Sum__FPKst` on the 65C64 |
 | `main`, `extern "C"` functions, a function with no parameters | `_main`, `_name` |
 | `CPoint::Move` | `_CPoint__Move` |
 | A constructor, destructor, vtable | `_Class__0`, `_Class__1`, `_Class__2` |
@@ -77,15 +77,16 @@ function and the linker still joins the right ones.
 | `operator[]`, `operator+=` | `_Class__opIndex`, `_Class__opAddAssign` |
 | A static function or global | `_name`, local to the unit's object |
 
-The type codes are those of the Itanium C++ ABI in spirit: `v` void, `b` bool, `c` char,
-`h` unsigned char, `s` short, `t` unsigned short, `i` int, `j` unsigned int, `x` long long,
-`y` unsigned long long, `f` float, `d` double, `e` long double, `P` pointer, `R` reference, `K`
-const, `C` length and name for a class, `N` for an enum.  C++ names can't contain `__` or start with
+The type codes are those of the Itanium C++ ABI, one for each type however wide it is: `v` void,
+`b` bool, `c` char, `a` signed char, `h` unsigned char, `w` wchar_t, `Ds` char16_t, `Di`
+char32_t, `s` short, `t` unsigned short, `i` int, `j` unsigned int, `l` long, `m` unsigned long,
+`x` long long, `y` unsigned long long, `f` float, `d` double, `e` long double, `P` pointer, `R`
+reference, `K` const, `C` length and name for a class, `N` for an enum.  C++ names can't contain `__` or start with
 a digit, so a label can't clash with one the compiler makes up: `L5` for a label in a function,
 `Str0` for a string literal, `R_` and `R816_` for runtime routines.
 
 On the W65C816 a function that takes arguments in registers has a second label with a suffix
-naming where each argument word is (`_Sum__FPKst.axy`): see
+naming where each argument word is (`_Sum__FPKij.axy`): see
 [W65C816 Code](w65c816.md#register-arguments).
 
 ## IR front end
