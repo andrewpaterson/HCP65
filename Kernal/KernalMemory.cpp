@@ -19,9 +19,11 @@ extern CTrueMallocator	gcHeap;
 extern bool				gbHeap;
 
 uint8					gauiKernalBanks[KERNAL_NUM_BANKS];
+uint8					gauiKernalBankOwners[KERNAL_NUM_BANKS];
 uint8					gauiKernalTableBanks[KERNAL_NUM_TABLE_BANKS];
 static CTrueMallocator	gcKernalMainHeap;
 static bool				gbKernalMainHeap;
+static uint8			guiKernalMainHeapBank;	//Its first bank, which it keeps.
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -59,6 +61,17 @@ static void KernalAddChip(uint8 uiWindow, uint8 uiChip)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// True if the physical bank is one processes can have and none has.
+//
+//////////////////////////////////////////////////////////////////////////
+bool KernalIsBankFree(uint16 uiPhysical)
+{
+	return (gauiKernalBanks[uiPhysical] == KERNAL_BANK_PROCESS) && (gauiKernalBankOwners[uiPhysical] == 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The next process bank kernel mode reaches, taken for uiUse.  False if
 // there is none.
 //
@@ -69,10 +82,42 @@ static bool KernalTakeBank(uint8 uiUse, uint8* puiBank)
 
 	for (uiBank = KERNAL_MAIN_MEMORY_BANK; uiBank < KERNAL_NUM_BANKS; uiBank++)
 	{
-		if (gauiKernalBanks[uiBank] == KERNAL_BANK_PROCESS)
+		if (KernalIsBankFree(uiBank))
 		{
 			gauiKernalBanks[uiBank] = uiUse;
 			*puiBank = (uint8)uiBank;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The highest run of uiCount neighbouring banks that kernel mode reaches
+// and no process has, taken for a region of the main memory heap: *puiBank
+// is the first of them.  False if there is no such run.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool KernalTakeHeapBanks(uint16 uiCount, uint8* puiBank)
+{
+	uint16	uiBank;
+	uint16	uiRun;
+	uint16	i;
+
+	uiRun = 0;
+	for (uiBank = KERNAL_NUM_BANKS; uiBank > KERNAL_MAIN_MEMORY_BANK; uiBank--)
+	{
+		uiRun = KernalIsBankFree((uint16)(uiBank - 1)) ? (uint16)(uiRun + 1) : 0;
+		if (uiRun == uiCount)
+		{
+			gauiKernalBanks[uiBank - 1] = KERNAL_BANK_HEAP;
+			for (i = 1; i < uiCount; i++)
+			{
+				gauiKernalBanks[uiBank - 1 + i] = KERNAL_BANK_HEAP_MORE;
+			}
+			*puiBank = (uint8)(uiBank - 1);
 			return true;
 		}
 	}
@@ -161,6 +206,7 @@ bool KernalInitMainMemory(void)
 		return false;
 	}
 	gcKernalMainHeap.Init((void*)((uint32)uiBank << 16), KERNAL_MAIN_HEAP_SIZE);
+	guiKernalMainHeapBank = uiBank;
 	gbKernalMainHeap = true;
 	return true;
 }
@@ -190,25 +236,91 @@ uint16 KernalNumMainBanks(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// uiBytes of main memory that kernel mode reaches (and the SD Card
-// Board's DMA), NULL if there's none or no room.
+// uiBytes from the main memory heap as it is: all in one bank if bOneBank.
 //
 //////////////////////////////////////////////////////////////////////////
-void* KernalMainMalloc(uint32 uiBytes)
+static void* KernalMainHeapMalloc(uint32 uiBytes, bool bOneBank)
 {
-	return gbKernalMainHeap ? gcKernalMainHeap.Malloc(uiBytes) : NULL;
+	return bOneBank ? gcKernalMainHeap.MallocWithin(uiBytes, KERNAL_BANK_SIZE) : gcKernalMainHeap.Malloc(uiBytes);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// uiBytes of main memory that kernel mode reaches (and the SD Card
+// Board's DMA): all in one bank if bOneBank (KERNAL_MAIN_ONE_BANK), else it
+// may cross banks, and be more than one.  The heap takes the banks it
+// needs for them from those no process has.  NULL if there's no main
+// memory or not the room.
+//
+//////////////////////////////////////////////////////////////////////////
+void* KernalMainMalloc(uint32 uiBytes, bool bOneBank)
+{
+	void*	pv;
+	uint32	uiBanks;
+	uint8	uiBank;
+	uint16	i;
+
+	if (!gbKernalMainHeap)
+	{
+		return NULL;
+	}
+	pv = KernalMainHeapMalloc(uiBytes, bOneBank);
+	if (pv)
+	{
+		return pv;
+	}
+
+	//A region of as many banks as hold it.
+	if (uiBytes > ((uint32)(KERNAL_NUM_BANKS - KERNAL_MAIN_MEMORY_BANK) << 16) - KERNAL_MAIN_HEAP_SPARE)
+	{
+		return NULL;
+	}
+	uiBanks = (uiBytes + KERNAL_MAIN_HEAP_SPARE + KERNAL_BANK_SIZE - 1) >> 16;
+	if ((bOneBank && (uiBanks != 1)) || !KernalTakeHeapBanks((uint16)uiBanks, &uiBank))
+	{
+		return NULL;
+	}
+	if (!gcKernalMainHeap.AddRegion((void*)((uint32)uiBank << 16), uiBanks << 16))
+	{
+		for (i = 0; i < uiBanks; i++)
+		{
+			gauiKernalBanks[uiBank + i] = KERNAL_BANK_PROCESS;
+		}
+		return NULL;
+	}
+	return KernalMainHeapMalloc(uiBytes, bOneBank);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A region the heap took that has nothing allocated in it any more goes
+// back to the processes.
 //
 //////////////////////////////////////////////////////////////////////////
 void KernalMainFree(void* pv)
 {
-	if (gbKernalMainHeap && pv)
+	uint16	uiBank;
+
+	if (!gbKernalMainHeap || !pv)
 	{
-		gcKernalMainHeap.Free(pv);
+		return;
+	}
+	gcKernalMainHeap.Free(pv);
+
+	uiBank = (uint16)((uint32)pv >> 16);
+	while (gauiKernalBanks[uiBank] == KERNAL_BANK_HEAP_MORE)
+	{
+		uiBank--;
+	}
+	if ((uiBank != guiKernalMainHeapBank) && gcKernalMainHeap.IsRegionFree((void*)((uint32)uiBank << 16)) && gcKernalMainHeap.RemoveRegion((void*)((uint32)uiBank << 16)))
+	{
+		gauiKernalBanks[uiBank] = KERNAL_BANK_PROCESS;
+		for (uiBank++; (uiBank < KERNAL_NUM_BANKS) && (gauiKernalBanks[uiBank] == KERNAL_BANK_HEAP_MORE); uiBank++)
+		{
+			gauiKernalBanks[uiBank] = KERNAL_BANK_PROCESS;
+		}
 	}
 }
 

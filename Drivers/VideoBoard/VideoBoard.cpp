@@ -26,7 +26,7 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mbSeparateUnits = false;
 	muiMode = 0xFF;
 	muiFontSize = 0;
-	gpuiVideoFont = (uint8*)KernalMainMalloc(VIDEO_FONT_SIZE);
+	gpuiVideoFont = (uint8*)KernalMainMalloc(VIDEO_FONT_SIZE, KERNAL_MAIN_ONE_BANK);
 	muiWidth = 0;
 	muiHeight = 0;
 	mbFlip = false;

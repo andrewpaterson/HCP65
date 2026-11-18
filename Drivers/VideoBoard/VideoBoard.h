@@ -80,7 +80,7 @@ extern "C"
 	extern uint8	guiVideoFlags;			//What Flags was last written.
 	extern uint16	guiVideoWidth;			//The pixels in a line.
 	extern uint32	guiVideoPalette;		//The Palette Byte register's address.
-	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap, NULL if there were none.
+	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap in one bank, NULL if there were none.
 	extern uint16	guiVideoColumns;
 	extern uint16	guiVideoRows;
 	extern uint8	guiVideoTextColour;

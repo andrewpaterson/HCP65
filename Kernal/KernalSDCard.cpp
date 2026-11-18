@@ -248,7 +248,7 @@ uint16 CKernalSDCard::Init(volatile uint8* puiRegisters, uint8 uiSocket)
 	}
 
 	//Only for sectors read to (or written from) memory the board can't reach (MPU RAM, where the kernal's heap is).
-	mpuiBounce = (uint8*)KernalMainMalloc(SD_SECTOR_SIZE);
+	mpuiBounce = (uint8*)KernalMainMalloc(SD_SECTOR_SIZE, KERNAL_MAIN_ONE_BANK);
 	return KERNAL_SD_SUCCESS;
 }
 
