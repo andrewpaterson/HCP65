@@ -165,7 +165,7 @@ protected:
 	void	ClearRow(uint16 uiRow);
 	uint16	BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
 	uint16	BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
-	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength);
+	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength, uint16 uiTransparent);
 
 	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	uint16	ScrollText(uint32 uiLines);

@@ -153,6 +153,15 @@ _gauiKernalExports:
 		.long _KernalMainFree__FPv
 		.long Export_KernalMainFree__FPv_ax
 		.long _KernalMainFree__FPv.ax
+		; Main memory's copies (KernalDriver.h).
+		.long Export_KernalSetMainCopier
+		.long _KernalSetMainCopier__FPFvPvjjttEPv
+		.long Export_KernalSetMainCopier_ax
+		.long _KernalSetMainCopier__FPFvPvjjttEPv.ax
+		.long Export_KernalMainCopy__FPhPKhtt
+		.long _KernalMainCopy__FPhPKhtt
+		.long Export_KernalMainCopy__FPhPKhtt_axssy
+		.long _KernalMainCopy__FPhPKhtt.axssy
 KernalExportsEnd:
 
 		; The assembler counts them: eight bytes each.
@@ -295,3 +304,11 @@ Export_KernalMainFree__FPv:
 		.byte "_KernalMainFree__FPv", 0
 Export_KernalMainFree__FPv_ax:
 		.byte "_KernalMainFree__FPv.ax", 0
+Export_KernalSetMainCopier:
+		.byte "_KernalSetMainCopier__FPFvPvjjttEPv", 0
+Export_KernalSetMainCopier_ax:
+		.byte "_KernalSetMainCopier__FPFvPvjjttEPv.ax", 0
+Export_KernalMainCopy__FPhPKhtt:
+		.byte "_KernalMainCopy__FPhPKhtt", 0
+Export_KernalMainCopy__FPhPKhtt_axssy:
+		.byte "_KernalMainCopy__FPhPKhtt.axssy", 0
