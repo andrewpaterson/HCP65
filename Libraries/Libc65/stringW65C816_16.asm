@@ -549,7 +549,7 @@ Difference:
 
 
 		.section text.MemSwp816_16
-		.global _MemSwp16__FPKvPKvt, _MemSwp16__FPKvPKvt.axssy
+		.global _MemSwp16__FPKvPKvj, _MemSwp16__FPKvPKvj.axssy
 
 ; void MemSwp16(const void* pv1, const void* pv2, size uiLength) (BaseLib's StringHelper.h; MemSwp,
 ; with an lsize length, is stringW65C816.asm's): a word at a time, then the byte left,
@@ -560,7 +560,7 @@ MemSwp16P1	= 3
 MemSwp16Length	= 7
 MemSwp16P2	= 12
 
-_MemSwp16__FPKvPKvt.axssy:
+_MemSwp16__FPKvPKvj.axssy:
 		.width (A, X), 16
 		phy
 		phx
@@ -609,7 +609,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 again under its return address, loads pv1 and uiLength
 ; into A, X and Y and calls the register entry.
-_MemSwp16__FPKvPKvt:
+_MemSwp16__FPKvPKvj:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -620,7 +620,7 @@ _MemSwp16__FPKvPKvt:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _MemSwp16__FPKvPKvt.axssy
+		jsl _MemSwp16__FPKvPKvj.axssy
 		ply
 		ply
 		rtl
@@ -690,27 +690,27 @@ BitBits16	= 9
 
 		.section text.Bits816_16
 		.relax
-		.global _FindFirstSetBit__FPvt, _FindFirstClearBit__FPvt, _FindLastSetBit__FPvt, _FindLastClearBit__FPvt
-		.global _FindFirstClearBit__Fj, _FindFirstSetBit__Fy
-		.global _FindFirstSetBit__FPvt.axy, _FindFirstClearBit__FPvt.axy, _FindLastSetBit__FPvt.axy, _FindLastClearBit__FPvt.axy
-		.global _FindFirstClearBit__Fj.ax
+		.global _FindFirstSetBit__FPvj, _FindFirstClearBit__FPvj, _FindLastSetBit__FPvj, _FindLastClearBit__FPvj
+		.global _FindFirstClearBit__Fm, _FindFirstSetBit__Fy
+		.global _FindFirstSetBit__FPvj.axy, _FindFirstClearBit__FPvj.axy, _FindLastSetBit__FPvj.axy, _FindLastClearBit__FPvj.axy
+		.global _FindFirstClearBit__Fm.ax
 
-_FindFirstSetBit__FPvt:
+_FindFirstSetBit__FPvj:
 		.width (A, X), 16
 		jsr Bits16Stack
-		bra _FindFirstSetBit__FPvt.axy
-_FindFirstClearBit__FPvt:
+		bra _FindFirstSetBit__FPvj.axy
+_FindFirstClearBit__FPvj:
 		.width (A, X), 16
 		jsr Bits16Stack
-		bra _FindFirstClearBit__FPvt.axy
-_FindLastSetBit__FPvt:
+		bra _FindFirstClearBit__FPvj.axy
+_FindLastSetBit__FPvj:
 		.width (A, X), 16
 		jsr Bits16Stack
-		bra _FindLastSetBit__FPvt.axy
-_FindLastClearBit__FPvt:
+		bra _FindLastSetBit__FPvj.axy
+_FindLastClearBit__FPvj:
 		.width (A, X), 16
 		jsr Bits16Stack
-		bra _FindLastClearBit__FPvt.axy
+		bra _FindLastClearBit__FPvj.axy
 
 ; The stack entries' arguments (above the jsl's return address, and this jsr's) into A, X and Y.
 Bits16Stack:
@@ -723,7 +723,7 @@ Bits16Stack:
 		rts
 
 ; size FindFirstClearBit(uint32 uiBits) with uiBits in A (low) and X (high), the register entry.
-_FindFirstClearBit__Fj.ax:
+_FindFirstClearBit__Fm.ax:
 		.width (A, X), 16
 		eor $FFFF
 		bne FindWord32FoundByRegister
@@ -744,7 +744,7 @@ FindWord32FoundByRegister:
 		rtl
 
 ; size FindFirstSetBit(void* pvArray, size iArraySize)
-_FindFirstSetBit__FPvt.axy:
+_FindFirstSetBit__FPvj.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -753,7 +753,7 @@ _FindFirstSetBit__FPvt.axy:
 		bra FindFirst16
 
 ; size FindFirstClearBit(void* pvArray, size iArraySize)
-_FindFirstClearBit__FPvt.axy:
+_FindFirstClearBit__FPvj.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -818,7 +818,7 @@ Bits16Return:
 		rtl
 
 ; size FindLastSetBit(void* pvArray, size iArraySize)
-_FindLastSetBit__FPvt.axy:
+_FindLastSetBit__FPvj.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -827,7 +827,7 @@ _FindLastSetBit__FPvt.axy:
 		bra FindLast16
 
 ; size FindLastClearBit(void* pvArray, size iArraySize): Y starts at the last (partial) word.
-_FindLastClearBit__FPvt.axy:
+_FindLastClearBit__FPvj.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -880,7 +880,7 @@ FindLast16None:
 		bra Bits16Return
 
 ; size FindFirstClearBit(uint32 uiBits): D points at the stack, uiBits is at D + 6.
-_FindFirstClearBit__Fj:
+_FindFirstClearBit__Fm:
 		.width (A, X), 16
 		phd
 		tsc
