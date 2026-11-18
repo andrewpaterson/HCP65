@@ -1343,7 +1343,7 @@ MoreNone:
 
 
 		.section text.MemSwpW65C816
-		.global _MemSwp__FPKvPKvj, _MemSwp__FPKvPKvj.ax
+		.global _MemSwp__FPKvPKvm, _MemSwp__FPKvPKvm.ax
 
 ; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
 ; out for the W65C816; stringW65C816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
@@ -1354,7 +1354,7 @@ MemSwpP1	= 3
 MemSwpP2	= 10
 MemSwpLength	= 14
 
-_MemSwp__FPKvPKvj.ax:
+_MemSwp__FPKvPKvm.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -1404,7 +1404,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 and the length again under its return address, loads pv1
 ; into A and X and calls the register entry.
-_MemSwp__FPKvPKvj:
+_MemSwp__FPKvPKvm:
 		.width (A, X), 16
 		lda [S + 14]
 		pha
@@ -1417,7 +1417,7 @@ _MemSwp__FPKvPKvj:
 		lda [S + 14]
 		tax
 		lda [S + 12]
-		jsl _MemSwp__FPKvPKvj.ax
+		jsl _MemSwp__FPKvPKvm.ax
 		tsc
 		clc
 		adc 8
@@ -1473,26 +1473,26 @@ BitBits		= 16
 		.section text.BitsW65C816
 		.relax
 		.global BitsCtz16, BitsLog2_16
-		.global _FindFirstSetBitLarge__FPvj, _FindFirstClearBitLarge__FPvj
-		.global _FindLastSetBitLarge__FPvj, _FindLastClearBitLarge__FPvj
-		.global _FindFirstSetBitLarge__FPvj.ax, _FindFirstClearBitLarge__FPvj.ax
-		.global _FindLastSetBitLarge__FPvj.ax, _FindLastClearBitLarge__FPvj.ax
+		.global _FindFirstSetBitLarge__FPvm, _FindFirstClearBitLarge__FPvm
+		.global _FindLastSetBitLarge__FPvm, _FindLastClearBitLarge__FPvm
+		.global _FindFirstSetBitLarge__FPvm.ax, _FindFirstClearBitLarge__FPvm.ax
+		.global _FindLastSetBitLarge__FPvm.ax, _FindLastClearBitLarge__FPvm.ax
 
-_FindFirstSetBitLarge__FPvj:
+_FindFirstSetBitLarge__FPvm:
 		.width (A, X), 16
-		ldy _FindFirstSetBitLarge__FPvj.ax & 0xFFFF
+		ldy _FindFirstSetBitLarge__FPvm.ax & 0xFFFF
 		bra BitsLargeStack
-_FindFirstClearBitLarge__FPvj:
+_FindFirstClearBitLarge__FPvm:
 		.width (A, X), 16
-		ldy _FindFirstClearBitLarge__FPvj.ax & 0xFFFF
+		ldy _FindFirstClearBitLarge__FPvm.ax & 0xFFFF
 		bra BitsLargeStack
-_FindLastSetBitLarge__FPvj:
+_FindLastSetBitLarge__FPvm:
 		.width (A, X), 16
-		ldy _FindLastSetBitLarge__FPvj.ax & 0xFFFF
+		ldy _FindLastSetBitLarge__FPvm.ax & 0xFFFF
 		bra BitsLargeStack
-_FindLastClearBitLarge__FPvj:
+_FindLastClearBitLarge__FPvm:
 		.width (A, X), 16
-		ldy _FindLastClearBitLarge__FPvj.ax & 0xFFFF
+		ldy _FindLastClearBitLarge__FPvm.ax & 0xFFFF
 
 ; Calls the register entry in this section at Y's address with the count (the 2 words above the return address)
 ; pushed again and the array (the 2 words above them) in A and X, and returns its result (A, X).
@@ -1517,7 +1517,7 @@ BitsLargeStackReturn:
 		rtl
 
 ; lsize FindFirstSetBitLarge(void* pvArray, lsize iArraySize)
-_FindFirstSetBitLarge__FPvj.ax:
+_FindFirstSetBitLarge__FPvm.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -1527,7 +1527,7 @@ _FindFirstSetBitLarge__FPvj.ax:
 		bra FindFirstLarge
 
 ; lsize FindFirstClearBitLarge(void* pvArray, lsize iArraySize)
-_FindFirstClearBitLarge__FPvj.ax:
+_FindFirstClearBitLarge__FPvm.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -1619,7 +1619,7 @@ BitsLargeReturn:
 		rtl
 
 ; lsize FindLastSetBitLarge(void* pvArray, lsize iArraySize)
-_FindLastSetBitLarge__FPvj.ax:
+_FindLastSetBitLarge__FPvm.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -1630,7 +1630,7 @@ _FindLastSetBitLarge__FPvj.ax:
 
 ; lsize FindLastClearBitLarge(void* pvArray, lsize iArraySize): the pointer is moved on to
 ; the last (partial) word, then Y runs down from it; the word's index is the count left.
-_FindLastClearBitLarge__FPvj.ax:
+_FindLastClearBitLarge__FPvm.ax:
 		.width (A, X), 16
 		phx
 		pha

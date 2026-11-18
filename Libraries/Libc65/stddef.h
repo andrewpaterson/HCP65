@@ -3,8 +3,14 @@
 #define __LIBC65_STDDEF_H__
 
 
+//As wide as a pointer: int on the 65C64 (as on Win32), long on the W65C816 (int is 16 bits there).
+#ifdef __W65C816__
 typedef unsigned long			size_t;
 typedef long					ptrdiff_t;
+#else
+typedef unsigned int			size_t;
+typedef int						ptrdiff_t;
+#endif // __W65C816__
 typedef long long				max_align_t;
 
 #ifndef NULL

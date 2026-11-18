@@ -9,7 +9,7 @@ the W65C816, and the files a link writes.
 ## What a compiled unit gives the linker
 
 Each unit is one object.  Each function, global, static local and string literal is a section of
-its own, named after its label (`text._Sum__FPKst`, `data._gaiValues`, `rodata.Str0`), so the
+its own, named after its label (`text._Sum__FPKij`, `data._gaiValues`, `rodata.Str0`), so the
 linker can leave out whatever nothing uses.  The compiler turns on removing unused sections for
 every program.
 

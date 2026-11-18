@@ -13,7 +13,7 @@ units as a library, so a program only gets the functions it uses.  `stdlib.cpp` 
 
 | Header | Has |
 |---|---|
-| `stdint.h`, `inttypes.h`, `stddef.h`, `limits.h`, `stdbool.h` | The types and limits for each processor.  `int32_t`, `size_t` and `ptrdiff_t` are `long` on both. |
+| `stdint.h`, `inttypes.h`, `stddef.h`, `limits.h`, `stdbool.h` | The types and limits for each processor.  The fixed width types are `int` where `int` is that wide (`int16_t` on the W65C816, `int32_t` on the 65C64; `int32_t` is `long` on the W65C816); `size_t` and `ptrdiff_t` are a pointer wide, `unsigned int` and `int` on the 65C64 and `unsigned long` and `long` on the W65C816. |
 | `stdarg.h` | `va_list` and `va_arg`, walking up the stack from the last named parameter. |
 | `string.h`, `memory.h` | The string and memory functions. |
 | `stdlib.h`, `malloc.h` | `malloc` and `free`, conversions (`strtol`, `strtod` ...), `rand`, `qsort`, `atexit`, `exit`. |

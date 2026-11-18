@@ -13,16 +13,16 @@ hcp65build -program Sum Sum.cpp -listings Listing -target 65C64
 ```
 
 ```asm
-		.section text._Sum__FPKst
-		.global _Sum__FPKst
-_Sum__FPKst:
+		.section text._Sum__FPKij
+		.global _Sum__FPKij
+_Sum__FPKij:
 		...
 		.line "/home/me/Sum.cpp", 9
 		; Sum.cpp(9): for (i = 0; i < uiCount; i++)
 		lda 0
 		cmp [D + 41]
 		...
-		.fingerprint "_Sum__FPKst", 3061804840, 1794541092
+		.fingerprint "_Sum__FPKij", 3061804840, 1794541092
 ```
 
 The code is the same with or without listings; `.line` and `.fingerprint` are for the
