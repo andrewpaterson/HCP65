@@ -40,6 +40,7 @@ selected in a form on the right:
 | Maths tables in memory | Off builds it to run without the maths tables in memory (the kernal, its drivers and the operating system, which loads them). |
 | Prefer size to speed | The compiler picks smaller code where it has the choice (a ROM's kernal). |
 | Warn about overrides not declared override | Ticked to begin with: a function that overrides a base class's virtual function without `override` (or `final`) is a warning in the Build tab.  Unticked writes `WarnMissingOverride="false"`. |
+| Keep unused globals that are made or destroyed | Unticked to begin with: a global nothing refers to is left out with its constructor and destructor.  Ticked writes `KeepUnusedObjects="true"`, and such globals are linked, made and destroyed. |
 | Card | The emulator's SD card image the program is written onto. |
 | Path on card | Where on the card's FAT volume (`\boot.exe`). |
 
