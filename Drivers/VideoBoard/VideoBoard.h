@@ -42,8 +42,6 @@
 #define VIDEO_TEXT_MAX_PENDING			1024		//Cells owed to the other frame before it is all drawn again.
 #define VIDEO_TEXT_GLYPHS				256
 #define VIDEO_TEXT_PIXEL				0xFF		//The palette entry that is a cell's foreground: what a glyph's pixels are.
-#define VIDEO_TEXT_ROW_BYTES			(VIDEO_TEXT_MAX_COLUMNS / 8)	//A row's cells as bits: 16, which the shifts know.
-#define VIDEO_TEXT_FRAME_BYTES			(VIDEO_TEXT_MAX_ROWS * VIDEO_TEXT_ROW_BYTES)
 #define VIDEO_TEXT_NO_CLEAR				0xFF		//mauiRowClears: the row isn't owed a clear.
 #define VIDEO_TEXT_DEFAULT_COLOUR		0x07		//Light grey on black.
 #define VIDEO_TEXT_BLINK_FRAMES			16			//The cursor's blink: about a quarter of a second on, then off.
@@ -72,9 +70,7 @@ struct SVideoMode
 //
 //The font is an SFT container of 256 transparent images of 8 by 16 (UserLib/HCP65SFT.h), which SetTextMode checks:
 //gauiVideoGlyphs is where each one's runs start in it, 0 for one without a pixel.  A glyph's runs draw only its pixels,
-//so the cell under them must be blank in the colour's background: each frame keeps which of its cells aren't
-//(gauiVideoDirty, a bit a cell) and the background each row was last cleared to (gauiVideoRowGround), and a cell that
-//isn't is cleared first.
+//so a cell is cleared before its glyph is drawn.
 extern "C"
 {
 	extern uint8	guiVideoFlags;			//What Flags was last written.
@@ -93,8 +89,6 @@ extern "C"
 	extern uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
 	extern uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
 	extern uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
-	extern uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];	//Frame 0's rows, each VIDEO_TEXT_ROW_BYTES, then frame 1's.
-	extern uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
 
 	extern uint16	guiVideoCell;			//VideoRenderCell's cell; VideoWriteCells' first, then the one after its last.
 	extern uint32	guiVideoSource;			//VideoWriteCells' characters' address,

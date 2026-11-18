@@ -23,8 +23,6 @@ extern "C"
 	uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
 	uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
 	uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
-	uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];
-	uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
 
 	uint16	guiVideoCell;
 	uint32	guiVideoSource;
@@ -155,11 +153,6 @@ void CKernalVideoBoard::ClearTextFrame(void)
 	uint32	uiSize;
 	uint32	uiDone;
 	uint32	uiChunk;
-	uint16	uiFrame;
-
-	uiFrame = (guiVideoFlags & VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0;
-	memset(&gauiVideoDirty[uiFrame ? VIDEO_TEXT_FRAME_BYTES : 0], 0, VIDEO_TEXT_FRAME_BYTES);
-	memset(&gauiVideoRowGround[uiFrame ? VIDEO_TEXT_MAX_ROWS : 0], VIDEO_TEXT_DEFAULT_COLOUR >> 4, VIDEO_TEXT_MAX_ROWS);
 
 	uiSize = mauiRowPixels[guiVideoRows] + (uint32)muiWidth * VIDEO_TEXT_CELL_HEIGHT;
 	for (uiDone = 0; uiDone < uiSize; uiDone += uiChunk)
@@ -355,11 +348,6 @@ uint16 CKernalVideoBoard::PhysicalCell(uint32 uiCell)
 //////////////////////////////////////////////////////////////////////////
 void CKernalVideoBoard::RenderRowClear(uint16 uiRow, uint8 uiColour)
 {
-	uint16	uiFrame;
-
-	uiFrame = (guiVideoFlags & VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0;
-	memset(&gauiVideoDirty[(uiFrame ? VIDEO_TEXT_FRAME_BYTES : 0) + (uiRow << 4)], 0, VIDEO_TEXT_ROW_BYTES);
-	gauiVideoRowGround[(uiFrame ? VIDEO_TEXT_MAX_ROWS : 0) + uiRow] = (uint8)(uiColour >> 4);
 	mpuiRegisters[VIDEO_PALETTE_BYTE] = uiColour;
 	guiVideoFillAddress = muiWindow + mauiRowPixels[uiRow];
 	guiVideoFillGroups = muiWidth;  //16 lines of the width, in sixteens.

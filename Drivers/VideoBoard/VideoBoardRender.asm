@@ -5,9 +5,6 @@
 ; frame being drawn doesn't change under them.
 
 ; VideoBoard.h's and HCP65VideoBoard.h's.
-FLAG_MEMORY_FRAME	= 0x04
-TEXT_FRAME_BYTES	= 768
-TEXT_MAX_ROWS		= 48
 TEXT_MAX_PENDING	= 1024
 TEXT_CURSOR_PALETTE	= 127
 CURSOR_NONE			= 0xFFFF
@@ -26,18 +23,13 @@ T_INDEX		= 31			; and where its character and colour are.
 T_ROW		= 33
 T_COLUMN	= 35
 T_GLYPH		= 37			; Where the glyph's runs start in the font, 0 if it has no pixel.
-T_DIRTY		= 39			; The cell's byte of gauiVideoDirty, and its bit in it,
-T_BIT		= 41
-T_GROUND	= 43			; and its row's byte of gauiVideoRowGround, in the frame being drawn.
-T_DIRTY0	= 45			; That frame's first byte of gauiVideoDirty and of gauiVideoRowGround.
-T_GROUND0	= 47
-T_SOURCE	= 49			; The characters being written (a 4 byte pointer),
-T_NEXT		= 53			; the next of them (or of the cells owed),
-T_LEFT		= 55			; and how many are left.
-T_CURSOR	= 57			; The cursor's cell.
-T_COLOUR	= 59			; The text colour.
-T_DREW		= 61			; Not 0 once a cell has been drawn.
-T_FRAME		= 62
+T_SOURCE	= 39			; The characters being written (a 4 byte pointer),
+T_NEXT		= 43			; the next of them (or of the cells owed),
+T_LEFT		= 45			; and how many are left.
+T_CURSOR	= 47			; The cursor's cell.
+T_COLOUR	= 49			; The text colour.
+T_DREW		= 51			; Not 0 once a cell has been drawn.
+T_FRAME		= 52
 
 F_WORD0		= 1				; A row's first sixteen bytes, a word each (4 byte pointers).
 F_FRAME		= 32
@@ -98,16 +90,6 @@ TextEnter:
 		sta [D + T_PALETTE + 2]
 		lda [_guiVideoCursor]:24
 		sta [D + T_CURSOR]
-		stz [D + T_DIRTY0]
-		stz [D + T_GROUND0]
-		lda [_guiVideoFlags]:24
-		and FLAG_MEMORY_FRAME
-		beq TextFrame
-		lda TEXT_FRAME_BYTES
-		sta [D + T_DIRTY0]
-		lda TEXT_MAX_ROWS
-		sta [D + T_GROUND0]
-TextFrame:
 		sep m
 		lda [_gpuiVideoFont + 2]:24
 		pha
@@ -291,8 +273,8 @@ TextCellAfterDone:
 
 
 ; The cell T_CELL, whose character and colour are at T_INDEX, drawn in the frame being drawn: its character's glyph in
-; its colour's palette (the cursor's if it is the cursor's cell).  The glyph's runs are only its pixels, so a cell that
-; has pixels in this frame, or whose background isn't what its row was cleared to, is cleared first.
+; its colour's palette (the cursor's if it is the cursor's cell).  The glyph's runs are only its pixels, so the cell is
+; cleared first.
 TextRenderCell:
 		.width (A, X), 16
 		lda [D + T_CELL]
@@ -316,31 +298,6 @@ TextRenderCell:
 		lda [_gauiVideoRowAddress + 2 + X]:24
 		adc 0
 		sta [D + T_DEST + 2]
-		; Its row's background and its dirty bit: 16 bytes a row, 8 cells a byte.
-		lda [D + T_ROW]
-		clc
-		adc [D + T_GROUND0]
-		sta [D + T_GROUND]
-		lda [D + T_ROW]
-		asl A
-		asl A
-		asl A
-		asl A
-		adc [D + T_DIRTY0]
-		sta [D + T_DIRTY]
-		lda [D + T_COLUMN]
-		lsr A
-		lsr A
-		lsr A
-		clc
-		adc [D + T_DIRTY]
-		sta [D + T_DIRTY]
-		lda [D + T_COLUMN]
-		and 7
-		tax
-		lda [TextCellBits + X]:24
-		and 0x00FF
-		sta [D + T_BIT]
 		; Its glyph.
 		ldx [D + T_INDEX]
 		lda [_gauiVideoChars + X]:24
@@ -353,7 +310,6 @@ TextRenderCell:
 		lda [D + T_CELL]
 		cmp [D + T_CURSOR]
 		bne TextRenderOwn
-		; The cursor's cell is all drawn, and isn't in its row's background after.
 		sep m
 		lda TEXT_CURSOR_PALETTE
 		sta [[D + T_PALETTE]:24]
@@ -364,48 +320,9 @@ TextRenderOwn:
 		sep m
 		lda [_gauiVideoCellColours + X]:24
 		sta [[D + T_PALETTE]:24]
-		lsr A
-		lsr A
-		lsr A
-		lsr A
-		ldx [D + T_GROUND]
-		cmp [_gauiVideoRowGround + X]:24
-		bne TextRenderClear
-		ldx [D + T_DIRTY]
-		lda [_gauiVideoDirty + X]:24
-		and [D + T_BIT]
-		bne TextRenderDirty
-		; Blank in its row's background: only a glyph with pixels need be drawn, and the cell then has them.
-		rep m
-		lda [D + T_GLYPH]
-		beq TextRenderDone
-		sep m
-		lda [_gauiVideoDirty + X]:24
-		ora [D + T_BIT]
-		sta [_gauiVideoDirty + X]:24
-		bra TextRenderRuns
-TextRenderDirty:
-		; It has pixels, in its row's background: blank again if its glyph has none.
-		.width A, 8
-		jsr TextClearCell
-		.width A, 16
-		lda [D + T_GLYPH]
-		bne TextRenderRuns
-		ldx [D + T_DIRTY]
-		sep m
-		lda [D + T_BIT]
-		eor 0xFF
-		and [_gauiVideoDirty + X]:24
-		sta [_gauiVideoDirty + X]:24
-		rep m
-		rts
 TextRenderClear:
-		; Not in its row's background.
+		; Its pixels made its background, then its glyph's drawn.
 		.width A, 8
-		ldx [D + T_DIRTY]
-		lda [_gauiVideoDirty + X]:24
-		ora [D + T_BIT]
-		sta [_gauiVideoDirty + X]:24
 		jsr TextClearCell
 		.width A, 16
 		lda [D + T_GLYPH]
@@ -551,11 +468,6 @@ TextClearLine:
 		dex
 		bne TextClearLine
 		rts
-
-
-; A cell's bit in its byte of gauiVideoDirty (and a byte for the word read of the last).
-TextCellBits:
-		.byte 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0
 
 
 ; extern "C" void VideoFillZero(void): guiVideoFillGroups groups of sixteen zero bytes from guiVideoFillAddress (a
