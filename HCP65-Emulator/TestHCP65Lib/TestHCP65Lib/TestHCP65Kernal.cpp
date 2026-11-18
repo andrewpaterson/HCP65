@@ -426,7 +426,7 @@ static bool TestKernalPutDriver(const char* szImage, const char* szName, const c
 		}
 		if (getenv("TEST_HCP65_MAP"))
 		{
-			pFile = fopen(strstr(szName, "VIDEO") ? TEST_HCP65_OUTPUT _FS_ "VideoDriver.map" : TEST_HCP65_OUTPUT _FS_ "Driver.map", "w");
+			pFile = fopen(TEST_HCP65_OUTPUT _FS_ "Driver.map", "w");
 			if (pFile)
 			{
 				fputs(cDriver.GetLinker()->GetMap(), pFile);
@@ -2425,83 +2425,6 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	AssertTrue(sConsole.pcVideo->GetFrame(sConsole.puiFrame, 640, 480, &uiWidth, &uiHeight));
 	AssertInt(TEST_HCP65_CONSOLE_INK, sConsole.puiFrame[4 * 640 + 1]);  //The banner's H: its left stroke, and inside it.
 	AssertInt(TEST_HCP65_CONSOLE_PAPER, sConsole.puiFrame[4 * 640 + 3]);
-
-	if (getenv("TEST_HCP65_PROFILE"))
-	{
-		//PROBE: where the cycles of "help" go.
-		static uint32	auiKernal[0x40000 / 16];
-		static uint32	auiDriver[0x20000 / 16];
-		uint32			uiUser = 0;
-		uint32			uiOther = 0;
-		uint32			uiSamples = 0;
-		uint32			uiAddress;
-		uint64			uiStart;
-		CAsm65LineTable*	pcLines = psKernal->cOS.GetBuilder()->GetLineTable();
-		SAsm65LineEntry*	psLine;
-		CHCP65DebugPort*	pcPort = sConsole.cHCP65.GetDebugPort();
-		uint32			uiDriver = 0;
-		size			d;
-
-		for (d = 0; d < pcPort->NumDrivers(); d++)
-		{
-			printf("PROFILE driver %s at $%06X size %u\n", pcPort->GetDriver(d)->szName, pcPort->GetDriver(d)->uiAddress, pcPort->GetDriver(d)->uiSize);
-			if (strstr(pcPort->GetDriver(d)->szName, "VIDEO"))
-			{
-				uiDriver = pcPort->GetDriver(d)->uiAddress;
-			}
-		}
-		TestConsoleType(&sConsole, "help\r");
-		uiStart = sConsole.cHCP65.NumCycles();
-		for (i = 0; i < 4000000; i++)
-		{
-			sConsole.cHCP65.Run(997);
-			uiAddress = sConsole.cHCP65.GetMPU()->GetProgramAddress();
-			uiSamples++;
-			if (!sConsole.cHCP65.IsKernelMode())
-			{
-				uiUser++;
-			}
-			else if ((uiAddress >= uiDriver) && (uiAddress < uiDriver + 0x10000) && (uiDriver != 0))
-			{
-				auiDriver[(uiAddress - uiDriver) / 16]++;
-			}
-			else if (uiAddress < 0x40000)
-			{
-				auiKernal[uiAddress / 16]++;
-			}
-			else
-			{
-				uiOther++;
-			}
-			if (((i % 200) == 199) && TestConsoleScreen(&sConsole, &szScreen) && strstr(szScreen.Text(), "Anything else is a program to run, with a number for its argument.\n/ $\n"))
-			{
-				break;
-			}
-		}
-		printf("PROFILE help: %llu cycles, %u samples, user %u, other %u\n", (unsigned long long)(sConsole.cHCP65.NumCycles() - uiStart), uiSamples, uiUser, uiOther);
-		for (d = 0; d < 0x40000 / 16; d++)
-		{
-			if (auiKernal[d] * 200 > uiSamples)
-			{
-				psLine = pcLines->FindLine((uint32)d * 16);
-				printf("PROFILE kernal $%06X %5u %s:%u\n", (unsigned int)d * 16, auiKernal[d], psLine ? pcLines->GetFile(psLine->uiFile) : "?", psLine ? psLine->uiLine : 0);
-			}
-		}
-		for (d = 0; d < 0x20000 / 16; d++)
-		{
-			if (auiDriver[d] * 400 > uiSamples)
-			{
-				printf("PROFILE driver +$%05X %5u\n", (unsigned int)d * 16, auiDriver[d]);
-			}
-		}
-		{
-			uint32 uiK = 0, uiD = 0;
-			for (d = 0; d < 0x40000 / 16; d++) uiK += auiKernal[d];
-			for (d = 0; d < 0x20000 / 16; d++) uiD += auiDriver[d];
-			printf("PROFILE totals: kernal %u, video driver %u, user %u, other %u\n", uiK, uiD, uiUser, uiOther);
-		}
-		fflush(stdout);
-	}
 
 	//What is typed is shown, then done.
 	TestConsoleType(&sConsole, "cat hello.txt\r");
