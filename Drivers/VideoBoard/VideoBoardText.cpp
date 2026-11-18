@@ -11,6 +11,7 @@ extern "C"
 	uint16	guiVideoWidth;
 	uint32	guiVideoPalette;
 	uint8*	gpuiVideoFont;
+	uint8*	gpuiVideoClear;
 	uint16	guiVideoColumns;
 	uint16	guiVideoRows;
 	uint8	guiVideoTextColour;
@@ -30,6 +31,7 @@ extern "C"
 	uint16	guiVideoDrew;
 	uint32	guiVideoFillAddress;
 	uint16	guiVideoFillGroups;
+	uint16	guiVideoFillLines;
 }
 
 
@@ -155,6 +157,14 @@ void CKernalVideoBoard::ClearTextFrame(void)
 	uint32	uiChunk;
 
 	uiSize = mauiRowPixels[guiVideoRows] + (uint32)muiWidth * VIDEO_TEXT_CELL_HEIGHT;
+	if (gpuiKernalBlitter && gpuiVideoClear)
+	{
+		//A Blitter Board's: a row more than the rows, sixteen lines each.
+		guiVideoFillAddress = muiWindow;
+		guiVideoFillLines = (uint16)((guiVideoRows + 1) * VIDEO_TEXT_CELL_HEIGHT);
+		VideoClearLines();
+		return;
+	}
 	for (uiDone = 0; uiDone < uiSize; uiDone += uiChunk)
 	{
 		uiChunk = ((uiSize - uiDone) < 0x8000) ? (uiSize - uiDone) : 0x8000;
@@ -350,6 +360,12 @@ void CKernalVideoBoard::RenderRowClear(uint16 uiRow, uint8 uiColour)
 {
 	mpuiRegisters[VIDEO_PALETTE_BYTE] = uiColour;
 	guiVideoFillAddress = muiWindow + mauiRowPixels[uiRow];
+	if (gpuiKernalBlitter && gpuiVideoClear)
+	{
+		guiVideoFillLines = VIDEO_TEXT_CELL_HEIGHT;
+		VideoClearLines();
+		return;
+	}
 	guiVideoFillGroups = muiWidth;  //16 lines of the width, in sixteens.
 	VideoFillZero();
 }

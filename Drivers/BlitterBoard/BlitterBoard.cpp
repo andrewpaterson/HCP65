@@ -1,22 +1,10 @@
-#include "KernalInterrupts.h"
 #include "BlitterBoard.h"
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The kernal's copier's call: pvContext is the board's driver.
-//
-//////////////////////////////////////////////////////////////////////////
-static void BlitterBoardCopy(void* pvContext, uint32 uiDest, uint32 uiSource, uint16 uiCount, uint16 uiTransparent)
-{
-	((CKernalBlitterBoard*)pvContext)->Copy(uiDest, uiSource, uiCount, uiTransparent);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The board enabled, its count's start 0 (where it stays), and the
-// kernal's copies its.
+// The board enabled, its count's start 0 (where it stays), and its
+// registers the kernal's to give copies to.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalBlitterBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
@@ -29,7 +17,6 @@ uint16 CKernalBlitterBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mpuiRegisters[BLITTER_COUNT_START + 1] = 0;
 	mpuiRegisters[BLITTER_COUNT_STOP] = 0;
 	mpuiRegisters[BLITTER_COUNT_STOP + 1] = 0;
-	KernalSetMainCopier(BlitterBoardCopy, this);
 	gpuiKernalBlitter = mpuiRegisters;
 	return uiResult;
 }
@@ -42,7 +29,6 @@ uint16 CKernalBlitterBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 void CKernalBlitterBoard::Kill(void)
 {
 	gpuiKernalBlitter = NULL;
-	KernalSetMainCopier(NULL, NULL);
 	mpuiRegisters[BLITTER_FLAGS] = 0;
 	CKernalDriver::Kill();
 }
@@ -56,55 +42,6 @@ void CKernalBlitterBoard::Kill(void)
 uint16 CKernalBlitterBoard::OpenUnit(uint16 uiUnit)
 {
 	return KERNAL_DRIVER_NOT_SUPPORTED;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// uiCount bytes of main memory from uiSource to uiDest, without those that
-// are uiTransparent unless it is KERNAL_COPY_OPAQUE.  The board has main
-// memory from Start until its count is the stop: nothing here touches main
-// memory meanwhile, and the interrupt handlers that would are put off
-// (gbKernalMainBusBusy).
-//
-//////////////////////////////////////////////////////////////////////////
-void CKernalBlitterBoard::Copy(uint32 uiDest, uint32 uiSource, uint16 uiCount, uint16 uiTransparent)
-{
-	volatile uint8*	puiRegisters;
-	uint8			uiLow;
-	uint8			uiHigh;
-
-	if (uiCount == 0)
-	{
-		return;
-	}
-	puiRegisters = mpuiRegisters;
-	if (uiTransparent == KERNAL_COPY_OPAQUE)
-	{
-		puiRegisters[BLITTER_FLAGS] = BLITTER_FLAG_ENABLE;
-	}
-	else
-	{
-		puiRegisters[BLITTER_TRANSPARENT_COLOUR] = (uint8)uiTransparent;
-		puiRegisters[BLITTER_FLAGS] = BLITTER_FLAG_ENABLE | BLITTER_FLAG_TRANSPARENCY;
-	}
-	uiLow = (uint8)uiCount;
-	uiHigh = (uint8)(uiCount >> 8);
-	puiRegisters[BLITTER_COUNT_STOP] = uiLow;
-	puiRegisters[BLITTER_COUNT_STOP + 1] = uiHigh;
-	puiRegisters[BLITTER_SOURCE] = (uint8)uiSource;
-	puiRegisters[BLITTER_SOURCE + 1] = (uint8)(uiSource >> 8);
-	puiRegisters[BLITTER_SOURCE + 2] = (uint8)(uiSource >> 16);
-	puiRegisters[BLITTER_DEST] = (uint8)uiDest;
-	puiRegisters[BLITTER_DEST + 1] = (uint8)(uiDest >> 8);
-	puiRegisters[BLITTER_DEST + 2] = (uint8)(uiDest >> 16);
-
-	gbKernalMainBusBusy = 1;
-	puiRegisters[BLITTER_START] = 0;
-	while ((puiRegisters[BLITTER_COUNT_START] != uiLow) || (puiRegisters[BLITTER_COUNT_START + 1] != uiHigh))
-	{
-	}
-	gbKernalMainBusBusy = 0;
 }
 
 

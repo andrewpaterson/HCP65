@@ -82,22 +82,19 @@ protected:
 };
 
 
-//A copy in main memory (kernel mode's addresses of it, which are where it really is), which a board that has the main
-//bus makes if there is one (the Blitter Board, whose driver is the kernal's copier while it is loaded), and the kernal
-//itself if there isn't: uiCount bytes from puiSource to puiDest, in order, without those that are uiTransparent unless
-//it is KERNAL_COPY_OPAQUE.  The Video Board's driver draws a blit's runs with it.  Neither may be in MPU RAM, which the
-//board can't reach.
+//A copy in main memory (kernel mode's addresses of it, which are where it really is): uiCount bytes from puiSource to
+//puiDest, lowest first, without those that are uiTransparent unless it is KERNAL_COPY_OPAQUE.  A Blitter Board makes it
+//if there is one and the copy is long enough for that to be quicker, the processor if not (KernalCopy.asm).  The Video
+//Board's driver draws a blit's runs with it.  Neither end may be in MPU RAM, which the board can't reach.  It can't be
+//called through a pointer.
 #define KERNAL_COPY_OPAQUE				0xFFFF
 
-typedef void (*KernalMainCopier)(void* pvContext, uint32 uiDest, uint32 uiSource, uint16 uiCount, uint16 uiTransparent);
-
-void			KernalSetMainCopier(KernalMainCopier fCopier, void* pvContext);
-
-//The Blitter Board's registers while its driver is loaded, NULL when it isn't: for a driver that gives the board its
-//copies itself (the Video Board's text).  Such a driver leaves the board's count's start 0, and what else it set as it
-//likes: the board's driver sets all of it for each copy.
-extern "C" volatile uint8*	gpuiKernalBlitter;
 void			KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, uint16 uiTransparent);
+
+//The Blitter Board's registers while its driver is loaded, NULL when it isn't: its driver sets it.  The kernal's copies
+//and a driver that gives the board copies itself (the Video Board's text) write them; each sets all that its copy needs
+//but the count's start, which stays 0.
+extern "C" volatile uint8*	gpuiKernalBlitter;
 
 uint16			KernalStartDriver(CKernalDriver* pcDriver, uint16 uiSlot);
 CKernalDriver*	KernalGetDriver(uint16 uiSlot);

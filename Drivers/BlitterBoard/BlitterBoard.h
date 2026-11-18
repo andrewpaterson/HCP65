@@ -21,21 +21,17 @@
 #define BLITTER_BOARD_MAX_BOARDS	1		//Blitter boards it drives: the first is the kernal's.
 
 
-//The HCP65 Blitter Board's driver.  It has no units a process can use: the board is the kernal's, which gives it the
-//copies in main memory that it would make itself (KernalMainCopy, KernalDriver.h; the driver makes itself the kernal's
-//copier in Init).
+//The HCP65 Blitter Board's driver.  It has no units a process can use: the board is the kernal's.  The driver enables
+//it and gives the kernal its registers (gpuiKernalBlitter, KernalDriver.h), and the copies in main memory that are long
+//enough are then the board's: the kernal's own (KernalMainCopy, in KernalCopy.asm) and the Video Board's driver's text.
 //
-//A copy is the addresses, the count's stop (its start stays 0) and Start, then a wait for the count to reach the stop:
-//the board has main memory until then, and the driver, which is in MPU RAM, reads only the board.  The interrupt isn't
-//used.  The flags, the transparent colour and the stop are written for every copy, as the Video Board's driver gives the
-//board its text's copies itself (gpuiKernalBlitter) and leaves them as it had them.
+//A copy is the Flags, the transparent colour, the addresses, the count's stop (its start stays 0) and Start, then a wait
+//for the count to reach the stop: the board has main memory until then.  The interrupt isn't used.
 class CKernalBlitterBoard : public CKernalDriver
 {
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
 	void	Kill(void) override;
-
-	void	Copy(uint32 uiDest, uint32 uiSource, uint16 uiCount, uint16 uiTransparent);
 
 protected:
 	uint16	OpenUnit(uint16 uiUnit) override;

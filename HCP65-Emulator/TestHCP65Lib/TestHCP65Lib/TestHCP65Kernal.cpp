@@ -2560,9 +2560,10 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 //
 // The console's machine with a Blitter Board too (Machines/Blitter.xml):
 // its driver is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
-// the console's glyphs and sprites' blits make are the board's, not the
-// processor's.  The text and the picture are the same, and the processor
-// never touches main memory while the board has it.
+// are long enough are the board's, not the processor's: the screen's and
+// a row's clearing, and sprites' tiles.  The text and the picture are the
+// same, and the processor never touches main memory while the board has
+// it.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65KernalBlitter(STestKernal* psKernal)
@@ -2573,6 +2574,7 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	CHCP65BlitterBoard*	pcBlitter;
 	CChars				szScreen;
 	uint64				uiText;
+	int					i;
 
 	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
 	if (!TestKernalPutSystemFiles())
@@ -2600,21 +2602,26 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
 	TestKernalStart(&sConsole.cHCP65, psKernal);
 
-	//The board's driver is loaded and has enabled it (the text's last run was a mixed one, so it is left transparent).
+	//The board's driver is loaded and has enabled it.
 	szScreen.Init();
 	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
 	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
 	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET), sStatus.uiLoadedDrivers);
 	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
 
-	//The banner's and the prompt's glyphs were its copies, a run of pixels each: more than a copy for each character, and
-	//not eight pixels for each row of one.
+	//The screen was cleared by the board, a line at a time (640 by 480 and a row more).  The banner's glyphs' runs are
+	//too short for it: only a run of all eight pixels is the board's.
 	uiText = pcBlitter->NumBytesCopied();
-	AssertTrue(uiText > strlen(TEST_HCP65_SHELL_BANNER) * 16);
-	AssertTrue(uiText < strlen(TEST_HCP65_SHELL_BANNER) * 128);
-	TestConsoleType(&sConsole, "cat hello.txt\r");
-	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $ cat hello.txt\nHello from the SD card.\n/ $\n", &szScreen));
-	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 400);
+	AssertTrue(uiText >= 640 * 496);
+	AssertTrue(uiText < 640 * 496 * 2 + 4096);
+
+	//help twice scrolls the screen: each row that comes up is cleared by the board, sixteen lines of 640.
+	for (i = 0; i < 2; i++)
+	{
+		TestConsoleType(&sConsole, "help\r");
+		AssertTrue(TestConsoleRunUntil(&sConsole, "Anything else is a program to run, with a number for its argument.\n/ $\n", &szScreen));
+	}
+	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 10 * 16 * 640);
 	uiText = pcBlitter->NumBytesCopied();
 
 	//sprites' picture, drawn by the board.

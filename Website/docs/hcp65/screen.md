@@ -71,7 +71,12 @@ An SFT pixel is a colour with red in bits 0 to 2, green in bits 3 to 5 and blue 
 What isn't an image, or is cut short, is `KERNAL_DEVICE_BAD_ARGUMENT`.
 
 The Video Board's driver draws a blit as copies in main memory, one for each run of the image's
-pixels inside the clip rectangle.  With a Blitter Board in the computer the copies are the board's
-(its driver is `\OS\Drivers\BLITTER.DRV`): it copies a byte in two processor cycles, and leaves a
-mixed run's transparent pixels out itself.  Without one the kernel makes the same copies, and what
-is drawn is the same.  The console's text is always drawn by the processor.
+pixels inside the clip rectangle.  With a Blitter Board in the computer (its driver is
+`\OS\Drivers\BLITTER.DRV`) the longer copies are the board's: it copies a byte in two processor
+cycles, and leaves a mixed run's transparent pixels out itself, but its registers take time to
+write, so the processor makes the copies under 15 pixels (9 of a mixed run).  Without a board the
+processor makes them all, and what is drawn is the same.
+
+The console's text uses the board the same way: the processor draws a glyph's runs, which are
+short (the board would draw one of eight pixels or more), and the board clears a row, or the
+screen, a line at a time from a line of zeros the driver keeps in main memory.

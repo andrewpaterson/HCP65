@@ -1,3 +1,4 @@
+#include <string.h>
 #include "KernalInterrupts.h"
 #include "KernalProcess.h"
 #include "VideoBoard.h"
@@ -27,6 +28,11 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	muiMode = 0xFF;
 	muiFontSize = 0;
 	gpuiVideoFont = (uint8*)KernalMainMalloc(VIDEO_FONT_SIZE, KERNAL_MAIN_ONE_BANK);
+	gpuiVideoClear = (uint8*)KernalMainMalloc(VIDEO_CLEAR_SIZE, KERNAL_MAIN_ONE_BANK);
+	if (gpuiVideoClear)
+	{
+		memset(gpuiVideoClear, 0, VIDEO_CLEAR_SIZE);
+	}
 	muiWidth = 0;
 	muiHeight = 0;
 	mbFlip = false;
@@ -54,6 +60,8 @@ void CKernalVideoBoard::Kill(void)
 	WriteFlags(0);
 	KernalMainFree(gpuiVideoFont);
 	gpuiVideoFont = NULL;
+	KernalMainFree(gpuiVideoClear);
+	gpuiVideoClear = NULL;
 	CKernalDriver::Kill();
 }
 

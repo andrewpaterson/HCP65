@@ -6,10 +6,6 @@
 //The driver of each slot's board, NULL if it has none.
 static CKernalDriver*	gapcKernalDrivers[KERNAL_NUM_DEVICE_SLOTS];
 
-//The board that makes main memory's copies, NULL for the kernal itself.
-static KernalMainCopier	gfKernalMainCopier;
-static void*			gpvKernalMainCopier;
-
 volatile uint8*			gpuiKernalBlitter;
 
 
@@ -385,51 +381,5 @@ void KernalCloseDrivers(uint8 uiProcess)
 		{
 			gapcKernalDrivers[uiSlot]->Close(KERNAL_DRIVER_ALL_UNITS, uiProcess);
 		}
-	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// fCopier, called with pvContext, makes KernalMainCopy's copies from now;
-// NULL and the kernal does.
-//
-//////////////////////////////////////////////////////////////////////////
-void KernalSetMainCopier(KernalMainCopier fCopier, void* pvContext)
-{
-	gfKernalMainCopier = fCopier;
-	gpvKernalMainCopier = pvContext;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// uiCount bytes of main memory from puiSource to puiDest, lowest first,
-// without those that are uiTransparent unless it is KERNAL_COPY_OPAQUE.
-//
-//////////////////////////////////////////////////////////////////////////
-void KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, uint16 uiTransparent)
-{
-	uint8	uiByte;
-
-	if (gfKernalMainCopier)
-	{
-		gfKernalMainCopier(gpvKernalMainCopier, (uint32)puiDest, (uint32)puiSource, uiCount, uiTransparent);
-		return;
-	}
-	if (uiTransparent == KERNAL_COPY_OPAQUE)
-	{
-		memcpy(puiDest, puiSource, uiCount);
-		return;
-	}
-	for (; uiCount > 0; uiCount--)
-	{
-		uiByte = *puiSource;
-		if (uiByte != (uint8)uiTransparent)
-		{
-			*puiDest = uiByte;
-		}
-		puiSource++;
-		puiDest++;
 	}
 }

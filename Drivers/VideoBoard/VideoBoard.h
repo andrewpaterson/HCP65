@@ -43,6 +43,7 @@
 #define VIDEO_TEXT_GLYPHS				256
 #define VIDEO_TEXT_PIXEL				0xFF		//The palette entry that is a cell's foreground: what a glyph's pixels are.
 #define VIDEO_TEXT_NO_CLEAR				0xFF		//mauiRowClears: the row isn't owed a clear.
+#define VIDEO_CLEAR_SIZE				1024		//gpuiVideoClear: the widest mode's line.
 #define VIDEO_TEXT_DEFAULT_COLOUR		0x07		//Light grey on black.
 #define VIDEO_TEXT_BLINK_FRAMES			16			//The cursor's blink: about a quarter of a second on, then off.
 #define VIDEO_TEXT_FLIP_TICKS			16			//The longest a mode change waits for a vertical blank (KERNAL_TICKS_PER_SECOND).
@@ -77,6 +78,7 @@ extern "C"
 	extern uint16	guiVideoWidth;			//The pixels in a line.
 	extern uint32	guiVideoPalette;		//The Palette Byte register's address.
 	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap in one bank, NULL if there were none.
+	extern uint8*	gpuiVideoClear;			//VIDEO_CLEAR_SIZE zeros there too: the line a Blitter Board clears a row with.  NULL if there were none.
 	extern uint16	guiVideoColumns;
 	extern uint16	guiVideoRows;
 	extern uint8	guiVideoTextColour;
@@ -96,12 +98,14 @@ extern "C"
 	extern uint16	guiVideoDrew;			//and whether any was drawn.
 	extern uint32	guiVideoFillAddress;	//VideoFillZero: the first byte
 	extern uint16	guiVideoFillGroups;		//and how many sixteens of them.
+	extern uint16	guiVideoFillLines;		//VideoClearLines: how many lines from guiVideoFillAddress.
 
 	void	VideoRenderCell(void);
 	void	VideoRenderPending(void);
 	void	VideoRenderAll(void);
 	void	VideoWriteCells(void);
 	void	VideoFillZero(void);
+	void	VideoClearLines(void);
 }
 
 
