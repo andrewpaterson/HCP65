@@ -80,3 +80,27 @@ processor makes them all, and what is drawn is the same.
 The console's text uses the board the same way: the processor draws a glyph's runs, which are
 short (the board would draw one of eight pixels or more), and the board clears a row, or the
 screen, a line at a time from a line of zeros the driver keeps in main memory.
+
+## The Blitter Board
+
+The board copies bytes from one place in main memory to another, as the main bus's master: a read
+then a write for each, two processor cycles a byte.  The processor mustn't touch main memory until
+the copy is done.  Its registers, from `$400` in its slot:
+
+| Offset | Write | Read |
+|---|---|---|
+| 0 | Flags: bit 0 transparency, bit 6 enable, bit 7 interrupt enable | Flags: bits 0 to 5, bit 6 enable, bit 7 interrupt pending |
+| 1 | Clear interrupt | |
+| 2 | Transparent colour | Transparent colour |
+| 4, 5, 6 | Destination address: low, high, bank | |
+| 7 | Start | |
+| 8, 9, 10 | Source address: low, high, bank | |
+| 12, 13 | Count start: low, high | The count: low, high (the high byte is kept as the low is read) |
+| 14, 15 | Count stop: low, high | |
+
+Start loads the count with its start and copies bytes, stepping the count and both addresses, until
+the count is its stop: stop less start bytes.  The addresses are left just past the last byte.  With
+transparency on, a byte that is the transparent colour is read but not written.  The bytes go in
+order, lowest first.
+
+The emulator's board is the board as it is meant to work; the schematic as drawn has faults.
