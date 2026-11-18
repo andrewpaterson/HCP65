@@ -128,7 +128,7 @@ compiler's own file and line, which says which construct it was.
 
 | Not supported | Notes |
 |---|---|
-| Exceptions | `try`, `catch` and `throw`.  `try` is parsed, but a function using it is an error. |
+| Exceptions | `try`, `catch` and `throw` are being added.  They will be compiled only for a program built with `Exceptions="true"` (see [Building](building.md)), which also defines `__cpp_exceptions`; a program built without it is told so where it uses one.  For now a function that uses one is an error either way. |
 | Lambdas | |
 | `auto` and `decltype` | |
 | Range-based `for` | Parsed, but an error in a function. |
