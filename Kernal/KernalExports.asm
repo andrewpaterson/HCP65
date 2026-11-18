@@ -144,6 +144,15 @@ _gauiKernalExports:
 		.long _KernalCopyFromUser__FPhjj
 		.long Export_KernalCopyFromUser__FPhjj_ax
 		.long _KernalCopyFromUser__FPhjj.ax
+		; The kernal's main memory heap (KernalMemory.h).
+		.long Export_KernalMainMalloc__Fj
+		.long _KernalMainMalloc__Fj
+		.long Export_KernalMainMalloc__Fj_ax
+		.long _KernalMainMalloc__Fj.ax
+		.long Export_KernalMainFree__FPv
+		.long _KernalMainFree__FPv
+		.long Export_KernalMainFree__FPv_ax
+		.long _KernalMainFree__FPv.ax
 KernalExportsEnd:
 
 		; The assembler counts them: eight bytes each.
@@ -278,3 +287,11 @@ Export_KernalCopyFromUser__FPhjj:
 		.byte "_KernalCopyFromUser__FPhjj", 0
 Export_KernalCopyFromUser__FPhjj_ax:
 		.byte "_KernalCopyFromUser__FPhjj.ax", 0
+Export_KernalMainMalloc__Fj:
+		.byte "_KernalMainMalloc__Fj", 0
+Export_KernalMainMalloc__Fj_ax:
+		.byte "_KernalMainMalloc__Fj.ax", 0
+Export_KernalMainFree__FPv:
+		.byte "_KernalMainFree__FPv", 0
+Export_KernalMainFree__FPv_ax:
+		.byte "_KernalMainFree__FPv.ax", 0

@@ -109,7 +109,7 @@ TextEnter:
 		sta [D + T_GROUND0]
 TextFrame:
 		sep m
-		lda [_guiVideoFont + 2]:24
+		lda [_gpuiVideoFont + 2]:24
 		pha
 		plb
 		rep m
@@ -417,7 +417,7 @@ TextRenderClear:
 ; that Y can be made from it.
 TextRenderRuns:
 		rep m
-		lda [_guiVideoFont]:24
+		lda [_gpuiVideoFont]:24
 		clc
 		adc [D + T_GLYPH]
 		tax

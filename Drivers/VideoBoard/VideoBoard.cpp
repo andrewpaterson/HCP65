@@ -26,6 +26,7 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mbSeparateUnits = false;
 	muiMode = 0xFF;
 	muiFontSize = 0;
+	gpuiVideoFont = (uint8*)KernalMainMalloc(VIDEO_FONT_SIZE);
 	muiWidth = 0;
 	muiHeight = 0;
 	mbFlip = false;
@@ -51,6 +52,8 @@ void CKernalVideoBoard::Kill(void)
 {
 	Off();
 	WriteFlags(0);
+	KernalMainFree(gpuiVideoFont);
+	gpuiVideoFont = NULL;
 	CKernalDriver::Kill();
 }
 
@@ -124,7 +127,7 @@ uint16 CKernalVideoBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAdd
 	if (uiUnit == VIDEO_BOARD_FONT)
 	{
 		//The font is what was written from offset 0 on.  It can't change under text that is being drawn with it.
-		if (mbText || (uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&gauiVideoFont[uiOffset], uiUserAddress, uiLength))
+		if (mbText || !gpuiVideoFont || (uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&gpuiVideoFont[uiOffset], uiUserAddress, uiLength))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}

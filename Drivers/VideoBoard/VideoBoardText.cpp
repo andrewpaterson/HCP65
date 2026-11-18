@@ -10,7 +10,7 @@ extern "C"
 	uint8	guiVideoFlags;
 	uint16	guiVideoWidth;
 	uint32	guiVideoPalette;
-	uint32	guiVideoFont;
+	uint8*	gpuiVideoFont;
 	uint16	guiVideoColumns;
 	uint16	guiVideoRows;
 	uint8	guiVideoTextColour;
@@ -22,7 +22,6 @@ extern "C"
 	uint8	gauiVideoChars[VIDEO_TEXT_MAX_CELLS];
 	uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
 	uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
-	uint8	gauiVideoFont[VIDEO_FONT_SIZE];
 	uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
 	uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];
 	uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
@@ -88,7 +87,7 @@ bool CKernalVideoBoard::SetTextMode(uint8 uiMode)
 	uint32	uiPixel;
 	uint32	uiVBlanks;
 
-	if (!muiWindow || !ReadFont())
+	if (!muiWindow || !gpuiVideoFont || !ReadFont())
 	{
 		return false;
 	}
@@ -121,7 +120,6 @@ bool CKernalVideoBoard::SetTextMode(uint8 uiMode)
 	}
 	guiVideoWidth = muiWidth;
 	guiVideoPalette = (uint32)&mpuiRegisters[VIDEO_PALETTE_BYTE];
-	guiVideoFont = (uint32)gauiVideoFont;
 
 	//Each palette p is foreground p & 15 on background (p >> 4) & 7, but the cursor's (VIDEO_TEXT_CURSOR_PALETTE), the
 	//default colour the other way round (which the interrupt swaps to blink it).
@@ -193,7 +191,7 @@ bool CKernalVideoBoard::ReadFont(void)
 	uint16					y;
 	uint8					c;
 
-	psContainer = (const SSFTContainer*)gauiVideoFont;
+	psContainer = (const SSFTContainer*)gpuiVideoFont;
 	if ((muiFontSize < sizeof(SSFTContainer)) || (psContainer->uiType != SFT_TYPE_CONTAINER) || (psContainer->uiCount < VIDEO_TEXT_GLYPHS))
 	{
 		return false;
@@ -206,8 +204,8 @@ bool CKernalVideoBoard::ReadFont(void)
 		{
 			return false;
 		}
-		uiNext = *((const uint16*)&gauiVideoFont[uiPosition]);
-		psImage = (const SSFTImage*)&gauiVideoFont[uiPosition + sizeof(uint16)];
+		uiNext = *((const uint16*)&gpuiVideoFont[uiPosition]);
+		psImage = (const SSFTImage*)&gpuiVideoFont[uiPosition + sizeof(uint16)];
 		if ((psImage->uiType != SFT_TYPE_TRANSPARENT) || (psImage->uiWidth != VIDEO_TEXT_CELL_WIDTH) || (psImage->uiHeight != VIDEO_TEXT_CELL_HEIGHT))
 		{
 			return false;
@@ -223,7 +221,7 @@ bool CKernalVideoBoard::ReadFont(void)
 			{
 				return false;
 			}
-			c = gauiVideoFont[uiCode++];
+			c = gpuiVideoFont[uiCode++];
 			if (c == SFT_RUN_END)
 			{
 				break;
@@ -247,7 +245,7 @@ bool CKernalVideoBoard::ReadFont(void)
 				x = (uint16)(x + c);
 			}
 		}
-		gauiVideoGlyphs[uiGlyph] = (gauiVideoFont[uiFirst] == SFT_RUN_END) ? 0 : uiFirst;
+		gauiVideoGlyphs[uiGlyph] = (gpuiVideoFont[uiFirst] == SFT_RUN_END) ? 0 : uiFirst;
 
 		if (uiGlyph < VIDEO_TEXT_GLYPHS - 1)
 		{

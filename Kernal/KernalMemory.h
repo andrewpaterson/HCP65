@@ -7,9 +7,9 @@
 //MPU RAM from the end of the kernal's bss up to it.  Main memory is the memory boards' (Website docs/hcp65/devices.md,
 //Main memory): each one found gets the next window, 1, 2, 3 then 0, through the main memory channel's registers.  Of
 //the banks they give, the kernal keeps KERNAL_NUM_TABLE_BANKS for the maths tables and one bank for its main memory
-//heap (KernalMainMalloc: what the SD Card Board's DMA must reach), from $200000 up, where kernel mode reaches main
-//memory; processes get the rest.  With one board (window 1) the tables are banks $40 to $43, the heap $44 and
-//processes $45 to $7F.
+//heap (KernalMainMalloc: what the SD Card Board's DMA must reach, and a driver's memory that is too big for MPU RAM),
+//from $200000 up, where kernel mode reaches main memory; processes get the rest.  With one board (window 1) the tables
+//are banks $40 to $43, the heap $44 and processes $45 to $7F.
 #define KERNAL_MPU_HEAP_START		0x060000
 #define KERNAL_MPU_HEAP_END			0x070000	//KERNAL_REMAP_TABLE.
 #define KERNAL_MAIN_MEMORY_BANK		0x20		//Kernel mode reaches main memory from here ($200000).

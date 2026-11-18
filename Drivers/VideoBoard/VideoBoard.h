@@ -1,6 +1,7 @@
 #ifndef __VIDEO_BOARD_H__
 #define __VIDEO_BOARD_H__
 #include "KernalDriver.h"
+#include "KernalMemory.h"
 #include "UserLib/HCP65User.h"
 #include "UserLib/HCP65VideoBoard.h"
 
@@ -79,7 +80,7 @@ extern "C"
 	extern uint8	guiVideoFlags;			//What Flags was last written.
 	extern uint16	guiVideoWidth;			//The pixels in a line.
 	extern uint32	guiVideoPalette;		//The Palette Byte register's address.
-	extern uint32	guiVideoFont;			//gauiVideoFont's address.
+	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap, NULL if there were none.
 	extern uint16	guiVideoColumns;
 	extern uint16	guiVideoRows;
 	extern uint8	guiVideoTextColour;
@@ -91,7 +92,6 @@ extern "C"
 	extern uint8	gauiVideoChars[VIDEO_TEXT_MAX_CELLS];
 	extern uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
 	extern uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
-	extern uint8	gauiVideoFont[VIDEO_FONT_SIZE];
 	extern uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
 	extern uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];	//Frame 0's rows, each VIDEO_TEXT_ROW_BYTES, then frame 1's.
 	extern uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
