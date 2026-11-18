@@ -31,8 +31,8 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mbFlip = false;
 	muiVBlanks = 0;
 	mbText = false;
-	muiColumns = 0;
-	muiRows = 0;
+	guiVideoColumns = 0;
+	guiVideoRows = 0;
 	muiWindow = ((psDevice->uiWindow != KERNAL_NO_WINDOW) && (psDevice->uiWindow != 0)) ? (uint32)psDevice->uiWindow * VIDEO_WINDOW_SIZE : 0;
 
 	Off();
@@ -81,7 +81,7 @@ void CKernalVideoBoard::Interrupt(void)
 	if (mbFlip)
 	{
 		mbFlip = false;
-		WriteFlags((uint8)(muiFlags ^ VIDEO_FLAG_MEMORY_FRAME));
+		WriteFlags((uint8)(guiVideoFlags ^ VIDEO_FLAG_MEMORY_FRAME));
 	}
 	TextBlank(bFlipped);
 }
@@ -124,7 +124,7 @@ uint16 CKernalVideoBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAdd
 	if (uiUnit == VIDEO_BOARD_FONT)
 	{
 		//The font is what was written from offset 0 on.  It can't change under text that is being drawn with it.
-		if (mbText || (uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&mauiFont[uiOffset], uiUserAddress, uiLength))
+		if (mbText || (uiOffset > VIDEO_FONT_SIZE) || (uiLength > VIDEO_FONT_SIZE - uiOffset) || !KernalCopyFromUser(&gauiVideoFont[uiOffset], uiUserAddress, uiLength))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
@@ -220,7 +220,7 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 	case VIDEO_BOARD_SET_PALETTE:
 		if (uiValue == VIDEO_PALETTE_NONE)
 		{
-			WriteFlags((uint8)(muiFlags & ~VIDEO_FLAG_PALETTE_WRITE));
+			WriteFlags((uint8)(guiVideoFlags & ~VIDEO_FLAG_PALETTE_WRITE));
 			return KERNAL_DRIVER_SUCCESS;
 		}
 		if (uiValue >= VIDEO_BOARD_NUM_PALETTES)
@@ -228,7 +228,7 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
 		mpuiRegisters[VIDEO_PALETTE_BYTE] = (uint8)uiValue;
-		WriteFlags((uint8)(muiFlags | VIDEO_FLAG_PALETTE_WRITE));
+		WriteFlags((uint8)(guiVideoFlags | VIDEO_FLAG_PALETTE_WRITE));
 		return KERNAL_DRIVER_SUCCESS;
 
 	case VIDEO_BOARD_FLIP:
@@ -236,7 +236,7 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 		return KERNAL_DRIVER_SUCCESS;
 
 	case VIDEO_BOARD_GET_SHOWN:
-		*puiResult = (muiFlags & VIDEO_FLAG_MEMORY_FRAME) ? 0 : 1;
+		*puiResult = (guiVideoFlags & VIDEO_FLAG_MEMORY_FRAME) ? 0 : 1;
 		return KERNAL_DRIVER_SUCCESS;
 
 	case VIDEO_BOARD_GET_VBLANKS:
@@ -255,11 +255,11 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 		return SetTextMode((uint8)uiValue) ? KERNAL_DRIVER_SUCCESS : KERNAL_DRIVER_FAILED;
 
 	case VIDEO_BOARD_GET_COLUMNS:
-		*puiResult = mbText ? muiColumns : 0;
+		*puiResult = mbText ? guiVideoColumns : 0;
 		return KERNAL_DRIVER_SUCCESS;
 
 	case VIDEO_BOARD_GET_ROWS:
-		*puiResult = mbText ? muiRows : 0;
+		*puiResult = mbText ? guiVideoRows : 0;
 		return KERNAL_DRIVER_SUCCESS;
 
 	case VIDEO_BOARD_SET_TEXT_COLOUR:
@@ -267,7 +267,7 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
-		muiTextColour = (uint8)uiValue;
+		guiVideoTextColour = (uint8)uiValue;
 		return KERNAL_DRIVER_SUCCESS;
 
 	case VIDEO_BOARD_SCROLL_TEXT:
@@ -277,7 +277,7 @@ uint16 CKernalVideoBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, 
 		return ClearText();
 
 	case VIDEO_BOARD_SET_CURSOR:
-		if (!mbText || ((uiValue != VIDEO_CURSOR_NONE) && (uiValue >= (uint32)muiRows * muiColumns)))
+		if (!mbText || ((uiValue != VIDEO_CURSOR_NONE) && (uiValue >= (uint32)guiVideoRows * guiVideoColumns)))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
@@ -355,7 +355,7 @@ void CKernalVideoBoard::SetMode(uint8 uiMode)
 		uiStart += muiWidth;
 	}
 
-	WriteFlags((uint8)((muiFlags & ~(VIDEO_FLAG_VSYNC_NEGATIVE | VIDEO_FLAG_HSYNC_NEGATIVE)) | psMode->uiSyncFlags));
+	WriteFlags((uint8)((guiVideoFlags & ~(VIDEO_FLAG_VSYNC_NEGATIVE | VIDEO_FLAG_HSYNC_NEGATIVE)) | psMode->uiSyncFlags));
 	mpuiRegisters[VIDEO_CLOCK_SELECT] = psMode->uiClockSelect;
 	mpuiRegisters[VIDEO_SIGNAL_DELAY] = 0;
 	muiMode = uiMode;
@@ -384,7 +384,7 @@ void CKernalVideoBoard::Off(void)
 //////////////////////////////////////////////////////////////////////////
 void CKernalVideoBoard::WriteFlags(uint8 uiFlags)
 {
-	muiFlags = uiFlags;
+	guiVideoFlags = uiFlags;
 	mpuiRegisters[VIDEO_FLAGS] = uiFlags;
 }
 
