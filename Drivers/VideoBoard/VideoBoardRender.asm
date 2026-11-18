@@ -464,8 +464,10 @@ RunSkipMany:
 		tay
 		bra RunNext
 RunRows:
+		cmp 0xE0
+		bcs RunMixed
 		; $C0 + (n - 1): n rows down, to the row's left, most often one.
-		and 0x3F
+		and 0x1F
 		bne RunRowsMany
 		clc
 		lda [D + T_DEST]
@@ -495,6 +497,21 @@ RunRowSame:
 		dec [D + T_COUNT]
 		bpl RunRow
 		ldy 0
+		bra RunNext
+RunMixed:
+		; $E0 + (n - 1): n pixels, of which those that are 0 aren't drawn.
+		and 0x1F
+		inc A
+		sta [D + T_COUNT]
+RunMixedPixel:
+		lda [0 + X]
+		beq RunMixedNone
+		sta [[D + T_DEST]:24 + Y]
+RunMixedNone:
+		inx
+		iny
+		dec [D + T_COUNT]
+		bne RunMixedPixel
 		bra RunNext
 TextRenderDone:
 		rep m

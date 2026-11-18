@@ -2178,9 +2178,26 @@ static bool TestConsoleReadFont(uint8* puiFont)
 		for (uiCode = uiPosition + 8; (uiCode < uiSize) && (auiFile[uiCode] != 0); )
 		{
 			c = auiFile[uiCode++];
-			if (c >= 0xC0)
+			if (c >= 0xE0)
 			{
-				y += (c & 0x3F) + 1;
+				//A mixed run: its pixels that aren't 0.
+				c = (uint8)((c & 0x1F) + 1);
+				if ((y >= 16) || (x + c > 8))
+				{
+					return false;
+				}
+				for (i = 0; i < c; i++, x++)
+				{
+					if (auiFile[uiCode + i] != 0)
+					{
+						puiFont[uiGlyph * 16 + y] |= (uint8)(0x80 >> x);
+					}
+				}
+				uiCode += c;
+			}
+			else if (c >= 0xC0)
+			{
+				y += (c & 0x1F) + 1;
 				x = 0;
 			}
 			else if (c >= 0x80)

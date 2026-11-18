@@ -13,7 +13,10 @@
 //  SFT_RUN_END              the image is done.
 //  $01-$7F                  that many pixels follow: they are drawn from here to the right.
 //  SFT_RUN_SKIP + (n - 1)   n pixels (1 to SFT_RUN_MAX_COUNT) are skipped to the right.
-//  SFT_RUN_ROWS + (n - 1)   n rows (1 to SFT_RUN_MAX_COUNT) down, at the row's left.
+//  SFT_RUN_ROWS + (n - 1)   n rows (1 to SFT_RUN_MAX_ROWS) down, at the row's left.
+//  SFT_RUN_MIXED + (n - 1)  n pixels (1 to SFT_RUN_MAX_MIXED) follow, of which those that are SFT_PIXEL_TRANSPARENT
+//                           aren't drawn and the rest are, from here to the right: a run with short gaps in it, which
+//                           a blitter draws as one copy that leaves that colour out.
 //A longer run, skip or move down is several of them.  What isn't drawn stays as it was.
 //
 //A container is an SSFTContainer, then its uiCount images, each after a word: how many bytes that word is before the
@@ -26,8 +29,14 @@
 #define SFT_RUN_MAX_PIXELS		0x7F
 #define SFT_RUN_SKIP			0x80
 #define SFT_RUN_ROWS			0xC0
+#define SFT_RUN_MIXED			0xE0
 #define SFT_RUN_COUNT_MASK		0x3F
 #define SFT_RUN_MAX_COUNT		0x40
+#define SFT_RUN_ROWS_MASK		0x1F
+#define SFT_RUN_MAX_ROWS		0x20
+#define SFT_RUN_MIXED_MASK		0x1F
+#define SFT_RUN_MAX_MIXED		0x20
+#define SFT_PIXEL_TRANSPARENT	0x00
 
 
 struct SSFTImage

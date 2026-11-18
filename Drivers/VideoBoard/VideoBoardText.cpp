@@ -226,9 +226,19 @@ bool CKernalVideoBoard::ReadFont(void)
 			{
 				break;
 			}
-			if (c >= SFT_RUN_ROWS)
+			if (c >= SFT_RUN_MIXED)
 			{
-				y = (uint16)(y + (c & SFT_RUN_COUNT_MASK) + 1);
+				c = (uint8)((c & SFT_RUN_MIXED_MASK) + 1);
+				if ((y >= VIDEO_TEXT_CELL_HEIGHT) || (x + c > VIDEO_TEXT_CELL_WIDTH) || ((uint16)(muiFontSize - uiCode) < c))
+				{
+					return false;
+				}
+				uiCode = (uint16)(uiCode + c);
+				x = (uint16)(x + c);
+			}
+			else if (c >= SFT_RUN_ROWS)
+			{
+				y = (uint16)(y + (c & SFT_RUN_ROWS_MASK) + 1);
 				x = 0;
 			}
 			else if (c >= SFT_RUN_SKIP)
