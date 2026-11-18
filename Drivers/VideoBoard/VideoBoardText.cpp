@@ -4,28 +4,40 @@
 #include "VideoBoard.h"
 
 
-//What VideoBoardRender.asm's routines draw.
+//The text's memory and what VideoBoardRender.asm's routines are given (VideoBoard.h).
 extern "C"
 {
-	uint32	guiVideoCellPixel;		//VideoDrawRuns and VideoClearCell: the cell's first pixel,
-	uint32	guiVideoCellGlyph;		//its glyph's first run
-	uint16	guiVideoWidth;			//and the pixels in a line.
-	uint32	guiVideoFillAddress;	//VideoFillZero: the first byte
-	uint16	guiVideoFillGroups;		//and how many sixteens of them.
+	uint8	guiVideoFlags;
+	uint16	guiVideoWidth;
+	uint32	guiVideoPalette;
+	uint8*	gpuiVideoFont;
+	uint16	guiVideoColumns;
+	uint16	guiVideoRows;
+	uint8	guiVideoTextColour;
+	uint16	guiVideoCursor;
+	uint16	guiVideoPending;
+	uint8	gbVideoPendingAll;
+	uint16	gauiVideoRowCells[VIDEO_TEXT_MAX_ROWS + 1];
+	uint32	gauiVideoRowAddress[VIDEO_TEXT_MAX_ROWS + 1];
+	uint8	gauiVideoChars[VIDEO_TEXT_MAX_CELLS];
+	uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
+	uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
+	uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
+	uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];
+	uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
 
-	void	VideoDrawRuns(void);
-	void	VideoClearCell(void);
-	void	VideoFillZero(void);
+	uint16	guiVideoCell;
+	uint32	guiVideoSource;
+	uint16	guiVideoCount;
+	uint16	guiVideoDrew;
+	uint32	guiVideoFillAddress;
+	uint16	guiVideoFillGroups;
 }
 
 
 #define VIDEO_CELL(row, column)		((uint16)(((row) << 8) | (column)))
 #define VIDEO_CELL_ROW(cell)		((uint16)((cell) >> 8))
 #define VIDEO_CELL_COLUMN(cell)		((uint16)((cell) & 0xFF))
-
-
-//A cell's bit in its row's byte of mauiDirty.
-static const uint8	gauiVideoCellBits[8] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
 
 //A VGA's sixteen colours, as red, green and blue.
@@ -75,37 +87,39 @@ bool CKernalVideoBoard::SetTextMode(uint8 uiMode)
 	uint32	uiPixel;
 	uint32	uiVBlanks;
 
-	if (!muiWindow || !ReadFont())
+	if (!muiWindow || !gpuiVideoFont || !ReadFont())
 	{
 		return false;
 	}
 	mbText = false;
 	SetMode(uiMode);
-	muiColumns = (uint16)(muiWidth / VIDEO_TEXT_CELL_WIDTH);
-	muiRows = (uint16)(muiHeight / VIDEO_TEXT_CELL_HEIGHT);
+	guiVideoColumns = (uint16)(muiWidth / VIDEO_TEXT_CELL_WIDTH);
+	guiVideoRows = (uint16)(muiHeight / VIDEO_TEXT_CELL_HEIGHT);
 	muiTop = 0;
 	muiShownTop = 0;
-	muiTextColour = VIDEO_TEXT_DEFAULT_COLOUR;
-	muiCursor = VIDEO_CURSOR_NONE;
+	guiVideoTextColour = VIDEO_TEXT_DEFAULT_COLOUR;
+	guiVideoCursor = VIDEO_CURSOR_NONE;
 	muiBlink = 0;
-	muiPending = 0;
-	mbPendingAll = false;
+	guiVideoPending = 0;
+	gbVideoPendingAll = 0;
 	mbFlipped = false;
-	memset(mauiChars, ' ', sizeof(mauiChars));
-	memset(mauiColours, VIDEO_TEXT_DEFAULT_COLOUR, sizeof(mauiColours));
+	memset(gauiVideoChars, ' ', sizeof(gauiVideoChars));
+	memset(gauiVideoCellColours, VIDEO_TEXT_DEFAULT_COLOUR, sizeof(gauiVideoCellColours));
 	memset(mauiRowClears, VIDEO_TEXT_NO_CLEAR, sizeof(mauiRowClears));
 
 	//Where each row's cells and pixels start, so that nothing drawn need multiply or divide.
 	uiCell = 0;
 	uiPixel = 0;
-	for (uiRow = 0; uiRow <= muiRows; uiRow++)
+	for (uiRow = 0; uiRow <= guiVideoRows; uiRow++)
 	{
-		mauiRowCells[uiRow] = uiCell;
+		gauiVideoRowCells[uiRow] = uiCell;
 		mauiRowPixels[uiRow] = uiPixel;
-		uiCell = (uint16)(uiCell + muiColumns);
+		gauiVideoRowAddress[uiRow] = muiWindow + uiPixel;
+		uiCell = (uint16)(uiCell + guiVideoColumns);
 		uiPixel += (uint32)muiWidth * VIDEO_TEXT_CELL_HEIGHT;
 	}
 	guiVideoWidth = muiWidth;
+	guiVideoPalette = (uint32)&mpuiRegisters[VIDEO_PALETTE_BYTE];
 
 	//Each palette p is foreground p & 15 on background (p >> 4) & 7, but the cursor's (VIDEO_TEXT_CURSOR_PALETTE), the
 	//default colour the other way round (which the interrupt swaps to blink it).
@@ -117,7 +131,7 @@ bool CKernalVideoBoard::SetTextMode(uint8 uiMode)
 
 	//Both frames blank (pixels 0 in the default colour's palette): the one drawn, then the other once it is.
 	mpuiRegisters[VIDEO_PALETTE_BYTE] = VIDEO_TEXT_DEFAULT_COLOUR;
-	WriteFlags((uint8)(muiFlags | VIDEO_FLAG_PALETTE_WRITE));
+	WriteFlags((uint8)(guiVideoFlags | VIDEO_FLAG_PALETTE_WRITE));
 	ClearTextFrame();
 	WriteTextRows(0);
 	uiVBlanks = muiVBlanks;
@@ -143,11 +157,11 @@ void CKernalVideoBoard::ClearTextFrame(void)
 	uint32	uiChunk;
 	uint16	uiFrame;
 
-	uiFrame = (muiFlags & VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0;
-	memset(&mauiDirty[uiFrame ? VIDEO_TEXT_FRAME_BYTES : 0], 0, VIDEO_TEXT_FRAME_BYTES);
-	memset(&mauiRowGround[uiFrame ? VIDEO_TEXT_MAX_ROWS : 0], VIDEO_TEXT_DEFAULT_COLOUR >> 4, VIDEO_TEXT_MAX_ROWS);
+	uiFrame = (guiVideoFlags & VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0;
+	memset(&gauiVideoDirty[uiFrame ? VIDEO_TEXT_FRAME_BYTES : 0], 0, VIDEO_TEXT_FRAME_BYTES);
+	memset(&gauiVideoRowGround[uiFrame ? VIDEO_TEXT_MAX_ROWS : 0], VIDEO_TEXT_DEFAULT_COLOUR >> 4, VIDEO_TEXT_MAX_ROWS);
 
-	uiSize = mauiRowPixels[muiRows] + (uint32)muiWidth * VIDEO_TEXT_CELL_HEIGHT;
+	uiSize = mauiRowPixels[guiVideoRows] + (uint32)muiWidth * VIDEO_TEXT_CELL_HEIGHT;
 	for (uiDone = 0; uiDone < uiSize; uiDone += uiChunk)
 	{
 		uiChunk = ((uiSize - uiDone) < 0x8000) ? (uiSize - uiDone) : 0x8000;
@@ -159,9 +173,9 @@ void CKernalVideoBoard::ClearTextFrame(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // The font that was written is an SFT container whose first 256 images
-// are transparent and 8 by 16, with every run inside its image: mauiGlyphs
-// is where each one's runs start.  VideoDrawRuns draws them without
-// checking again.
+// are transparent and 8 by 16, with every run inside its image: gauiVideoGlyphs
+// is where each one's runs start.  VideoBoardRender.asm draws them
+// without checking again.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CKernalVideoBoard::ReadFont(void)
@@ -177,7 +191,7 @@ bool CKernalVideoBoard::ReadFont(void)
 	uint16					y;
 	uint8					c;
 
-	psContainer = (const SSFTContainer*)mauiFont;
+	psContainer = (const SSFTContainer*)gpuiVideoFont;
 	if ((muiFontSize < sizeof(SSFTContainer)) || (psContainer->uiType != SFT_TYPE_CONTAINER) || (psContainer->uiCount < VIDEO_TEXT_GLYPHS))
 	{
 		return false;
@@ -190,8 +204,8 @@ bool CKernalVideoBoard::ReadFont(void)
 		{
 			return false;
 		}
-		uiNext = *((const uint16*)&mauiFont[uiPosition]);
-		psImage = (const SSFTImage*)&mauiFont[uiPosition + sizeof(uint16)];
+		uiNext = *((const uint16*)&gpuiVideoFont[uiPosition]);
+		psImage = (const SSFTImage*)&gpuiVideoFont[uiPosition + sizeof(uint16)];
 		if ((psImage->uiType != SFT_TYPE_TRANSPARENT) || (psImage->uiWidth != VIDEO_TEXT_CELL_WIDTH) || (psImage->uiHeight != VIDEO_TEXT_CELL_HEIGHT))
 		{
 			return false;
@@ -207,14 +221,24 @@ bool CKernalVideoBoard::ReadFont(void)
 			{
 				return false;
 			}
-			c = mauiFont[uiCode++];
+			c = gpuiVideoFont[uiCode++];
 			if (c == SFT_RUN_END)
 			{
 				break;
 			}
-			if (c >= SFT_RUN_ROWS)
+			if (c >= SFT_RUN_MIXED)
 			{
-				y = (uint16)(y + (c & SFT_RUN_COUNT_MASK) + 1);
+				c = (uint8)((c & SFT_RUN_MIXED_MASK) + 1);
+				if ((y >= VIDEO_TEXT_CELL_HEIGHT) || (x + c > VIDEO_TEXT_CELL_WIDTH) || ((uint16)(muiFontSize - uiCode) < c))
+				{
+					return false;
+				}
+				uiCode = (uint16)(uiCode + c);
+				x = (uint16)(x + c);
+			}
+			else if (c >= SFT_RUN_ROWS)
+			{
+				y = (uint16)(y + (c & SFT_RUN_ROWS_MASK) + 1);
 				x = 0;
 			}
 			else if (c >= SFT_RUN_SKIP)
@@ -231,7 +255,7 @@ bool CKernalVideoBoard::ReadFont(void)
 				x = (uint16)(x + c);
 			}
 		}
-		mauiGlyphs[uiGlyph] = (mauiFont[uiFirst] == SFT_RUN_END) ? 0 : uiFirst;
+		gauiVideoGlyphs[uiGlyph] = (gpuiVideoFont[uiFirst] == SFT_RUN_END) ? 0 : uiFirst;
 
 		if (uiGlyph < VIDEO_TEXT_GLYPHS - 1)
 		{
@@ -282,11 +306,11 @@ void CKernalVideoBoard::WriteTextRows(uint16 uiTop)
 			uiLine = 0;
 			uiRow++;
 			uiPhysical++;
-			if (uiPhysical == muiRows)
+			if (uiPhysical == guiVideoRows)
 			{
 				uiPhysical = 0;
 			}
-			uiAddress = mauiRowPixels[(uiRow < muiRows) ? uiPhysical : muiRows];
+			uiAddress = mauiRowPixels[(uiRow < guiVideoRows) ? uiPhysical : guiVideoRows];
 		}
 	}
 }
@@ -300,9 +324,9 @@ void CKernalVideoBoard::WriteTextRows(uint16 uiTop)
 uint16 CKernalVideoBoard::PhysicalRow(uint16 uiRow)
 {
 	uiRow = (uint16)(uiRow + muiTop);
-	if (uiRow >= muiRows)
+	if (uiRow >= guiVideoRows)
 	{
-		uiRow = (uint16)(uiRow - muiRows);
+		uiRow = (uint16)(uiRow - guiVideoRows);
 	}
 	return uiRow;
 }
@@ -318,86 +342,8 @@ uint16 CKernalVideoBoard::PhysicalCell(uint32 uiCell)
 {
 	uint16	uiRow;
 
-	uiRow = (uint16)(uiCell / muiColumns);
-	return VIDEO_CELL(PhysicalRow(uiRow), (uint16)(uiCell - (uint32)uiRow * muiColumns));
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The cell drawn in the frame being drawn: its character's glyph in its
-// colour's palette (the cursor's if it is the cursor's cell).  The glyph's
-// runs are only its pixels, so a cell that has pixels in this frame, or
-// whose background isn't what its row was cleared to, is cleared first.
-//
-//////////////////////////////////////////////////////////////////////////
-void CKernalVideoBoard::RenderCell(uint16 uiCell)
-{
-	uint16	uiRow;
-	uint16	uiColumn;
-	uint16	uiIndex;
-	uint16	uiDirty;
-	uint16	uiGlyph;
-	uint8	uiColour;
-	uint8	uiBit;
-	uint8	uiGround;
-
-	uiRow = VIDEO_CELL_ROW(uiCell);
-	uiColumn = VIDEO_CELL_COLUMN(uiCell);
-	uiIndex = (uint16)(mauiRowCells[uiRow] + uiColumn);
-	uiGlyph = mauiGlyphs[mauiChars[uiIndex]];
-	uiBit = gauiVideoCellBits[uiColumn & 7];
-	if (muiFlags & VIDEO_FLAG_MEMORY_FRAME)
-	{
-		uiDirty = (uint16)(VIDEO_TEXT_FRAME_BYTES + (uiRow << 4) + (uiColumn >> 3));
-		uiGround = mauiRowGround[VIDEO_TEXT_MAX_ROWS + uiRow];
-	}
-	else
-	{
-		uiDirty = (uint16)((uiRow << 4) + (uiColumn >> 3));
-		uiGround = mauiRowGround[uiRow];
-	}
-	guiVideoCellPixel = muiWindow + mauiRowPixels[uiRow] + (uint32)(uiColumn << 3);
-
-	if (uiCell == muiCursor)
-	{
-		//The cursor's cell is all drawn, and isn't in its row's background after.
-		mpuiRegisters[VIDEO_PALETTE_BYTE] = VIDEO_TEXT_CURSOR_PALETTE;
-		VideoClearCell();
-		mauiDirty[uiDirty] |= uiBit;
-	}
-	else
-	{
-		uiColour = mauiColours[uiIndex];
-		mpuiRegisters[VIDEO_PALETTE_BYTE] = uiColour;
-		if ((uint8)(uiColour >> 4) != uiGround)
-		{
-			VideoClearCell();
-			mauiDirty[uiDirty] |= uiBit;
-		}
-		else if (mauiDirty[uiDirty] & uiBit)
-		{
-			VideoClearCell();
-			if (uiGlyph == 0)
-			{
-				mauiDirty[uiDirty] &= (uint8)~uiBit;
-				return;
-			}
-		}
-		else if (uiGlyph == 0)
-		{
-			return;
-		}
-		else
-		{
-			mauiDirty[uiDirty] |= uiBit;
-		}
-	}
-	if (uiGlyph != 0)
-	{
-		guiVideoCellGlyph = (uint32)&mauiFont[uiGlyph];
-		VideoDrawRuns();
-	}
+	uiRow = (uint16)(uiCell / guiVideoColumns);
+	return VIDEO_CELL(PhysicalRow(uiRow), (uint16)(uiCell - (uint32)uiRow * guiVideoColumns));
 }
 
 
@@ -411,9 +357,9 @@ void CKernalVideoBoard::RenderRowClear(uint16 uiRow, uint8 uiColour)
 {
 	uint16	uiFrame;
 
-	uiFrame = (muiFlags & VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0;
-	memset(&mauiDirty[(uiFrame ? VIDEO_TEXT_FRAME_BYTES : 0) + (uiRow << 4)], 0, VIDEO_TEXT_ROW_BYTES);
-	mauiRowGround[(uiFrame ? VIDEO_TEXT_MAX_ROWS : 0) + uiRow] = (uint8)(uiColour >> 4);
+	uiFrame = (guiVideoFlags & VIDEO_FLAG_MEMORY_FRAME) ? 1 : 0;
+	memset(&gauiVideoDirty[(uiFrame ? VIDEO_TEXT_FRAME_BYTES : 0) + (uiRow << 4)], 0, VIDEO_TEXT_ROW_BYTES);
+	gauiVideoRowGround[(uiFrame ? VIDEO_TEXT_MAX_ROWS : 0) + uiRow] = (uint8)(uiColour >> 4);
 	mpuiRegisters[VIDEO_PALETTE_BYTE] = uiColour;
 	guiVideoFillAddress = muiWindow + mauiRowPixels[uiRow];
 	guiVideoFillGroups = muiWidth;  //16 lines of the width, in sixteens.
@@ -431,14 +377,12 @@ void CKernalVideoBoard::RenderRowClear(uint16 uiRow, uint8 uiColour)
 void CKernalVideoBoard::CatchUp(void)
 {
 	uint16	uiRow;
-	uint16	uiColumn;
-	uint16	i;
 
 	if (!mbFlipped)
 	{
 		return;
 	}
-	for (uiRow = 0; uiRow < muiRows; uiRow++)
+	for (uiRow = 0; uiRow < guiVideoRows; uiRow++)
 	{
 		if (mauiRowClears[uiRow] != VIDEO_TEXT_NO_CLEAR)
 		{
@@ -446,48 +390,40 @@ void CKernalVideoBoard::CatchUp(void)
 			mauiRowClears[uiRow] = VIDEO_TEXT_NO_CLEAR;
 		}
 	}
-	if (mbPendingAll)
+	if (gbVideoPendingAll)
 	{
-		for (uiRow = 0; uiRow < muiRows; uiRow++)
-		{
-			for (uiColumn = 0; uiColumn < muiColumns; uiColumn++)
-			{
-				RenderCell(VIDEO_CELL(uiRow, uiColumn));
-			}
-		}
+		VideoRenderAll();
 	}
 	else
 	{
-		for (i = 0; i < muiPending; i++)
-		{
-			RenderCell(mauiPending[i]);
-		}
+		VideoRenderPending();
 	}
-	muiPending = 0;
-	mbPendingAll = false;
+	guiVideoPending = 0;
+	gbVideoPendingAll = 0;
 	mbFlipped = false;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The cell, as mauiChars and mauiColours have it, drawn in the frame being
+// The cell, as gauiVideoChars and gauiVideoCellColours have it, drawn in the frame being
 // drawn and owed to the other, which is shown at the next vertical blank.
 //
 //////////////////////////////////////////////////////////////////////////
 void CKernalVideoBoard::DrawCell(uint16 uiCell)
 {
 	CatchUp();
-	RenderCell(uiCell);
-	if (!mbPendingAll)
+	guiVideoCell = uiCell;
+	VideoRenderCell();
+	if (!gbVideoPendingAll)
 	{
-		if (muiPending < VIDEO_TEXT_MAX_PENDING)
+		if (guiVideoPending < VIDEO_TEXT_MAX_PENDING)
 		{
-			mauiPending[muiPending++] = uiCell;
+			gauiVideoPending[guiVideoPending++] = uiCell;
 		}
 		else
 		{
-			mbPendingAll = true;
+			gbVideoPendingAll = 1;
 		}
 	}
 	mbFlip = true;
@@ -503,10 +439,10 @@ void CKernalVideoBoard::DrawCell(uint16 uiCell)
 void CKernalVideoBoard::ClearRow(uint16 uiRow)
 {
 	CatchUp();
-	memset(&mauiChars[mauiRowCells[uiRow]], ' ', muiColumns);
-	memset(&mauiColours[mauiRowCells[uiRow]], muiTextColour, muiColumns);
-	RenderRowClear(uiRow, muiTextColour);
-	mauiRowClears[uiRow] = muiTextColour;
+	memset(&gauiVideoChars[gauiVideoRowCells[uiRow]], ' ', guiVideoColumns);
+	memset(&gauiVideoCellColours[gauiVideoRowCells[uiRow]], guiVideoTextColour, guiVideoColumns);
+	RenderRowClear(uiRow, guiVideoTextColour);
+	mauiRowClears[uiRow] = guiVideoTextColour;
 	mbFlip = true;
 }
 
@@ -516,22 +452,19 @@ void CKernalVideoBoard::ClearRow(uint16 uiRow)
 // The running process's uiLength characters at uiUserAddress into the
 // text from logical cell uiCell, in the text colour.  The cursor's cell
 // written over is no longer the cursor's.  Only cells that change are
-// drawn.
+// drawn (VideoWriteCells), and owed to the other frame.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
 {
 	uint8	auiChars[VIDEO_TEXT_CHUNK];
 	uint32	uiChunk;
-	uint16	uiPhysical;
-	uint16	uiIndex;
-	uint16	i;
 
-	if (!mbText || (uiCell >= (uint32)mauiRowCells[muiRows]) || (uiLength > (uint32)mauiRowCells[muiRows] - uiCell))
+	if (!mbText || (uiCell >= (uint32)gauiVideoRowCells[guiVideoRows]) || (uiLength > (uint32)gauiVideoRowCells[guiVideoRows] - uiCell))
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
 	}
-	uiPhysical = PhysicalCell(uiCell);
+	guiVideoCell = PhysicalCell(uiCell);
 	while (uiLength > 0)
 	{
 		uiChunk = (uiLength < VIDEO_TEXT_CHUNK) ? uiLength : VIDEO_TEXT_CHUNK;
@@ -539,28 +472,13 @@ uint16 CKernalVideoBoard::WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
-		for (i = 0; i < uiChunk; i++)
+		CatchUp();
+		guiVideoSource = (uint32)auiChars;
+		guiVideoCount = (uint16)uiChunk;
+		VideoWriteCells();
+		if (guiVideoDrew)
 		{
-			//A cell that is already this (a space where the line is blank) isn't drawn again.
-			uiIndex = (uint16)(mauiRowCells[VIDEO_CELL_ROW(uiPhysical)] + VIDEO_CELL_COLUMN(uiPhysical));
-			if ((mauiChars[uiIndex] != auiChars[i]) || (mauiColours[uiIndex] != muiTextColour) || (uiPhysical == muiCursor))
-			{
-				mauiChars[uiIndex] = auiChars[i];
-				mauiColours[uiIndex] = muiTextColour;
-				if (uiPhysical == muiCursor)
-				{
-					muiCursor = VIDEO_CURSOR_NONE;
-				}
-				DrawCell(uiPhysical);
-			}
-
-			//The next cell: along the row, then the start of the next row down (the first after the last).
-			uiPhysical++;
-			if (VIDEO_CELL_COLUMN(uiPhysical) == muiColumns)
-			{
-				uiPhysical = (uint16)(VIDEO_CELL_ROW(uiPhysical) + 1);
-				uiPhysical = VIDEO_CELL((uiPhysical == muiRows) ? 0 : uiPhysical, 0);
-			}
+			mbFlip = true;
 		}
 		*puiDone += uiChunk;
 		uiUserAddress += uiChunk;
@@ -581,7 +499,7 @@ uint16 CKernalVideoBoard::ScrollText(uint32 uiLines)
 {
 	uint16	uiLine;
 
-	if (!mbText || (uiLines == 0) || (uiLines > muiRows))
+	if (!mbText || (uiLines == 0) || (uiLines > guiVideoRows))
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
 	}
@@ -589,11 +507,11 @@ uint16 CKernalVideoBoard::ScrollText(uint32 uiLines)
 	for (uiLine = 0; uiLine < uiLines; uiLine++)
 	{
 		muiTop++;
-		if (muiTop == muiRows)
+		if (muiTop == guiVideoRows)
 		{
 			muiTop = 0;
 		}
-		ClearRow(PhysicalRow((uint16)(muiRows - 1)));
+		ClearRow(PhysicalRow((uint16)(guiVideoRows - 1)));
 	}
 	return KERNAL_DRIVER_SUCCESS;
 }
@@ -612,8 +530,8 @@ uint16 CKernalVideoBoard::ClearText(void)
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
 	}
-	muiCursor = VIDEO_CURSOR_NONE;
-	for (uiRow = 0; uiRow < muiRows; uiRow++)
+	guiVideoCursor = VIDEO_CURSOR_NONE;
+	for (uiRow = 0; uiRow < guiVideoRows; uiRow++)
 	{
 		ClearRow(uiRow);
 	}
@@ -631,12 +549,12 @@ void CKernalVideoBoard::SetCursorCell(uint16 uiCell)
 {
 	uint16	uiOld;
 
-	uiOld = muiCursor;
+	uiOld = guiVideoCursor;
 	if (uiOld == uiCell)
 	{
 		return;
 	}
-	muiCursor = uiCell;
+	guiVideoCursor = uiCell;
 	if (uiOld != VIDEO_CURSOR_NONE)
 	{
 		DrawCell(uiOld);

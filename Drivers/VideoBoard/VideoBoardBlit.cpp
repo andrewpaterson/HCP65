@@ -130,15 +130,17 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 //////////////////////////////////////////////////////////////////////////
 //
 // A transparent image: the part of each of its runs that is inside the
-// clip rectangle.  A run that isn't in the image (past its right, its
+// clip rectangle (of a mixed run, the pixels that aren't transparent).  A run that isn't in the image (past its right, its
 // last row or its size) is KERNAL_DRIVER_BAD_ARGUMENT.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip)
 {
 	uint8*	puiCode;
+	uint8*	puiPixel;
 	uint8	uiCode;
 	uint16	uiCount;
+	bool	bMixed;
 	uint32	uiOffset;
 	uint32	uiX;
 	uint32	uiRow;
@@ -166,11 +168,17 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 			return KERNAL_DRIVER_SUCCESS;
 		}
 
-		if (uiCode >= SFT_RUN_SKIP)
+		bMixed = (uiCode >= SFT_RUN_MIXED);
+		if (bMixed)
+		{
+			uiCode = (uint8)((uiCode & SFT_RUN_MIXED_MASK) + 1);
+		}
+		else if (uiCode >= SFT_RUN_SKIP)
 		{
 			uiCount = (uint16)((uiCode & SFT_RUN_COUNT_MASK) + 1);
 			if (uiCode >= SFT_RUN_ROWS)
 			{
+				uiCount = (uint16)((uiCode & SFT_RUN_ROWS_MASK) + 1);
 				uiRow += uiCount;
 				iY += uiCount;
 				uiX = 0;
@@ -186,7 +194,7 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 			continue;
 		}
 
-		//A run of uiCode pixels.
+		//A run of uiCode pixels, all of them drawn or (a mixed run) those that aren't SFT_PIXEL_TRANSPARENT.
 		if ((uiRow >= uiHeight) || (uiX + uiCode > uiWidth) || (psBlit->uiSize - uiOffset < uiCode))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
@@ -203,7 +211,22 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 			{
 				iLeft = paiClip[VIDEO_CLIP_LEFT];
 			}
-			if (iLeft < iRight)
+			if (bMixed)
+			{
+				for (; iLeft < iRight; iLeft++)
+				{
+					puiPixel = KernalUserPointer(psBlit->uiImage + uiOffset + (uint32)(iLeft - psBlit->iX - (int32)uiX), NULL);
+					if (!puiPixel)
+					{
+						return KERNAL_DRIVER_BAD_ARGUMENT;
+					}
+					if (*puiPixel != SFT_PIXEL_TRANSPARENT)
+					{
+						*((uint8*)(muiWindow + (uint32)(iRowPixel + iLeft))) = *puiPixel;
+					}
+				}
+			}
+			else if (iLeft < iRight)
 			{
 				if (!BlitPixels((uint32)(iRowPixel + iLeft), psBlit->uiImage + uiOffset + (uint32)(iLeft - psBlit->iX - (int32)uiX), (uint32)(iRight - iLeft)))
 				{

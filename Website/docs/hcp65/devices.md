@@ -234,7 +234,11 @@ sockets get the windows after the memory boards', in the same order; their memor
 memory, and their drivers find their window in their device's `uiWindow`.  With both, two windows
 are left for memory boards; no more than four boards with windows are expected.  Of the banks they make, from `$200000` up, it keeps four for the
 [maths tables](runtime/w65c816.md#the-maths-tables) and one for its main memory heap (what the SD Card
-Board's DMA must reach), and gives the rest to processes.  With one board the tables are banks
+Board's DMA must reach, and where a driver keeps what is too big for MPU RAM: the Video Board's
+driver's font), and gives the rest to processes.  The heap grows: when it hasn't room it takes banks
+no process has, from the top of main memory down, and gives them back once nothing is allocated in
+them.  Memory bigger than a bank takes a run of neighbouring banks; memory that must be all in one
+bank (what a 16 bit index reads) is asked for as such.  With one board the tables are banks
 `$40`–`$43`, the heap `$44` and processes `$45`–`$7F`.  Without a memory board the kernel stops
 once it has scanned the devices: the SD Card Board has nothing to read into.
 

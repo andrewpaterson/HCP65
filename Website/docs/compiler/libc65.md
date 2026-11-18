@@ -50,8 +50,10 @@ device: a program running on an emulator reads and writes files on the computer 
 `printf` is not correctly rounded past about 15 significant digits for floating point, and `strtod`
 is within an ulp or so.
 
-`exit` calls the `atexit` functions (at most 32, last first) and the global destructors, then
-`_Exit`, which stops with the status in A.  `abort` is `_Exit(EXIT_FAILURE)`.
+`exit` runs what returning from `main` runs, then `_Exit`, which stops with the status in A: the
+`thread_local` objects' destructors, then the `atexit` functions (at most 32) and the destructors of
+globals and static locals, on one list, so they run in the reverse of the order they were registered
+or made, then the destructors of globals made in the data.  `abort` is `_Exit(EXIT_FAILURE)`.
 
 There is no clock yet: `time` is 0 and `clock` is -1.  `gmtime`, `localtime` (UTC) and `mktime` work
 in integers only.

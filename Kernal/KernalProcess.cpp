@@ -34,7 +34,6 @@ static const uint8 gauiKernalLowHeapBanks[] = { 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x
 SKernalCall			gsKernalCall;
 static uint8		guiKernalProcess;							//The process running (or calling), 0 for none.
 static uint16		gauiKernalArguments[256];					//Each process ID's argument.
-static uint8		gauiKernalBankOwners[KERNAL_NUM_BANKS];					//The process ID a physical bank is given to.
 static bool			gbKernalCopy;								//User addresses are kernal addresses (KernalSetKernalCopy).
 static uint8*			gpuiKernalArguments;					//The call's arguments, on the process's stack in its bank 0.
 

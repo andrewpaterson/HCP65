@@ -4,7 +4,7 @@
 
 CONSOLE.SFT is an SFT container (CommonLibraries' SupportLib/SFTCommon.h) of 256 transparent images of 8 by 16, in
 Latin-1 order (image n is the character U+00n): what a blit draws.  A glyph's pixels are $FF, and the rest of it
-isn't drawn.  The control characters ($00-$1F and $7F to $9F) are blank, as is any character the font hasn't.  The
+isn't drawn.  Each row of a glyph is one run: a mixed run, whose gaps are transparent pixels, where it has gaps.  The control characters ($00-$1F and $7F to $9F) are blank, as is any character the font hasn't.  The
 console loads it from the SD card's \\OS\\Fonts\\CONSOLE.SFT.
 
 CONSOLE.bmp is the same glyphs as a 24 bit Windows bitmap of 128 by 256, white on black: sixteen to a row, glyph n at
@@ -32,8 +32,12 @@ SFT_TYPE_CONTAINER = 0xE4EF
 SFT_RUN_END = 0x00
 SFT_RUN_SKIP = 0x80
 SFT_RUN_ROWS = 0xC0
+SFT_RUN_MIXED = 0xE0
 SFT_RUN_MAX_COUNT = 0x40
+SFT_RUN_MAX_ROWS = 0x20
 SFT_PIXEL = 0xFF
+SFT_TRANSPARENT = 0x00
+MERGE_GAP = GLYPH_WIDTH     #A row's runs this near each other are one mixed run: 0 for none.
 SFT_BLOCK = 0x10000
 
 
@@ -81,10 +85,11 @@ def ReadFont(szPath):
     raise ValueError(szPath + " isn't a PC Screen Font.")
 
 
-def AddSFTCount(abImage, iCode, iCount):
-    """iCount pixels skipped (SFT_RUN_SKIP) or rows moved down (SFT_RUN_ROWS), SFT_RUN_MAX_COUNT at a time."""
+def AddSFTCount(abImage, iCode, iCount, iMax):
+    """iCount pixels skipped (SFT_RUN_SKIP, iMax SFT_RUN_MAX_COUNT) or rows moved down (SFT_RUN_ROWS,
+    SFT_RUN_MAX_ROWS), iMax at a time."""
     while iCount > 0:
-        iChunk = min(iCount, SFT_RUN_MAX_COUNT)
+        iChunk = min(iCount, iMax)
         abImage.append(iCode | (iChunk - 1))
         iCount -= iChunk
 
@@ -93,28 +98,48 @@ def MakeSFTImage(abGlyph):
     """The glyph (a row a byte, its leftmost pixel bit 7) as a transparent SFT image.
 
     After its type, width and height it is bytes: 1 to 127 is that many pixels, which follow; SFT_RUN_SKIP + (n - 1)
-    skips n pixels across; SFT_RUN_ROWS + (n - 1) moves n rows down to the row's left; SFT_RUN_END ends it.  A row
-    that has pixels is reached by moving down from the last that had.
+    skips n pixels across; SFT_RUN_ROWS + (n - 1) moves n rows down to the row's left; SFT_RUN_MIXED + (n - 1) is n
+    pixels, which follow, of which those that are SFT_TRANSPARENT aren't drawn; SFT_RUN_END ends it.  A row that has
+    pixels is reached by moving down from the last that had.
+
+    A row's runs that are no more than MERGE_GAP pixels apart are one mixed run, so that a row is one copy for a
+    blitter: with a gap of the glyph's width, every row is.
     """
     abImage = bytearray(struct.pack("<3H", SFT_TYPE_TRANSPARENT, GLYPH_WIDTH, GLYPH_HEIGHT))
     iRows = 0
     for iRow in range(GLYPH_HEIGHT):
+        abPixels = [bool(abGlyph[iRow] & (0x80 >> iColumn)) for iColumn in range(GLYPH_WIDTH)]
         iSkip = 0
-        iLength = 0
-        for iColumn in range(GLYPH_WIDTH + 1):
-            bPixel = (iColumn < GLYPH_WIDTH) and bool(abGlyph[iRow] & (0x80 >> iColumn))
-            if bPixel:
-                iLength += 1
-            elif iLength:
-                AddSFTCount(abImage, SFT_RUN_ROWS, iRows)
-                AddSFTCount(abImage, SFT_RUN_SKIP, iSkip)
-                abImage.append(iLength)
-                abImage += bytes([SFT_PIXEL]) * iLength
-                iRows = 0
-                iSkip = 1
-                iLength = 0
-            else:
+        iColumn = 0
+        while iColumn < GLYPH_WIDTH:
+            if not abPixels[iColumn]:
                 iSkip += 1
+                iColumn += 1
+                continue
+
+            #A run, and the runs after it that are near enough to be one with it.
+            iStart = iColumn
+            iEnd = iStart
+            bMixed = False
+            while True:
+                while (iEnd < GLYPH_WIDTH) and abPixels[iEnd]:
+                    iEnd += 1
+                iNext = iEnd
+                while (iNext < GLYPH_WIDTH) and not abPixels[iNext]:
+                    iNext += 1
+                if (iNext == GLYPH_WIDTH) or (iNext - iEnd > MERGE_GAP):
+                    break
+                bMixed = True
+                iEnd = iNext
+
+            AddSFTCount(abImage, SFT_RUN_ROWS, iRows, SFT_RUN_MAX_ROWS)
+            AddSFTCount(abImage, SFT_RUN_SKIP, iSkip, SFT_RUN_MAX_COUNT)
+            iLength = iEnd - iStart
+            abImage.append((SFT_RUN_MIXED | (iLength - 1)) if bMixed else iLength)
+            abImage += bytes(SFT_PIXEL if abPixels[i] else SFT_TRANSPARENT for i in range(iStart, iEnd))
+            iRows = 0
+            iSkip = 0
+            iColumn = iEnd
         iRows += 1
     abImage.append(SFT_RUN_END)
     return bytes(abImage)

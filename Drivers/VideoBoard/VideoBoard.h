@@ -1,6 +1,7 @@
 #ifndef __VIDEO_BOARD_H__
 #define __VIDEO_BOARD_H__
 #include "KernalDriver.h"
+#include "KernalMemory.h"
 #include "UserLib/HCP65User.h"
 #include "UserLib/HCP65VideoBoard.h"
 
@@ -61,6 +62,55 @@ struct SVideoMode
 };
 
 
+//What the driver's assembly (VideoBoardRender.asm) works on with the driver: the one board's.
+//
+//Text.  A cell's physical row is its row moved down by the scroll, muiTop (the row table shows physical row muiTop
+//first); a cell is its physical row (D8-D15) and column (D0-D7).  What each cell is (gauiVideoChars, gauiVideoCellColours,
+//at gauiVideoRowCells[row] + column) is drawn in the frame being drawn, and what the other frame is owed is kept to
+//draw in it once the frames have flipped (mbFlipped): rows to clear (mauiRowClears, the colour), then cells
+//(gauiVideoPending, or all of them).
+//
+//The font is an SFT container of 256 transparent images of 8 by 16 (UserLib/HCP65SFT.h), which SetTextMode checks:
+//gauiVideoGlyphs is where each one's runs start in it, 0 for one without a pixel.  A glyph's runs draw only its pixels,
+//so the cell under them must be blank in the colour's background: each frame keeps which of its cells aren't
+//(gauiVideoDirty, a bit a cell) and the background each row was last cleared to (gauiVideoRowGround), and a cell that
+//isn't is cleared first.
+extern "C"
+{
+	extern uint8	guiVideoFlags;			//What Flags was last written.
+	extern uint16	guiVideoWidth;			//The pixels in a line.
+	extern uint32	guiVideoPalette;		//The Palette Byte register's address.
+	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap in one bank, NULL if there were none.
+	extern uint16	guiVideoColumns;
+	extern uint16	guiVideoRows;
+	extern uint8	guiVideoTextColour;
+	extern uint16	guiVideoCursor;			//Its physical cell, VIDEO_CURSOR_NONE if none.
+	extern uint16	guiVideoPending;
+	extern uint8	gbVideoPendingAll;
+	extern uint16	gauiVideoRowCells[VIDEO_TEXT_MAX_ROWS + 1];	//Each row's first cell in gauiVideoChars: row x columns.
+	extern uint32	gauiVideoRowAddress[VIDEO_TEXT_MAX_ROWS + 1];	//Each row's first pixel's address in the window.
+	extern uint8	gauiVideoChars[VIDEO_TEXT_MAX_CELLS];
+	extern uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
+	extern uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
+	extern uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
+	extern uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];	//Frame 0's rows, each VIDEO_TEXT_ROW_BYTES, then frame 1's.
+	extern uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
+
+	extern uint16	guiVideoCell;			//VideoRenderCell's cell; VideoWriteCells' first, then the one after its last.
+	extern uint32	guiVideoSource;			//VideoWriteCells' characters' address,
+	extern uint16	guiVideoCount;			//how many,
+	extern uint16	guiVideoDrew;			//and whether any was drawn.
+	extern uint32	guiVideoFillAddress;	//VideoFillZero: the first byte
+	extern uint16	guiVideoFillGroups;		//and how many sixteens of them.
+
+	void	VideoRenderCell(void);
+	void	VideoRenderPending(void);
+	void	VideoRenderAll(void);
+	void	VideoWriteCells(void);
+	void	VideoFillZero(void);
+}
+
+
 //The HCP65 Video Board's driver: its units are the board's memories (VIDEO_BOARD_PIXELS ...) and its text
 //(VIDEO_BOARD_TEXT, VIDEO_BOARD_FONT: VideoBoardText.cpp), and a program has the whole board.  The pixels and their
 //palette numbers are the board's main memory window (the frame the processor has); the palettes and the row table its
@@ -70,7 +120,6 @@ struct SVideoMode
 class CKernalVideoBoard : public CKernalDriver
 {
 protected:
-	uint8			muiFlags;		//What Flags was last written.
 	uint8			muiMode;		//VIDEO_MODE_*, 0xFF if none.
 	uint16			muiWidth;
 	uint16			muiHeight;
@@ -78,39 +127,15 @@ protected:
 	volatile uint32	muiVBlanks;
 	uint32			muiWindow;		//The main memory window's first address, 0 if it can't be reached.
 
-	//Text.  A cell's physical row is its row moved down by the scroll, muiTop (the row table shows physical row muiTop
-	//first); a cell is its physical row (D8-D15) and column (D0-D7).  What each cell is (mauiChars, mauiColours, at
-	//mauiRowCells[row] + column) is drawn in the frame being drawn, and what the other frame is owed is kept to draw in
-	//it once the frames have flipped (mbFlipped): rows to clear (mauiRowClears, the colour), then cells (mauiPending,
-	//or all of them).
-	//
-	//The font is an SFT container of 256 transparent images of 8 by 16 (UserLib/HCP65SFT.h), which SetTextMode checks:
-	//mauiGlyphs is where each one's runs start in it, 0 for one without a pixel.  A glyph's runs draw only its pixels
-	//(VideoBoardRender.asm), so the cell under them must be blank in the colour's background: each frame keeps which of
-	//its cells aren't (mauiDirty, a bit a cell) and the background each row was last cleared to (mauiRowGround), and a
-	//cell that isn't is cleared first.
+	//Text (the cells themselves are the globals above).
 	bool			mbText;
-	uint16			muiColumns;
-	uint16			muiRows;
 	uint16			muiTop;
 	uint16			muiShownTop;	//The row table's.
-	uint8			muiTextColour;
-	uint16			muiCursor;		//Its physical cell, VIDEO_CURSOR_NONE if none.
 	uint8			muiBlink;
-	uint16			muiPending;
-	bool			mbPendingAll;
 	volatile bool	mbFlipped;
-	uint16			mauiRowCells[VIDEO_TEXT_MAX_ROWS + 1];		//Each row's first cell in mauiChars: row x columns.
 	uint32			mauiRowPixels[VIDEO_TEXT_MAX_ROWS + 1];	//Each row's first pixel in a frame: row x 16 x width.
 	uint8			mauiRowClears[VIDEO_TEXT_MAX_ROWS];
-	uint8			mauiChars[VIDEO_TEXT_MAX_CELLS];
-	uint8			mauiColours[VIDEO_TEXT_MAX_CELLS];
-	uint16			mauiPending[VIDEO_TEXT_MAX_PENDING];
-	uint8			mauiFont[VIDEO_FONT_SIZE];
-	uint16			muiFontSize;	//The bytes of it written.
-	uint16			mauiGlyphs[VIDEO_TEXT_GLYPHS];
-	uint8			mauiDirty[2 * VIDEO_TEXT_FRAME_BYTES];	//Frame 0's rows, each VIDEO_TEXT_ROW_BYTES, then frame 1's.
-	uint8			mauiRowGround[2 * VIDEO_TEXT_MAX_ROWS];
+	uint16			muiFontSize;	//The bytes of the font written.
 
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
@@ -140,7 +165,6 @@ protected:
 	void	WriteTextRows(uint16 uiTop);
 	uint16	PhysicalCell(uint32 uiCell);
 	uint16	PhysicalRow(uint16 uiRow);
-	void	RenderCell(uint16 uiCell);
 	void	RenderRowClear(uint16 uiRow, uint8 uiColour);
 	void	CatchUp(void);
 	void	DrawCell(uint16 uiCell);

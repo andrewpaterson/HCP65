@@ -48,9 +48,12 @@ SFT is the image format CommonLibraries' SupportLib reads and writes (`SFTReader
 
 - **Opaque** images are a width and height, then their rows.
 - **Transparent** images are a width and height, then one byte codes: 1 to 127 draws that many
-  pixels, which follow; `$80` + *n* - 1 skips *n* pixels across; `$C0` + *n* - 1 moves *n* rows
-  down; 0 ends the image.  What isn't drawn stays as it was, so they are sprites, pointers and
-  glyphs.
+  pixels, which follow; `$80` + *n* - 1 skips *n* pixels across (up to 64); `$C0` + *n* - 1 moves
+  *n* rows down (up to 32); `$E0` + *n* - 1 is a mixed run of *n* pixels (up to 32), which follow,
+  of which those that are 0 aren't drawn; 0 ends the image.  What isn't drawn stays as it was, so
+  they are sprites, pointers and glyphs.  A mixed run is a run with short gaps in it, which a
+  blitter draws as one copy that leaves a colour out; the console's font has one for each row of a
+  glyph.
 - **Containers** hold many images in one file.  `SFTContainedImage` finds one by its number.
 
 What the blit takes (`SKernalBlit`):
