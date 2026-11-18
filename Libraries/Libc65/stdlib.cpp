@@ -572,36 +572,65 @@ void abort(void)
 }
 
 
-//The functions atexit registered, called last first by exit and when main returns.
+//The start up's exit lists: what is done when the program ends, last pushed first.  An object made at start up or a
+//static local is pushed when it has been made (the compiler's CCPP65IRFrontEnd::PushExitNode), and a function atexit
+//registers when it is registered, so they interleave; thread_local objects have their own list, run first.
+//[basic.start.term] 1, 3
+struct SExitNode
+{
+	SExitNode*	psNext;
+	void		(*pfFunction)(void);
+};
+extern "C" SExitNode*	_ExitList;
+extern "C" SExitNode*	_ThreadExitList;
+
+
+//The nodes of the functions atexit registered.
 #define ATEXIT_MAX		32
-typedef void (*FAtExit)(void);
-static FAtExit	gafAtExit[ATEXIT_MAX];
-static int		giAtExits;
+static SExitNode	gasAtExit[ATEXIT_MAX];
+static int			giAtExits;
 
 
 //Registers fFunction to be called by exit.  Returns -1 when ATEXIT_MAX are registered already.
 int atexit(void (*fFunction)(void))
 {
+	SExitNode*	psNode;
+
 	if (giAtExits == ATEXIT_MAX)
 	{
 		return -1;
 	}
-	gafAtExit[giAtExits] = fFunction;
+	psNode = &gasAtExit[giAtExits];
 	giAtExits++;
+	psNode->pfFunction = fFunction;
+	psNode->psNext = _ExitList;
+	_ExitList = psNode;
 	return 0;
 }
 
 
-//Calls the atexit functions, last first.  The start up calls it (when stdlib.cpp is linked) after main returns,
-//before the destructors of globals.
+//Each node on the list, last pushed first, taken off before its function is called (which may push more).
+static void RunExitList(SExitNode** ppsList)
+{
+	SExitNode*	psNode;
+
+	while (*ppsList)
+	{
+		psNode = *ppsList;
+		*ppsList = psNode->psNext;
+		psNode->pfFunction();
+	}
+}
+
+
+//The thread_local objects' exit list, then the other: the destructors of what was made at start up and of static
+//locals, and the atexit functions, last first.  The start up calls it (when stdlib.cpp is linked) after main returns,
+//before the fini table.
 extern "C" void __RunAtExit(void);
 void __RunAtExit(void)
 {
-	while (giAtExits > 0)
-	{
-		giAtExits--;
-		gafAtExit[giAtExits]();
-	}
+	RunExitList(&_ThreadExitList);
+	RunExitList(&_ExitList);
 }
 
 
@@ -611,8 +640,8 @@ extern "C" char	_fini_start;
 extern "C" char	_fini_end;
 
 
-//Runs the atexit functions and the finalisers (the destructors of globals) backwards, as returning from main
-//does, then stops.
+//Runs the exit lists (the atexit functions and the destructors of what was made at start up), then the fini table
+//(the destructors of globals made in the data) backwards, as returning from main does, then stops.
 void exit(int iStatus)
 {
 	FFinalise*	pfFinalise;

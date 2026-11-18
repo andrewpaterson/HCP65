@@ -2,8 +2,11 @@
 ;
 ; The kernal maps the process's banks, puts the program's sections in them and RTIs to UserStart in user mode, with
 ; S at the top of the process's bank 0, 8 bit registers and interrupts off.  UserStart goes 16 bit, sets the stack and
-; the direct page, clears bss, calls the init table's routines (each global's R_Initialise, in link order) and main, then exits
-; with main's result (COP 0).  Code and data are linked from bank 1; bank 0 is the stack and direct page.
+; the direct page, clears bss, calls the init table's routines (each global's R_Initialise, in link order) and main, then
+; runs the exit lists (Libc65's __RunAtExit when stdlib.cpp is linked, else the compiler's R_RunExitLists: the atexit
+; functions and the destructors of what was made at start up and of static locals, last first) and the fini table's
+; routines last first, and exits with main's result (COP 0).  Code and data are linked from bank 1; bank 0 is the stack
+; and direct page.
 
 USER_STACK_TOP	= 0xEFFF
 
@@ -88,11 +91,48 @@ UserInitialiseCall:
 UserMain:
 		jsl _main
 		.width (A, X), 16
+		pha
+		.weak ___RunAtExit
+		.weak R_RunExitLists
+		lda ___RunAtExit & 0xFFFF
+		ora ___RunAtExit >> 16
+		beq UserExitLists
+		jsl ___RunAtExit
+		bra UserExitListsDone
+UserExitLists:
+		lda R_RunExitLists & 0xFFFF
+		ora R_RunExitLists >> 16
+		beq UserExitListsDone
+		jsl R_RunExitLists
+UserExitListsDone:
+		lda __fini_end & 0xFFFF
+		sta [D + 0]
+		lda __fini_end >> 16
+		sta [D + 2]
+UserFinalise:
+		lda [D + 0]
+		cmp __fini_start & 0xFFFF
+		bne UserFinaliseCall
+		lda [D + 2]
+		cmp __fini_start >> 16
+		beq UserFinalised
+UserFinaliseCall:
+		sec
+		lda [D + 0]
+		sbc 4
+		sta [D + 0]
+		lda [D + 2]
+		sbc 0
+		sta [D + 2]
+		jsr UserCallEntry
+		bra UserFinalise
+UserFinalised:
+		pla
 UserExit:
 		cop 0
 		bra UserExit
 
-		; Calls the routine the init table entry [D + 0] points at.
+		; Calls the routine the init or fini table entry [D + 0] points at.
 UserCallEntry:
 		.width (A, X), 16
 		ldy 0
@@ -120,3 +160,12 @@ __Exit:
 		.width (A, X), 16
 		lda [S + 4]
 		bra UserExit
+
+		; The exit lists' heads (the compiler's start up has its own, CCPPTarget::AppendExitLists): empty.
+		.section data.ExitLists, keep
+		.align 4
+		.global __ExitList, __ThreadExitList
+__ExitList:
+		.long 0
+__ThreadExitList:
+		.long 0

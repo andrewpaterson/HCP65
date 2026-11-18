@@ -621,6 +621,30 @@ void TestLibc65StdlibAtExit(void)
 	AssertInt(0, TestLibc65Return(&sRun));
 	AssertInt(32, TestLibc65Result(&sRun, 0));
 	TestLibc65End(&sRun);
+
+	//A static local made between two registrations is destroyed between their functions: atexit and the objects made
+	//share one list, run last first (the compiler's question 11).  [basic.start.term] 3
+	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
+		"#include <stdlib.h>\n"
+		"int giNext;\n"
+		"void Log(int i) { ((long*)0x100000)[giNext] = i; giNext++; }\n"
+		"struct SLocal { ~SLocal() { Log(7); } };\n"
+		"void Made() { static SLocal s; }\n"
+		"void First() { Log(1); }\n"
+		"void Second() { Log(2); }\n"
+		"int main()\n"
+		"{\n"
+		"	atexit(First);\n"
+		"	Made();\n"
+		"	atexit(Second);\n"
+		"	return 0;\n"
+		"}\n"));
+	AssertTrue(TestLibc65Run(&sRun, 2000000));
+	AssertInt(0, TestLibc65Return(&sRun));
+	AssertInt(2, TestLibc65Result(&sRun, 0));
+	AssertInt(7, TestLibc65Result(&sRun, 1));
+	AssertInt(1, TestLibc65Result(&sRun, 2));
+	TestLibc65End(&sRun);
 }
 
 
