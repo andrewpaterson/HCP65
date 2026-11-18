@@ -27,13 +27,10 @@
 //
 //A copy is the addresses, the count's stop (its start stays 0) and Start, then a wait for the count to reach the stop:
 //the board has main memory until then, and the driver, which is in MPU RAM, reads only the board.  The interrupt isn't
-//used.  The flags, the transparent colour and the stop are only written when they change.
+//used.  The flags, the transparent colour and the stop are written for every copy, as the Video Board's driver gives the
+//board its text's copies itself (gpuiKernalBlitter) and leaves them as it had them.
 class CKernalBlitterBoard : public CKernalDriver
 {
-protected:
-	uint16	muiTransparent;		//What the board is set to leave out: a colour, or KERNAL_COPY_OPAQUE.
-	uint16	muiStop;			//What its count's stop is.
-
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
 	void	Kill(void) override;

@@ -92,6 +92,11 @@ protected:
 typedef void (*KernalMainCopier)(void* pvContext, uint32 uiDest, uint32 uiSource, uint16 uiCount, uint16 uiTransparent);
 
 void			KernalSetMainCopier(KernalMainCopier fCopier, void* pvContext);
+
+//The Blitter Board's registers while its driver is loaded, NULL when it isn't: for a driver that gives the board its
+//copies itself (the Video Board's text).  Such a driver leaves the board's count's start 0, and what else it set as it
+//likes: the board's driver sets all of it for each copy.
+extern "C" volatile uint8*	gpuiKernalBlitter;
 void			KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, uint16 uiTransparent);
 
 uint16			KernalStartDriver(CKernalDriver* pcDriver, uint16 uiSlot);

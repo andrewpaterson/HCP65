@@ -10,6 +10,8 @@ static CKernalDriver*	gapcKernalDrivers[KERNAL_NUM_DEVICE_SLOTS];
 static KernalMainCopier	gfKernalMainCopier;
 static void*			gpvKernalMainCopier;
 
+volatile uint8*			gpuiKernalBlitter;
+
 
 //////////////////////////////////////////////////////////////////////////
 //

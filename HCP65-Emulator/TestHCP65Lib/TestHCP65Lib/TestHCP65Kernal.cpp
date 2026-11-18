@@ -2560,9 +2560,9 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 //
 // The console's machine with a Blitter Board too (Machines/Blitter.xml):
 // its driver is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
-// sprites' blits make are the board's, not the processor's.  The picture
-// is the same, and the processor never touches main memory while the
-// board has it.  The console's text isn't the board's.
+// the console's glyphs and sprites' blits make are the board's, not the
+// processor's.  The text and the picture are the same, and the processor
+// never touches main memory while the board has it.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65KernalBlitter(STestKernal* psKernal)
@@ -2572,6 +2572,7 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	CHCP65SDCard*		pcSDCard;
 	CHCP65BlitterBoard*	pcBlitter;
 	CChars				szScreen;
+	uint64				uiText;
 
 	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
 	if (!TestKernalPutSystemFiles())
@@ -2599,17 +2600,26 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
 	TestKernalStart(&sConsole.cHCP65, psKernal);
 
-	//The board's driver is loaded and has enabled it; the text so far wasn't its.
+	//The board's driver is loaded and has enabled it (the text's last run was a mixed one, so it is left transparent).
 	szScreen.Init();
 	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
 	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
 	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET), sStatus.uiLoadedDrivers);
-	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
-	AssertLong(0, (int64)pcBlitter->NumBytesCopied());
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
+
+	//The banner's and the prompt's glyphs were its copies, a run of pixels each: more than a copy for each character, and
+	//not eight pixels for each row of one.
+	uiText = pcBlitter->NumBytesCopied();
+	AssertTrue(uiText > strlen(TEST_HCP65_SHELL_BANNER) * 16);
+	AssertTrue(uiText < strlen(TEST_HCP65_SHELL_BANNER) * 128);
+	TestConsoleType(&sConsole, "cat hello.txt\r");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $ cat hello.txt\nHello from the SD card.\n/ $\n", &szScreen));
+	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 400);
+	uiText = pcBlitter->NumBytesCopied();
 
 	//sprites' picture, drawn by the board.
 	TestConsoleSprites(&sConsole);
-	AssertTrue(pcBlitter->NumBytesCopied() > 5000);
+	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 5000);
 	AssertFalse(pcBlitter->IsCopying());
 	AssertFalse(sConsole.cHCP65.IsContention());
 	TestConsoleType(&sConsole, " ");

@@ -158,6 +158,8 @@ _gauiKernalExports:
 		.long _KernalSetMainCopier__FPFvPvjjttEPv
 		.long Export_KernalSetMainCopier_ax
 		.long _KernalSetMainCopier__FPFvPvjjttEPv.ax
+		.long Export_gpuiKernalBlitter
+		.long _gpuiKernalBlitter
 		.long Export_KernalMainCopy__FPhPKhtt
 		.long _KernalMainCopy__FPhPKhtt
 		.long Export_KernalMainCopy__FPhPKhtt_axssy
@@ -308,6 +310,8 @@ Export_KernalSetMainCopier:
 		.byte "_KernalSetMainCopier__FPFvPvjjttEPv", 0
 Export_KernalSetMainCopier_ax:
 		.byte "_KernalSetMainCopier__FPFvPvjjttEPv.ax", 0
+Export_gpuiKernalBlitter:
+		.byte "_gpuiKernalBlitter", 0
 Export_KernalMainCopy__FPhPKhtt:
 		.byte "_KernalMainCopy__FPhPKhtt", 0
 Export_KernalMainCopy__FPhPKhtt_axssy:

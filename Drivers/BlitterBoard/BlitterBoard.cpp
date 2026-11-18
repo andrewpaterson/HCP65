@@ -15,8 +15,8 @@ static void BlitterBoardCopy(void* pvContext, uint32 uiDest, uint32 uiSource, ui
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The board enabled, opaque, its count from 0 to 0, and the kernal's
-// copies its.
+// The board enabled, its count's start 0 (where it stays), and the
+// kernal's copies its.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalBlitterBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
@@ -29,9 +29,8 @@ uint16 CKernalBlitterBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mpuiRegisters[BLITTER_COUNT_START + 1] = 0;
 	mpuiRegisters[BLITTER_COUNT_STOP] = 0;
 	mpuiRegisters[BLITTER_COUNT_STOP + 1] = 0;
-	muiTransparent = KERNAL_COPY_OPAQUE;
-	muiStop = 0;
 	KernalSetMainCopier(BlitterBoardCopy, this);
+	gpuiKernalBlitter = mpuiRegisters;
 	return uiResult;
 }
 
@@ -42,6 +41,7 @@ uint16 CKernalBlitterBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 //////////////////////////////////////////////////////////////////////////
 void CKernalBlitterBoard::Kill(void)
 {
+	gpuiKernalBlitter = NULL;
 	KernalSetMainCopier(NULL, NULL);
 	mpuiRegisters[BLITTER_FLAGS] = 0;
 	CKernalDriver::Kill();
@@ -79,27 +79,19 @@ void CKernalBlitterBoard::Copy(uint32 uiDest, uint32 uiSource, uint16 uiCount, u
 		return;
 	}
 	puiRegisters = mpuiRegisters;
-	if (uiTransparent != muiTransparent)
+	if (uiTransparent == KERNAL_COPY_OPAQUE)
 	{
-		muiTransparent = uiTransparent;
-		if (uiTransparent == KERNAL_COPY_OPAQUE)
-		{
-			puiRegisters[BLITTER_FLAGS] = BLITTER_FLAG_ENABLE;
-		}
-		else
-		{
-			puiRegisters[BLITTER_TRANSPARENT_COLOUR] = (uint8)uiTransparent;
-			puiRegisters[BLITTER_FLAGS] = BLITTER_FLAG_ENABLE | BLITTER_FLAG_TRANSPARENCY;
-		}
+		puiRegisters[BLITTER_FLAGS] = BLITTER_FLAG_ENABLE;
+	}
+	else
+	{
+		puiRegisters[BLITTER_TRANSPARENT_COLOUR] = (uint8)uiTransparent;
+		puiRegisters[BLITTER_FLAGS] = BLITTER_FLAG_ENABLE | BLITTER_FLAG_TRANSPARENCY;
 	}
 	uiLow = (uint8)uiCount;
 	uiHigh = (uint8)(uiCount >> 8);
-	if (uiCount != muiStop)
-	{
-		muiStop = uiCount;
-		puiRegisters[BLITTER_COUNT_STOP] = uiLow;
-		puiRegisters[BLITTER_COUNT_STOP + 1] = uiHigh;
-	}
+	puiRegisters[BLITTER_COUNT_STOP] = uiLow;
+	puiRegisters[BLITTER_COUNT_STOP + 1] = uiHigh;
 	puiRegisters[BLITTER_SOURCE] = (uint8)uiSource;
 	puiRegisters[BLITTER_SOURCE + 1] = (uint8)(uiSource >> 8);
 	puiRegisters[BLITTER_SOURCE + 2] = (uint8)(uiSource >> 16);

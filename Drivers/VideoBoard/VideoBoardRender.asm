@@ -1,6 +1,8 @@
 ; The Video Board driver's text drawing (VideoBoardText.cpp), where the time goes: the cells a write changes, the cells a
 ; frame is owed, a glyph's runs, a cell's clearing and a row's.  C functions without arguments, m and x 16 bit, D and the
-; data bank kept; what they work on is the driver's globals (VideoBoard.h).  A cell's pixels never cross a bank (its
+; data bank kept; what they work on is the driver's globals (VideoBoard.h).  With a Blitter Board in the computer (the
+; kernal's gpuiKernalBlitter) the glyphs' runs are its copies; a cell is always cleared by the processor, which is
+; quicker at eight pixels a row.  A cell's pixels never cross a bank (its
 ; address is a multiple of 8, a row's of 16); the lines down it may.  Interrupts are off in the driver's calls, so the
 ; frame being drawn doesn't change under them.
 
@@ -29,7 +31,21 @@ T_LEFT		= 45			; and how many are left.
 T_CURSOR	= 47			; The cursor's cell.
 T_COLOUR	= 49			; The text colour.
 T_DREW		= 51			; Not 0 once a cell has been drawn.
-T_FRAME		= 52
+T_BLITTER	= 52			; The Blitter Board's registers (a 4 byte pointer), 0 if there is none.
+T_ACROSS	= 56			; With the board: the pixel across the row that a glyph's next run starts at,
+T_MODE		= 58			; and what the board's Flags were last written.
+T_FRAME		= 59
+
+; The Blitter Board's registers (Drivers/BlitterBoard/BlitterBoard.h) and its Flags for the two kinds of run.
+BLITTER_FLAGS				= 0x00
+BLITTER_TRANSPARENT_COLOUR	= 0x02
+BLITTER_DEST				= 0x04
+BLITTER_START				= 0x07
+BLITTER_SOURCE				= 0x08
+BLITTER_COUNT				= 0x0C
+BLITTER_COUNT_STOP			= 0x0E
+BLITTER_OPAQUE				= 0x40
+BLITTER_TRANSPARENT			= 0x41
 
 F_WORD0		= 1				; A row's first sixteen bytes, a word each (4 byte pointers).
 F_FRAME		= 32
@@ -90,6 +106,31 @@ TextEnter:
 		sta [D + T_PALETTE + 2]
 		lda [_guiVideoCursor]:24
 		sta [D + T_CURSOR]
+		stz [D + T_COUNT]
+		lda [_gpuiKernalBlitter]:24
+		sta [D + T_BLITTER]
+		lda [_gpuiKernalBlitter + 2]:24
+		sta [D + T_BLITTER + 2]
+		ora [D + T_BLITTER]
+		beq TextFont
+		; A Blitter Board draws the glyphs' runs: its source is in the font's bank, a run is under 256 pixels, and it
+		; leaves colour 0 out of a mixed run.
+		sep m
+		ldy BLITTER_SOURCE + 2
+		lda [_gpuiVideoFont + 2]:24
+		sta [[D + T_BLITTER]:24 + Y]
+		ldy BLITTER_COUNT_STOP + 1
+		lda 0
+		sta [[D + T_BLITTER]:24 + Y]
+		ldy BLITTER_TRANSPARENT_COLOUR
+		sta [[D + T_BLITTER]:24 + Y]
+		ldy BLITTER_FLAGS
+		lda BLITTER_TRANSPARENT
+		sta [[D + T_BLITTER]:24 + Y]
+		sta [D + T_MODE]
+		rep m
+TextFont:
+		.width (A, X), 16
 		sep m
 		lda [_gpuiVideoFont + 2]:24
 		pha
@@ -338,6 +379,9 @@ TextRenderRuns:
 		clc
 		adc [D + T_GLYPH]
 		tax
+		lda [D + T_BLITTER]
+		ora [D + T_BLITTER + 2]
+		bne TextBlitRuns
 		lda 0
 		sep m
 		ldy 0
@@ -433,6 +477,134 @@ RunMixedNone:
 TextRenderDone:
 		rep m
 		rts
+
+; The glyph's runs drawn by the Blitter Board: each run of pixels is a copy from the font to the row, a mixed run with
+; the board leaving colour 0 out.  X is where the next code is and T_ACROSS the pixel across; the board's source is
+; written for each run, its destination's bank when the row's changes, and its Flags when the kind of run does.  The
+; board has main memory from Start until its count is the run's pixels, and only the board is read meanwhile.
+TextBlitRuns:
+		.width (A, X), 16
+		stz [D + T_ACROSS]
+		sep m
+		ldy BLITTER_DEST + 2
+		lda [D + T_DEST + 2]
+		sta [[D + T_BLITTER]:24 + Y]
+BlitNext:
+		.width A, 8
+		lda [0 + X]
+		beq BlitDone
+		bmi BlitMove
+		; 1 to 127: that many pixels, all drawn.
+		inx
+		sta [D + T_COUNT]
+		lda BLITTER_OPAQUE
+		bra BlitRun
+BlitMove:
+		.width A, 8
+		inx
+		cmp 0xC0
+		bcs BlitRows
+		; $80 + (n - 1): n pixels across.
+		and 0x3F
+		sta [D + T_COUNT]
+		rep m
+		lda [D + T_ACROSS]
+		sec
+		adc [D + T_COUNT]
+		sta [D + T_ACROSS]
+		sep m
+		bra BlitNext
+BlitRows:
+		.width A, 8
+		cmp 0xE0
+		bcs BlitMixed
+		; $C0 + (n - 1): n rows down, to the row's left.
+		and 0x1F
+		sta [D + T_COUNT]
+BlitRow:
+		.width A, 8
+		clc
+		lda [D + T_DEST]
+		adc [D + T_WIDTH]
+		sta [D + T_DEST]
+		lda [D + T_DEST + 1]
+		adc [D + T_WIDTH + 1]
+		sta [D + T_DEST + 1]
+		bcc BlitRowSame
+		inc [D + T_DEST + 2]
+		ldy BLITTER_DEST + 2
+		lda [D + T_DEST + 2]
+		sta [[D + T_BLITTER]:24 + Y]
+BlitRowSame:
+		.width A, 8
+		dec [D + T_COUNT]
+		bpl BlitRow
+		rep m
+		stz [D + T_ACROSS]
+		sep m
+		bra BlitNext
+BlitDone:
+		.width A, 8
+		rep m
+		rts
+BlitMixed:
+		.width A, 8
+		; $E0 + (n - 1): n pixels, of which those that are 0 aren't drawn.
+		and 0x1F
+		inc A
+		sta [D + T_COUNT]
+		lda BLITTER_TRANSPARENT
+BlitRun:
+		.width A, 8
+		; T_COUNT pixels from X, in the kind of run A is the Flags for.
+		cmp [D + T_MODE]
+		beq BlitKind
+		sta [D + T_MODE]
+		ldy BLITTER_FLAGS
+		sta [[D + T_BLITTER]:24 + Y]
+BlitKind:
+		.width A, 8
+		ldy BLITTER_COUNT_STOP
+		lda [D + T_COUNT]
+		sta [[D + T_BLITTER]:24 + Y]
+		rep m
+		txa
+		sep m
+		ldy BLITTER_SOURCE
+		sta [[D + T_BLITTER]:24 + Y]
+		xba
+		iny
+		sta [[D + T_BLITTER]:24 + Y]
+		rep m
+		lda [D + T_DEST]
+		clc
+		adc [D + T_ACROSS]
+		sep m
+		ldy BLITTER_DEST
+		sta [[D + T_BLITTER]:24 + Y]
+		xba
+		iny
+		sta [[D + T_BLITTER]:24 + Y]
+		ldy BLITTER_START
+		sta [[D + T_BLITTER]:24 + Y]
+		; While it copies, where the next code is and the pixel across after the run: neither is in main memory.
+		rep m
+		txa
+		clc
+		adc [D + T_COUNT]
+		tax
+		lda [D + T_ACROSS]
+		clc
+		adc [D + T_COUNT]
+		sta [D + T_ACROSS]
+		sep m
+		ldy BLITTER_COUNT
+BlitWait:
+		.width A, 8
+		lda [[D + T_BLITTER]:24 + Y]
+		cmp [D + T_COUNT]
+		bne BlitWait
+		bra BlitNext
 
 
 ; The 8 by 16 pixels at T_DEST made 0, a word at a time through four pointers and Y, which steps down the lines.  A
