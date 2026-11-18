@@ -157,11 +157,29 @@ HCP65 Graphics Board - schematic faults
    Fix: 32KB of the device's addresses for each memory (selected by A15 and
    A16, with A14 only an address).
 
+11. The count steps as a write begins, so the last write is cut short
+
+   The count (B5) is clocked by CLK1, whose rising edge is where the write
+   half begins.  The write on which the count reaches the stop count is
+   stopped by ~{Done} as it starts.
+
+   Effect: N bytes need a stop count of start + N + 1, and the byte after
+   them gets a write strobe a few gate delays long, which may or may not
+   write.
+
+   Fix: B5's CLK (pin 4) from CLK3, not CLK1, so that the count steps as each
+   read begins.  Counting is set by the first CLK3 edge, so the count doesn't
+   step on it: the count is start + k through byte k, ~{Done} comes as byte
+   N's read would begin, and what is cut short is a read.  The stop count for
+   N bytes is then start + N.  The address counters stay on CLK1.
+
+   On this board the count is also the offset table's address, and the
+   memories' latches (LLE, CLK1) close on the edge the count would then step
+   on, keeping the entry before.  LLE has to move to another clock with it;
+   its timing hasn't been worked through.
+
 Also, not wiring faults but what the board does as drawn:
 
-  - The count goes up as each write begins, so the write on which the count
-    reaches the stop count is cut short as it starts.  N bytes need a stop
-    count of start + N + 1, and the cut write may or may not happen.
   - ~{Done} is a level: it stays low while the count is the stop count.
     Until one of them changes, Running can't be set again and the interrupt
     comes back on the next Main CLK after it is cleared.
