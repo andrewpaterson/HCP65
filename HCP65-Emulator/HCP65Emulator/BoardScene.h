@@ -38,19 +38,27 @@ enum EBoardSceneLoad
 //thread, which is a worker with an object system of its own (StandardLib's ObjectsWorker.h), what's read and made on the
 //way is the worker's and is freed there, and the editor that comes of it is adopted by the main object system before
 //this, a main object, is pointed at it.  The scene looks at the state to find it loaded.
+//
+//The thread that loads a model also makes the rasteriser's mesh of it (the mesh cooked, and the render mesh made of that
+//by the scene's factory for its renderer: SetRenderer), which the scene gives its render scene when the model is first
+//shown (CRenderScene::SetMesh): made as the window is drawn, as they otherwise are, the nine take half a second.
 class CBoardSceneLoad : public CObject
 {
 CONSTRUCTABLE(CBoardSceneLoad);
 DESTRUCTABLE(CBoardSceneLoad);
 public:
-	Ptr<CMeshEditor>	mpEditor;	//Of the model's mesh, while the state is BSL_Loaded.
+	Ptr<CMeshEditor>	mpEditor;		//Of the model's mesh, while the state is BSL_Loaded.
+	Ptr<CRenderMesh>	mpRenderMesh;	//The rasteriser's mesh of it, from when it's loaded; NULL if there's no renderer to make it for.
 
 protected:
 	int32				miModel;
 	int32				miState;
+	CRenderFactory*		mpcFactory;		//What makes the render mesh, for mpRenderer.  NULL for none.
+	Ptr<CRenderer>		mpRenderer;
 
 public:
 	void			Init(int iModel);
+	void			SetRenderer(CRenderFactory* pcFactory, Ptr<CRenderer> pRenderer);
 	void			Class(void) override;
 	void			Free(void) override;
 
@@ -137,6 +145,7 @@ protected:
 	void		StartLoad(int iModel);
 	bool		StartLoaders(void);
 	bool		TakeLoaded(void);
+	void		GiveRenderMesh(int iModel);
 	bool		IsLoaded(int iModel);
 	int			FindModel(size uiSocket, const char** aszTypes);
 	void		AddStandingBoard(int iModel, size uiSocket, bool bStack);

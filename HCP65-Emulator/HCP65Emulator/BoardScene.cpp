@@ -18,6 +18,7 @@
 #include "SupportLib/MeshRemoveDegenerate.h"
 #include "SupportLib/MeshWeldCorners.h"
 #include "SupportLib/SceneFileMesh.h"
+#include "RenderLib/CookedMesh.h"
 #include "RasterRenderLib/RasterRenderMesh.h"
 #include "WindowLib/Canvas.h"
 #include "HCP65Lib/HCP65Audio.h"
@@ -173,6 +174,10 @@ void CBoardSceneDraw::Init(Ptr<CWindowTheme> pTheme)
 	mbLoaders = false;
 	mbLockedObjects = false;
 	InitScene();
+	for (i = 0; i < BOARD_SCENE_NUM_MODELS; i++)
+	{
+		mapLoads.Get(i)->SetRenderer(&mcFactory, mpRenderScene->GetRenderer());
+	}
 	mcRasteriser.Init();
 	mcJobs.Init(BOARD_SCENE_WORKERS);
 	mcRasteriser.SetJobs(&mcJobs);
@@ -524,6 +529,26 @@ bool CBoardSceneDraw::TakeLoaded(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A model that is to be shown: the render scene is given the render mesh
+// its load made of it, if it made one, so that it isn't made as the scene
+// is next drawn.  A model's mesh never changes, so it's given each time
+// the model is shown again.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardSceneDraw::GiveRenderMesh(int iModel)
+{
+	Ptr<CRenderMesh>	pRenderMesh;
+
+	pRenderMesh = mapLoads.Get(iModel)->mpRenderMesh;
+	if (pRenderMesh.IsNotNull())
+	{
+		mpRenderScene->SetMesh(mapModels.Get(iModel), pRenderMesh);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 bool CBoardSceneDraw::IsLoading(void)
@@ -614,9 +639,25 @@ void CBoardSceneLoad::Init(int iModel)
 {
 	PreInit();
 	mpEditor = NULL;
+	mpRenderMesh = NULL;
 	miModel = (int32)iModel;
 	miState = BSL_NotTried;
+	mpcFactory = NULL;
+	mpRenderer = NULL;
 	PostInit();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What the render mesh of the model is made by, and for, when it's
+// loaded.  The factory outlives the load.
+//
+//////////////////////////////////////////////////////////////////////////
+void CBoardSceneLoad::SetRenderer(CRenderFactory* pcFactory, Ptr<CRenderer> pRenderer)
+{
+	mpcFactory = pcFactory;
+	mpRenderer = pRenderer;
 }
 
 
@@ -627,8 +668,11 @@ void CBoardSceneLoad::Init(int iModel)
 void CBoardSceneLoad::Class(void)
 {
 	M_Pointer(mpEditor);
+	M_Pointer(mpRenderMesh);
 	U_Int32(miModel);
 	U_Int32(miState);
+	U_Pointer(mpcFactory);
+	M_Pointer(mpRenderer);
 }
 
 
@@ -691,15 +735,18 @@ static bool SaveBoardSceneModel(const char* szSaved, Ptr<CMeshEditor> pEditor)
 //
 // From its saved mesh, if that's at least as new as its export.  Otherwise
 // the export is read, its modifiers run, and what comes out is saved for
-// next time.  Either way mpEditor is an editor of what's loaded, a main
-// object: on a loader's thread everything was made in the thread's own
-// object system, and the editor is adopted from it.
+// next time.  Either way mpEditor is an editor of what's loaded, and
+// mpRenderMesh the renderer's mesh of it, main objects: on a loader's
+// thread everything was made in the thread's own object system, and the
+// two are adopted from it.
 //
 //////////////////////////////////////////////////////////////////////////
 void CBoardSceneLoad::Load(void)
 {
 	const SBoardSceneModel*	psModel;
 	Ptr<CMeshEditor>		pEditor;
+	Ptr<CCookedMesh>		pCooked;
+	Ptr<CRenderMesh>		pRenderMesh;
 	CChars					szSaved;
 	CChars					szTime;
 	struct stat				sFile;
@@ -729,9 +776,17 @@ void CBoardSceneLoad::Load(void)
 	{
 		pEditor = LoadSource(szSaved.Text());
 	}
-	if (pEditor.IsNotNull() && (ObjectsOwn() != NULL) && !ObjectsAdopt(pEditor))
+	if (pEditor.IsNotNull() && (mpcFactory != NULL))
+	{
+		pCooked = OMalloc<CCookedMesh>();
+		pCooked->Cook(&pEditor->GetOutput());
+		pRenderMesh = mpcFactory->CreateMesh(mpRenderer, &pCooked);
+		pCooked = NULL;
+	}
+	if (pEditor.IsNotNull() && (ObjectsOwn() != NULL) && (!ObjectsAdopt(pEditor) || (pRenderMesh.IsNotNull() && !ObjectsAdopt(pRenderMesh))))
 	{
 		pEditor = NULL;  //Adopt has said why.  A main object can't point at a worker's.
+		pRenderMesh = NULL;
 	}
 
 	if (pEditor.IsNotNull())
@@ -742,6 +797,7 @@ void CBoardSceneLoad::Load(void)
 		gcLogger.Info2(__METHOD__, " [", psModel->szSaved, "] from [", bFromSaved ? szSaved.Text() : psModel->szFile, "] in ", szTime.Text(), "ms.", NULL);
 		szTime.Kill();
 		mpEditor = pEditor;
+		mpRenderMesh = pRenderMesh;
 		SetState(BSL_Loaded);
 	}
 	else
@@ -898,6 +954,7 @@ void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket, bool bStack)
 	psLocal->pos.Init((float32)BOARD_SCENE_CARD_X, 0.0f, (float32)gasBoardSceneModels[iModel].fEdgeY, 1.0f);
 
 	pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(iModel));
+	GiveRenderMesh(iModel);
 	pInstanceMesh->mapConnections.Add(pConnection);
 	pInstance = OMalloc<CInstance>();
 	pInstance->mszName.Set(gasBoardSceneModels[iModel].szSaved);
@@ -913,6 +970,7 @@ void CBoardSceneDraw::AddStandingBoard(int iModel, size uiSocket, bool bStack)
 		pStacked->msLocalMatrix.pos.Init(0.0f, 0.0f, (float32)gasBoardSceneModels[iModel].fStackHeight, 1.0f);
 
 		pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(iStacked));
+		GiveRenderMesh(iStacked);
 		pInstanceMesh->mapConnections.Add(pStacked);
 		pInstance->mapConnections.Add(pStacked);
 		pInstance->mapMeshes.Add(pInstanceMesh);
@@ -958,6 +1016,7 @@ void CBoardSceneDraw::SetBoards(const char** aszTypes)
 	if (bMainboard)
 	{
 		pInstanceMesh = OMalloc<CInstanceMesh>(mapModels.Get(BOARD_SCENE_MAINBOARD));
+		GiveRenderMesh(BOARD_SCENE_MAINBOARD);
 		pInstanceMesh->mapConnections.Add(mpMainboard->mapConnections.Get(0));
 		mpMainboard->mapMeshes.Add(pInstanceMesh);
 	}
