@@ -276,28 +276,43 @@ char* strrchr(const char* sz, int c)
 
 
 //The places sz could hold szFind start with szFind's first character: memchr finds them and memcmp checks them.
+//On the W65C816 a string can be longer than a size_t (16 bits) counts, in a malloc32 block: the lengths are 32 bits
+//there and the 32 suffixed functions measure, search and compare, so all of the string is searched, as strcpy, strcmp
+//and the others, which take no length, go through all of theirs.
+#if defined(__W65C816__)
+typedef unsigned long	strstr_length;
+#define STRSTR_LENGTH(sz)				strlen32(sz)
+#define STRSTR_FIND(sz, c, uiLength)	memchr32(sz, c, uiLength)
+#define STRSTR_COMPARE(sz1, sz2, uiLength)	memcmp32(sz1, sz2, uiLength)
+#else
+typedef size_t			strstr_length;
+#define STRSTR_LENGTH(sz)				strlen(sz)
+#define STRSTR_FIND(sz, c, uiLength)	memchr(sz, c, uiLength)
+#define STRSTR_COMPARE(sz1, sz2, uiLength)	memcmp(sz1, sz2, uiLength)
+#endif // __W65C816__
+
 char* strstr(const char* sz, const char* szFind)
 {
-	size_t		uiFind;
-	size_t		uiLength;
-	const char*	pc;
+	strstr_length	uiFind;
+	strstr_length	uiLength;
+	const char*		pc;
 
-	uiFind = strlen(szFind);
+	uiFind = STRSTR_LENGTH(szFind);
 	if (uiFind == 0)
 	{
 		return (char*)sz;
 	}
-	uiLength = strlen(sz);
+	uiLength = STRSTR_LENGTH(sz);
 	while (uiLength >= uiFind)
 	{
-		pc = (const char*)memchr(sz, szFind[0], uiLength - uiFind + 1);
+		pc = (const char*)STRSTR_FIND(sz, szFind[0], uiLength - uiFind + 1);
 		if (!pc)
 		{
 			return NULL;
 		}
 		uiLength -= pc - sz;
 		sz = pc;
-		if (memcmp(sz, szFind, uiFind) == 0)
+		if (STRSTR_COMPARE(sz, szFind, uiFind) == 0)
 		{
 			return (char*)sz;
 		}

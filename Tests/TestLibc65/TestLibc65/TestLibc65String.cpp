@@ -385,6 +385,61 @@ void TestLibc65String16(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// strstr in a string of more than 64KB on the W65C816, where a size_t and
+// strlen are 16 bits: it searches all of the string (with the 32 bit
+// strlen32, memchr32 and memcmp32), so what is past 65535 characters is
+// found, across a bank's end too, the first of two is the one found, and
+// what isn't there is NULL.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestLibc65StringStrstrLong(void)
+{
+	static const char*	aszUnits[] = { "stdlib.cpp", "string.cpp", "string.asm", "ctype.cpp", NULL };
+	STestLibc65Run		sRun;
+	size				i;
+
+	if (geTestLibc65Target != CPPT_W65C816)
+	{
+		return;
+	}
+	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
+		"#include <stdlib.h>\n"
+		"#include <string.h>\n"
+		"int main()\n"
+		"{\n"
+		"	long*	p;\n"
+		"	char*	a;\n"
+		"	long	i;\n"
+		"	p = (long*)0x100000;\n"
+		"	a = (char*)malloc32(100000);\n"
+		"	for (i = 0; i < 99999; i++) { a[i] = 'a'; }\n"
+		"	a[99999] = 0;\n"
+		"	memcpy(a + 65534, \"QRST\", 4);\n"
+		"	memcpy(a + 80000, \"XYZ\", 3);\n"
+		"	memcpy(a + 90000, \"XYZ\", 3);\n"
+		"	*p++ = strstr(a, \"XYZ\") == a + 80000;\n"
+		"	*p++ = strstr(a, \"QRST\") == a + 65534;\n"
+		"	*p++ = strstr(a, \"QRSU\") == NULL;\n"
+		"	*p++ = strstr(a + 80001, \"XYZ\") == a + 90000;\n"
+		"	*p++ = strstr(a, \"aXYZa\") == a + 79999;\n"
+		"	*p++ = strstr(a, \"\") == a;\n"
+		"	*p++ = strstr(\"hello world\", \"wor\") != NULL;\n"
+		"	*p++ = strstr(\"hello\", \"hello world\") == NULL;\n"
+		"	return 0;\n"
+		"}\n"));
+	AssertTrue(TestLibc65Run(&sRun, 200000000));
+
+	for (i = 0; i < 8; i++)
+	{
+		AssertInt(1, TestLibc65Result(&sRun, i));
+	}
+
+	TestLibc65End(&sRun);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // On the W65C816 the 32 suffixed functions (Size16Plan.txt) work on more
 // than a bank: malloc32's blocks of 100000 bytes (two whole banks each),
 // copied, moved over themselves, set, compared, searched and measured past
@@ -470,6 +525,7 @@ void TestLibc65String(void)
 	TestLibc65StringFills();
 	TestLibc65String16();
 	TestLibc65String32();
+	TestLibc65StringStrstrLong();
 
 	TestStatistics();
 }
