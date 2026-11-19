@@ -13,6 +13,24 @@
 #define VIDEO_BLIT_MOST		0x8000		//The most bytes in one of a blit's copies.
 
 
+extern "C"
+{
+	uint8*	gpuiVideoBlitCode;
+	uint16	guiVideoBlitEnd;
+	uint16	guiVideoBlitWidth;
+	uint16	guiVideoBlitHeight;
+	uint8*	gpuiVideoBlitRow;
+	uint16	guiVideoBlitResult;
+	uint8*	gpuiVideoSpanSource;
+	uint16	guiVideoSpanSourceStride;
+	uint8*	gpuiVideoSpanDest;
+	uint16*	gpuiVideoSpans;
+	uint16	guiVideoSpanRows;
+	uint16	guiVideoSpanLeast;
+	uint16	guiVideoSpanMost;
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // The blit: an SFT image in the running process's memory drawn on the
@@ -84,12 +102,22 @@ uint16 CKernalVideoBoard::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip)
 {
+	uint16*	puiSpans;
+	uint16	auiSpan[2];
+	uint32	uiSpansInBank;
+	uint32	uiSpanRows;
+	int32	iSpanLeft;
+	int32	iSpanRight;
 	int32	iLeft;
 	int32	iRight;
 	int32	iY;
 	uint32	uiSource;
 	uint32	uiPixel;
 	uint16	uiRow;
+	uint16	uiCount;
+	uint8*	puiSource;
+	uint8*	puiDest;
+	uint32	uiInBank;
 
 	if (psBlit->uiSize - sizeof(SSFTImage) < (uint32)uiWidth * uiHeight)
 	{
@@ -116,14 +144,165 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 	}
 	uiSource = psBlit->uiImage + sizeof(SSFTImage) + (uint32)uiRow * uiWidth + (uint32)(iLeft - psBlit->iX);
 	uiPixel = (uint32)iY * muiWidth + (uint32)iLeft;
+
+	//With spans, each row only from its span's left to its right (inside the clip rectangle's, so inside the picture).
+	//They are read straight if they are all in one bank of the process's.
+	puiSpans = NULL;
+	uiSpanRows = 0;
+	if ((psBlit->uiFlags & (KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS)) == (KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS))
+	{
+		if (psBlit->iClipBottom <= psBlit->iClipTop)
+		{
+			return KERNAL_DRIVER_SUCCESS;
+		}
+		uiSpanRows = (uint32)(psBlit->iClipBottom - psBlit->iClipTop);
+		puiSpans = (uint16*)KernalUserPointer(psBlit->uiSpans, &uiSpansInBank);
+		if (puiSpans && (uiSpansInBank < uiSpanRows * 2 * sizeof(uint16)))
+		{
+			puiSpans = NULL;
+		}
+		if (!puiSpans && !KernalCopyFromUser((uint8*)auiSpan, psBlit->uiSpans, 2 * sizeof(uint16)))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+	}
+
+	//A row is copied straight from the kernal's pointer to it while it is all in the bank the pointer is in, and the
+	//pointer is found again only when a row isn't.
+	uiCount = (uint16)(iRight - iLeft);
+	puiDest = (uint8*)(muiWindow + uiPixel);
+	if (puiSpans && !gpuiKernalBlitter && (iLeft == psBlit->iClipLeft))
+	{
+		return BlitOpaqueSpans(psBlit, uiWidth, uiHeight, iRight, iY, uiRow, uiSource, puiDest, puiSpans,
+							   ((int32)psBlit->iY + uiHeight < paiClip[VIDEO_CLIP_BOTTOM]) ? (int32)psBlit->iY + uiHeight : paiClip[VIDEO_CLIP_BOTTOM]);
+	}
+	puiSource = KernalUserPointer(uiSource, &uiInBank);
 	for (; (uiRow < uiHeight) && (iY < paiClip[VIDEO_CLIP_BOTTOM]); uiRow++, iY++)
 	{
-		if (!BlitPixels(uiPixel, uiSource, (uint32)(iRight - iLeft), KERNAL_COPY_OPAQUE))
+		if (uiSpanRows > 0)
+		{
+			if ((uint32)(iY - psBlit->iClipTop) < uiSpanRows)
+			{
+				if (puiSpans)
+				{
+					auiSpan[0] = puiSpans[(iY - psBlit->iClipTop) * 2];
+					auiSpan[1] = puiSpans[(iY - psBlit->iClipTop) * 2 + 1];
+				}
+				else if (!KernalCopyFromUser((uint8*)auiSpan, psBlit->uiSpans + (uint32)(iY - psBlit->iClipTop) * 2 * sizeof(uint16), 2 * sizeof(uint16)))
+				{
+					return KERNAL_DRIVER_BAD_ARGUMENT;
+				}
+				iSpanLeft = (int32)psBlit->iClipLeft + auiSpan[0];
+				iSpanRight = (int32)psBlit->iClipLeft + auiSpan[1];
+				if (iSpanLeft < iLeft)
+				{
+					iSpanLeft = iLeft;
+				}
+				if (iSpanRight > iRight)
+				{
+					iSpanRight = iRight;
+				}
+				if (iSpanLeft < iSpanRight)
+				{
+					if (puiSource && (uiInBank >= (uint32)(iSpanRight - iLeft)))
+					{
+						KernalMainCopy(puiDest + (iSpanLeft - iLeft), puiSource + (iSpanLeft - iLeft), (uint16)(iSpanRight - iSpanLeft), KERNAL_COPY_OPAQUE);
+					}
+					else if (!BlitPixels(uiPixel + (uint32)(iSpanLeft - iLeft), uiSource + (uint32)(iSpanLeft - iLeft), (uint32)(iSpanRight - iSpanLeft), KERNAL_COPY_OPAQUE))
+					{
+						return KERNAL_DRIVER_BAD_ARGUMENT;
+					}
+				}
+			}
+		}
+		else if (puiSource && (uiInBank >= uiCount))
+		{
+			KernalMainCopy(puiDest, puiSource, uiCount, KERNAL_COPY_OPAQUE);
+		}
+		else if (!BlitPixels(uiPixel, uiSource, uiCount, KERNAL_COPY_OPAQUE))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
 		uiSource += uiWidth;
 		uiPixel += muiWidth;
+		puiDest += muiWidth;
+		if (puiSource && (uiInBank > uiWidth))
+		{
+			puiSource += uiWidth;
+			uiInBank -= uiWidth;
+		}
+		else
+		{
+			puiSource = KernalUserPointer(uiSource, &uiInBank);
+		}
+	}
+	return KERNAL_DRIVER_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// BlitOpaque's with spans that are all in one bank (puiSpans, the
+// kernal's pointer to them), no Blitter Board and the clip rectangle's
+// left inside the image: from screen row iY (the image's uiRow, whose
+// pixel at the clip's left is the process's uiSource and goes to puiDest)
+// to iBottom.  The rows are drawn by VideoBlitSpans a bank of the image's
+// at a time, each its span cut to the image's and the clip's right
+// (iRight).  A row that runs past its bank is drawn here.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalVideoBoard::BlitOpaqueSpans(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, int32 iRight, int32 iY, uint16 uiRow, uint32 uiSource, uint8* puiDest, uint16* puiSpans, int32 iBottom)
+{
+	uint8*	puiSource;
+	uint32	uiInBank;
+	uint32	uiRows;
+	uint32	uiLeft;
+	uint16	uiMost;
+	uint16*	puiSpan;
+
+	uiMost = (uint16)(iRight - psBlit->iClipLeft);
+	puiSpan = puiSpans + (iY - psBlit->iClipTop) * 2;
+	while (iY < iBottom)
+	{
+		puiSource = KernalUserPointer(uiSource, &uiInBank);
+		if (!puiSource)
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		if (uiInBank >= uiMost)
+		{
+			//Every row that is all in this bank.
+			uiRows = (uiInBank - uiMost) / uiWidth + 1;
+			uiLeft = (uint32)(iBottom - iY);
+			if (uiRows > uiLeft)
+			{
+				uiRows = uiLeft;
+			}
+			gpuiVideoSpanSource = puiSource;
+			guiVideoSpanSourceStride = uiWidth;
+			gpuiVideoSpanDest = puiDest;
+			gpuiVideoSpans = puiSpan;
+			guiVideoSpanRows = (uint16)uiRows;
+			guiVideoSpanLeast = 0;
+			guiVideoSpanMost = uiMost;
+			VideoBlitSpans();
+		}
+		else
+		{
+			//A row past the bank's end, a copy for each bank its span is in.
+			uiRows = 1;
+			if ((puiSpan[1] > puiSpan[0]) && (puiSpan[0] < uiMost))
+			{
+				if (!BlitPixels((uint32)(puiDest - (uint8*)muiWindow) + puiSpan[0], uiSource + puiSpan[0], (uint32)(((puiSpan[1] < uiMost) ? puiSpan[1] : uiMost) - puiSpan[0]), KERNAL_COPY_OPAQUE))
+				{
+					return KERNAL_DRIVER_BAD_ARGUMENT;
+				}
+			}
+		}
+		iY += (int32)uiRows;
+		uiSource += uiRows * uiWidth;
+		puiDest += uiRows * muiWidth;
+		puiSpan += uiRows * 2;
 	}
 	return KERNAL_DRIVER_SUCCESS;
 }
@@ -149,6 +328,19 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 	int32	iRowPixel;
 	int32	iLeft;
 	int32	iRight;
+	uint32	uiInBank;
+
+	//All of it in one bank of the process's and all of it inside the clip rectangle: read straight from the kernal's
+	//pointer to it, with nothing to cut off.
+	if ((psBlit->iX >= paiClip[VIDEO_CLIP_LEFT]) && ((int32)psBlit->iX + uiWidth <= paiClip[VIDEO_CLIP_RIGHT]) &&
+		(psBlit->iY >= paiClip[VIDEO_CLIP_TOP]) && ((int32)psBlit->iY + uiHeight <= paiClip[VIDEO_CLIP_BOTTOM]))
+	{
+		puiCode = KernalUserPointer(psBlit->uiImage, &uiInBank);
+		if (puiCode && (uiInBank >= psBlit->uiSize))
+		{
+			return BlitTransparentWhole(psBlit, puiCode, uiWidth, uiHeight);
+		}
+	}
 
 	uiOffset = sizeof(SSFTImage);
 	uiX = 0;
@@ -224,6 +416,86 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 		uiOffset += uiCode;
 		uiX += uiCode;
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// BlitTransparent's for an image that is all in one bank, at puiImage
+// (the kernal's pointer to it), and all inside the clip rectangle: its
+// codes read straight, each run one copy to its row.  The same checks:
+// a run that isn't in the image is KERNAL_DRIVER_BAD_ARGUMENT.  Without a
+// Blitter Board (whose copies are quicker for the longer runs) and with
+// the image's bytes ending before its bank does, VideoBlitRuns draws it.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalVideoBoard::BlitTransparentWhole(const SKernalBlit* psBlit, const uint8* puiImage, uint16 uiWidth, uint16 uiHeight)
+{
+	const uint8*	puiCode;
+	const uint8*	puiEnd;
+	uint8*			puiRow;
+	uint8			uiCode;
+	uint16			uiCount;
+	uint16			uiX;
+	uint16			uiRow;
+
+	puiCode = puiImage + sizeof(SSFTImage);
+	puiEnd = puiImage + psBlit->uiSize;
+	puiRow = (uint8*)(muiWindow + (uint32)psBlit->iY * muiWidth + (uint32)psBlit->iX);
+	if (!gpuiKernalBlitter && (((uint32)puiImage & 0xFFFF) + psBlit->uiSize < 0x10000))
+	{
+		gpuiVideoBlitCode = (uint8*)puiCode;
+		guiVideoBlitEnd = (uint16)((uint32)puiEnd & 0xFFFF);
+		guiVideoBlitWidth = uiWidth;
+		guiVideoBlitHeight = uiHeight;
+		gpuiVideoBlitRow = puiRow;
+		VideoBlitRuns();
+		return (guiVideoBlitResult == 0) ? KERNAL_DRIVER_SUCCESS : KERNAL_DRIVER_BAD_ARGUMENT;
+	}
+	uiX = 0;
+	uiRow = 0;
+	while (puiCode < puiEnd)
+	{
+		uiCode = *puiCode++;
+		if (uiCode == SFT_RUN_END)
+		{
+			return KERNAL_DRIVER_SUCCESS;
+		}
+		if (uiCode >= SFT_RUN_MIXED)
+		{
+			uiCount = (uint16)((uiCode & SFT_RUN_MIXED_MASK) + 1);
+		}
+		else if (uiCode >= SFT_RUN_ROWS)
+		{
+			uiCount = (uint16)((uiCode & SFT_RUN_ROWS_MASK) + 1);
+			uiRow = (uint16)(uiRow + uiCount);
+			uiX = 0;
+			for (; uiCount > 0; uiCount--)
+			{
+				puiRow += muiWidth;
+			}
+			continue;
+		}
+		else if (uiCode >= SFT_RUN_SKIP)
+		{
+			uiX = (uint16)(uiX + (uiCode & SFT_RUN_COUNT_MASK) + 1);
+			continue;
+		}
+		else
+		{
+			uiCount = uiCode;
+		}
+
+		//A run of uiCount pixels, all of them drawn or (a mixed run) those that aren't SFT_PIXEL_TRANSPARENT.
+		if ((uiRow >= uiHeight) || (uiX + uiCount > uiWidth) || ((uint32)(puiEnd - puiCode) < uiCount))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		KernalMainCopy(puiRow + uiX, puiCode, uiCount, (uiCode >= SFT_RUN_MIXED) ? SFT_PIXEL_TRANSPARENT : KERNAL_COPY_OPAQUE);
+		puiCode += uiCount;
+		uiX = (uint16)(uiX + uiCount);
+	}
+	return KERNAL_DRIVER_BAD_ARGUMENT;
 }
 
 
