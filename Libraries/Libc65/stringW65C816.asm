@@ -38,7 +38,9 @@ Pushed		= 27
 
 		.section text.MemMoveW65C816
 		.global _memcpy, _memmove, _memset, _memcpy.ax, _memmove.ax, _memset.axy
+		.global _memcpy32, _memmove32, _memset32, _memcpy32.ax, _memmove32.ax, _memset32.axy
 
+_memcpy32:
 _memcpy:
 		.width (A, X), 16
 		lda [S + 14]
@@ -61,6 +63,7 @@ _memcpy:
 		tya
 		rtl
 
+_memmove32:
 _memmove:
 		.width (A, X), 16
 		lda [S + 14]
@@ -83,6 +86,7 @@ _memmove:
 		tya
 		rtl
 
+_memset32:
 _memset:
 		.width (A, X), 16
 		lda [S + 12]
@@ -110,6 +114,7 @@ SmallDst	= 3
 SmallSrc	= 10
 SmallSize	= 14
 
+_memcpy32.ax:
 _memcpy.ax:
 		.width (A, X), 16
 		phx
@@ -171,6 +176,7 @@ MemcpyLarge:
 
 ; void* memmove(void* pvDest, const void* pvSource, size_t uiBytes): up unless the destination
 ; is above the source and in it.
+_memmove32.ax:
 _memmove.ax:
 		.width (A, X), 16
 		phy
@@ -221,6 +227,7 @@ ToUp:
 ; byte twice in a word stored 16 bytes at a time (sta [n + Y], about 4 cycles a byte), then
 ; the words and the byte left; otherwise (or for 0 bytes) the first byte, then each from the
 ; one before.
+_memset32.axy:
 _memset.axy:
 		.width (A, X), 16
 		phy
@@ -555,11 +562,14 @@ SizeArg		= 18
 
 		.section text.StringW65C816
 		.global _memcmp, _memchr, _strlen, _strcpy, _strncpy, _strcat, _strncat
+		.global _memcmp32, _memchr32, _strlen32
 		.global _strcmp, _strncmp, _strchr, _strrchr
 		.global _memcmp.ax, _memchr.axy, _strlen.ax, _strcpy.ax, _strncpy.ax, _strcat.ax, _strncat.ax
+		.global _memcmp32.ax, _memchr32.axy, _strlen32.ax
 		.global _strcmp.ax, _strncmp.ax, _strchr.axy, _strrchr.axy
 
 ; The stack entries.
+_strlen32:
 _strlen:
 		.width (A, X), 16
 		lda [S + 6]
@@ -675,6 +685,7 @@ _strncmp:
 		tya
 		rtl
 
+_memcmp32:
 _memcmp:
 		.width (A, X), 16
 		lda [S + 14]
@@ -697,6 +708,7 @@ _memcmp:
 		tya
 		rtl
 
+_memchr32:
 _memchr:
 		.width (A, X), 16
 		lda [S + 12]
@@ -732,6 +744,7 @@ _strrchr:
 		brl _strrchr.axy
 
 ; size_t strlen(const char* sz): A the low word, X the high.
+_strlen32.ax:
 _strlen.ax:
 		.width (A, X), 16
 		phy
@@ -1048,6 +1061,7 @@ Difference:
 ; int memcmp(const void* pv1, const void* pv2, size_t uiBytes): words while there are two
 ; bytes left, then the byte left; the bytes of a word that differs are compared first to
 ; last.  One byte (CNumber compares a digit at a time) is compared straight away.
+_memcmp32.ax:
 _memcmp.ax:
 		.width (A, X), 16
 		phy
@@ -1134,6 +1148,7 @@ MemcmpDifference:
 		brl Difference
 
 ; void* memchr(const void* pv, int iValue, size_t uiBytes): iValue as an unsigned char.
+_memchr32.axy:
 _memchr.axy:
 		.width (A, X), 16
 		phy

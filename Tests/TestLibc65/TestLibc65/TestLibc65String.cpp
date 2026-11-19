@@ -385,6 +385,79 @@ void TestLibc65String16(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// On the W65C816 the 32 suffixed functions (Size16Plan.txt) work on more
+// than a bank: malloc32's blocks of 100000 bytes (two whole banks each),
+// copied, moved over themselves, set, compared, searched and measured past
+// 64KB.  calloc32 clears, and realloc32 keeps what was there (into four
+// banks, once the others are freed: the heap has seven whole banks here).
+//
+//////////////////////////////////////////////////////////////////////////
+void TestLibc65String32(void)
+{
+	static const char*	aszUnits[] = { "stdlib.cpp", "string.cpp", "string.asm", "ctype.cpp", NULL };
+	STestLibc65Run		sRun;
+	size				i;
+
+	if (geTestLibc65Target != CPPT_W65C816)
+	{
+		return;
+	}
+	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
+		"#include <stdlib.h>\n"
+		"#include <string.h>\n"
+		"int main()\n"
+		"{\n"
+		"	long*			p;\n"
+		"	unsigned char*	a;\n"
+		"	unsigned char*	b;\n"
+		"	unsigned char*	c;\n"
+		"	long			i;\n"
+		"	int				iBad;\n"
+		"	p = (long*)0x100000;\n"
+		"	a = (unsigned char*)malloc32(100000);\n"
+		"	b = (unsigned char*)malloc32(100000);\n"
+		"	*p++ = (a != NULL) && (b != NULL);\n"
+		"	for (i = 0; i < 100000; i++) { a[i] = (unsigned char)(i * 7 + (i >> 16)); }\n"
+		"	*p++ = memcpy32(b, a, 100000) == b;\n"
+		"	*p++ = (memcmp32(a, b, 100000) == 0) && (b[99999] == a[99999]) && (b[70000] == a[70000]);\n"
+		"	b[90000]++;\n"
+		"	*p++ = memcmp32(a, b, 100000) != 0;\n"
+		"	memmove32(a + 1, a, 99999);\n"
+		"	*p++ = (a[1] == (unsigned char)0) && (a[80001] == (unsigned char)(80000 * 7 + 1));\n"
+		"	*p++ = memset32(a, 0x41, 99999) == a;\n"
+		"	a[99999] = 0;\n"
+		"	*p++ = strlen32((char*)a);\n"
+		"	a[85000] = 0x42;\n"
+		"	*p++ = (long)((unsigned char*)memchr32(a, 0x42, 100000) - a);\n"
+		"	c = (unsigned char*)calloc32(1000, 100);\n"
+		"	iBad = 0;\n"
+		"	for (i = 0; i < 100000; i++) { if (c[i] != 0) { iBad++; } }\n"
+		"	*p++ = iBad;\n"
+		"	c[99999] = 9;\n"
+		"	free(a);\n"
+		"	free(b);\n"
+		"	c = (unsigned char*)realloc32(c, 200000);\n"
+		"	*p++ = (c != NULL) && (c[99999] == 9);\n"
+		"	free(c);\n"
+		"	return 0;\n"
+		"}\n"));
+	AssertTrue(TestLibc65Run(&sRun, 200000000));
+
+	for (i = 0; i < 6; i++)
+	{
+		AssertInt(1, TestLibc65Result(&sRun, i));
+	}
+	AssertInt(99999, TestLibc65Result(&sRun, 6));
+	AssertInt(85000, TestLibc65Result(&sRun, 7));
+	AssertInt(0, TestLibc65Result(&sRun, 8));
+	AssertInt(1, TestLibc65Result(&sRun, 9));
+
+	TestLibc65End(&sRun);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65String(void)
@@ -396,6 +469,7 @@ void TestLibc65String(void)
 	TestLibc65StringBanks();
 	TestLibc65StringFills();
 	TestLibc65String16();
+	TestLibc65String32();
 
 	TestStatistics();
 }

@@ -78,7 +78,7 @@ static void InitHeap(void)
 #define HEAP_BANK_MORE		4		//One of a large allocation's banks after its first.
 
 //Large allocations are copied with the 32 bit memcpy.
-#define HEAP_COPY(pvDest, pvSource, uiBytes)	memcpy(pvDest, pvSource, uiBytes)
+#define HEAP_COPY(pvDest, pvSource, uiBytes)	memcpy32(pvDest, pvSource, uiBytes)
 
 //malloc, calloc, realloc and free share one copy of each (the kernal is in ROM).
 static void*		HeapMalloc(uint32_t uiBytes) __attribute__((noinline));
@@ -331,6 +331,36 @@ static void* HeapRealloc(void* pv, uint32_t uiBytes)
 		HeapFree(pv);
 	}
 	return pvNew;
+}
+
+
+void* malloc32(unsigned long ulBytes)
+{
+	return HeapMalloc(ulBytes);
+}
+
+
+void* calloc32(unsigned long ulCount, unsigned long ulBytes)
+{
+	void*	pv;
+
+	//ulCount * ulBytes must not wrap.
+	if ((ulBytes != 0) && (ulCount > 0xFFFFFFFFUL / ulBytes))
+	{
+		return NULL;
+	}
+	pv = HeapMalloc(ulCount * ulBytes);
+	if (pv)
+	{
+		memset32(pv, 0, ulCount * ulBytes);
+	}
+	return pv;
+}
+
+
+void* realloc32(void* pv, unsigned long ulBytes)
+{
+	return HeapRealloc(pv, ulBytes);
 }
 
 

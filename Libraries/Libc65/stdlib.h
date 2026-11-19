@@ -15,6 +15,13 @@ void*	malloc(size_t uiBytes);
 void*	calloc(size_t uiCount, size_t uiBytes);
 void*	realloc(void* pv, size_t uiBytes);
 void	free(void* pv);
+#if defined(__W65C816__)
+//32 bit sizes, for blocks of more than 64KB: those have whole banks of their own (see stdlib.cpp).  free and realloc
+//take either kind of block.
+void*	malloc32(unsigned long ulBytes);
+void*	calloc32(unsigned long ulCount, unsigned long ulBytes);
+void*	realloc32(void* pv, unsigned long ulBytes);
+#endif // __W65C816__
 
 int		abs(int i);
 long	labs(long i);
