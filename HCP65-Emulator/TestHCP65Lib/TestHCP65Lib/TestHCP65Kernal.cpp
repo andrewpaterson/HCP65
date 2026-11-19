@@ -86,6 +86,9 @@
 #define TEST_HCP65_MAKI_STAND_IMAGE	TEST_HCP65_SPRITES_IMAGES _FS_ "MakiStand.png"
 #define TEST_HCP65_MAKI_WALK_IMAGE	TEST_HCP65_SPRITES_IMAGES _FS_ "MakiWalk.png"
 #define TEST_HCP65_MAKI_WALK_FRAMES	6			//Side by side in MakiWalk.png.
+#define TEST_HCP65_FLOWER_IMAGE		TEST_HCP65_SPRITES_IMAGES _FS_ "Flower.png"	//The stage's flower (MakeFlower.py).
+#define TEST_HCP65_FLOWER_FILE		TEST_HCP65_OUTPUT _FS_ "FLOWER.SFT"
+#define TEST_HCP65_FLOWER_PATH		"\\SPRITES\\FLOWER.SFT"
 #define TEST_HCP65_STAGE_FILE		TEST_HCP65_OUTPUT _FS_ "STAGE.SFT"
 #define TEST_HCP65_MAKI_FILE		TEST_HCP65_OUTPUT _FS_ "MAKI.SFT"
 #define TEST_HCP65_STAGE_PATH		"\\SPRITES\\STAGE.SFT"
@@ -1771,7 +1774,8 @@ static Ptr<CImage> TestSpritesScale(Ptr<CImage> pSource, uint32 uiLeft, uint32 u
 // colours SFTColours shows): Output/STAGE.SFT, the stage (an opaque
 // 640 by 400), and Output/MAKI.SFT, Maki's frames in a container,
 // transparent and 84 by 182 each: standing then six walking, facing
-// right, then the same facing left.
+// right, then the same facing left; and Output/FLOWER.SFT, the flower at
+// the stage's bottom right that is drawn in front of her (80 by 94, the stem and leaves under it too).
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalMakeSprites(void)
@@ -1780,6 +1784,7 @@ static bool TestKernalMakeSprites(void)
 	Ptr<CImage>		pStand;
 	Ptr<CImage>		pWalk;
 	Ptr<CImage>		pStage;
+	Ptr<CImage>		pFlower;
 	uint32			uiFrameWidth;
 	uint32			i;
 	bool			bResult;
@@ -1791,11 +1796,17 @@ static bool TestKernalMakeSprites(void)
 	pStage = ReadImage((char*)TEST_HCP65_STAGE_IMAGE);
 	pStand = ReadImage((char*)TEST_HCP65_MAKI_STAND_IMAGE);
 	pWalk = ReadImage((char*)TEST_HCP65_MAKI_WALK_IMAGE);
-	bResult = pStage.IsNotNull() && pStand.IsNotNull() && pWalk.IsNotNull();
+	pFlower = ReadImage((char*)TEST_HCP65_FLOWER_IMAGE);
+	bResult = pStage.IsNotNull() && pStand.IsNotNull() && pWalk.IsNotNull() && pFlower.IsNotNull();
 	if (bResult)
 	{
 		pStage = TestSpritesScale(pStage, 0, pStage->GetWidth(), false);
 		bResult = pStage.IsNotNull() && SaveSFT(pStage, (char*)TEST_HCP65_STAGE_FILE);
+	}
+	if (bResult)
+	{
+		pFlower = TestSpritesScale(pFlower, 0, pFlower->GetWidth(), false);
+		bResult = pFlower.IsNotNull() && SaveSFT(pFlower, (char*)TEST_HCP65_FLOWER_FILE, true);
 	}
 	if (bResult)
 	{
@@ -1816,6 +1827,7 @@ static bool TestKernalMakeSprites(void)
 	pStage = NULL;
 	pStand = NULL;
 	pWalk = NULL;
+	pFlower = NULL;
 	ObjectsKill(false);
 	DataIOKill();
 	AssertTrue(bResult);
@@ -1853,6 +1865,7 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = bResult && TestKernalMakeSprites();
 	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_STAGE_PATH, TEST_HCP65_STAGE_FILE);
 	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_MAKI_PATH, TEST_HCP65_MAKI_FILE);
+	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_FLOWER_PATH, TEST_HCP65_FLOWER_FILE);
 	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_HELLO_PATH, (uint8*)TEST_HCP65_HELLO_TEXT, strlen(TEST_HCP65_HELLO_TEXT));
 	AssertTrue(bResult);
 	return bResult;
@@ -2535,6 +2548,8 @@ static void TestConsoleType(STestConsole* psConsole, const char* szText)
 #define TEST_SPRITES_MAKI_START_X	278			//her left to start with,
 #define TEST_SPRITES_MAKI_WIDTH		84
 #define TEST_SPRITES_MAKI_ROW		(TEST_SPRITES_MAKI_Y + 60)	//and a row through her.
+#define TEST_SPRITES_FLOWER_X		554			//The flower in front of her: its top left.
+#define TEST_SPRITES_FLOWER_Y		346
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -2641,6 +2656,75 @@ static bool TestSpritesFrame(STestConsole* psConsole, const uint8* puiStage, int
 		return false;
 	}
 	return TestSpritesFindMaki(psConsole->puiFrame, puiStage, piLeft, piRight);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// How many of the flower's pixels (Output/FLOWER.SFT, a transparent SFT
+// image, at its place on the screen) the frame shows as the stage, and in
+// *piPixels how many it has; -1 if it can't be read.  All of them is the
+// flower in front of whatever was drawn there.
+//
+//////////////////////////////////////////////////////////////////////////
+static int TestSpritesFlowerShown(const uint32* puiFrame, const uint8* puiStage, int* piPixels)
+{
+	FILE*	pFile;
+	uint8	auiFlower[0x4000];
+	size_t	uiSize;
+	size_t	uiAt;
+	uint8	uiCode;
+	int		iCount;
+	int		x;
+	int		y;
+	int		i;
+	int		iShown;
+
+	pFile = fopen(TEST_HCP65_FLOWER_FILE, "rb");
+	if (!pFile)
+	{
+		return -1;
+	}
+	uiSize = fread(auiFlower, 1, sizeof(auiFlower), pFile);
+	fclose(pFile);
+	*piPixels = 0;
+	iShown = 0;
+	x = 0;
+	y = 0;
+	for (uiAt = sizeof(SSFTImage); uiAt < uiSize; )
+	{
+		uiCode = auiFlower[uiAt++];
+		if (uiCode == SFT_RUN_END)
+		{
+			return iShown;
+		}
+		if ((uiCode >= SFT_RUN_ROWS) && (uiCode < SFT_RUN_MIXED))
+		{
+			y += (uiCode & SFT_RUN_ROWS_MASK) + 1;
+			x = 0;
+			continue;
+		}
+		if ((uiCode >= SFT_RUN_SKIP) && (uiCode < SFT_RUN_ROWS))
+		{
+			x += (uiCode & SFT_RUN_COUNT_MASK) + 1;
+			continue;
+		}
+		iCount = (uiCode >= SFT_RUN_MIXED) ? (uiCode & SFT_RUN_MIXED_MASK) + 1 : uiCode;
+		for (i = 0; i < iCount; i++)
+		{
+			if ((uiCode < SFT_RUN_MIXED) || (auiFlower[uiAt + i] != SFT_PIXEL_TRANSPARENT))
+			{
+				(*piPixels)++;
+				if (puiFrame[(TEST_SPRITES_FLOWER_Y + y) * 640 + TEST_SPRITES_FLOWER_X + x + i] == TestSpritesStage(puiStage, (uint32)(TEST_SPRITES_FLOWER_X + x + i), (uint32)(TEST_SPRITES_FLOWER_Y + y)))
+				{
+					iShown++;
+				}
+			}
+		}
+		uiAt += iCount;
+		x += iCount;
+	}
+	return -1;
 }
 
 
@@ -2943,7 +3027,8 @@ static int TestLCDLine(CHCP65LCDBoard* pcLCD, char* szLine)
 // and back (a line is looked at as it is being written now and then: it is
 // skipped); a key ends it and the display is cleared.  The driver never
 // gives the display anything while it is busy.  sprites' Maki is walked
-// by the first SNES controller.
+// by the first SNES controller, and the stage's flower is in front of
+// her.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65KernalLCD(STestKernal* psKernal)
@@ -2964,6 +3049,8 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 	int					iStart;
 	int					iMoved;
 	int					iRight;
+	int					iShown;
+	int					iPixels;
 	int					i;
 
 	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
@@ -3089,6 +3176,23 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 	}
 	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iMoved, &iRight));
 	AssertTrue(iMoved < iStart - 20);
+
+	//At the right of the stage she is across the flower, which is in front of her: all of its pixels are the stage's.
+	pcLCD->SetButtons(0, HCP65_SNES_RIGHT);
+	for (i = 0; i < 400; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	pcLCD->SetButtons(0, 0);
+	for (i = 0; i < 30; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iMoved, &iRight));
+	AssertTrue(iMoved > TEST_SPRITES_FLOWER_X - TEST_SPRITES_MAKI_WIDTH);
+	iShown = TestSpritesFlowerShown(sConsole.puiFrame, puiStage, &iPixels);
+	AssertTrue(iPixels > 1000);
+	AssertInt(iPixels, iShown);
 	pcLCD->SetButtons(0, 0);
 	free(puiStage);
 	TestConsoleType(&sConsole, "\x1B");

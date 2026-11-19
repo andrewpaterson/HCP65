@@ -11,6 +11,8 @@
 //  The stage (\SPRITES\STAGE.SFT, an opaque 640 by 400) at (0, SPRITES_STAGE_Y).
 //  Maki (\SPRITES\MAKI.SFT, a container of transparent 84 by 182 frames: standing then six walking, facing right, then
 //  the same facing left) standing on it, in the middle to start with.
+//  The flower at the stage's bottom right (\SPRITES\FLOWER.SFT, a transparent 80 by 94 cut from the stage by
+//  Images/MakeFlower.py) is in front of her: it is drawn again over her whenever she is across it.
 //  What to do under the stage.
 //The first SNES controller (the LCD and SNES Board's, HCP65LCDBoard.h) walks her left and right, a frame of her walk
 //every SPRITES_WALK_FRAMES of the screen's; she stands still facing the way she went when neither is pressed.  Each
@@ -20,10 +22,11 @@
 //
 //Escape ends it, and the kernal gives the screen back to the console; other keys don't (the emulator's keys for the
 //controller are typed too: the arrows are escape sequences).  Exits 1 without the font, 2 without the screen and 3
-//without the stage or Maki (or the memory for them).
+//without the stage, Maki or the flower (or the memory for them).
 #define SPRITES_FONT_FILE		"\\OS\\Fonts\\CONSOLE.SFT"
 #define SPRITES_STAGE_FILE		"\\SPRITES\\STAGE.SFT"
 #define SPRITES_MAKI_FILE		"\\SPRITES\\MAKI.SFT"
+#define SPRITES_FLOWER_FILE		"\\SPRITES\\FLOWER.SFT"
 #define SPRITES_FONT_MAX_SIZE	0x4000
 #define SPRITES_WIDTH			640
 #define SPRITES_HEIGHT			480
@@ -33,6 +36,9 @@
 #define SPRITES_MAKI_HEIGHT		182
 #define SPRITES_MAKI_Y			246		//Her top, so that she stands on the stage's ground.
 #define SPRITES_MAKI_START_X	((SPRITES_WIDTH - SPRITES_MAKI_WIDTH) / 2)
+#define SPRITES_FLOWER_X		554		//Where the flower is on the stage (Fighting320.png's (277, 153), twice as big),
+#define SPRITES_FLOWER_Y		(SPRITES_STAGE_Y + 306)
+#define SPRITES_FLOWER_WIDTH	80		//and how big.
 #define SPRITES_MAKI_STEP		2		//Pixels a frame as she walks: one of the stage's own.
 #define SPRITES_MAKI_WALK		6		//Her walk's frames.
 #define SPRITES_MAKI_FACING		(1 + SPRITES_MAKI_WALK)	//Frames facing each way: the left's follow the right's.
@@ -59,6 +65,8 @@ uint8*			gpuiSpritesStage;
 uint32			guiSpritesStageSize;
 uint8*			gpuiSpritesMaki;
 uint32			guiSpritesMakiSize;
+uint8*			gpuiSpritesFlower;		//In one bank.
+uint32			guiSpritesFlowerSize;
 uint8			gauiSpritesColours[KERNAL_SCREEN_COLOURS_SIZE];
 uint8			gauiSpritesRow[SPRITES_WIDTH];
 SSpritesRect	gasSpritesDrawn[2];		//Maki in each frame: the one drawn into next is gasSpritesDrawn[guiSpritesBack].
@@ -130,6 +138,31 @@ static void* SpritesInOneBank(uint32 uiSize)
 		free(apvTried[i]);
 	}
 	return pvMemory;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The file at szPath in memory of its own that doesn't cross a bank, in
+// *puiSize bytes; NULL if it isn't there or there isn't the memory.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint8* SpritesLoadInOneBank(const char* szPath, uint32* puiSize)
+{
+	uint8*	puiFile;
+
+	*puiSize = KernalFileSize(szPath);
+	if (*puiSize == KERNAL_FILE_NOT_FOUND)
+	{
+		return NULL;
+	}
+	puiFile = (uint8*)SpritesInOneBank(*puiSize);
+	if (puiFile && (KernalFileLoad(szPath, puiFile, *puiSize) != KERNAL_RESULT_SUCCESS))
+	{
+		free(puiFile);
+		puiFile = NULL;
+	}
+	return puiFile;
 }
 
 
@@ -326,6 +359,10 @@ static void SpritesDrawMaki(uint16 uiFrame, int16 x)
 	psDrawn->iX = x;
 	psDrawn->iY = SPRITES_MAKI_Y;
 	psDrawn->uiFrame = uiFrame;
+	if ((x < SPRITES_FLOWER_X + SPRITES_FLOWER_WIDTH) && (x + SPRITES_MAKI_WIDTH > SPRITES_FLOWER_X))
+	{
+		SpritesBlit(gpuiSpritesFlower, guiSpritesFlowerSize, SPRITES_FLOWER_X, SPRITES_FLOWER_Y, NULL);
+	}
 
 	KernalScreenFlip();
 	KernalScreenWaitBlank(SPRITES_FRAME_TICKS);
@@ -407,7 +444,8 @@ int main(void)
 	gpuiSpritesStage = SpritesLoad(SPRITES_STAGE_FILE, &guiSpritesStageSize);
 	gpuiSpritesMaki = SpritesLoad(SPRITES_MAKI_FILE, &guiSpritesMakiSize);
 	gpuiSpritesSpans = (uint16*)SpritesInOneBank(SPRITES_SPANS_SIZE);
-	if (!gpuiSpritesStage || !gpuiSpritesMaki || !gpuiSpritesSpans || !SpritesPlaceFrames())
+	gpuiSpritesFlower = SpritesLoadInOneBank(SPRITES_FLOWER_FILE, &guiSpritesFlowerSize);
+	if (!gpuiSpritesStage || !gpuiSpritesMaki || !gpuiSpritesSpans || !gpuiSpritesFlower || !SpritesPlaceFrames())
 	{
 		return 3;
 	}
@@ -483,6 +521,7 @@ int main(void)
 	{
 		free(gapvSpritesCopies[uiFrame]);
 	}
+	free(gpuiSpritesFlower);
 	free(gpuiSpritesSpans);
 	free(gpuiSpritesMaki);
 	free(gpuiSpritesStage);
