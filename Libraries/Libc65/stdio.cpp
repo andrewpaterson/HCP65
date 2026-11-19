@@ -694,8 +694,8 @@ static int Format(SFormatOutput* psOutput, const char* szFormat, va_list vaArgum
 			}
 		}
 
-		//The argument's size: int unless l says long, l l (or j) long long and z or t size_t (an int is 16 bits on
-		//the W65C816).  h and hh narrow it after it is read.
+		//The argument's size: int unless l says long, l l (or j) long long, z size_t and t ptrdiff_t (an int is 16
+		//bits on the W65C816, and so is size_t; ptrdiff_t is 32).  h and hh narrow it after it is read.
 		iLength = 0;
 		iBytes = (int)sizeof(int);
 		for (;;)
@@ -711,7 +711,8 @@ static int Format(SFormatOutput* psOutput, const char* szFormat, va_list vaArgum
 				iLength = 'l';
 			}
 			else if ((c == 'j') || (c == 'q'))	iBytes = 8;
-			else if ((c == 'z') || (c == 't'))	iBytes = (int)sizeof(size_t);
+			else if (c == 'z')					iBytes = (int)sizeof(size_t);
+			else if (c == 't')					iBytes = (int)sizeof(ptrdiff_t);
 			else if (c == 'L')					iLength = 'L';
 			else if ((c == 'I') && (szFormat[1] == '6') && (szFormat[2] == '4'))
 			{
@@ -789,7 +790,7 @@ static int Format(SFormatOutput* psOutput, const char* szFormat, va_list vaArgum
 			break;
 
 		case 'p':
-			ullValue = (unsigned long long)(size_t)va_arg(vaArguments, void*);
+			ullValue = (unsigned long long)(unsigned long)va_arg(vaArguments, void*);  //Pointers and long are 32 bits.
 			FormatInteger(psOutput, ullValue, false, 16, iWidth, 8, (iFlags & FORMAT_LEFT) | FORMAT_ALTERNATE);
 			break;
 
@@ -854,7 +855,7 @@ int vsnprintf(char* szDest, size_t uiSize, const char* szFormat, va_list vaArgum
 
 int vsprintf(char* szDest, const char* szFormat, va_list vaArguments)
 {
-	return vsnprintf(szDest, 0x7FFFFFFF, szFormat, vaArguments);
+	return vsnprintf(szDest, (size_t)-1, szFormat, vaArguments);
 }
 
 
@@ -906,7 +907,7 @@ int sprintf(char* szDest, const char* szFormat, ...)
 	int		iResult;
 
 	va_start(vaArguments, szFormat);
-	iResult = vsnprintf(szDest, 0x7FFFFFFF, szFormat, vaArguments);
+	iResult = vsnprintf(szDest, (size_t)-1, szFormat, vaArguments);
 	va_end(vaArguments);
 	return iResult;
 }

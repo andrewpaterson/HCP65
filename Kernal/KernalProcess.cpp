@@ -134,7 +134,7 @@ bool KernalCopyToUser(uint32 uiAddress, const uint8* puiSource, uint32 uiLength)
 			return false;
 		}
 		uiInBank = (uiInBank < uiLength) ? uiInBank : uiLength;
-		memcpy(puiDest, puiSource, uiInBank);
+		memcpy32(puiDest, puiSource, uiInBank);  //A bank's 65536 bytes is more than a size_t.
 		uiAddress += uiInBank;
 		puiSource += uiInBank;
 		uiLength -= uiInBank;
@@ -192,7 +192,7 @@ bool KernalCopyFromUser(uint8* puiDest, uint32 uiAddress, uint32 uiLength)
 			return false;
 		}
 		uiInBank = (uiInBank < uiLength) ? uiInBank : uiLength;
-		memcpy(puiDest, puiSource, uiInBank);
+		memcpy32(puiDest, puiSource, uiInBank);  //A bank's 65536 bytes is more than a size_t.
 		uiAddress += uiInBank;
 		puiDest += uiInBank;
 		uiLength -= uiInBank;

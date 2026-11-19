@@ -24,19 +24,14 @@ char*	strrchr(const char* sz, int c);
 char*	strstr(const char* sz, const char* szFind);
 
 #if defined(__W65C816__)
-//32 bit counts (stringW65C816.asm), for what can pass 64KB.
+//size_t is 16 bits on the W65C816 (stringW65C816_16.asm has the functions above; strlen is 65535 when sz is that long
+//or longer).  These take 32 bit counts (stringW65C816.asm), for what can pass 64KB.
 void*	memcpy32(void* pvDest, const void* pvSource, unsigned long ulBytes);
 void*	memmove32(void* pvDest, const void* pvSource, unsigned long ulBytes);
 void*	memset32(void* pvDest, int iValue, unsigned long ulBytes);
 int		memcmp32(const void* pv1, const void* pv2, unsigned long ulBytes);
 void*	memchr32(const void* pv, int iValue, unsigned long ulBytes);
 unsigned long	strlen32(const char* sz);
-//16 bit counts (stringW65C816_16.asm), for BaseLib's natural arrays: at most 65535 bytes.
-void*	memcpy16(void* pvDest, const void* pvSource, unsigned short uiBytes);
-void*	memmove16(void* pvDest, const void* pvSource, unsigned short uiBytes);
-void*	memset16(void* pvDest, int iValue, unsigned short uiBytes);
-int		memcmp16(const void* pv1, const void* pv2, unsigned short uiBytes);
-unsigned short	strlen16(const char* sz);  //65535 when sz is that long or longer.
 #endif // __W65C816__
 }
 

@@ -23,7 +23,8 @@ The preprocessor defines `__cplusplus` as `201402L`.
 | `wchar_t`, `char16_t` | 2 bytes | 2 bytes | Unsigned.  `L'x'` is a `wchar_t`, `u'x'` a `char16_t`. |
 | `char32_t` | 4 bytes | 4 bytes | Unsigned.  `U'x'` is one. |
 | Pointers, references | 4 bytes | 4 bytes | On the W65C816 a 24 bit address with a zero top byte. |
-| `size_t`, `ptrdiff_t` | 4 bytes | 4 bytes | A pointer wide: `unsigned int` and `int` on the 65C64, `unsigned long` and `long` on the W65C816.  `sizeof` is an `unsigned int`, not a `size_t`, so on the W65C816 it is 2 bytes. |
+| `size_t` | **2 bytes** | 4 bytes | `unsigned int` on both, so `sizeof`'s type, `size_t` and BaseLib's `size` are one type.  On the W65C816 `memcpy`, `malloc` and the others take 16 bit counts; `memcpy32`, `malloc32` and the other 32 suffixed functions take longer ones (see [Libc65](libc65.md)). |
+| `ptrdiff_t` | 4 bytes | 4 bytes | A pointer wide: `int` on the 65C64, `long` on the W65C816, so a difference of pointers into a block of more than 32KB isn't cut. |
 | Pointers to members | 4 bytes | 4 bytes | A field's offset, or a member function's address. |
 
 Each fundamental type is a type of its own, however wide: `int` and `long` are different types
@@ -76,12 +77,14 @@ checked.
 
 ### BaseLib's `size` and `lsize`
 
-BaseLib counts and measures with its own `size` and `lsize` types (`BaseLib/PrimitiveTypes.h`),
-not with `size_t`:
+BaseLib counts and measures with its own `size` and `lsize` types (`BaseLib/PrimitiveTypes.h`).
+`size` is `size_t`; `lsize` is for what can pass 64KB, and BaseLib's `Memory32.h` gives `memcpy32`,
+`malloc32` and the others on every target for its counts (Libc65's on the W65C816, the plain
+functions elsewhere):
 
 | Type | W65C816 | 65C64 | Notes |
 |---|---|---|---|
-| `size` | **2 bytes** | 4 bytes | `uint16` on the W65C816, the processor's natural width; `size_t` elsewhere. |
+| `size` | **2 bytes** | 4 bytes | `size_t` on every target: the W65C816's natural width there. |
 | `lsize` | 4 bytes | 4 bytes | `uint32` on the W65C816, for counts and lengths that can pass 64KB; `size` elsewhere. |
 
 The two are different types only on the W65C816, so only there can a function be overloaded on
