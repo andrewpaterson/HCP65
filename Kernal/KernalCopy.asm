@@ -37,8 +37,8 @@ C_TRANSPARENT	= 20
 
 
 ; void KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, uint16 uiTransparent)
-		.global _KernalMainCopy__FPhPKhtt.axssy
-_KernalMainCopy__FPhPKhtt.axssy:
+		.global _KernalMainCopy__FPhPKhjj.axssy
+_KernalMainCopy__FPhPKhjj.axssy:
 		.width (A, X), 16
 		phd
 		phx

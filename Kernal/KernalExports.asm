@@ -157,7 +157,7 @@ _gauiKernalExports:
 		.long Export_gpuiKernalBlitter
 		.long _gpuiKernalBlitter
 		.long Export_KernalMainCopy__FPhPKhtt_axssy
-		.long _KernalMainCopy__FPhPKhtt.axssy
+		.long _KernalMainCopy__FPhPKhjj.axssy
 KernalExportsEnd:
 
 		; The assembler counts them: eight bytes each.
@@ -303,4 +303,4 @@ Export_KernalMainFree__FPv_ax:
 Export_gpuiKernalBlitter:
 		.byte "_gpuiKernalBlitter", 0
 Export_KernalMainCopy__FPhPKhtt_axssy:
-		.byte "_KernalMainCopy__FPhPKhtt.axssy", 0
+		.byte "_KernalMainCopy__FPhPKhjj.axssy", 0
