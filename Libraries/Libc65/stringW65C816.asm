@@ -1359,9 +1359,10 @@ MoreNone:
 
 		.section text.MemSwpW65C816
 		.global _MemSwp__FPKvPKvm, _MemSwp__FPKvPKvm.ax
+		.global _MemSwp32__FPKvPKvm, _MemSwp32__FPKvPKvm.ax
 
-; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
-; out for the W65C816; stringW65C816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
+; void MemSwp32(const void* pv1, const void* pv2, lsize uiLength), and MemSwp with an lsize length (BaseLib's
+; StringHelper.cpp, left out for the W65C816; stringW65C816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
 ; (carrying into the next bank), 64KB at a time.  The register entry (the compiler's register arguments: pv1 in A and
 ; X, pv2 and uiLength pushed) pushes pv1 and points D at the stack: pv1 is at D + 3 (MemSwpP1), then the return
 ; address, pv2 at D + 10 and the length at D + 14.
@@ -1369,6 +1370,7 @@ MemSwpP1	= 3
 MemSwpP2	= 10
 MemSwpLength	= 14
 
+_MemSwp32__FPKvPKvm.ax:
 _MemSwp__FPKvPKvm.ax:
 		.width (A, X), 16
 		phx
@@ -1419,6 +1421,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 and the length again under its return address, loads pv1
 ; into A and X and calls the register entry.
+_MemSwp32__FPKvPKvm:
 _MemSwp__FPKvPKvm:
 		.width (A, X), 16
 		lda [S + 14]
