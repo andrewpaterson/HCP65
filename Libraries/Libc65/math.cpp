@@ -10,8 +10,8 @@
 
 extern "C"
 {
-uint32_t	SoftFloatSqrt(uint32_t ui);
-uint64_t	SoftDoubleSqrt(uint64_t ulli);
+uint32_t	SoftFloatSqrt(uint32_t ui) noexcept;
+uint64_t	SoftDoubleSqrt(uint64_t ulli) noexcept;
 }
 
 
@@ -55,16 +55,16 @@ static bool IsNaNOrInfinity(double d)
 //double forms), ldexp, frexp, modf and fmod, the same bit for bit.  A W65C816 build without its assembly
 //(CCPPCompileOptions::SetAssemblyUnits(false), no __W65C816_ASSEMBLY__) compiles these instead.
 #if !defined(__W65C816_ASSEMBLY__)
-double fabs(double x)					{ return BitsDouble(DoubleBits(x) & 0x7FFFFFFFFFFFFFFFULL); }
-float fabsf(float x)					{ return BitsFloat(FloatBits(x) & 0x7FFFFFFF); }
-long double fabsl(long double x)		{ return fabs(x); }
-double sqrt(double x)					{ return BitsDouble(SoftDoubleSqrt(DoubleBits(x))); }
-float sqrtf(float x)					{ return BitsFloat(SoftFloatSqrt(FloatBits(x))); }
-long double sqrtl(long double x)		{ return sqrt(x); }
+double fabs(double x) noexcept					{ return BitsDouble(DoubleBits(x) & 0x7FFFFFFFFFFFFFFFULL); }
+float fabsf(float x) noexcept					{ return BitsFloat(FloatBits(x) & 0x7FFFFFFF); }
+long double fabsl(long double x) noexcept		{ return fabs(x); }
+double sqrt(double x) noexcept					{ return BitsDouble(SoftDoubleSqrt(DoubleBits(x))); }
+float sqrtf(float x) noexcept					{ return BitsFloat(SoftFloatSqrt(FloatBits(x))); }
+long double sqrtl(long double x) noexcept		{ return sqrt(x); }
 
 
 //Towards zero: the fraction bits below the binary point are cleared.
-double trunc(double x)
+double trunc(double x) noexcept
 {
 	int			iExponent;
 	uint64_t	ulliBits;
@@ -83,7 +83,7 @@ double trunc(double x)
 }
 
 
-double floor(double x)
+double floor(double x) noexcept
 {
 	double	dTruncated;
 
@@ -92,7 +92,7 @@ double floor(double x)
 }
 
 
-double ceil(double x)
+double ceil(double x) noexcept
 {
 	double	dTruncated;
 
@@ -102,7 +102,7 @@ double ceil(double x)
 
 
 //Halves away from zero.  x minus its truncation is exact.
-double round(double x)
+double round(double x) noexcept
 {
 	double	dTruncated;
 
@@ -115,18 +115,18 @@ double round(double x)
 }
 
 
-float truncf(float x)					{ return (float)trunc(x); }
-float floorf(float x)					{ return (float)floor(x); }
-float ceilf(float x)					{ return (float)ceil(x); }
-float roundf(float x)					{ return (float)round(x); }
-long double truncl(long double x)		{ return trunc(x); }
-long double floorl(long double x)		{ return floor(x); }
-long double ceill(long double x)		{ return ceil(x); }
-long double roundl(long double x)		{ return round(x); }
+float truncf(float x) noexcept					{ return (float)trunc(x); }
+float floorf(float x) noexcept					{ return (float)floor(x); }
+float ceilf(float x) noexcept					{ return (float)ceil(x); }
+float roundf(float x) noexcept					{ return (float)round(x); }
+long double truncl(long double x) noexcept		{ return trunc(x); }
+long double floorl(long double x) noexcept		{ return floor(x); }
+long double ceill(long double x) noexcept		{ return ceil(x); }
+long double roundl(long double x) noexcept		{ return round(x); }
 
 
 //x * 2^n, in steps that stay normal.
-double ldexp(double x, int iExponent)
+double ldexp(double x, int iExponent) noexcept
 {
 	while (iExponent > 1023)
 	{
@@ -143,7 +143,7 @@ double ldexp(double x, int iExponent)
 
 
 //The significand from 1/2 to 1 and the power of two.
-double frexp(double x, int* piExponent)
+double frexp(double x, int* piExponent) noexcept
 {
 	uint64_t	ulliBits;
 	int			iAdjust;
@@ -167,7 +167,7 @@ double frexp(double x, int* piExponent)
 
 
 //The fraction has x's sign, even when it is zero.
-double modf(double x, double* pdInteger)
+double modf(double x, double* pdInteger) noexcept
 {
 	double	dFraction;
 
@@ -209,7 +209,7 @@ static int TopExponent(double d)
 //The remainder of x / y with x's sign, exactly: y doubled up to x and taken off, largest first.
 //The doubling goes by top bits (TopExponent): a subnormal's field exponent would take a step per
 //multiple of y.
-double fmod(double x, double y)
+double fmod(double x, double y) noexcept
 {
 	double	dRemainder;
 	double	dDivisor;
@@ -238,8 +238,8 @@ double fmod(double x, double y)
 }
 
 
-float fmodf(float x, float y)			{ return (float)fmod(x, y); }
-long double fmodl(long double x, long double y)	{ return fmod(x, y); }
+float fmodf(float x, float y) noexcept			{ return (float)fmod(x, y); }
+long double fmodl(long double x, long double y) noexcept	{ return fmod(x, y); }
 #endif // !__W65C816_ASSEMBLY__
 
 
@@ -475,7 +475,7 @@ static double ExpExtended(double hi, double lo)
 }
 
 
-double exp(double x)
+double exp(double x) noexcept
 {
 	if (x != x)
 	{
@@ -568,7 +568,7 @@ static void LogExtended(double x, double* phi, double* plo)
 }
 
 
-double log(double x)
+double log(double x) noexcept
 {
 	double	dHigh;
 	double	dLow;
@@ -594,7 +594,7 @@ double log(double x)
 }
 
 
-double log10(double x)
+double log10(double x) noexcept
 {
 	double	dHigh;
 	double	dLow;
@@ -630,7 +630,7 @@ static bool IsOddInteger(double y)
 }
 
 
-double pow(double x, double y)
+double pow(double x, double y) noexcept
 {
 	double	dHigh;
 	double	dLow;
@@ -1013,7 +1013,7 @@ static double TanKernel(double x, double y, bool bInverse)
 }
 
 
-double sin(double x)
+double sin(double x) noexcept
 {
 	double	y0;
 	double	y1;
@@ -1040,7 +1040,7 @@ double sin(double x)
 }
 
 
-double cos(double x)
+double cos(double x) noexcept
 {
 	double	y0;
 	double	y1;
@@ -1067,7 +1067,7 @@ double cos(double x)
 }
 
 
-double tan(double x)
+double tan(double x) noexcept
 {
 	double	y0;
 	double	y1;
@@ -1177,7 +1177,7 @@ static double AtanExtended(double a, double aLow, double* plo)
 }
 
 
-double atan(double x)
+double atan(double x) noexcept
 {
 	double	a;
 	double	dResult;
@@ -1219,7 +1219,7 @@ static double AsinRest(double x)
 }
 
 
-double asin(double x)
+double asin(double x) noexcept
 {
 	double	a;
 	double	t;
@@ -1260,7 +1260,7 @@ double asin(double x)
 }
 
 
-double acos(double x)
+double acos(double x) noexcept
 {
 	double	a;
 	double	t;
@@ -1311,7 +1311,7 @@ double acos(double x)
 
 
 //The angle of (x, y), with the signs of zeros and infinities as C99 F.9.1.4.
-double atan2(double y, double x)
+double atan2(double y, double x) noexcept
 {
 	double	z;
 	double	dLow;
@@ -1422,7 +1422,7 @@ static double PowerOfTwo(int n)
 // over a NaN (C99 F.9.4.3).
 //
 //////////////////////////////////////////////////////////////////////////
-double hypot(double x, double y)
+double hypot(double x, double y) noexcept
 {
 	double	a;
 	double	b;
@@ -1477,34 +1477,34 @@ double hypot(double x, double y)
 }
 
 
-long lround(double x)								{ return (long)round(x); }
-long lroundf(float x)								{ return (long)round((double)x); }
-long long llround(double x)							{ return (long long)round(x); }
-long long llroundf(float x)							{ return (long long)round((double)x); }
-float hypotf(float x, float y)						{ return (float)hypot((double)x, (double)y); }
-float asinf(float x)								{ return (float)asin((double)x); }
-float acosf(float x)								{ return (float)acos((double)x); }
-float expf(float x)									{ return (float)exp(x); }
-float logf(float x)									{ return (float)log(x); }
-float powf(float x, float y)						{ return (float)pow(x, y); }
-float sinf(float x)									{ return (float)sin(x); }
-float cosf(float x)									{ return (float)cos(x); }
-float tanf(float x)									{ return (float)tan(x); }
-float atanf(float x)								{ return (float)atan(x); }
-float atan2f(float y, float x)						{ return (float)atan2(y, x); }
-long double expl(long double x)						{ return exp(x); }
-long double logl(long double x)						{ return log(x); }
-long double log10l(long double x)					{ return log10(x); }
-long double powl(long double x, long double y)		{ return pow(x, y); }
+long lround(double x) noexcept								{ return (long)round(x); }
+long lroundf(float x) noexcept								{ return (long)round((double)x); }
+long long llround(double x) noexcept							{ return (long long)round(x); }
+long long llroundf(float x) noexcept							{ return (long long)round((double)x); }
+float hypotf(float x, float y) noexcept						{ return (float)hypot((double)x, (double)y); }
+float asinf(float x) noexcept								{ return (float)asin((double)x); }
+float acosf(float x) noexcept								{ return (float)acos((double)x); }
+float expf(float x) noexcept									{ return (float)exp(x); }
+float logf(float x) noexcept									{ return (float)log(x); }
+float powf(float x, float y) noexcept						{ return (float)pow(x, y); }
+float sinf(float x) noexcept									{ return (float)sin(x); }
+float cosf(float x) noexcept									{ return (float)cos(x); }
+float tanf(float x) noexcept									{ return (float)tan(x); }
+float atanf(float x) noexcept								{ return (float)atan(x); }
+float atan2f(float y, float x) noexcept						{ return (float)atan2(y, x); }
+long double expl(long double x) noexcept						{ return exp(x); }
+long double logl(long double x) noexcept						{ return log(x); }
+long double log10l(long double x) noexcept					{ return log10(x); }
+long double powl(long double x, long double y) noexcept		{ return pow(x, y); }
 
 
 #ifdef __65C64__
 //A host's math.h has its own (C99 macros or C++ overloads).  A NaN is not equal to itself.
-bool isnan(double x)		{ return x != x; }
-bool isnan(float x)			{ return x != x; }
-bool isinf(double x)		{ return IsNaNOrInfinity(x) && (x == x); }
-bool isinf(float x)			{ return isinf((double)x); }
-bool isfinite(double x)		{ return !IsNaNOrInfinity(x); }
-bool isfinite(float x)		{ return isfinite((double)x); }
+bool isnan(double x) noexcept		{ return x != x; }
+bool isnan(float x) noexcept			{ return x != x; }
+bool isinf(double x) noexcept		{ return IsNaNOrInfinity(x) && (x == x); }
+bool isinf(float x) noexcept			{ return isinf((double)x); }
+bool isfinite(double x) noexcept		{ return !IsNaNOrInfinity(x); }
+bool isfinite(float x) noexcept		{ return isfinite((double)x); }
 #endif // __65C64__
 

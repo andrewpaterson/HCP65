@@ -9,7 +9,7 @@
 __sighandler_t	gafSignalHandlers[SIGNAL_MAX];
 
 
-__sighandler_t signal(int iSignal, __sighandler_t fHandler)
+__sighandler_t signal(int iSignal, __sighandler_t fHandler) noexcept
 {
 	__sighandler_t	fPrevious;
 
@@ -24,7 +24,7 @@ __sighandler_t signal(int iSignal, __sighandler_t fHandler)
 
 
 //The handler is reset to SIG_DFL before it is called, as C allows.
-int raise(int iSignal)
+int raise(int iSignal) noexcept
 {
 	__sighandler_t	fHandler;
 

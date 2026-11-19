@@ -27,13 +27,13 @@ struct tm
 
 extern "C"
 {
-time_t		time(time_t* ptTime);
-clock_t		clock(void);
-struct tm*	localtime(const time_t* ptTime);
-struct tm*	gmtime(const time_t* ptTime);
-time_t		mktime(struct tm* psTime);
-double		difftime(time_t tEnd, time_t tStart);
-size_t		strftime(char* szDest, size_t uiMax, const char* szFormat, const struct tm* psTime);
+time_t		time(time_t* ptTime) noexcept;
+clock_t		clock(void) noexcept;
+struct tm*	localtime(const time_t* ptTime) noexcept;
+struct tm*	gmtime(const time_t* ptTime) noexcept;
+time_t		mktime(struct tm* psTime) noexcept;
+double		difftime(time_t tEnd, time_t tStart) noexcept;
+size_t		strftime(char* szDest, size_t uiMax, const char* szFormat, const struct tm* psTime) noexcept;
 }
 
 

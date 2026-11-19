@@ -664,7 +664,7 @@ uint32_t SoftFloatToUnsigned(uint32_t ui)								{ return (uint32_t)ToInteger(ui
 int64_t SoftFloatToLongLong(uint32_t ui)								{ return (int64_t)ToInteger(ui, FLOAT_FRACTION, 64, true); }
 uint64_t SoftFloatToUnsignedLongLong(uint32_t ui)						{ return ToInteger(ui, FLOAT_FRACTION, 64, false); }
 uint64_t SoftFloatToDouble(uint32_t ui)									{ return Change(ui, FLOAT_FRACTION, DOUBLE_FRACTION); }
-uint32_t SoftFloatSqrt(uint32_t ui)										{ return (uint32_t)SquareRoot(ui, FLOAT_FRACTION); }
+uint32_t SoftFloatSqrt(uint32_t ui) noexcept										{ return (uint32_t)SquareRoot(ui, FLOAT_FRACTION); }
 uint32_t SoftDoubleToFloat(uint64_t ulli)								{ return (uint32_t)Change(ulli, DOUBLE_FRACTION, FLOAT_FRACTION); }
 
 uint64_t SoftDoubleAdd(uint64_t ulliA, uint64_t ulliB)					{ return Add(ulliA, ulliB, false, DOUBLE_FRACTION); }
@@ -680,6 +680,6 @@ int32_t SoftDoubleToInt(uint64_t ulli)									{ return (int32_t)ToInteger(ulli,
 uint32_t SoftDoubleToUnsigned(uint64_t ulli)							{ return (uint32_t)ToInteger(ulli, DOUBLE_FRACTION, 32, false); }
 int64_t SoftDoubleToLongLong(uint64_t ulli)								{ return (int64_t)ToInteger(ulli, DOUBLE_FRACTION, 64, true); }
 uint64_t SoftDoubleToUnsignedLongLong(uint64_t ulli)					{ return ToInteger(ulli, DOUBLE_FRACTION, 64, false); }
-uint64_t SoftDoubleSqrt(uint64_t ulli)									{ return SquareRoot(ulli, DOUBLE_FRACTION); }
+uint64_t SoftDoubleSqrt(uint64_t ulli) noexcept									{ return SquareRoot(ulli, DOUBLE_FRACTION); }
 }
 #endif // !__65C64__ && !__W65C816_ASSEMBLY__

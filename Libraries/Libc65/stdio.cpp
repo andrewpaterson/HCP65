@@ -49,7 +49,7 @@ static void ConsoleWrite(char c)
 }
 
 
-int fputc(int c, FILE* pcFile)
+int fputc(int c, FILE* pcFile) noexcept
 {
 	char	cByte;
 
@@ -62,13 +62,13 @@ int fputc(int c, FILE* pcFile)
 }
 
 
-int putchar(int c)
+int putchar(int c) noexcept
 {
 	return fputc(c, stdout);
 }
 
 
-int fputs(const char* sz, FILE* pcFile)
+int fputs(const char* sz, FILE* pcFile) noexcept
 {
 	while (*sz)
 	{
@@ -82,7 +82,7 @@ int fputs(const char* sz, FILE* pcFile)
 }
 
 
-int puts(const char* sz)
+int puts(const char* sz) noexcept
 {
 	if (fputs(sz, stdout) == EOF)
 	{
@@ -93,7 +93,7 @@ int puts(const char* sz)
 
 
 //"r", "w", "a" then "+" for reading and writing; "b" and "t" make no difference.
-FILE* fopen(const char* szName, const char* szMode)
+FILE* fopen(const char* szName, const char* szMode) noexcept
 {
 	FILE*	pcFile;
 	int		iMode;
@@ -134,7 +134,7 @@ FILE* fopen(const char* szName, const char* szMode)
 }
 
 
-int fclose(FILE* pcFile)
+int fclose(FILE* pcFile) noexcept
 {
 	int		iResult;
 
@@ -199,33 +199,33 @@ static uint32_t FileWrite(const void* pv, uint32_t uiSize, uint32_t uiCount, FIL
 }
 
 
-size_t fread(void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
+size_t fread(void* pv, size_t uiSize, size_t uiCount, FILE* pcFile) noexcept
 {
 	return (size_t)FileRead(pv, uiSize, uiCount, pcFile);
 }
 
 
-size_t fwrite(const void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
+size_t fwrite(const void* pv, size_t uiSize, size_t uiCount, FILE* pcFile) noexcept
 {
 	return (size_t)FileWrite(pv, uiSize, uiCount, pcFile);
 }
 
 
 #if defined(__W65C816__)
-unsigned long fread32(void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile)
+unsigned long fread32(void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile) noexcept
 {
 	return FileRead(pv, ulSize, ulCount, pcFile);
 }
 
 
-unsigned long fwrite32(const void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile)
+unsigned long fwrite32(const void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile) noexcept
 {
 	return FileWrite(pv, ulSize, ulCount, pcFile);
 }
 #endif // __W65C816__
 
 
-int fseek(FILE* pcFile, long iOffset, int iOrigin)
+int fseek(FILE* pcFile, long iOffset, int iOrigin) noexcept
 {
 	if (!pcFile || (pcFile->iKind != FILE_HOST))
 	{
@@ -236,7 +236,7 @@ int fseek(FILE* pcFile, long iOffset, int iOrigin)
 }
 
 
-long ftell(FILE* pcFile)
+long ftell(FILE* pcFile) noexcept
 {
 	if (!pcFile || (pcFile->iKind != FILE_HOST))
 	{
@@ -246,7 +246,7 @@ long ftell(FILE* pcFile)
 }
 
 
-int fflush(FILE* pcFile)
+int fflush(FILE* pcFile) noexcept
 {
 	if (pcFile && (pcFile->iKind == FILE_HOST))
 	{
@@ -256,13 +256,13 @@ int fflush(FILE* pcFile)
 }
 
 
-int feof(FILE* pcFile)
+int feof(FILE* pcFile) noexcept
 {
 	return pcFile ? pcFile->iEnd : 1;
 }
 
 
-int fgetc(FILE* pcFile)
+int fgetc(FILE* pcFile) noexcept
 {
 	unsigned char	c;
 
@@ -274,13 +274,13 @@ int fgetc(FILE* pcFile)
 }
 
 
-int remove(const char* szName)
+int remove(const char* szName) noexcept
 {
 	return HostDelete(szName) ? 0 : -1;
 }
 
 
-int rename(const char* szOld, const char* szNew)
+int rename(const char* szOld, const char* szNew) noexcept
 {
 	return HostRename(szOld, szNew) ? 0 : -1;
 }
@@ -870,7 +870,7 @@ static int Format(SFormatOutput* psOutput, const char* szFormat, va_list vaArgum
 }
 
 
-int vsnprintf(char* szDest, size_t uiSize, const char* szFormat, va_list vaArguments)
+int vsnprintf(char* szDest, size_t uiSize, const char* szFormat, va_list vaArguments) noexcept
 {
 	SFormatOutput	sOutput;
 
@@ -882,13 +882,13 @@ int vsnprintf(char* szDest, size_t uiSize, const char* szFormat, va_list vaArgum
 }
 
 
-int vsprintf(char* szDest, const char* szFormat, va_list vaArguments)
+int vsprintf(char* szDest, const char* szFormat, va_list vaArguments) noexcept
 {
 	return vsnprintf(szDest, (size_t)-1, szFormat, vaArguments);
 }
 
 
-int vfprintf(FILE* pcFile, const char* szFormat, va_list vaArguments)
+int vfprintf(FILE* pcFile, const char* szFormat, va_list vaArguments) noexcept
 {
 	SFormatOutput	sOutput;
 
@@ -900,13 +900,13 @@ int vfprintf(FILE* pcFile, const char* szFormat, va_list vaArguments)
 }
 
 
-int vprintf(const char* szFormat, va_list vaArguments)
+int vprintf(const char* szFormat, va_list vaArguments) noexcept
 {
 	return vfprintf(stdout, szFormat, vaArguments);
 }
 
 
-int printf(const char* szFormat, ...)
+int printf(const char* szFormat, ...) noexcept
 {
 	va_list	vaArguments;
 	int		iResult;
@@ -918,7 +918,7 @@ int printf(const char* szFormat, ...)
 }
 
 
-int fprintf(FILE* pcFile, const char* szFormat, ...)
+int fprintf(FILE* pcFile, const char* szFormat, ...) noexcept
 {
 	va_list	vaArguments;
 	int		iResult;
@@ -930,7 +930,7 @@ int fprintf(FILE* pcFile, const char* szFormat, ...)
 }
 
 
-int sprintf(char* szDest, const char* szFormat, ...)
+int sprintf(char* szDest, const char* szFormat, ...) noexcept
 {
 	va_list	vaArguments;
 	int		iResult;
@@ -942,7 +942,7 @@ int sprintf(char* szDest, const char* szFormat, ...)
 }
 
 
-int snprintf(char* szDest, size_t uiSize, const char* szFormat, ...)
+int snprintf(char* szDest, size_t uiSize, const char* szFormat, ...) noexcept
 {
 	va_list	vaArguments;
 	int		iResult;

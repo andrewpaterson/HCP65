@@ -8,7 +8,7 @@
 
 
 #if !defined(__65C64__) && !defined(__W65C816__)
-void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
+void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes) noexcept
 {
 	char*		pcDest;
 	const char*	pcSource;
@@ -34,7 +34,7 @@ void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
 }
 
 
-void* memmove(void* pvDest, const void* pvSource, size_t uiBytes)
+void* memmove(void* pvDest, const void* pvSource, size_t uiBytes) noexcept
 {
 	char*		pcDest;
 	const char*	pcSource;
@@ -69,7 +69,7 @@ void* memmove(void* pvDest, const void* pvSource, size_t uiBytes)
 }
 
 
-void* memset(void* pvDest, int iValue, size_t uiBytes)
+void* memset(void* pvDest, int iValue, size_t uiBytes) noexcept
 {
 	char*			pcDest;
 	uint32_t		uiValue;
@@ -96,7 +96,7 @@ void* memset(void* pvDest, int iValue, size_t uiBytes)
 }
 
 
-int memcmp(const void* pv1, const void* pv2, size_t uiBytes)
+int memcmp(const void* pv1, const void* pv2, size_t uiBytes) noexcept
 {
 	const unsigned char*	puc1;
 	const unsigned char*	puc2;
@@ -127,7 +127,7 @@ int memcmp(const void* pv1, const void* pv2, size_t uiBytes)
 }
 
 
-void* memchr(const void* pv, int iValue, size_t uiBytes)
+void* memchr(const void* pv, int iValue, size_t uiBytes) noexcept
 {
 	const unsigned char*	puc;
 
@@ -145,7 +145,7 @@ void* memchr(const void* pv, int iValue, size_t uiBytes)
 }
 
 
-size_t strlen(const char* sz)
+size_t strlen(const char* sz) noexcept
 {
 	const char*	pc;
 
@@ -158,7 +158,7 @@ size_t strlen(const char* sz)
 }
 
 
-char* strcpy(char* szDest, const char* szSource)
+char* strcpy(char* szDest, const char* szSource) noexcept
 {
 	char*	pc;
 
@@ -170,7 +170,7 @@ char* strcpy(char* szDest, const char* szSource)
 }
 
 
-char* strncpy(char* szDest, const char* szSource, size_t uiChars)
+char* strncpy(char* szDest, const char* szSource, size_t uiChars) noexcept
 {
 	size_t	i;
 
@@ -186,14 +186,14 @@ char* strncpy(char* szDest, const char* szSource, size_t uiChars)
 }
 
 
-char* strcat(char* szDest, const char* szSource)
+char* strcat(char* szDest, const char* szSource) noexcept
 {
 	strcpy(szDest + strlen(szDest), szSource);
 	return szDest;
 }
 
 
-char* strncat(char* szDest, const char* szSource, size_t uiChars)
+char* strncat(char* szDest, const char* szSource, size_t uiChars) noexcept
 {
 	char*	pc;
 
@@ -208,7 +208,7 @@ char* strncat(char* szDest, const char* szSource, size_t uiChars)
 }
 
 
-int strcmp(const char* sz1, const char* sz2)
+int strcmp(const char* sz1, const char* sz2) noexcept
 {
 	while (*sz1 && (*sz1 == *sz2))
 	{
@@ -219,7 +219,7 @@ int strcmp(const char* sz1, const char* sz2)
 }
 
 
-int strncmp(const char* sz1, const char* sz2, size_t uiChars)
+int strncmp(const char* sz1, const char* sz2, size_t uiChars) noexcept
 {
 	while ((uiChars > 0) && *sz1 && (*sz1 == *sz2))
 	{
@@ -235,7 +235,7 @@ int strncmp(const char* sz1, const char* sz2, size_t uiChars)
 }
 
 
-char* strchr(const char* sz, int c)
+char* strchr(const char* sz, int c) noexcept
 {
 	for (;;)
 	{
@@ -252,7 +252,7 @@ char* strchr(const char* sz, int c)
 }
 
 
-char* strrchr(const char* sz, int c)
+char* strrchr(const char* sz, int c) noexcept
 {
 	const char*	pcFound;
 
@@ -291,7 +291,7 @@ typedef size_t			strstr_length;
 #define STRSTR_COMPARE(sz1, sz2, uiLength)	memcmp(sz1, sz2, uiLength)
 #endif // __W65C816__
 
-char* strstr(const char* sz, const char* szFind)
+char* strstr(const char* sz, const char* szFind) noexcept
 {
 	strstr_length	uiFind;
 	strstr_length	uiLength;

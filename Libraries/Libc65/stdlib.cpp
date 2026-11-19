@@ -334,13 +334,13 @@ static void* HeapRealloc(void* pv, uint32_t uiBytes)
 }
 
 
-void* malloc32(unsigned long ulBytes)
+void* malloc32(unsigned long ulBytes) noexcept
 {
 	return HeapMalloc(ulBytes);
 }
 
 
-void* calloc32(unsigned long ulCount, unsigned long ulBytes)
+void* calloc32(unsigned long ulCount, unsigned long ulBytes) noexcept
 {
 	void*	pv;
 
@@ -358,7 +358,7 @@ void* calloc32(unsigned long ulCount, unsigned long ulBytes)
 }
 
 
-void* realloc32(void* pv, unsigned long ulBytes)
+void* realloc32(void* pv, unsigned long ulBytes) noexcept
 {
 	return HeapRealloc(pv, ulBytes);
 }
@@ -399,19 +399,19 @@ static void* HeapRealloc(void* pv, uint32_t uiBytes)
 #endif // __W65C816__
 
 
-void* malloc(size_t uiBytes)
+void* malloc(size_t uiBytes) noexcept
 {
 	return HeapMalloc(uiBytes);
 }
 
 
-void free(void* pv)
+void free(void* pv) noexcept
 {
 	HeapFree(pv);
 }
 
 
-void* calloc(size_t uiCount, size_t uiBytes)
+void* calloc(size_t uiCount, size_t uiBytes) noexcept
 {
 	void*	pv;
 
@@ -429,19 +429,19 @@ void* calloc(size_t uiCount, size_t uiBytes)
 }
 
 
-void* realloc(void* pv, size_t uiBytes)
+void* realloc(void* pv, size_t uiBytes) noexcept
 {
 	return HeapRealloc(pv, uiBytes);
 }
 
 
-int abs(int i)
+int abs(int i) noexcept
 {
 	return (i < 0) ? -i : i;
 }
 
 
-long labs(long i)
+long labs(long i) noexcept
 {
 	return (i < 0) ? -i : i;
 }
@@ -535,7 +535,7 @@ static bool ParseInteger(const char* sz, char** pszEnd, int iBase, unsigned long
 
 
 //Out of range values are LONG_MIN or LONG_MAX, and errno is ERANGE.
-long strtol(const char* sz, char** pszEnd, int iBase)
+long strtol(const char* sz, char** pszEnd, int iBase) noexcept
 {
 	unsigned long long	ullValue;
 	bool				bNegative;
@@ -564,7 +564,7 @@ long strtol(const char* sz, char** pszEnd, int iBase)
 
 
 //Out of range values are ULONG_MAX, and errno is ERANGE.  A negative number is negated as an unsigned long.
-unsigned long strtoul(const char* sz, char** pszEnd, int iBase)
+unsigned long strtoul(const char* sz, char** pszEnd, int iBase) noexcept
 {
 	unsigned long long	ullValue;
 	bool				bNegative;
@@ -584,7 +584,7 @@ unsigned long strtoul(const char* sz, char** pszEnd, int iBase)
 
 
 //Out of range values are LLONG_MIN or LLONG_MAX, and errno is ERANGE.
-long long strtoll(const char* sz, char** pszEnd, int iBase)
+long long strtoll(const char* sz, char** pszEnd, int iBase) noexcept
 {
 	unsigned long long	ullValue;
 	bool				bNegative;
@@ -613,7 +613,7 @@ long long strtoll(const char* sz, char** pszEnd, int iBase)
 
 
 //Out of range values are ULLONG_MAX, and errno is ERANGE.  A negative number is negated as an unsigned long long.
-unsigned long long strtoull(const char* sz, char** pszEnd, int iBase)
+unsigned long long strtoull(const char* sz, char** pszEnd, int iBase) noexcept
 {
 	unsigned long long	ullValue;
 	bool				bNegative;
@@ -650,7 +650,7 @@ static bool MatchIgnoreCase(const char* sz, const char* szWord)
 //Decimal (with an exponent), inf, infinity and nan.  Up to 19 significant digits are kept and scaled by powers of
 //ten, so the result is within an ulp or so but not always correctly rounded.  Out of range values are HUGE_VAL (or
 //0) with errno ERANGE.
-double strtod(const char* sz, char** pszEnd)
+double strtod(const char* sz, char** pszEnd) noexcept
 {
 	const char*			szStart;
 	const char*			szExponent;
@@ -818,31 +818,31 @@ double strtod(const char* sz, char** pszEnd)
 }
 
 
-float strtof(const char* sz, char** pszEnd)
+float strtof(const char* sz, char** pszEnd) noexcept
 {
 	return (float)strtod(sz, pszEnd);
 }
 
 
-long double strtold(const char* sz, char** pszEnd)
+long double strtold(const char* sz, char** pszEnd) noexcept
 {
 	return strtod(sz, pszEnd);
 }
 
 
-double atof(const char* sz)
+double atof(const char* sz) noexcept
 {
 	return strtod(sz, NULL);
 }
 
 
-int atoi(const char* sz)
+int atoi(const char* sz) noexcept
 {
 	return (int)strtol(sz, NULL, 10);
 }
 
 
-long atol(const char* sz)
+long atol(const char* sz) noexcept
 {
 	return strtol(sz, NULL, 10);
 }
@@ -852,14 +852,14 @@ long atol(const char* sz)
 uint32_t	guiRandom = 1;
 
 
-int rand(void)
+int rand(void) noexcept
 {
 	guiRandom = guiRandom * 1103515245UL + 12345;
 	return (int)((guiRandom / 65536) % ((uint32_t)RAND_MAX + 1));
 }
 
 
-void srand(unsigned int uiSeed)
+void srand(unsigned int uiSeed) noexcept
 {
 	guiRandom = uiSeed;
 }
@@ -901,7 +901,7 @@ void qsort(void* pvBase, size_t uiCount, size_t uiBytes, int (*fCompare)(const v
 
 
 //Stops at once, unsuccessfully: neither the atexit functions nor the destructors of globals run.
-void abort(void)
+void abort(void) noexcept
 {
 	_Exit(EXIT_FAILURE);
 }
@@ -927,7 +927,7 @@ static int			giAtExits;
 
 
 //Registers fFunction to be called by exit.  Returns -1 when ATEXIT_MAX are registered already.
-int atexit(void (*fFunction)(void))
+int atexit(void (*fFunction)(void)) noexcept
 {
 	SExitNode*	psNode;
 
@@ -977,7 +977,7 @@ extern "C" char	_fini_end;
 
 //Runs the exit lists (the atexit functions and the destructors of what was made at start up), then the fini table
 //(the destructors of globals made in the data) backwards, as returning from main does, then stops.
-void exit(int iStatus)
+void exit(int iStatus) noexcept
 {
 	FFinalise*	pfFinalise;
 

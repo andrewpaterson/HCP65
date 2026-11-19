@@ -6,7 +6,7 @@
 struct tm	gsTime;
 
 
-time_t time(time_t* ptTime)
+time_t time(time_t* ptTime) noexcept
 {
 	if (ptTime)
 	{
@@ -16,7 +16,7 @@ time_t time(time_t* ptTime)
 }
 
 
-clock_t clock(void)
+clock_t clock(void) noexcept
 {
 	return (clock_t)-1;
 }
@@ -57,7 +57,7 @@ static int DaysBeforeMonth(int iYear, int iMonth)
 }
 
 
-struct tm* gmtime(const time_t* ptTime)
+struct tm* gmtime(const time_t* ptTime) noexcept
 {
 	long	lDays;
 	long	lSeconds;
@@ -106,7 +106,7 @@ struct tm* gmtime(const time_t* ptTime)
 }
 
 
-struct tm* localtime(const time_t* ptTime)
+struct tm* localtime(const time_t* ptTime) noexcept
 {
 	return gmtime(ptTime);
 }
@@ -114,7 +114,7 @@ struct tm* localtime(const time_t* ptTime)
 
 //Fields outside their ranges are carried into the others, then all of *psTime is set from the time, so it is
 //normalised and has tm_wday and tm_yday.
-time_t mktime(struct tm* psTime)
+time_t mktime(struct tm* psTime) noexcept
 {
 	long	lDays;
 	int		iYear;

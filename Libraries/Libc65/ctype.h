@@ -5,20 +5,20 @@
 
 extern "C"
 {
-int		isalnum(int c);
-int		isalpha(int c);
-int		isblank(int c);
-int		iscntrl(int c);
-int		isdigit(int c);
-int		isgraph(int c);
-int		islower(int c);
-int		isprint(int c);
-int		ispunct(int c);
-int		isspace(int c);
-int		isupper(int c);
-int		isxdigit(int c);
-int		tolower(int c);
-int		toupper(int c);
+int		isalnum(int c) noexcept;
+int		isalpha(int c) noexcept;
+int		isblank(int c) noexcept;
+int		iscntrl(int c) noexcept;
+int		isdigit(int c) noexcept;
+int		isgraph(int c) noexcept;
+int		islower(int c) noexcept;
+int		isprint(int c) noexcept;
+int		ispunct(int c) noexcept;
+int		isspace(int c) noexcept;
+int		isupper(int c) noexcept;
+int		isxdigit(int c) noexcept;
+int		tolower(int c) noexcept;
+int		toupper(int c) noexcept;
 }
 
 

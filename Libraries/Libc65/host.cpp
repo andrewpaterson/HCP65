@@ -59,7 +59,7 @@ static uint32_t PathCommand(int iCommand, const char* szPath)
 }
 
 
-int HostOpen(const char* szPath, int iMode)
+int HostOpen(const char* szPath, int iMode) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)szPath;
 	HOST_ARGUMENT_1 = (uint32_t)iMode;
@@ -67,14 +67,14 @@ int HostOpen(const char* szPath, int iMode)
 }
 
 
-int HostClose(int iHandle)
+int HostClose(int iHandle) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	return (int)Command(HOST_CLOSE);
 }
 
 
-uint32_t HostRead(int iHandle, void* pvBuffer, uint32_t uiBytes)
+uint32_t HostRead(int iHandle, void* pvBuffer, uint32_t uiBytes) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	HOST_ARGUMENT_1 = (uint32_t)pvBuffer;
@@ -83,7 +83,7 @@ uint32_t HostRead(int iHandle, void* pvBuffer, uint32_t uiBytes)
 }
 
 
-uint32_t HostWrite(int iHandle, const void* pvBuffer, uint32_t uiBytes)
+uint32_t HostWrite(int iHandle, const void* pvBuffer, uint32_t uiBytes) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	HOST_ARGUMENT_1 = (uint32_t)pvBuffer;
@@ -92,7 +92,7 @@ uint32_t HostWrite(int iHandle, const void* pvBuffer, uint32_t uiBytes)
 }
 
 
-int HostSeek(int iHandle, long long llOffset, int iOrigin)
+int HostSeek(int iHandle, long long llOffset, int iOrigin) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	HOST_ARGUMENT_1 = (uint32_t)llOffset;
@@ -102,21 +102,21 @@ int HostSeek(int iHandle, long long llOffset, int iOrigin)
 }
 
 
-long long HostTell(int iHandle)
+long long HostTell(int iHandle) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	return CommandLong(HOST_TELL);
 }
 
 
-long long HostSize(int iHandle)
+long long HostSize(int iHandle) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	return CommandLong(HOST_SIZE);
 }
 
 
-int HostTruncate(int iHandle, long long llSize)
+int HostTruncate(int iHandle, long long llSize) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	HOST_ARGUMENT_1 = (uint32_t)llSize;
@@ -125,20 +125,20 @@ int HostTruncate(int iHandle, long long llSize)
 }
 
 
-int HostFlush(int iHandle)
+int HostFlush(int iHandle) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)iHandle;
 	return (int)Command(HOST_FLUSH);
 }
 
 
-int HostDelete(const char* szPath)
+int HostDelete(const char* szPath) noexcept
 {
 	return (int)PathCommand(HOST_DELETE, szPath);
 }
 
 
-int HostRename(const char* szOld, const char* szNew)
+int HostRename(const char* szOld, const char* szNew) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)szOld;
 	HOST_ARGUMENT_1 = (uint32_t)szNew;
@@ -146,44 +146,44 @@ int HostRename(const char* szOld, const char* szNew)
 }
 
 
-int HostExists(const char* szPath)
+int HostExists(const char* szPath) noexcept
 {
 	return (int)PathCommand(HOST_EXISTS, szPath);
 }
 
 
-long long HostFileSize(const char* szPath)
+long long HostFileSize(const char* szPath) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)szPath;
 	return CommandLong(HOST_FILE_SIZE);
 }
 
 
-int HostMakeDir(const char* szPath)
+int HostMakeDir(const char* szPath) noexcept
 {
 	return (int)PathCommand(HOST_MAKE_DIR, szPath);
 }
 
 
-int HostRemoveDir(const char* szPath)
+int HostRemoveDir(const char* szPath) noexcept
 {
 	return (int)PathCommand(HOST_REMOVE_DIR, szPath);
 }
 
 
-int HostIsDirectory(const char* szPath)
+int HostIsDirectory(const char* szPath) noexcept
 {
 	return (int)PathCommand(HOST_IS_DIRECTORY, szPath);
 }
 
 
-int HostTouch(const char* szPath)
+int HostTouch(const char* szPath) noexcept
 {
 	return (int)PathCommand(HOST_TOUCH, szPath);
 }
 
 
-int HostCurrentDirectory(char* szDest, uint32_t uiSize)
+int HostCurrentDirectory(char* szDest, uint32_t uiSize) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)szDest;
 	HOST_ARGUMENT_1 = uiSize;
@@ -191,7 +191,7 @@ int HostCurrentDirectory(char* szDest, uint32_t uiSize)
 }
 
 
-int HostFindFile(const char* szDirectory, uint32_t uiIndex, char* szName, uint32_t uiSize)
+int HostFindFile(const char* szDirectory, uint32_t uiIndex, char* szName, uint32_t uiSize) noexcept
 {
 	HOST_ARGUMENT_0 = (uint32_t)szDirectory;
 	HOST_ARGUMENT_1 = uiIndex;

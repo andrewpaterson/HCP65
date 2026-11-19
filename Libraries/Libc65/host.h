@@ -25,26 +25,26 @@
 
 extern "C"
 {
-int				HostOpen(const char* szPath, int iMode);
-int				HostClose(int iHandle);
-uint32_t		HostRead(int iHandle, void* pvBuffer, uint32_t uiBytes);
-uint32_t		HostWrite(int iHandle, const void* pvBuffer, uint32_t uiBytes);
-int				HostSeek(int iHandle, long long llOffset, int iOrigin);
-long long		HostTell(int iHandle);
-long long		HostSize(int iHandle);
-int				HostTruncate(int iHandle, long long llSize);
-int				HostFlush(int iHandle);
+int				HostOpen(const char* szPath, int iMode) noexcept;
+int				HostClose(int iHandle) noexcept;
+uint32_t		HostRead(int iHandle, void* pvBuffer, uint32_t uiBytes) noexcept;
+uint32_t		HostWrite(int iHandle, const void* pvBuffer, uint32_t uiBytes) noexcept;
+int				HostSeek(int iHandle, long long llOffset, int iOrigin) noexcept;
+long long		HostTell(int iHandle) noexcept;
+long long		HostSize(int iHandle) noexcept;
+int				HostTruncate(int iHandle, long long llSize) noexcept;
+int				HostFlush(int iHandle) noexcept;
 
-int				HostDelete(const char* szPath);
-int				HostRename(const char* szOld, const char* szNew);
-int				HostExists(const char* szPath);
-long long		HostFileSize(const char* szPath);
-int				HostMakeDir(const char* szPath);
-int				HostRemoveDir(const char* szPath);
-int				HostIsDirectory(const char* szPath);
-int				HostTouch(const char* szPath);
-int				HostCurrentDirectory(char* szDest, uint32_t uiSize);
-int				HostFindFile(const char* szDirectory, uint32_t uiIndex, char* szName, uint32_t uiSize);
+int				HostDelete(const char* szPath) noexcept;
+int				HostRename(const char* szOld, const char* szNew) noexcept;
+int				HostExists(const char* szPath) noexcept;
+long long		HostFileSize(const char* szPath) noexcept;
+int				HostMakeDir(const char* szPath) noexcept;
+int				HostRemoveDir(const char* szPath) noexcept;
+int				HostIsDirectory(const char* szPath) noexcept;
+int				HostTouch(const char* szPath) noexcept;
+int				HostCurrentDirectory(char* szDest, uint32_t uiSize) noexcept;
+int				HostFindFile(const char* szDirectory, uint32_t uiIndex, char* szName, uint32_t uiSize) noexcept;
 }
 
 

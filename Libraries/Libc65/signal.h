@@ -20,8 +20,8 @@ typedef void	(*__sighandler_t)(int);
 #define SIG_ERR		((__sighandler_t)-1)
 
 
-__sighandler_t	signal(int iSignal, __sighandler_t fHandler);
-int				raise(int iSignal);
+__sighandler_t	signal(int iSignal, __sighandler_t fHandler) noexcept;
+int				raise(int iSignal) noexcept;
 
 
 #endif // __LIBC65_SIGNAL_H__
