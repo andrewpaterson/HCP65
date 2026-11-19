@@ -246,6 +246,7 @@
     <ClCompile Include="HCP65MenuListener.cpp" />
     <ClCompile Include="BoardConfigurationDialog.cpp" />
     <ClCompile Include="BoardScene.cpp" />
+    <ClCompile Include="HCP65LCDDraw.cpp" />
     <ClCompile Include="HCP65ScreenDraw.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -258,6 +259,7 @@
     <ClInclude Include="HCP65MenuListener.h" />
     <ClInclude Include="BoardConfigurationDialog.h" />
     <ClInclude Include="BoardScene.h" />
+    <ClInclude Include="HCP65LCDDraw.h" />
     <ClInclude Include="HCP65ScreenDraw.h" />
   </ItemGroup>
   <ItemGroup>

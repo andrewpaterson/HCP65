@@ -15,6 +15,7 @@
 #include "HCP65Video.h"
 #include "HCP65Blitter.h"
 #include "HCP65Graphics.h"
+#include "HCP65LCD.h"
 #include "HCP65MemoryBoard.h"
 #include "HCP65Mainboard.h"
 
@@ -23,7 +24,7 @@
 static const char*	gaszHCP65MainboardTypes[] = { "Any", "Small", "Full" };
 
 //The boards CreateBoard makes.
-static const char*	gaszHCP65BoardTypes[] = { HCP65_SD_NAME, HCP65_UART_NAME, HCP65_AUDIO_NAME, HCP65_MEMORY_BOARD_NAME, HCP65_VIA_BOARD_NAME, HCP65_PS2_BOARD_NAME, HCP65_VIDEO_BOARD_NAME, HCP65_BLITTER_NAME, HCP65_GRAPHICS_NAME };
+static const char*	gaszHCP65BoardTypes[] = { HCP65_SD_NAME, HCP65_UART_NAME, HCP65_AUDIO_NAME, HCP65_MEMORY_BOARD_NAME, HCP65_VIA_BOARD_NAME, HCP65_PS2_BOARD_NAME, HCP65_VIDEO_BOARD_NAME, HCP65_BLITTER_NAME, HCP65_GRAPHICS_NAME, HCP65_LCD_BOARD_NAME };
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -436,6 +437,7 @@ CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszT
 	CHCP65VideoBoard*	pcVideo;
 	CHCP65BlitterBoard*	pcBlitter;
 	CHCP65GraphicsBoard*	pcGraphics;
+	CHCP65LCDBoard*		pcLCD;
 
 	if (strcmp(szType, HCP65_AUDIO_NAME) == 0)
 	{
@@ -499,6 +501,13 @@ CHCP65Device* CHCP65Mainboard::CreateBoard(const char* szType, const char** pszT
 		pcGraphics->Init();
 		*pszType = HCP65_GRAPHICS_NAME;
 		return pcGraphics;
+	}
+	if (strcmp(szType, HCP65_LCD_BOARD_NAME) == 0)
+	{
+		pcLCD = NewMalloc<CHCP65LCDBoard>();
+		pcLCD->Init();
+		*pszType = HCP65_LCD_BOARD_NAME;
+		return pcLCD;
 	}
 	*pszType = NULL;
 	return NULL;

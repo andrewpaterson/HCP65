@@ -18,6 +18,7 @@
 #include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Blitter.h"
 #include "HCP65Lib/HCP65Graphics.h"
+#include "HCP65Lib/HCP65LCD.h"
 #include "TestLib/Assert.h"
 
 
@@ -836,6 +837,21 @@ void TestHCP65DeviceROMFromSchematic(void)
 	cSchematic.Kill();
 	cGraphics.Kill();
 
+	//The LCD and SNES Board: its name from its device ROM chip's ROM_Name (the title block's is "HCP65 LCD and SNES
+	//Board").  Its registers are decoded by the SNES Controller Clock, not a Device Decode Stage B, so the schematic
+	//shows none of them.
+	cSchematic.Init();
+	szError.Init();
+	AssertTrue(cSchematic.Read(TEST_HCP65_KICAD _FS_ "LCD" _FS_ "LCD Board" _FS_ "LCD Board.kicad_sch", &szError));
+	AssertString("", szError.Text());
+	AssertString(HCP65_LCD_BOARD_NAME, cSchematic.GetName());
+	AssertString(HCP65_LCD_BOARD_DRIVER, cSchematic.GetDriver());
+	AssertInt(DEVICE_BUS_32KB, cSchematic.GetDeviceBus());
+	AssertInt(0, cSchematic.GetMainBus());
+	AssertSize(0, cSchematic.NumRegisters());
+	cSchematic.Kill();
+	szError.Kill();
+
 	//The PS2 Board: its name from its device ROM chip's ROM_Name (the title block's is "PS2 Board PS2"), and its
 	//registers' names without KiCad's markup (the nets are "PS2 FIFO_{ 1}" and "Clear Interrupt _{1}").
 	cSchematic.Init();
@@ -1195,8 +1211,10 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
 
 	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
-	AssertSize(9, CHCP65Mainboard::NumBoardTypes());
+	AssertSize(10, CHCP65Mainboard::NumBoardTypes());
 	AssertFalse(cMainboard.CanHold(3, HCP65_GRAPHICS_NAME));
+	AssertTrue(cMainboard.CanHold(3, HCP65_LCD_BOARD_NAME));
+	AssertTrue(cMainboard.CanHold(16, HCP65_LCD_BOARD_NAME));
 	AssertTrue(cMainboard.CanHold(16, HCP65_GRAPHICS_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
@@ -2816,6 +2834,282 @@ void TestHCP65GraphicsBoard(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The LCD's busy flag, read as a driver would: R/~W high with E low, then
+// E high.  E is left low.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint8 TestHCP65LCDStatus(CHCP65LCDBoard* pcLCD)
+{
+	uint8	uiStatus;
+
+	pcLCD->Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS);
+	uiStatus = pcLCD->Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS_E);
+	pcLCD->Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS);
+	return uiStatus;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Runs until the LCD isn't busy.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65LCDWait(CHCP65* pcHCP65, CHCP65LCDBoard* pcLCD)
+{
+	int		i;
+
+	for (i = 0; i < 10000; i++)
+	{
+		if (!(TestHCP65LCDStatus(pcLCD) & 0x80))
+		{
+			return;
+		}
+		pcHCP65->Run(50);
+	}
+	AssertTrue(false);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A byte to the LCD's instruction register or as data: written with E
+// high, and E dropped with a read so the latched byte doesn't change as
+// it falls.  Then waits until the LCD isn't busy.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65LCDSend(CHCP65* pcHCP65, CHCP65LCDBoard* pcLCD, bool bData, uint8 uiValue)
+{
+	pcLCD->Write(HCP65_LCD_REGISTERS + (bData ? HCP65_LCD_DATA_E : HCP65_LCD_COMMAND_E), uiValue);
+	pcLCD->Read(HCP65_LCD_REGISTERS + (bData ? HCP65_LCD_DATA : HCP65_LCD_COMMAND));
+	TestHCP65LCDWait(pcHCP65, pcLCD);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65LCDSendText(CHCP65* pcHCP65, CHCP65LCDBoard* pcLCD, const char* szText)
+{
+	while (*szText)
+	{
+		TestHCP65LCDSend(pcHCP65, pcLCD, true, (uint8)*szText);
+		szText++;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The LCD and SNES Board as a driver would use it: the display's pins
+// set by the registers' addresses, its busy flag polled, its
+// instructions, text on both lines, a character of its own, the cursor,
+// a shift, reading back and four bit mode; the SNES controllers' latches.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65LCDBoard(void)
+{
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	CHCP65LCDBoard		cLCD;
+	SHCP65LCDPicture	sPicture;
+	uint64				uiCycle;
+	int					i;
+
+	static const uint8 auiKernal[] = {
+		0x18, 0xFB,					//8000 clc  xce
+		0x80, 0xFE };				//8002 bra $8002
+
+	static const uint8 auiH[HCP65_LCD_CHARACTER_HEIGHT] = { 0x11, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11, 0x00 };
+	static const uint8 auiW[HCP65_LCD_CHARACTER_HEIGHT] = { 0x11, 0x11, 0x11, 0x15, 0x15, 0x15, 0x0A, 0x00 };
+	static const uint8 auiOwn[HCP65_LCD_CHARACTER_HEIGHT] = { 0x1F, 0x11, 0x0A, 0x04, 0x0A, 0x11, 0x1F, 0x15 };
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	cLCD.Init();
+	AssertTrue(cHCP65.SetDevice(3, &cLCD));
+	TestHCP65Program(&cHCP65, auiKernal, sizeof(auiKernal));
+	cHCP65.Reset();
+	cHCP65.Run(100);
+	cLCD.SetHeldInReset(false);
+
+	AssertInt(0x1A, cLCD.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cLCD.Read(0x800));
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + 0x0C));
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + 0x0F));
+
+	//Busy with its own reset for 10ms after power on, then off, one line and blank.
+	AssertTrue(TestHCP65LCDStatus(&cLCD) & 0x80);
+	cHCP65.Run(TEST_HCP65_CLOCK_RATE / 50);
+	AssertInt(0x00, TestHCP65LCDStatus(&cLCD));
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertFalse(sPicture.bOn);
+
+	//Eight bit, two lines; on; cleared, which is busy for 1.52ms; incrementing.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x38);
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x0C);
+	uiCycle = cHCP65.NumCycles();
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x01);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	AssertTrue(cHCP65.NumCycles() - uiCycle >= (uint64)TEST_HCP65_CLOCK_RATE * 152 / 100000);
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x06);
+
+	//Text on both lines.
+	TestHCP65LCDSendText(&cHCP65, &cLCD, "HELLO");
+	AssertInt(0x05, TestHCP65LCDStatus(&cLCD));
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0xC0);
+	TestHCP65LCDSendText(&cHCP65, &cLCD, "WORLD");
+	AssertInt(0x45, TestHCP65LCDStatus(&cLCD));
+	AssertInt('H', cLCD.GetDDRAM(0x00));
+	AssertInt('O', cLCD.GetDDRAM(0x04));
+	AssertInt('W', cLCD.GetDDRAM(0x40));
+	AssertInt(' ', cLCD.GetDDRAM(0x05));
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertTrue(sPicture.bOn);
+	AssertMemory(auiH, sPicture.aauiDots[0][0], HCP65_LCD_CHARACTER_HEIGHT);
+	AssertMemory(auiW, sPicture.aauiDots[1][0], HCP65_LCD_CHARACTER_HEIGHT);
+	for (i = 0; i < HCP65_LCD_CHARACTER_HEIGHT; i++)
+	{
+		AssertInt(0, sPicture.aauiDots[0][5][i]);
+	}
+
+	//Given something while busy it drops it.
+	AssertLong(0, (int64)cLCD.NumIgnored());
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_DATA_E, '!');
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_DATA);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_DATA_E, '?');
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_DATA);
+	AssertLong(1, (int64)cLCD.NumIgnored());
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	AssertInt('!', cLCD.GetDDRAM(0x45));
+	AssertInt(' ', cLCD.GetDDRAM(0x46));
+
+	//Dropping E with a write: the display takes the byte latched before it, not the one written as E falls.
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_DATA_E, 'A');
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_DATA, 'B');
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	AssertInt('A', cLCD.GetDDRAM(0x46));
+
+	//With R/~W low a read is the latched byte; with it high and E low nothing drives the bus.
+	AssertInt('B', cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND));
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA));
+
+	//Reading DDRAM back: E high reads the byte, E falling moves the address counter.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x81);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA);
+	AssertInt('E', cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA_E));
+	AssertInt('E', cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA_E));
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA);
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	AssertInt(0x02, TestHCP65LCDStatus(&cLCD));
+
+	//The registers repeat every 16 bytes.
+	AssertInt(0x02, cLCD.Read(HCP65_LCD_REGISTERS + 0x10 + HCP65_LCD_STATUS_E));
+	cLCD.Read(HCP65_LCD_REGISTERS + 0x3F0 + HCP65_LCD_STATUS);
+
+	//A character of its own: CGRAM character 0, shown by codes $00 and $08.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x40);
+	for (i = 0; i < HCP65_LCD_CHARACTER_HEIGHT; i++)
+	{
+		TestHCP65LCDSend(&cHCP65, &cLCD, true, auiOwn[i]);
+	}
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x8E);
+	TestHCP65LCDSend(&cHCP65, &cLCD, true, 0x00);
+	TestHCP65LCDSend(&cHCP65, &cLCD, true, 0x08);
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertMemory(auiOwn, sPicture.aauiDots[0][14], HCP65_LCD_CHARACTER_HEIGHT);
+	AssertMemory(auiOwn, sPicture.aauiDots[0][15], HCP65_LCD_CHARACTER_HEIGHT);
+
+	//The cursor is the last row of the character at the address counter; blinking makes it all dots half the time.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x85);
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x0E);
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertInt(0x1F, sPicture.aauiDots[0][5][7]);
+	AssertInt(0x00, sPicture.aauiDots[0][5][6]);
+	AssertInt(0x00, sPicture.aauiDots[0][4][7]);
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x0F);
+	cLCD.GetPicture(&sPicture, 0);
+	AssertInt(0x1F, sPicture.aauiDots[0][5][0]);
+	cLCD.GetPicture(&sPicture, (uint64)TEST_HCP65_CLOCK_RATE * 4096 / 10000);
+	AssertInt(0x00, sPicture.aauiDots[0][5][0]);
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x0C);
+
+	//Shifting the display left shows each line from its second character.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x18);
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertInt(0x1F, sPicture.aauiDots[0][0][0]);	//E's top row.
+	AssertInt(0x0E, sPicture.aauiDots[1][0][0]);	//O's.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x02);
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertMemory(auiH, sPicture.aauiDots[0][0], HCP65_LCD_CHARACTER_HEIGHT);
+
+	//Four bit: the function set is one transfer, then each byte is two, the high four bits first, reads too (so the
+	//busy flag isn't polled between halves; this waits instead).  0x38 in two halves goes back to eight bit.
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x28);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
+	cHCP65.Run(TEST_HCP65_CLOCK_RATE / 10000);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x80);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x00);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
+	cHCP65.Run(TEST_HCP65_CLOCK_RATE / 10000);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_DATA_E, 0x50);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_DATA);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_DATA_E, 0xA0);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_DATA);
+	cHCP65.Run(TEST_HCP65_CLOCK_RATE / 10000);
+	AssertInt('Z', cLCD.GetDDRAM(0x00));
+	AssertLong(1, (int64)cLCD.NumIgnored());
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS);
+	AssertInt(0x0F, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS_E));
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS);
+	AssertInt(0x1F, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS_E));
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_STATUS);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x30);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x80);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	AssertInt(0x01, TestHCP65LCDStatus(&cLCD));
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertMemory(auiW, sPicture.aauiDots[1][0], HCP65_LCD_CHARACTER_HEIGHT);
+
+	//A reset doesn't reach the display.
+	cHCP65.Reset();
+	cHCP65.Run(100);
+	cLCD.SetHeldInReset(false);
+	AssertInt('Z', cLCD.GetDDRAM(0x00));
+	cLCD.GetPicture(&sPicture, cHCP65.NumCycles());
+	AssertTrue(sPicture.bOn);
+
+	//The SNES controllers: 0 is pressed, the high register the first eight buttons, nothing plugged in reads $FF.
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_LOW));
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_HIGH));
+	cLCD.SetButtons(0, HCP65_SNES_B | HCP65_SNES_START | HCP65_SNES_A | HCP65_SNES_R);
+	cLCD.SetButtons(1, HCP65_SNES_RIGHT | HCP65_SNES_L);
+	AssertInt(0xF6, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_HIGH));
+	AssertInt(0xF6, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_LOW));
+	AssertInt(0x7F, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_2_HIGH));
+	AssertInt(0xFB, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_2_LOW));
+
+	//Held in reset the SNES clock stops and the latches keep what they had; writes do nothing.
+	cLCD.SetHeldInReset(true);
+	cLCD.SetButtons(0, 0);
+	AssertInt(0xF6, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_HIGH));
+	cLCD.SetHeldInReset(false);
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_HIGH));
+	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_HIGH, 0);
+	AssertInt(0xFF, cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_SNES_1_HIGH));
+
+	cHCP65.Kill();
+	cLCD.Kill();
+	cMemory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -2843,6 +3137,7 @@ void TestHCP65Machine(void)
 	TestHCP65VideoBoard();
 	TestHCP65BlitterBoard();
 	TestHCP65GraphicsBoard();
+	TestHCP65LCDBoard();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();

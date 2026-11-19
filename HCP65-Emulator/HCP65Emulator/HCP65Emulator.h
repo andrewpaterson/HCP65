@@ -24,6 +24,7 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65ScreenDraw.h"
+#include "HCP65LCDDraw.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
 #include "HCP65MenuListener.h"
@@ -42,7 +43,8 @@
 //
 //A keyboard (CHCP65PS2Keyboard) is plugged into port 1 of the first PS2 Board, if there is one; port 2 has nothing in
 //it.  The HCP65's screen shows the first Video Board's picture (CHCP65ScreenDraw); it takes the host's keys while it has
-//the focus, which it has from the start, and gives each going down and up to the keyboard.
+//the focus, which it has from the start, and gives each going down and up to the keyboard.  Under it is the first LCD
+//and SNES Board's display (CHCP65LCDDraw), while there is one.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
@@ -71,6 +73,7 @@ protected:
 	CComponentInput			mcComponentInput;
 	CHCP65PS2Keyboard		mcKeyboard;
 	Ptr<CHCP65ScreenDraw>	mpScreenDraw;
+	Ptr<CHCP65LCDDraw>		mpLCDDraw;		//The first LCD and SNES Board's display, under the screen.
 	bool					mbValid;
 	bool					mbInputs;  //The menu listener and the component input are initialised.
 

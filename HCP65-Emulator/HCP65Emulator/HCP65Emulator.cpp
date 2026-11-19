@@ -161,6 +161,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CMenuContainer>		pFileMenu;
 	Ptr<CMenuContainer>		pHCP65Menu;
 	Ptr<CCanvas>			pScreen;
+	Ptr<CCanvas>			pLCD;
 	Ptr<CGridContainer>		pMain;
 	Ptr<CClearCanvasDraw>	pBackground;
 	Ptr<CFont>				pWhite;
@@ -282,9 +283,15 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pScreen->SetCanGetFocus(true);
 		pScreen->AddInputAction(IAF_AnyKeyDown, NULL, this, &CHCP65EmulatorApp::KeyDownAction);
 		pScreen->AddInputAction(IAF_AnyKeyUp, NULL, this, &CHCP65EmulatorApp::KeyUpAction);
+		mpLCDDraw = OMalloc<CHCP65LCDDraw>(mpTheme->GetColour(TC_Editor), &mcHCP65);
+		mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
+		pLCD = OMalloc<CCanvas>(mpWindow, mpLCDDraw);
+		pLCD->SetDrawnEveryPaint(true);  //The display changes, and its cursor blinks, without telling the canvas.
+		pLCD->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
 		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
+		pMain->AddComponent(pLCD, 0, 2, 1, 1, 1, 0);
 		mpWindow->SetContainer(pMain);
 		mpWindow->GetFocus()->SetFocus(pScreen);
 
@@ -335,6 +342,7 @@ void CHCP65EmulatorApp::Class(void)
 	U_Unknown(CComponentInput, mcComponentInput);
 	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
 	M_Pointer(mpScreenDraw);
+	M_Pointer(mpLCDDraw);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
@@ -536,7 +544,8 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The screen onto the first Video Board, the keyboard into port 1 of the
+// The screen onto the first Video Board, the LCD's display onto the first
+// LCD and SNES Board, the keyboard into port 1 of the
 // first PS2 Board (unplugged if there is none) and nothing into its port
 // 2.  Only while the HCP65 isn't running.
 //
@@ -548,6 +557,11 @@ void CHCP65EmulatorApp::PlugInDevices(void)
 	if (mpScreenDraw.IsNotNull())
 	{
 		mpScreenDraw->SetVideo((CHCP65VideoBoard*)mcMainboard.FindBoard(HCP65_VIDEO_BOARD_NAME));
+	}
+	if (mpLCDDraw.IsNotNull())
+	{
+		mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
+		mpWindow->InvalidateLayout();  //Its row goes or comes with the board.
 	}
 
 	pcPS2 = (CHCP65PS2Board*)mcMainboard.FindBoard(HCP65_PS2_BOARD_NAME);
