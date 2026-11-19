@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{ae8cbb59-257e-4753-be46-0f3a25f1f9dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header">
+      <UniqueIdentifier>{80d20d97-7333-4d69-9d59-0adaf6badc7e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="LCDBoard.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="LCDBoard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Libraries\UserLib\HCP65LCDBoard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Kernal\KernalDriver.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

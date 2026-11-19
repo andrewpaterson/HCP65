@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The kernal's driver for the board (\OS\Drivers\LCD.DRV), a module it loads into MPU RAM: built as the kernal is,
+     without floats or the maths tables, and debugged on the kernal it was built against. -->
+<BuildConfigurations>
+	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" BreakpointSpace="Kernel" NoFloats="true" MathTables="false" Card="..\..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img" CardPath="\OS\Drivers\LCD.DRV">
+		<Module File="LCD.DRV" Entry="_KernalCreateDriver" Limit="0x20000"/>
+		<Load File="..\..\Boot\Output\W65C816\Release\Boot.rom" Address="0x0"/>
+		<Lines File="..\..\Kernal\Output\W65C816\Release\OS.SYS" CardPath="\OS\OS.SYS"/>
+	</Configuration>
+	<Configuration Name="Release|W65C816" Toolchain="W65C816" Solution="Release|Win32" BreakpointSpace="Kernel" NoFloats="true" MathTables="false" Card="..\..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img" CardPath="\OS\Drivers\LCD.DRV">
+		<Module File="LCD.DRV" Entry="_KernalCreateDriver" Limit="0x20000"/>
+		<Load File="..\..\Boot\Output\W65C816\Release\Boot.rom" Address="0x0"/>
+		<Lines File="..\..\Kernal\Output\W65C816\Release\OS.SYS" CardPath="\OS\OS.SYS"/>
+	</Configuration>
+</BuildConfigurations>
