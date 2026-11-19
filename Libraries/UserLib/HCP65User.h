@@ -250,7 +250,13 @@ extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);
 //with KERNAL_BLIT_CLIP what is outside the rectangle from (iClipLeft, iClipTop) to just before (iClipRight,
 //iClipBottom).  KERNAL_DEVICE_BAD_ARGUMENT for what isn't an image or is cut short (what came before the fault has
 //been drawn).
+//
+//With KERNAL_BLIT_SPANS (and KERNAL_BLIT_CLIP) an opaque image is drawn only inside a span of each row of the clip
+//rectangle: uiSpans is the address of a pair of words for each of its rows from the top, the first pixel across the
+//rectangle drawn and the one just past the last (the same for none).  It is how what a sprite covered is drawn again
+//from a picture: only the part of each row that the sprite was in, a copy a row.  A transparent image ignores it.
 #define KERNAL_BLIT_CLIP				0x0001
+#define KERNAL_BLIT_SPANS				0x0002
 
 struct SKernalBlit
 {
@@ -263,6 +269,7 @@ struct SKernalBlit
 	int16	iClipTop;		//+16
 	int16	iClipRight;		//+18
 	int16	iClipBottom;	//+20
+	uint32	uiSpans;		//+22  KERNAL_BLIT_SPANS: each row's span, two words a row.
 };
 
 extern "C" uint16	KernalScreenSetMode(uint16 uiMode);

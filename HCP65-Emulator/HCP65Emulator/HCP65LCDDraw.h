@@ -8,8 +8,8 @@ class CHCP65;
 
 
 //The LCD and SNES Board's 16 by 2 character display, drawn as the module looks (grey and reflective: dark dots on light
-//grey glass in a black bezel) in the middle of the canvas, on the background.  It wants no height while there's no board,
-//so its row of the window goes.  It reads the board's picture as it draws (the board is driven on the HCP65's thread and
+//grey glass in a black bezel) in the middle of the canvas, on the background.  It wants just the module's size, and
+//none while there's no board.  It reads the board's picture as it draws (the board is driven on the HCP65's thread and
 //gives the picture under its lock), at the HCP65's cycle then for the blinking cursor.
 class CHCP65LCDDraw : public CCanvasDraw
 {

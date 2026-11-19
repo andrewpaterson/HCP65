@@ -17,7 +17,7 @@ units as a library, so a program only gets the functions it uses.  `stdlib.cpp` 
 | `stdarg.h` | `va_list` and `va_arg`, walking up the stack from the last named parameter. |
 | `string.h`, `memory.h` | The string and memory functions.  On the W65C816 they take 16 bit counts (`size_t`), and `memcpy32`, `memmove32`, `memset32`, `memcmp32`, `memchr32` and `strlen32` take 32 bit ones. |
 | `stdlib.h`, `malloc.h` | `malloc` and `free`, conversions (`strtol`, `strtod` ...), `rand`, `qsort`, `atexit`, `exit`.  On the W65C816 `malloc32`, `calloc32` and `realloc32` take 32 bit sizes. |
-| `stdio.h` | The `printf` family, `stdout` and `stderr`, and files. |
+| `stdio.h` | The `printf` family, `stdout` and `stderr`, and files.  `fread` and `fwrite` read and write size times count bytes though that is more than a `size_t` holds; on the W65C816 `fread32` and `fwrite32` take a size or a count of more than 65535 (into or from a `malloc32` block). |
 | `math.h` | The maths library (below). |
 | `ctype.h`, `time.h`, `signal.h`, `errno.h`, `assert.h` | |
 | `new` | `operator new` and `delete`, and placement `new`. |

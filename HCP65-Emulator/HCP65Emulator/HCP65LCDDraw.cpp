@@ -6,7 +6,7 @@
 
 
 //The module's look, in pixels.
-#define HCP65_LCD_DRAW_DOT			4		//A dot is a square this big,
+#define HCP65_LCD_DRAW_DOT			3		//A dot is a square this big,
 #define HCP65_LCD_DRAW_DOT_GAP		1		//with this between dots,
 #define HCP65_LCD_DRAW_CHAR_GAP		4		//this more between characters,
 #define HCP65_LCD_DRAW_LINE_GAP		6		//and this more between the lines.
@@ -70,15 +70,14 @@ bool CHCP65LCDDraw::Load(CObjectReader* pcFile) { return false; }
 
 //////////////////////////////////////////////////////////////////////////
 //
-// As wide as it's given, and as tall as the module and its margins; no
-// height without a board.
+// As big as the module and its margins; nothing without a board.
 //
 //////////////////////////////////////////////////////////////////////////
 SInt32Vec2 CHCP65LCDDraw::GetDesiredSize(void)
 {
 	SInt32Vec2	sSize;
 
-	sSize.x = -1;
+	sSize.x = mpcLCD ? HCP65_LCD_DRAW_WIDTH : 0;
 	sSize.y = mpcLCD ? HCP65_LCD_DRAW_HEIGHT : 0;
 	return sSize;
 }

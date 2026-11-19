@@ -240,6 +240,7 @@
     <ClCompile Include="TestLibc65Stdarg.cpp" />
     <ClCompile Include="TestLibc65Limits.cpp" />
     <ClCompile Include="TestLibc65Exception.cpp" />
+    <ClCompile Include="TestLibc65Stdio.cpp" />
     <ClCompile Include="TestLibc65SoftFloat.cpp" />
     <ClCompile Include="TestLibc65SoftFloatReference.cpp" />
     <ClCompile Include="..\..\..\..\CommonLibraries\Tests\TestBaseLib65\TestBaseLib65\TestTarget65.cpp" />

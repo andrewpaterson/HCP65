@@ -35,6 +35,9 @@
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="TestLibc65Exception.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TestLibc65Stdio.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="TestLibc65SoftFloat.cpp">

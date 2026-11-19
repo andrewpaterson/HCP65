@@ -12,6 +12,7 @@
 #include "InputLib/Input.h"
 #include "WindowLib/Window.h"
 #include "WindowLib/ClearCanvasDraw.h"
+#include "WindowLib/Label.h"
 #include "WindowLib/GridContainer.h"
 #include "WindowLib/Canvas.h"
 #include "WindowLib/ComponentInput.h"
@@ -139,6 +140,8 @@ void CHCP65EmulatorApp::Init(void)
 	mcRunner.Init(&mcHCP65, &mcDebugger);
 	mcKeyboard.Init();
 	mcSNESKeys.Init();
+	mbLCDRowShown = false;
+	mbFillingControllers = false;
 	memset(&msDialogLook, 0, sizeof(msDialogLook));
 	mszMachine.Init();
 	mbValid = false;
@@ -162,7 +165,6 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CMenuContainer>		pFileMenu;
 	Ptr<CMenuContainer>		pHCP65Menu;
 	Ptr<CCanvas>			pScreen;
-	Ptr<CCanvas>			pLCD;
 	Ptr<CGridContainer>		pMain;
 	Ptr<CClearCanvasDraw>	pBackground;
 	Ptr<CFont>				pWhite;
@@ -226,6 +228,8 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		PlugInDevices();
 	}
 	szError.Kill();
+	mcSNESKeys.Load(HCP65_EMULATOR_SNES_MAPPINGS);
+	mcSNESKeys.Attach((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
 	pcAudio = (CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME);
 	for (i = 1; i < argc; i++)
 	{
@@ -284,15 +288,13 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pScreen->SetCanGetFocus(true);
 		pScreen->AddInputAction(IAF_AnyKeyDown, NULL, this, &CHCP65EmulatorApp::KeyDownAction);
 		pScreen->AddInputAction(IAF_AnyKeyUp, NULL, this, &CHCP65EmulatorApp::KeyUpAction);
-		mpLCDDraw = OMalloc<CHCP65LCDDraw>(mpTheme->GetColour(TC_Editor), &mcHCP65);
-		mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
-		pLCD = OMalloc<CCanvas>(mpWindow, mpLCDDraw);
-		pLCD->SetDrawnEveryPaint(true);  //The display changes, and its cursor blinks, without telling the canvas.
-		pLCD->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
 		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
-		pMain->AddComponent(pLCD, 0, 2, 1, 1, 1, 0);
+		mpMain = pMain;
+		mpScreen = pScreen;
+		MakeLCDRow();
+		ShowLCDRow();
 		mpWindow->SetContainer(pMain);
 		mpWindow->GetFocus()->SetFocus(pScreen);
 
@@ -343,9 +345,16 @@ void CHCP65EmulatorApp::Class(void)
 	U_Unknown(CComponentInput, mcComponentInput);
 	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
 	U_Unknown(CHCP65SNESKeys, mcSNESKeys);
-	M_Pointer(mpSNESDialog);
+	M_Pointer(mpMappingDialog);
 	M_Pointer(mpScreenDraw);
 	M_Pointer(mpLCDDraw);
+	M_Pointer(mpLCDRow);
+	M_Pointer(mapControllers[0]);
+	M_Pointer(mapControllers[1]);
+	M_Pointer(mpMain);
+	M_Pointer(mpScreen);
+	U_Bool(mbLCDRowShown);
+	U_Bool(mbFillingControllers);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
@@ -470,33 +479,192 @@ void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The SNES Controllers dialog: on OK each controller has the keys chosen
-// and the description is written with them (the HCP65 paused meanwhile,
-// as writing it reads every board).
+// The SNES Key Mappings dialog, at the first controller's mapping: on OK
+// the mapping named is made or changed and they are all written to
+// HCP65_EMULATOR_SNES_MAPPINGS.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorApp::ShowSNESControllers(void)
+void CHCP65EmulatorApp::ShowSNESMappings(void)
+{
+	const char*	aszKeys[HCP65_SNES_KEYS_BUTTONS];
+	int			i;
+
+	mpMappingDialog = OMalloc<CSNESMappingDialog>(mpWindow, &msDialogLook, mpTheme, &mcSNESKeys, mcSNESKeys.GetController(0));
+	if (mpMappingDialog->Show())
+	{
+		for (i = 0; i < HCP65_SNES_KEYS_BUTTONS; i++)
+		{
+			aszKeys[i] = mpMappingDialog->GetKey(i);
+		}
+		if (mcSNESKeys.SetMapping(mpMappingDialog->GetMappingName(), aszKeys) == HCP65_SNES_KEYS_NONE)
+		{
+			gcLogger.Error2(__METHOD__, " A mapping needs a name, not [", mpMappingDialog->GetMappingName(), "], and there can be only so many.", NULL);
+		}
+		else if (!mcSNESKeys.Save(HCP65_EMULATOR_SNES_MAPPINGS))
+		{
+			gcLogger.Error2(__METHOD__, " Could not write [" HCP65_EMULATOR_SNES_MAPPINGS "].", NULL);
+		}
+		FillControllers();
+	}
+	mpMappingDialog = NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The row under the screen: the LCD's display, then "Controller 1" and
+// "Controller 2" each with its combo box, together in the middle of the
+// row.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::MakeLCDRow(void)
+{
+	Ptr<CCanvas>		pLCD;
+	Ptr<CCanvas>		pSpace;
+	Ptr<CGridContainer>	pControllers;
+	Ptr<CLabel>			pLabel;
+	char				szLabel[32];
+	int					i;
+
+	mpLCDDraw = OMalloc<CHCP65LCDDraw>(mpTheme->GetColour(TC_Panel), &mcHCP65);
+	mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
+	pLCD = OMalloc<CCanvas>(mpWindow, mpLCDDraw);
+	pLCD->SetDrawnEveryPaint(true);  //The display changes, and its cursor blinks, without telling the canvas.
+	pLCD->SetAlignment(CSH_Center, CSV_Center);
+
+	pControllers = OMalloc<CGridContainer>(mpWindow);
+	pControllers->SetAlignment(CSH_Left, CSV_Center);
+	for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
+	{
+		snprintf(szLabel, sizeof(szLabel), "Controller %d", i + 1);
+		pLabel = OMalloc<CLabel>(mpWindow, mpTheme->GetFont(), szLabel);
+		pLabel->SetDesiredSize(pLabel->GetRequiredSize().x + mpTheme->GetMetric(TM_DialogLabelGap), -1);
+		pLabel->SetAlignment(CSH_Left, CSV_Center);
+		pControllers->AddComponent(pLabel, 0, i * 2);
+		mapControllers[i] = OMalloc<CComboBox>(mpWindow, mpTheme);
+		mapControllers[i]->SetDesiredSize(HCP65_EMULATOR_CONTROLLER_WIDTH, -1);
+		mapControllers[i]->SetAlignment(CSH_Left, CSV_Center);
+		mapControllers[i]->GetSelectionEvent()->Add(this, &CHCP65EmulatorApp::ControllerChosen);
+		pControllers->AddComponent(mapControllers[i], 1, i * 2);
+		if (i == 0)
+		{
+			pSpace = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Panel)));
+			pSpace->SetDesiredSize(1, mpTheme->GetMetric(TM_DialogRowGap));
+			pControllers->AddComponent(pSpace, 0, 1);
+		}
+	}
+	FillControllers();
+
+	//The display and the combo boxes in the middle: as much room either side, and a gap between them.
+	mpLCDRow = OMalloc<CGridContainer>(mpWindow);
+	mpLCDRow->SetAlignment(CSH_Stretch, CSV_Center);
+	pSpace = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Panel)));
+	pSpace->SetDesiredSize(1, 1);
+	mpLCDRow->AddComponent(pSpace, 0, 0, 1, 1, 1, 0);
+	mpLCDRow->AddComponent(pLCD, 1, 0);
+	pSpace = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Panel)));
+	pSpace->SetDesiredSize(HCP65_EMULATOR_CONTROLLER_GAP, 1);
+	mpLCDRow->AddComponent(pSpace, 2, 0);
+	mpLCDRow->AddComponent(pControllers, 3, 0);
+	pSpace = OMalloc<CCanvas>(mpWindow, OMalloc<CClearCanvasDraw>(mpTheme->GetColour(TC_Panel)));
+	pSpace->SetDesiredSize(1, 1);
+	mpLCDRow->AddComponent(pSpace, 4, 0, 1, 1, 1, 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The LCD's row in the window while there is an LCD and SNES Board, with
+// its controllers' mappings in the combo boxes; not without one.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::ShowLCDRow(void)
+{
+	bool	bWanted;
+
+	if (mpMain.IsNull() || mpLCDRow.IsNull())
+	{
+		return;
+	}
+	bWanted = mcSNESKeys.HasBoard();
+	if (bWanted && !mbLCDRowShown)
+	{
+		mpMain->AddComponent(mpLCDRow, 0, 2, 1, 1, 1, 0);
+	}
+	else if (!bWanted && mbLCDRowShown)
+	{
+		mpMain->RemoveComponent(mpLCDRow);
+		mpWindow->GetFocus()->SetFocus(mpScreen);
+	}
+	mbLCDRowShown = bWanted;
+	FillControllers();
+	mpWindow->InvalidateLayout();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each combo box's items the mappings (the first, not plugged in), at the
+// one its controller has.  Not a choice: nothing is written.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::FillControllers(void)
+{
+	size	i;
+	int		iController;
+
+	mbFillingControllers = true;
+	for (iController = 0; iController < HCP65_SNES_CONTROLLERS; iController++)
+	{
+		if (mapControllers[iController].IsNotNull())
+		{
+			mapControllers[iController]->RemoveAllItems();
+			for (i = 0; i < mcSNESKeys.NumMappings(); i++)
+			{
+				mapControllers[iController]->AddItem(mcSNESKeys.GetName(i));
+			}
+			mapControllers[iController]->Select((int32)mcSNESKeys.GetController(iController));
+		}
+	}
+	mbFillingControllers = false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A controller's combo box chosen: the controller has that mapping, the
+// description is written with it (the HCP65 paused meanwhile, as writing
+// it reads every board), and the screen has the focus again so that the
+// keys go to the HCP65.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::ControllerChosen(CComboBox* pcCombo)
 {
 	CChars	szError;
+	int32	iSelected;
 	int		i;
 
-	mpSNESDialog = OMalloc<CSNESControllersDialog>(mpWindow, &msDialogLook, &mcSNESKeys);
-	if (mpSNESDialog->Show() && mpSNESDialog->HasControllers())
+	if (mbFillingControllers)
 	{
-		for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
-		{
-			mcSNESKeys.SetMapping(i, mpSNESDialog->GetMapping(i));
-		}
-		mcRunner.Pause();
-		szError.Init();
-		if (!mcMainboard.Write(mszMachine.Text(), &szError))
-		{
-			gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
-		}
-		szError.Kill();
-		mcRunner.Resume();
+		return;
 	}
-	mpSNESDialog = NULL;
+	for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
+	{
+		if (&mapControllers[i] == pcCombo)
+		{
+			iSelected = pcCombo->GetSelected();
+			mcSNESKeys.SetController(i, (iSelected < 0) ? HCP65_SNES_KEYS_NONE : (size)iSelected);
+		}
+	}
+	mcRunner.Pause();
+	szError.Init();
+	if (!mcMainboard.Write(mszMachine.Text(), &szError))
+	{
+		gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
+	}
+	szError.Kill();
+	mcRunner.Resume();
+	mpWindow->GetFocus()->SetFocus(mpScreen);
 }
 
 
@@ -594,12 +762,12 @@ void CHCP65EmulatorApp::PlugInDevices(void)
 	{
 		mpScreenDraw->SetVideo((CHCP65VideoBoard*)mcMainboard.FindBoard(HCP65_VIDEO_BOARD_NAME));
 	}
+	mcSNESKeys.Attach((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
 	if (mpLCDDraw.IsNotNull())
 	{
 		mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
-		mpWindow->InvalidateLayout();  //Its row goes or comes with the board.
+		ShowLCDRow();
 	}
-	mcSNESKeys.Attach((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
 
 	pcPS2 = (CHCP65PS2Board*)mcMainboard.FindBoard(HCP65_PS2_BOARD_NAME);
 	if (pcPS2 == NULL)

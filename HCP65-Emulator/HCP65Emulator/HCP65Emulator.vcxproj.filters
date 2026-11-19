@@ -34,7 +34,13 @@
     <ClCompile Include="HCP65SNESKeys.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SNESControllersDialog.cpp">
+    <ClCompile Include="SNESControllerDraw.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SNESKeyField.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="SNESMappingDialog.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="HCP65EmulatorWindows.cpp">
@@ -75,7 +81,13 @@
     <ClInclude Include="HCP65SNESKeys.h">
       <Filter>Source</Filter>
     </ClInclude>
-    <ClInclude Include="SNESControllersDialog.h">
+    <ClInclude Include="SNESControllerDraw.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SNESKeyField.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="SNESMappingDialog.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65Emulator.h">

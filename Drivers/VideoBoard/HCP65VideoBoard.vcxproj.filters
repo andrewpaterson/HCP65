@@ -21,6 +21,9 @@
     <ClCompile Include="VideoBoardRender.asm">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="VideoBoardBlit.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VideoBoard.h">

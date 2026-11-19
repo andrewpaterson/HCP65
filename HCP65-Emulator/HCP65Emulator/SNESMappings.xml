@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The HCP65 emulator's SNES controller key mappings (HCP65 menu, SNES Key Mappings). -->
+<SNESMappings>
+	<Mapping Name="Arrows">
+		<Button Name="B" Key="Z"/>
+		<Button Name="Y" Key="A"/>
+		<Button Name="Select" Key="Right Shift"/>
+		<Button Name="Start" Key="Enter"/>
+		<Button Name="Up" Key="Cursor Up"/>
+		<Button Name="Down" Key="Cursor Down"/>
+		<Button Name="Left" Key="Cursor Left"/>
+		<Button Name="Right" Key="Cursor Right"/>
+		<Button Name="A" Key="X"/>
+		<Button Name="X" Key="S"/>
+		<Button Name="L" Key="Q"/>
+		<Button Name="R" Key="W"/>
+	</Mapping>
+	<Mapping Name="WASD">
+		<Button Name="B" Key="J"/>
+		<Button Name="Y" Key="U"/>
+		<Button Name="Select" Key="Tab"/>
+		<Button Name="Start" Key="Space"/>
+		<Button Name="Up" Key="W"/>
+		<Button Name="Down" Key="S"/>
+		<Button Name="Left" Key="A"/>
+		<Button Name="Right" Key="D"/>
+		<Button Name="A" Key="K"/>
+		<Button Name="X" Key="I"/>
+		<Button Name="L" Key="Q"/>
+		<Button Name="R" Key="E"/>
+	</Mapping>
+	<Mapping Name="Numpad">
+		<Button Name="B" Key="Numpad 1"/>
+		<Button Name="Y" Key="Numpad 7"/>
+		<Button Name="Select" Key="Numpad -"/>
+		<Button Name="Start" Key="Numpad +"/>
+		<Button Name="Up" Key="Numpad 8"/>
+		<Button Name="Down" Key="Numpad 2"/>
+		<Button Name="Left" Key="Numpad 4"/>
+		<Button Name="Right" Key="Numpad 6"/>
+		<Button Name="A" Key="Numpad 3"/>
+		<Button Name="X" Key="Numpad 9"/>
+		<Button Name="L" Key="Numpad /"/>
+		<Button Name="R" Key="Numpad *"/>
+	</Mapping>
+</SNESMappings>

@@ -99,11 +99,26 @@ extern "C"
 	extern uint32	guiVideoFillAddress;	//VideoFillZero: the first byte
 	extern uint16	guiVideoFillGroups;		//and how many sixteens of them.
 	extern uint16	guiVideoFillLines;		//VideoClearLines: how many lines from guiVideoFillAddress.
+	extern uint8*	gpuiVideoBlitCode;		//VideoBlitRuns (VideoBoardBlit.asm): the image's first code (the kernal's pointer),
+	extern uint16	guiVideoBlitEnd;		//just past its bytes in the same bank,
+	extern uint16	guiVideoBlitWidth;		//its size,
+	extern uint16	guiVideoBlitHeight;
+	extern uint8*	gpuiVideoBlitRow;		//where its top left goes,
+	extern uint16	guiVideoBlitResult;		//and 0 if it was all drawn, 1 if a run wasn't in it.
+	extern uint8*	gpuiVideoSpanSource;	//VideoBlitSpans (VideoBoardBlit.asm): the first row's pixel at the spans' left,
+	extern uint16	guiVideoSpanSourceStride;	//a row's pixels,
+	extern uint8*	gpuiVideoSpanDest;		//where the pixel goes,
+	extern uint16*	gpuiVideoSpans;			//the first row's span,
+	extern uint16	guiVideoSpanRows;		//how many rows,
+	extern uint16	guiVideoSpanLeast;		//and what the spans are cut to.
+	extern uint16	guiVideoSpanMost;
 
 	void	VideoRenderCell(void);
 	void	VideoRenderPending(void);
 	void	VideoRenderAll(void);
 	void	VideoWriteCells(void);
+	void	VideoBlitRuns(void);
+	void	VideoBlitSpans(void);
 	void	VideoFillZero(void);
 	void	VideoClearLines(void);
 }
@@ -169,6 +184,8 @@ protected:
 	void	ClearRow(uint16 uiRow);
 	uint16	BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
 	uint16	BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
+	uint16	BlitTransparentWhole(const SKernalBlit* psBlit, const uint8* puiImage, uint16 uiWidth, uint16 uiHeight);
+	uint16	BlitOpaqueSpans(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, int32 iRight, int32 iY, uint16 uiRow, uint32 uiSource, uint8* puiDest, uint16* puiSpans, int32 iBottom);
 	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength, uint16 uiTransparent);
 
 	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);

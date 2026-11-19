@@ -16,6 +16,7 @@ void TestLibc65Time(void);
 void TestLibc65Stdarg(void);
 void TestLibc65Limits(void);
 void TestLibc65Exception(void);
+void TestLibc65Stdio(void);
 void TestLibc65SoftFloat(void);
 
 
@@ -48,6 +49,7 @@ int __cdecl main(int argc, char** argv)
 	TestLibc65Stdarg();
 	TestLibc65Limits();
 	TestLibc65Exception();
+	TestLibc65Stdio();
 	TestLibc65SoftFloat();
 
 	C65C64InstructionFactory::GetInstance()->Kill();
