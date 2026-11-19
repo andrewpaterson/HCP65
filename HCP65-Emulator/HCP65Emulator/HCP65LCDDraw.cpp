@@ -6,7 +6,7 @@
 
 
 //The module's look, in pixels.
-#define HCP65_LCD_DRAW_DOT			4		//A dot is a square this big,
+#define HCP65_LCD_DRAW_DOT			3		//A dot is a square this big,
 #define HCP65_LCD_DRAW_DOT_GAP		1		//with this between dots,
 #define HCP65_LCD_DRAW_CHAR_GAP		4		//this more between characters,
 #define HCP65_LCD_DRAW_LINE_GAP		6		//and this more between the lines.
