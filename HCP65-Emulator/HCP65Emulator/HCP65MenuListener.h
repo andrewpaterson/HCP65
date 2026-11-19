@@ -7,8 +7,7 @@
 class CHCP65EmulatorApp;
 
 
-//The HCP65 menu.  Board Configuration, SNES Controllers and SNES Key Mappings have the app show their dialogs at the
-//next tick: a dialog can't be shown from the
+//The HCP65 menu.  Board Configuration and SNES Key Mappings have the app show their dialogs at the next tick: a dialog can't be shown from the
 //input that asks for it (see CWindow::ShowModal).  MenuItemClicked is on the menu bar's item click event.  The window
 //holds the menu; the listener only points to them.
 class CHCP65MenuListener
@@ -17,7 +16,6 @@ protected:
 	CWindow*			mpcWindow;
 	CHCP65EmulatorApp*	mpcApp;
 	CMenuItem*			mpcBoardConfiguration;
-	CMenuItem*			mpcSNESControllers;
 	CMenuItem*			mpcSNESMappings;
 
 public:

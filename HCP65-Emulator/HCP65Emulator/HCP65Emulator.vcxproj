@@ -249,7 +249,6 @@
     <ClCompile Include="HCP65LCDDraw.cpp" />
     <ClCompile Include="HCP65ScreenDraw.cpp" />
     <ClCompile Include="HCP65SNESKeys.cpp" />
-    <ClCompile Include="SNESControllersDialog.cpp" />
     <ClCompile Include="SNESControllerDraw.cpp" />
     <ClCompile Include="SNESKeyField.cpp" />
     <ClCompile Include="SNESMappingDialog.cpp" />
@@ -267,7 +266,6 @@
     <ClInclude Include="HCP65LCDDraw.h" />
     <ClInclude Include="HCP65ScreenDraw.h" />
     <ClInclude Include="HCP65SNESKeys.h" />
-    <ClInclude Include="SNESControllersDialog.h" />
     <ClInclude Include="SNESControllerDraw.h" />
     <ClInclude Include="SNESKeyField.h" />
     <ClInclude Include="SNESMappingDialog.h" />

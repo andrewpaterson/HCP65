@@ -34,9 +34,6 @@
     <ClCompile Include="HCP65SNESKeys.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="SNESControllersDialog.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="SNESControllerDraw.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -82,9 +79,6 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65SNESKeys.h">
-      <Filter>Source</Filter>
-    </ClInclude>
-    <ClInclude Include="SNESControllersDialog.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="SNESControllerDraw.h">

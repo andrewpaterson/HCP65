@@ -10,6 +10,8 @@
 #define HCP65_EMULATOR_ARGUMENT_MACHINE	"--machine"		//The mainboard description: which boards are in which sockets.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
 #define HCP65_EMULATOR_SNES_MAPPINGS	"SNESMappings.xml"	//The SNES controllers' key mappings (CHCP65SNESKeys).
+#define HCP65_EMULATOR_CONTROLLER_WIDTH	180		//Pixels, a controller's combo box,
+#define HCP65_EMULATOR_CONTROLLER_GAP	24		//and between the LCD and them.
 
 
 #include "StandardLib/Object.h"
@@ -26,11 +28,12 @@
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65ScreenDraw.h"
 #include "HCP65LCDDraw.h"
+#include "WindowLib/ComboBox.h"
+#include "WindowLib/GridContainer.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
 #include "HCP65MenuListener.h"
 #include "BoardConfigurationDialog.h"
-#include "SNESControllersDialog.h"
 #include "SNESMappingDialog.h"
 #include "HCP65SNESKeys.h"
 #include "HCP65SoundVoice.h"
@@ -48,13 +51,12 @@
 //A keyboard (CHCP65PS2Keyboard) is plugged into port 1 of the first PS2 Board, if there is one; port 2 has nothing in
 //it.  The HCP65's screen shows the first Video Board's picture (CHCP65ScreenDraw); it takes the host's keys while it has
 //the focus, which it has from the start, and gives each going down and up to the keyboard, and to a SNES controller
-//whose keys have it (CHCP65SNESKeys) as well: a program reading a controller sees its keys typed too.  Under it is the first LCD and SNES Board's display
-//(CHCP65LCDDraw), while there is one.
-//
-//The HCP65 menu's SNES Controllers chooses the keys of each of that board's controllers (or that it isn't plugged
-//in): on OK the description is written, with the board.  The HCP65 isn't reset.  The key mappings are read from
-//HCP65_EMULATOR_SNES_MAPPINGS as the emulator starts (the three it has without it otherwise); SNES Key Mappings makes
-//or changes one, over a picture of the controller, and on OK writes them all there.
+//whose keys have it (CHCP65SNESKeys) as well: a program reading a controller sees its keys typed too.  Under it, while
+//there is an LCD and SNES Board, is the first one's display (CHCP65LCDDraw) with a combo box for each of its
+//controllers to its right: the controller's key mapping, or that it isn't plugged in.  Choosing one writes the
+//description, with the board, and gives the screen the focus back; the HCP65 isn't reset.  The key mappings are read
+//from HCP65_EMULATOR_SNES_MAPPINGS as the emulator starts (the three it has without it otherwise); the HCP65 menu's SNES
+//Key Mappings makes or changes one, over a picture of the controller, and on OK writes them all there.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
@@ -83,10 +85,15 @@ protected:
 	CComponentInput			mcComponentInput;
 	CHCP65PS2Keyboard		mcKeyboard;
 	CHCP65SNESKeys			mcSNESKeys;		//The host's keys on the first LCD and SNES Board's controllers.
-	Ptr<CSNESControllersDialog>	mpSNESDialog;	//While it's shown.
 	Ptr<CSNESMappingDialog>		mpMappingDialog;	//While it's shown.
 	Ptr<CHCP65ScreenDraw>	mpScreenDraw;
-	Ptr<CHCP65LCDDraw>		mpLCDDraw;		//The first LCD and SNES Board's display, under the screen.
+	Ptr<CHCP65LCDDraw>		mpLCDDraw;		//The first LCD and SNES Board's display, under the screen,
+	Ptr<CGridContainer>		mpLCDRow;		//in this row with the controllers' combo boxes to its right.
+	Ptr<CComboBox>			mapControllers[HCP65_SNES_CONTROLLERS];
+	Ptr<CGridContainer>		mpMain;
+	Ptr<CCanvas>			mpScreen;
+	bool					mbLCDRowShown;
+	bool					mbFillingControllers;	//The combo boxes' items are being put in, not chosen.
 	bool					mbValid;
 	bool					mbInputs;  //The menu listener and the component input are initialised.
 
@@ -101,12 +108,15 @@ public:
 
 	bool	Run(void);
 	void	ShowBoardConfiguration(void);
-	void	ShowSNESControllers(void);
 	void	ShowSNESMappings(void);
 
 protected:
 	void	ChangeBoards(const char** aszTypes, const uint8* auiBreakouts);
 	void	PlugInDevices(void);
+	void	MakeLCDRow(void);
+	void	ShowLCDRow(void);
+	void	FillControllers(void);
+	void	ControllerChosen(CComboBox* pcCombo);
 	void	KeyDownAction(SComponentInputEvent* psEvent);
 	void	KeyUpAction(SComponentInputEvent* psEvent);
 };
