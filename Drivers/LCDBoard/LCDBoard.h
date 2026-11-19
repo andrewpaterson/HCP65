@@ -14,6 +14,9 @@
 #define LCD_STATUS_E				0x05
 #define LCD_READ_DATA				0x06	//R/~W high, E low: data.
 #define LCD_READ_DATA_E				0x07
+#define LCD_SNES_1_LOW				0x08	//R: controller 1's A, X, L and R in D0-D3, D4-D7 high.  0 is pressed.
+#define LCD_SNES_1_HIGH				0x09	//R: its B, Y, Select, Start, Up, Down, Left and Right.
+#define LCD_SNES_SIZE				2		//Each controller's registers: controller 2's follow.
 
 #define LCD_BUSY					0x80	//The status's busy flag.
 
@@ -30,9 +33,9 @@
 #define LCD_BOARD_MAX_BOARDS		2		//LCD boards it drives.
 
 
-//The HCP65 LCD and SNES Board's driver.  Its one unit is the display (the SNES controllers aren't driven yet).  Init
-//sets the display up by instruction (eight bit, two lines, on, cleared); if the display never stops being busy, it is
-//given up on and can't be opened.
+//The HCP65 LCD and SNES Board's driver.  Its units are the display and the two SNES controllers.  Init sets the display
+//up by instruction (eight bit, two lines, on, cleared); if the display never stops being busy, it is given up on and
+//can't be opened.  A controller's buttons are its two latches, the bits turned round so that pressed is 1.
 //
 //The display is driven as the board's notes say (Kicad/Computer/LCD/LCD Board/LCD Board Faults.txt): RS and R/~W are
 //set with E low first, E is dropped with a read so the latched byte doesn't change as it falls, and a byte read with E
@@ -46,6 +49,7 @@ protected:
 
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
+	uint16	NumUnits(void) const override;
 
 	uint16	Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone) override;
 	uint16	Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone) override;
@@ -58,6 +62,7 @@ protected:
 	bool	Send(uint8 uiRegister, uint8 uiValue);
 	bool	ReadByte(uint8* puiValue);
 	bool	SetAddress(uint32 uiPosition);
+	uint16	ReadController(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	bool	IsRange(uint32 uiOffset, uint32 uiLength);
 };
 

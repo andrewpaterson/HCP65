@@ -25,11 +25,27 @@ uint16 CKernalLCDBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A display that never answered can't be opened.
+// The display and the two controllers.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalLCDBoard::NumUnits(void) const
+{
+	return LCD_BOARD_NUM_UNITS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A display that never answered can't be opened; the controllers always
+// can be.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalLCDBoard::OpenUnit(uint16 uiUnit)
 {
+	if (uiUnit != LCD_BOARD_DISPLAY)
+	{
+		return KERNAL_DRIVER_SUCCESS;
+	}
 	return mbReady ? KERNAL_DRIVER_SUCCESS : KERNAL_DRIVER_FAILED;
 }
 
@@ -45,6 +61,10 @@ uint16 CKernalLCDBoard::Read(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddres
 	uint8	auiText[LCD_BOARD_SIZE];
 	uint16	i;
 
+	if (uiUnit != LCD_BOARD_DISPLAY)
+	{
+		return ReadController(uiUnit, uiOffset, uiUserAddress, uiLength, puiDone);
+	}
 	if (!IsRange(uiOffset, uiLength))
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
@@ -83,6 +103,10 @@ uint16 CKernalLCDBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddre
 	uint8	auiText[LCD_BOARD_SIZE];
 	uint16	i;
 
+	if (uiUnit != LCD_BOARD_DISPLAY)
+	{
+		return KERNAL_DRIVER_NOT_SUPPORTED;
+	}
 	if (!IsRange(uiOffset, uiLength) || !KernalCopyFromUser(auiText, uiUserAddress, uiLength))
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
@@ -113,6 +137,10 @@ uint16 CKernalLCDBoard::Write(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddre
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalLCDBoard::Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult)
 {
+	if (uiUnit != LCD_BOARD_DISPLAY)
+	{
+		return KERNAL_DRIVER_NOT_SUPPORTED;
+	}
 	switch (uiCode)
 	{
 	case LCD_BOARD_CLEAR:
@@ -217,6 +245,34 @@ bool CKernalLCDBoard::SetAddress(uint32 uiPosition)
 		uiAddress |= LCD_LINE_2;
 	}
 	return Send(LCD_COMMAND, (uint8)(LCD_INSTRUCTION_ADDRESS | uiAddress));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A controller's buttons from its latches, pressed 1, low byte first:
+// the high latch's eight are the word's low byte, the low latch's four
+// the next.  Up to the two bytes from uiOffset.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalLCDBoard::ReadController(uint16 uiUnit, uint32 uiOffset, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone)
+{
+	volatile uint8*	puiLatches;
+	uint8			auiButtons[LCD_BOARD_SNES_SIZE];
+
+	if ((uiOffset >= LCD_BOARD_SNES_SIZE) || (uiLength > (LCD_BOARD_SNES_SIZE - uiOffset)))
+	{
+		return KERNAL_DRIVER_BAD_ARGUMENT;
+	}
+	puiLatches = &mpuiRegisters[LCD_SNES_1_LOW + (uiUnit - LCD_BOARD_SNES_1) * LCD_SNES_SIZE];
+	auiButtons[0] = (uint8)~puiLatches[1];
+	auiButtons[1] = (uint8)(~puiLatches[0] & 0x0F);
+	if (!KernalCopyToUser(uiUserAddress, &auiButtons[uiOffset], uiLength))
+	{
+		return KERNAL_DRIVER_BAD_ARGUMENT;
+	}
+	*puiDone += uiLength;
+	return KERNAL_DRIVER_SUCCESS;
 }
 
 
