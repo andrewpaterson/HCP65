@@ -146,17 +146,21 @@ HCP65 Graphics Board - schematic faults
 
    The offsets are in two Memory 32KB boards (B2 the low bytes, B3 the high),
    addressed by the count or, when the processor has the device's RAM, by A0
-   to A14 (B1).  B18 (the Video Board's Device RAM Select) picks B2 for the
-   device's addresses $4000-$7FFF and B3 for $8000-$BFFF, by A14 to A16, and
-   A14 is also the memories' M14.
+   to A14 (B1).  B18 (the Video Board's Device RAM Select) picks one by the
+   three address lines on its pins 15, 14 and 10, which here are A14, A15 and
+   A16: B2 while only A14 is high, B3 while only A15 is.  A14 is also the
+   memories' M14.
 
    Effect: the processor reaches B2 only with A14 high (its entries 16384 to
-   32767) and B3 only with A14 low (its entries 0 to 16383).  No entry can have
-   both its bytes written.
+   32767, at $04000-$07FFF in the slot) and B3 only with A14 low (its entries
+   0 to 16383; at $10000-$13FFF in the slot, as A15 and A16 are swapped: see
+   fault 12).  No entry can have both its bytes written.
 
-   Fix: 32KB of the device's addresses for each memory (selected by A15 and
-   A16, with A14 only an address).  The emulated board has B2 at $08000-$0FFFF
-   and B3 at $10000-$17FFF, where the Video Board has its first two palettes.
+   Fix: all of each memory, 32KB of the device's addresses for each, with A14
+   only an address: A15 on B18's pin 15, A16 on its pin 14 and its pin 10
+   grounded.  B2 is then $08000-$0FFFF in the slot and B3 $10000-$17FFF,
+   where the Video Board has its first two palettes, and the emulated board
+   has them there.
 
 11. The count steps as a write begins, so the last write is cut short
 
@@ -178,6 +182,19 @@ HCP65 Graphics Board - schematic faults
    memories' latches (LLE, CLK1) close on the edge the count would then step
    on, keeping the entry before.  LLE has to move to another clock with it;
    its timing hasn't been worked through.
+
+12. AD15 and AD16 are swapped at the Device Buffer
+
+   The slot's AD15 (J5 A19) is on B16 pin 19 (A16_{IN}) and AD16 (J5 A20) on
+   pin 18 (A15_{IN}).  The Sound Board and the Video Board, which have the
+   same buffer and the same slot pins, have AD15 on pin 18 and AD16 on pin
+   19.
+
+   Effect: the board's A15 is the slot's A16 and its A16 the slot's A15, so
+   what B18 selects by them is at the other's addresses in the slot.  The ROM
+   and the registers, which need both low, are where they should be.
+
+   Fix: AD15 on B16 pin 18 and AD16 on pin 19.
 
 Also, not wiring faults but what the board does as drawn:
 
@@ -201,6 +218,12 @@ Also, not wiring faults but what the board does as drawn:
     the room on that board to route them.  So the source address is whatever
     was last written after a reset and unknown after power on, where the
     Blitter Board's is 0: a driver writes it before each copy.
+  - The board needs a 128KB socket.  A 32KB socket has nothing on AD15 and
+    AD16 (the Small Mainboard's sockets 3 and 4 leave J5 A19 and A20
+    unconnected), and here they go to the Device Buffer's inputs, which then
+    float: the Blitter Board grounds those inputs.  With them floating the
+    board's A15 and A16 are unknown, and the ROM, the registers and the
+    offsets may or may not answer.
   - The offset is 16 bits and never negative (the Adder 8bit's other inputs
     are grounded): a byte is read from the source address plus the table's
     entry for the count, which is at most 65535 past it.
