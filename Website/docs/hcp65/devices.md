@@ -181,11 +181,21 @@ A program uses a board through its driver with the device calls (`HCP65User.h`):
   handle.  Read and write say how many bytes they moved: a unit that is a stream (a UART port) reads
   what has arrived, which may be nothing.  What a unit, an offset, a control code or a wait value
   means is the driver's: `HCP65SoundBoard.h` has the sound board's, `HCP65UARTBoard.h` the UART
-  Board's, `HCP65VIABoard.h` the VIA Board's, `HCP65PS2Board.h` the PS2 Board's and `HCP65VideoBoard.h` the
-  Video Board's.
+  Board's, `HCP65VIABoard.h` the VIA Board's, `HCP65PS2Board.h` the PS2 Board's, `HCP65VideoBoard.h` the
+  Video Board's and `HCP65LCDBoard.h` the LCD and SNES Board's.
 - `KernalDeviceClose(handle)`.
 
 They are one kernel call (COP 12) with a block of arguments.
+
+### The LCD and SNES Board
+
+The board has a 16 by 2 character display and two SNES controller ports.  Its driver, `LCD.DRV`,
+sets the display up as it loads (on, no cursor, blank) and has one unit, the display: a write puts
+characters on it from the offset (line 1 is 0 to 15, line 2 16 to 31), a read gives them back, and
+`LCD_BOARD_CLEAR` blanks it.  The characters are the display's own codes: ASCII from `$20` to `$7D`
+but for a yen sign at `$5C`, then arrows, katakana and symbols.  The SNES controllers aren't driven
+yet.  `lcdtest` in the shell (`HCP65/LCDTest`) bounces HCP65 along the first line until a key is
+pressed; the emulator shows the display under its screen (`Machines/LCD.xml` has the board).
 
 ## Main memory
 

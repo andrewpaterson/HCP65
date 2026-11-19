@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source">
+      <UniqueIdentifier>{F7A04CCF-9CF7-4048-8FF2-B42AB3FFA4CB}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header">
+      <UniqueIdentifier>{573D4443-BF5B-4859-94AD-7943FD8D0D97}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Libraries\UserLib\UserStart.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserCalls.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserDevices.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="LCDTest.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Libraries\UserLib\HCP65User.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Libraries\UserLib\HCP65LCDBoard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

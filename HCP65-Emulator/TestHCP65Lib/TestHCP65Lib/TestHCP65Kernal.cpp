@@ -24,6 +24,7 @@
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Blitter.h"
 #include "HCP65Lib/HCP65Graphics.h"
+#include "HCP65Lib/HCP65LCD.h"
 #include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Mainboard.h"
@@ -76,6 +77,8 @@
 #define TEST_HCP65_SHELL_PATH		"\\OS\\SHELL.EXE"
 #define TEST_HCP65_SPRITES_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Sprites" _FS_ "HCP65Sprites.vcxproj"
 #define TEST_HCP65_SPRITES_PATH		"\\SPRITES.EXE"
+#define TEST_HCP65_LCD_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "LCDTest" _FS_ "HCP65LCDTest.vcxproj"
+#define TEST_HCP65_LCD_PROGRAM_PATH	"\\LCDTEST.EXE"
 #define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
 #define TEST_HCP65_HELLO_TEXT		"Hello from the SD card.\n"
 #define TEST_HCP65_SHELL_PROMPT		" $ "			//After the current directory.
@@ -97,6 +100,8 @@
 #define TEST_HCP65_BLITTER_DRIVER_PATH	"\\OS\\Drivers\\BLITTER.DRV"
 #define TEST_HCP65_GRAPHICS_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "GraphicsBoard" _FS_ "HCP65GraphicsBoard.vcxproj"
 #define TEST_HCP65_GRAPHICS_DRIVER_PATH	"\\OS\\Drivers\\GRAPHICS.DRV"
+#define TEST_HCP65_LCD_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "LCDBoard" _FS_ "HCP65LCDBoard.vcxproj"
+#define TEST_HCP65_LCD_DRIVER_PATH	"\\OS\\Drivers\\LCD.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -114,6 +119,7 @@
 #define TEST_HCP65_SHELL_MACHINE	TEST_HCP65_MACHINES _FS_ "Shell.xml"
 #define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
 #define TEST_HCP65_BLITTER_MACHINE	TEST_HCP65_MACHINES _FS_ "Blitter.xml"
+#define TEST_HCP65_LCD_MACHINE		TEST_HCP65_MACHINES _FS_ "LCD.xml"
 #define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
@@ -131,6 +137,7 @@
 #define TEST_HCP65_VIDEO_SOCKET		16
 #define TEST_HCP65_BLITTER_SOCKET	17
 #define TEST_HCP65_GRAPHICS_SOCKET	19
+#define TEST_HCP65_LCD_SOCKET		17
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
 #define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
@@ -1714,11 +1721,13 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_INIT_PATH, TEST_HCP65_INIT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SHELL_PATH, TEST_HCP65_SHELL_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SPRITES_PATH, TEST_HCP65_SPRITES_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
+	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_LCD_PROGRAM_PATH, TEST_HCP65_LCD_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_BLITTER_DRIVER_PATH, TEST_HCP65_BLITTER_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_GRAPHICS_DRIVER_PATH, TEST_HCP65_GRAPHICS_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_LCD_DRIVER_PATH, TEST_HCP65_LCD_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER);
 	bResult = bResult && TestKernalPutTables(TEST_HCP65_SYSTEM_CARD_IMAGE);
 	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_FONT_PATH, TEST_HCP65_FONT);
@@ -2655,6 +2664,152 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The first line of the LCD, its 16 characters, into szLine; the column
+// its "HCP65" starts at, -1 if it isn't on it once among spaces.
+//
+//////////////////////////////////////////////////////////////////////////
+static int TestLCDLine(CHCP65LCDBoard* pcLCD, char* szLine)
+{
+	int		i;
+	int		iColumn;
+	char*	szFound;
+
+	for (i = 0; i < HCP65_LCD_COLUMNS; i++)
+	{
+		szLine[i] = (char)pcLCD->GetDDRAM((uint8)i);
+	}
+	szLine[HCP65_LCD_COLUMNS] = '\0';
+	szFound = strstr(szLine, "HCP65");
+	if (!szFound)
+	{
+		return -1;
+	}
+	iColumn = (int)(szFound - szLine);
+	for (i = 0; i < HCP65_LCD_COLUMNS; i++)
+	{
+		if (((i < iColumn) || (i >= iColumn + 5)) && (szLine[i] != ' '))
+		{
+			return -1;
+		}
+	}
+	return iColumn;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's machine with an LCD and SNES Board (Machines/LCD.xml).
+// Its driver is loaded from \OS\Drivers\LCD.DRV and sets the display up:
+// on, two lines, blank.  lcdtest (\LCDTEST.EXE, LCDTest.cpp) bounces
+// HCP65 along the first line, a character at a time, from column 0 to 11
+// and back; a key ends it and the display is cleared.  The driver never
+// gives the display anything while it is busy.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalLCD(STestKernal* psKernal)
+{
+	STestConsole		sConsole;
+	STestKernalStatus	sStatus;
+	CHCP65SDCard*		pcSDCard;
+	CHCP65LCDBoard*		pcLCD;
+	SHCP65LCDPicture	sPicture;
+	CChars				szScreen;
+	char				szLine[HCP65_LCD_COLUMNS + 1];
+	int					iColumn;
+	int					iLast;
+	int					iMax;
+	bool				bBack;
+	int					i;
+
+	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
+	if (!TestKernalPutSystemFiles())
+	{
+		return;
+	}
+	sConsole.uiStatus = TEST_KERNAL_STATUS_ADDRESS;
+	sConsole.puiFrame = (uint32*)malloc(1024 * 768 * sizeof(uint32));
+
+	sConsole.cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&sConsole.cMainboard, &sConsole.cHCP65, TEST_HCP65_LCD_MACHINE))
+	{
+		free(sConsole.puiFrame);
+		sConsole.cHCP65.Kill();
+		sConsole.cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	sConsole.pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
+	sConsole.pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
+	pcLCD = (CHCP65LCDBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_LCD_SOCKET, HCP65_LCD_BOARD_NAME);
+	sConsole.cKeyboard.Init();
+	sConsole.cKeyboard.Attach(sConsole.pcPS2->GetPort(0));
+	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
+	TestKernalStart(&sConsole.cHCP65, psKernal);
+
+	//The driver is loaded and has set the display up: on and blank.
+	szScreen.Init();
+	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
+	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
+	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_LCD_SOCKET), sStatus.uiLoadedDrivers);
+	pcLCD->GetPicture(&sPicture, sConsole.cHCP65.NumCycles());
+	AssertTrue(sPicture.bOn);
+	AssertInt(-1, TestLCDLine(pcLCD, szLine));
+	AssertString("                ", szLine);
+
+	//lcdtest: HCP65 goes right a column at a time to 11, then back.
+	TestConsoleType(&sConsole, "lcdtest\r");
+	iLast = -1;
+	iMax = -1;
+	bBack = false;
+	for (i = 0; (i < 4000) && !bBack; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+		iColumn = TestLCDLine(pcLCD, szLine);
+		if (iLast == -1)
+		{
+			if (iColumn != -1)
+			{
+				AssertInt(0, iColumn);
+				iLast = iColumn;
+			}
+			continue;
+		}
+		AssertTrue((iColumn >= 0) && (iColumn <= HCP65_LCD_COLUMNS - 5));
+		AssertTrue((iColumn == iLast) || (iColumn == iLast + 1) || (iColumn == iLast - 1));
+		if (iColumn > iMax)
+		{
+			iMax = iColumn;
+		}
+		if (iColumn < iLast)
+		{
+			AssertInt(HCP65_LCD_COLUMNS - 5, iMax);
+			bBack = true;
+		}
+		iLast = iColumn;
+	}
+	AssertTrue(bBack);
+	AssertInt(10, iLast);
+
+	//A key ends it, and the display is blank again.
+	TestConsoleType(&sConsole, " ");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
+	AssertInt(-1, TestLCDLine(pcLCD, szLine));
+	AssertString("                ", szLine);
+	AssertLong(0, (int64)pcLCD->NumIgnored());
+
+	AssertFalse(sConsole.cHCP65.IsStopped());
+	szScreen.Kill();
+	sConsole.cKeyboard.Kill();
+	free(sConsole.puiFrame);
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	sConsole.cHCP65.Kill();
+	sConsole.cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Whether the kernal test szName (TestHCP65Kernal<szName>) runs: all of
 // them do unless TEST_HCP65_KERNAL_ONLY names one.
 //
@@ -2710,6 +2865,10 @@ void TestHCP65Kernal(void)
 		if (TestKernalRuns("Blitter"))
 		{
 			TestHCP65KernalBlitter(&sKernal);
+		}
+		if (TestKernalRuns("LCD"))
+		{
+			TestHCP65KernalLCD(&sKernal);
 		}
 		if (TestKernalRuns("Video"))
 		{
