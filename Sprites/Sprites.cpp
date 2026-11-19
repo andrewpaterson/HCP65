@@ -14,8 +14,9 @@
 //  What to do under the stage.
 //The first SNES controller (the LCD and SNES Board's, HCP65LCDBoard.h) walks her left and right, a frame of her walk
 //every SPRITES_WALK_FRAMES of the screen's; she stands still facing the way she went when neither is pressed.  Each
-//frame only what she covered in the frame being drawn is drawn again from the stage, then she is drawn, and the frames
-//are flipped at the vertical blank.  Without the board she just stands.
+//frame only what she covered in the frame being drawn is drawn again from the stage: of each of her rows, from her
+//first pixel to her last (KERNAL_BLIT_SPANS, the spans worked out from her frames as they are loaded).  Then she is
+//drawn, and the frames are flipped at the vertical blank.  Without the board she just stands.
 //
 //Escape ends it, and the kernal gives the screen back to the console; other keys don't (the emulator's keys for the
 //controller are typed too: the arrows are escape sequences).  Exits 1 without the font, 2 without the screen and 3
@@ -35,6 +36,7 @@
 #define SPRITES_MAKI_STEP		2		//Pixels a frame as she walks: one of the stage's own.
 #define SPRITES_MAKI_WALK		6		//Her walk's frames.
 #define SPRITES_MAKI_FACING		(1 + SPRITES_MAKI_WALK)	//Frames facing each way: the left's follow the right's.
+#define SPRITES_MAKI_FRAMES		(2 * SPRITES_MAKI_FACING)
 #define SPRITES_WALK_FRAMES		5		//Screen frames each of her walk's is shown for.
 #define SPRITES_FRAME_TICKS		(KERNAL_DEVICE_TICKS_PER_SECOND / 10)	//The longest a vertical blank is waited for.
 #define SPRITES_NO_RECT			-1		//SSpritesRect's iX when a frame has nothing of Maki's drawn in it.
@@ -42,11 +44,12 @@
 #define SPRITES_KEYS			16		//Typed bytes read at a time.
 
 
-//Where Maki was drawn in one of the two frames.
+//Where Maki was drawn in one of the two frames, and which of hers.
 struct SSpritesRect
 {
 	int16	iX;
 	int16	iY;
+	uint16	uiFrame;
 };
 
 
@@ -60,12 +63,19 @@ uint8			gauiSpritesColours[KERNAL_SCREEN_COLOURS_SIZE];
 uint8			gauiSpritesRow[SPRITES_WIDTH];
 SSpritesRect	gasSpritesDrawn[2];		//Maki in each frame: the one drawn into next is gasSpritesDrawn[guiSpritesBack].
 uint16			guiSpritesBack;
+uint16*			gpuiSpritesSpans;		//Each of her frames' rows' first pixel and the one after the last: frames, rows, two words.
+const void*		gapvSpritesFrames[SPRITES_MAKI_FRAMES];	//Each of her frames, in one bank (SpritesInOneBank).
+uint32			gauiSpritesFrameSizes[SPRITES_MAKI_FRAMES];
+void*			gapvSpritesCopies[SPRITES_MAKI_FRAMES];	//The frames copied there, to free.
+
+#define SPRITES_SPANS_SIZE		(SPRITES_MAKI_FRAMES * SPRITES_MAKI_HEIGHT * 2 * sizeof(uint16))
+#define SPRITES_SPAN(f, r)		(&gpuiSpritesSpans[((uint32)(f) * SPRITES_MAKI_HEIGHT + (r)) * 2])
 
 
 //////////////////////////////////////////////////////////////////////////
 //
 // The image of uiSize bytes at pvImage with its top left at (x, y); only
-// what is in psClip if it isn't NULL.
+// what is in Maki's frame psClip if it isn't NULL, the rows' spans of it.
 //
 //////////////////////////////////////////////////////////////////////////
 static void SpritesBlit(const void* pvImage, uint32 uiSize, int16 x, int16 y, const SSpritesRect* psClip)
@@ -79,13 +89,149 @@ static void SpritesBlit(const void* pvImage, uint32 uiSize, int16 x, int16 y, co
 	sBlit.iY = y;
 	if (psClip)
 	{
-		sBlit.uiFlags = KERNAL_BLIT_CLIP;
+		sBlit.uiFlags = KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS;
 		sBlit.iClipLeft = psClip->iX;
 		sBlit.iClipTop = psClip->iY;
 		sBlit.iClipRight = (int16)(psClip->iX + SPRITES_MAKI_WIDTH);
 		sBlit.iClipBottom = (int16)(psClip->iY + SPRITES_MAKI_HEIGHT);
+		sBlit.uiSpans = (uint32)SPRITES_SPAN(psClip->uiFrame, 0);
 	}
 	KernalScreenBlit(&sBlit);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// uiSize bytes that don't cross a bank (a blit's quicker when an image,
+// or spans, are all in one), NULL if there isn't the memory: a block
+// that would is let go of for the next.
+//
+//////////////////////////////////////////////////////////////////////////
+static void* SpritesInOneBank(uint32 uiSize)
+{
+	void*	apvTried[4];
+	void*	pvMemory;
+	int		iTried;
+	int		i;
+
+	pvMemory = NULL;
+	for (iTried = 0; iTried < 4; iTried++)
+	{
+		pvMemory = malloc(uiSize);
+		if (!pvMemory || ((((uint32)pvMemory) & 0xFFFF) + uiSize <= 0x10000))
+		{
+			break;
+		}
+		apvTried[iTried] = pvMemory;
+		pvMemory = NULL;
+	}
+	for (i = 0; i < iTried; i++)
+	{
+		free(apvTried[i]);
+	}
+	return pvMemory;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each of Maki's frames where the blit wants it, all in one bank: where
+// it is in MAKI.SFT, or a copy where it isn't.  False if there isn't the
+// memory, or there aren't as many frames.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool SpritesPlaceFrames(void)
+{
+	const void*	pvFrame;
+	uint32		uiSize;
+	uint16		uiFrame;
+
+	for (uiFrame = 0; uiFrame < SPRITES_MAKI_FRAMES; uiFrame++)
+	{
+		gapvSpritesCopies[uiFrame] = NULL;
+		pvFrame = SFTContainedImage(gpuiSpritesMaki, guiSpritesMakiSize, uiFrame, &uiSize);
+		if (!pvFrame)
+		{
+			return false;
+		}
+		if ((((uint32)pvFrame) & 0xFFFF) + uiSize > 0x10000)
+		{
+			gapvSpritesCopies[uiFrame] = SpritesInOneBank(uiSize);
+			if (!gapvSpritesCopies[uiFrame])
+			{
+				return false;
+			}
+			memcpy(gapvSpritesCopies[uiFrame], pvFrame, uiSize);
+			pvFrame = gapvSpritesCopies[uiFrame];
+		}
+		gapvSpritesFrames[uiFrame] = pvFrame;
+		gauiSpritesFrameSizes[uiFrame] = uiSize;
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each of Maki's frames' rows' span: from its first pixel to just after
+// its last, 0 to 0 for a row without one.
+//
+//////////////////////////////////////////////////////////////////////////
+static void SpritesFindSpans(void)
+{
+	const uint8*	puiCode;
+	uint16*			puiSpan;
+	uint32			uiSize;
+	uint16			uiFrame;
+	uint16			uiRow;
+	uint16			uiX;
+	uint16			uiCount;
+	uint8			uiCode;
+
+	memset(gpuiSpritesSpans, 0, SPRITES_SPANS_SIZE);
+	for (uiFrame = 0; uiFrame < SPRITES_MAKI_FRAMES; uiFrame++)
+	{
+		puiCode = (const uint8*)gapvSpritesFrames[uiFrame];
+		uiSize = gauiSpritesFrameSizes[uiFrame];
+		if (uiSize <= sizeof(SSFTImage))
+		{
+			continue;
+		}
+		puiCode += sizeof(SSFTImage);
+		uiRow = 0;
+		uiX = 0;
+		for (;;)
+		{
+			uiCode = *puiCode++;
+			if (uiCode == SFT_RUN_END)
+			{
+				break;
+			}
+			if ((uiCode >= SFT_RUN_ROWS) && (uiCode < SFT_RUN_MIXED))
+			{
+				uiRow = (uint16)(uiRow + (uiCode & SFT_RUN_ROWS_MASK) + 1);
+				uiX = 0;
+				continue;
+			}
+			if ((uiCode >= SFT_RUN_SKIP) && (uiCode < SFT_RUN_ROWS))
+			{
+				uiX = (uint16)(uiX + (uiCode & SFT_RUN_COUNT_MASK) + 1);
+				continue;
+			}
+			uiCount = (uiCode >= SFT_RUN_MIXED) ? (uint16)((uiCode & SFT_RUN_MIXED_MASK) + 1) : uiCode;
+			if (uiRow < SPRITES_MAKI_HEIGHT)
+			{
+				puiSpan = SPRITES_SPAN(uiFrame, uiRow);
+				if (puiSpan[1] == 0)
+				{
+					puiSpan[0] = uiX;
+				}
+				puiSpan[1] = (uint16)(uiX + uiCount);
+			}
+			puiCode += uiCount;
+			uiX = (uint16)(uiX + uiCount);
+		}
+	}
 }
 
 
@@ -174,13 +320,12 @@ static void SpritesDrawMaki(uint16 uiFrame, int16 x)
 	{
 		SpritesBlit(gpuiSpritesStage, guiSpritesStageSize, 0, SPRITES_STAGE_Y, psDrawn);
 	}
-	pvImage = SFTContainedImage(gpuiSpritesMaki, guiSpritesMakiSize, uiFrame, &uiSize);
-	if (pvImage)
-	{
-		SpritesBlit(pvImage, uiSize, x, SPRITES_MAKI_Y, NULL);
-	}
+	pvImage = gapvSpritesFrames[uiFrame];
+	uiSize = gauiSpritesFrameSizes[uiFrame];
+	SpritesBlit(pvImage, uiSize, x, SPRITES_MAKI_Y, NULL);
 	psDrawn->iX = x;
 	psDrawn->iY = SPRITES_MAKI_Y;
+	psDrawn->uiFrame = uiFrame;
 
 	KernalScreenFlip();
 	KernalScreenWaitBlank(SPRITES_FRAME_TICKS);
@@ -261,10 +406,12 @@ int main(void)
 	}
 	gpuiSpritesStage = SpritesLoad(SPRITES_STAGE_FILE, &guiSpritesStageSize);
 	gpuiSpritesMaki = SpritesLoad(SPRITES_MAKI_FILE, &guiSpritesMakiSize);
-	if (!gpuiSpritesStage || !gpuiSpritesMaki)
+	gpuiSpritesSpans = (uint16*)SpritesInOneBank(SPRITES_SPANS_SIZE);
+	if (!gpuiSpritesStage || !gpuiSpritesMaki || !gpuiSpritesSpans || !SpritesPlaceFrames())
 	{
 		return 3;
 	}
+	SpritesFindSpans();
 	if (KernalScreenSetMode(KERNAL_SCREEN_640_480) != KERNAL_DEVICE_SUCCESS)
 	{
 		return 2;
@@ -332,6 +479,11 @@ int main(void)
 	{
 		KernalDeviceClose(uiHandle);
 	}
+	for (uiFrame = 0; uiFrame < SPRITES_MAKI_FRAMES; uiFrame++)
+	{
+		free(gapvSpritesCopies[uiFrame]);
+	}
+	free(gpuiSpritesSpans);
 	free(gpuiSpritesMaki);
 	free(gpuiSpritesStage);
 	return 0;

@@ -39,8 +39,10 @@ The screen calls are one kernel call (COP 14) with a block of arguments.
 640 by 400) and Maki standing on it (`\SPRITES\MAKI.SFT`, a container of transparent frames:
 standing and six walking, each way), with letters blitted from the console's font.  The first SNES
 controller of an LCD and SNES Board walks her left and right.  Each frame it draws the stage again
-only where she was in the frame being drawn (a blit clipped to there), then her, and flips the
-frames at the vertical blank.  Escape ends it.
+only where she was in the frame being drawn: of each of her rows, from her first pixel to her last
+(a blit with `KERNAL_BLIT_SPANS`, below).  Then it draws her and flips the frames at the vertical
+blank.  It draws a frame in about 10ms on the emulator's 25MHz processor, so she walks a step every
+frame, 60 a second.  Escape ends it.
 
 ## Blits
 
@@ -66,8 +68,12 @@ What the blit takes (`SKernalBlit`):
 |---|---|
 | `uiImage`, `uiSize` | The image and how many bytes it is.  No more than that is read. |
 | `iX`, `iY` | Where its top left goes.  What is off the picture isn't drawn. |
-| `uiFlags` | `KERNAL_BLIT_CLIP` draws only inside the clip rectangle. |
+| `uiFlags` | `KERNAL_BLIT_CLIP` draws only inside the clip rectangle; `KERNAL_BLIT_SPANS` as well draws an opaque image only inside a span of each of its rows. |
 | `iClipLeft` to `iClipBottom` | The clip rectangle, up to but not including its right and bottom. |
+| `uiSpans` | With `KERNAL_BLIT_SPANS`, two words for each row of the clip rectangle from its top: the first pixel across it drawn and the one just past the last (the same for none). |
+
+The spans are how a sprite's old place is drawn again from a picture: of each of its rows, only from
+its first pixel to its last, one copy a row rather than the sprite's whole rectangle.
 
 An SFT pixel is a colour with red in bits 0 to 2, green in bits 3 to 5 and blue in bits 6 and 7.
 `SFTColours` gives the palette that shows them as they are.
@@ -79,7 +85,9 @@ pixels inside the clip rectangle.  With a Blitter Board in the computer (its dri
 `\OS\Drivers\BLITTER.DRV`) the longer copies are the board's: it copies a byte in two processor
 cycles, and leaves a mixed run's transparent pixels out itself, but its registers take time to
 write, so the processor makes the copies under 15 pixels (9 of a mixed run).  Without a board the
-processor makes them all, and what is drawn is the same.
+processor makes them all, and what is drawn is the same.  Then a transparent image that is all on
+the picture and in one bank of the program's memory, and spans, are drawn by the driver's
+assembly (`VideoBoardBlit.asm`), a run or a row of 8 pixels or more with one `MVN`.
 
 The console's text uses the board the same way: the processor draws a glyph's runs, which are
 short (the board would draw one of eight pixels or more), and the board clears a row, or the
