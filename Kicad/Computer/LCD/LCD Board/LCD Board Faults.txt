@@ -1,0 +1,66 @@
+HCP65 LCD and SNES Board - schematic faults
+===========================================
+
+1. The display's E, RS and R/~W buffer is never enabled (LCD Display)
+
+   On the LCD Display board IC11, the 74ABT245 that takes E_Latch, RS_Latch
+   and R/~W_Latch from IC13 to the display's E, RS and R/~W, has ~OE (pin 19)
+   on 5V.  Its outputs are always off.
+
+   Effect: the display's E, RS and R/~W float.  Nothing written reaches it,
+   and it may see accesses of its own.
+
+   Fix: ~OE (IC11 pin 19) to GND.  DIR is already on 5V (A to B).
+
+2. The SNES clock is far too fast for a controller (SNES Controller Clock)
+
+   The SNES Controller Clock counts the device clock (Device CLK, J1 B15, the
+   MPU's oscillator: 25MHz): Serial CP is IC1's Q3, the device clock / 16, and
+   Serial PL is IC2's TC, high for one device clock in every 256.  At 25MHz
+   that's a 40ns latch pulse every 10.24us and a 1.5625MHz clock.  A SNES
+   console gives its controllers a 12us latch pulse and about an 83kHz clock.
+
+   Effect: the controllers' shift registers are unlikely to load in 40ns or
+   shift at 1.5MHz, so the buttons read as nonsense or as nothing pressed.
+
+   Fix: slow both by 16 or more.  Serial CP from IC2's Q3 (the device clock /
+   256, about 98kHz) is close to a console's clock; Serial PL then needs to be
+   a pulse at least one of those clocks long (about 10us) once every 16 of
+   them, for example decoded from a third 74LVC161 counting them.  The
+   registers and the order the bits arrive in stay the same.
+
+Notes (as meant, not faults):
+  - Registers: $400-$407 are the display's pins.  Any access to one, read or
+    write, latches A0 onto E, A1 onto RS and A2 onto R/~W (IC13, 74LVC16373);
+    a write latches its byte for DB0-DB7 too.  $408-$40B read the SNES
+    latches: controller 1 (B4) at $408 (~{Read Low}) and $409 (~{Read High}),
+    controller 2 (B5) at $40A and $40B.  A4 isn't decoded, so they repeat
+    every 16 bytes up to $7FF, and $40C-$40F decode nothing.
+  - E falls at the start of the access that drops it, as that access's own
+    byte is latched: the display's 10ns data hold time is a race.  Drop E with
+    a read (it doesn't change the latched byte), or write the same byte again.
+    RS and R/~W change with E as well, so set them with E low first (the
+    display wants them 40ns before E rises).
+  - A read with E high is passed through IC20 (74LVC573) during the access, so
+    the display's data must be out (up to 360ns after E rises on an HD44780U)
+    before the access ends.  Raising E with one read and reading again with E
+    still high gives it the whole of the first access.
+  - The SNES latches: a controller's 16 bits are shifted into IC6 then IC7 on
+    the SNES Controller Reader, so IC7 (~{Read High}) holds the first eight it
+    sends (B, Y, Select, Start, Up, Down, Left, Right) and IC6 (~{Read Low}) the
+    last eight (A, X, L, R and four that are always high).  The readers' D0-D7
+    are wired to the board's D7-D0, so the first one sent (B) is D0.  0 is
+    pressed; an unplugged controller reads $FF (R1 pulls Serial Data up).
+  - ~{Device Enable} (J1 B22) is tied to ~{Device Select} (NT3).  The
+    processor board reads the devices' enables (Device Interrupts), and this
+    board shows as enabled only while it is being accessed, never when they
+    are read.  GND, always enabled like the Small Mainboard's devices 1, 2 and
+    7, may be what was meant.
+  - ~{Device Interrupt} is tied high (NT1): the board never interrupts.
+  - The display's backlight (LEDA, LEDK) isn't connected: the
+    NMTC-S16205DRGHS-07 is grey and reflective, with no backlight.
+
+The board also uses a standard board with faults of its own, which it has with
+it (see its Faults file in Component Boards):
+  - Clock Hold Standard: a NOR where an OR is needed, so the clock hold code
+    is fought over on every cycle.
