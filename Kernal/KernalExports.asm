@@ -92,30 +92,30 @@ _gauiKernalExports:
 		.long _KernalWriteRegister__Fhh
 		.long Export_KernalWriteRegister__Fhh_ax
 		.long _KernalWriteRegister__Fhh.ax
-		.long Export_KernalEnableDevice__Ft
+		.long Export_KernalEnableDevice__Fj
 		.long _KernalEnableDevice__Fj
-		.long Export_KernalEnableDevice__Ft_a
+		.long Export_KernalEnableDevice__Fj_a
 		.long _KernalEnableDevice__Fj.a
-		.long Export_KernalDisableDevice__Ft
+		.long Export_KernalDisableDevice__Fj
 		.long _KernalDisableDevice__Fj
-		.long Export_KernalDisableDevice__Ft_a
+		.long Export_KernalDisableDevice__Fj_a
 		.long _KernalDisableDevice__Fj.a
-		.long Export_KernalGetDriver__Ft
+		.long Export_KernalGetDriver__Fj
 		.long _KernalGetDriver__Fj
-		.long Export_KernalGetDriver__Ft_a
+		.long Export_KernalGetDriver__Fj_a
 		.long _KernalGetDriver__Fj.a
-		.long Export_KernalFindDriver__FPKcPKct
+		.long Export_KernalFindDriver__FPKcPKcj
 		.long _KernalFindDriver__FPKcPKcj
-		.long Export_KernalFindDriver__FPKcPKct_axssy
+		.long Export_KernalFindDriver__FPKcPKcj_axssy
 		.long _KernalFindDriver__FPKcPKcj.axssy
 		; Interrupts and time (KernalInterrupts.h).
-		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb
+		.long Export_KernalSetInterruptHandler__FjPFvPvEPvPVhb
 		.long _KernalSetInterruptHandler__FjPFvPvEPvPVhb
-		.long Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb_axy
+		.long Export_KernalSetInterruptHandler__FjPFvPvEPvPVhb_axy
 		.long _KernalSetInterruptHandler__FjPFvPvEPvPVhb.axy
-		.long Export_KernalClearInterruptHandler__Ft
+		.long Export_KernalClearInterruptHandler__Fj
 		.long _KernalClearInterruptHandler__Fj
-		.long Export_KernalClearInterruptHandler__Ft_a
+		.long Export_KernalClearInterruptHandler__Fj_a
 		.long _KernalClearInterruptHandler__Fj.a
 		.long Export_KernalTicks
 		.long _KernalTicks
@@ -158,7 +158,7 @@ _gauiKernalExports:
 		.long _gpuiKernalBlitter
 		.long Export_gpuiKernalGraphics
 		.long _gpuiKernalGraphics
-		.long Export_KernalMainCopy__FPhPKhtt_axssy
+		.long Export_KernalMainCopy__FPhPKhjj_axssy
 		.long _KernalMainCopy__FPhPKhjj.axssy
 KernalExportsEnd:
 
@@ -244,29 +244,29 @@ Export_KernalWriteRegister__Fhh:
 		.byte "_KernalWriteRegister__Fhh", 0
 Export_KernalWriteRegister__Fhh_ax:
 		.byte "_KernalWriteRegister__Fhh.ax", 0
-Export_KernalEnableDevice__Ft:
+Export_KernalEnableDevice__Fj:
 		.byte "_KernalEnableDevice__Fj", 0
-Export_KernalEnableDevice__Ft_a:
+Export_KernalEnableDevice__Fj_a:
 		.byte "_KernalEnableDevice__Fj.a", 0
-Export_KernalDisableDevice__Ft:
+Export_KernalDisableDevice__Fj:
 		.byte "_KernalDisableDevice__Fj", 0
-Export_KernalDisableDevice__Ft_a:
+Export_KernalDisableDevice__Fj_a:
 		.byte "_KernalDisableDevice__Fj.a", 0
-Export_KernalGetDriver__Ft:
+Export_KernalGetDriver__Fj:
 		.byte "_KernalGetDriver__Fj", 0
-Export_KernalGetDriver__Ft_a:
+Export_KernalGetDriver__Fj_a:
 		.byte "_KernalGetDriver__Fj.a", 0
-Export_KernalFindDriver__FPKcPKct:
+Export_KernalFindDriver__FPKcPKcj:
 		.byte "_KernalFindDriver__FPKcPKcj", 0
-Export_KernalFindDriver__FPKcPKct_axssy:
+Export_KernalFindDriver__FPKcPKcj_axssy:
 		.byte "_KernalFindDriver__FPKcPKcj.axssy", 0
-Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb:
+Export_KernalSetInterruptHandler__FjPFvPvEPvPVhb:
 		.byte "_KernalSetInterruptHandler__FjPFvPvEPvPVhb", 0
-Export_KernalSetInterruptHandler__FtPFvPvEPvPVhb_axy:
+Export_KernalSetInterruptHandler__FjPFvPvEPvPVhb_axy:
 		.byte "_KernalSetInterruptHandler__FjPFvPvEPvPVhb.axy", 0
-Export_KernalClearInterruptHandler__Ft:
+Export_KernalClearInterruptHandler__Fj:
 		.byte "_KernalClearInterruptHandler__Fj", 0
-Export_KernalClearInterruptHandler__Ft_a:
+Export_KernalClearInterruptHandler__Fj_a:
 		.byte "_KernalClearInterruptHandler__Fj.a", 0
 Export_KernalTicks:
 		.byte "_KernalTicks", 0
@@ -306,5 +306,5 @@ Export_gpuiKernalBlitter:
 		.byte "_gpuiKernalBlitter", 0
 Export_gpuiKernalGraphics:
 		.byte "_gpuiKernalGraphics", 0
-Export_KernalMainCopy__FPhPKhtt_axssy:
+Export_KernalMainCopy__FPhPKhjj_axssy:
 		.byte "_KernalMainCopy__FPhPKhjj.axssy", 0
