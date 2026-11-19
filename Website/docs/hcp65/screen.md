@@ -35,8 +35,12 @@ A pixel is a byte.  The colour it shows is that entry of its palette, and there 
 
 The screen calls are one kernel call (COP 14) with a block of arguments.
 
-`sprites` in the shell (`HCP65/Sprites`) draws a picture with them: coloured tiles, and letters
-blitted from the console's font.  A key ends it.
+`sprites` in the shell (`HCP65/Sprites`) draws with them: a stage (`\SPRITES\STAGE.SFT`, an opaque
+640 by 400) and Maki standing on it (`\SPRITES\MAKI.SFT`, a container of transparent frames:
+standing and six walking, each way), with letters blitted from the console's font.  The first SNES
+controller of an LCD and SNES Board walks her left and right.  Each frame it draws the stage again
+only where she was in the frame being drawn (a blit clipped to there), then her, and flips the
+frames at the vertical blank.  Escape ends it.
 
 ## Blits
 
