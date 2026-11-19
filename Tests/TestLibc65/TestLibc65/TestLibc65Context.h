@@ -22,6 +22,8 @@ struct STestLibc65Run
 	CAsm65Memory*	pcMemory;
 	CFast65C64		cMPU;
 	CFastW65C816		cMPUW65C816;
+	CAsm65HostFiles	cHostFiles;		//The host file device, when a test asks for it (TestLibc65HostFiles).
+	bool			bHostFiles;
 };
 
 
@@ -30,6 +32,7 @@ extern ECPPTarget	geTestLibc65Target;
 
 
 bool	TestLibc65Begin(STestLibc65Run* psRun, const char** aszUnits, const char* szStubs, const char* szSource);
+void	TestLibc65HostFiles(STestLibc65Run* psRun);
 bool	TestLibc65Run(STestLibc65Run* psRun, size uiMaxInstructions);
 bool	TestLibc65RunToStop(STestLibc65Run* psRun, size uiMaxInstructions);
 int32	TestLibc65Return(STestLibc65Run* psRun);

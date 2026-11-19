@@ -47,6 +47,13 @@ int		vsprintf(char* szDest, const char* szFormat, va_list vaArguments);
 int		vsnprintf(char* szDest, size_t uiSize, const char* szFormat, va_list vaArguments);
 int		vprintf(const char* szFormat, va_list vaArguments);
 int		vfprintf(FILE* pcFile, const char* szFormat, va_list vaArguments);
+
+#if defined(__W65C816__)
+//32 bit sizes and counts, for more than a size_t's 65535 of either (the buffer is then malloc32's).  fread and fwrite
+//themselves read and write size times count bytes though that is more than a size_t holds.
+unsigned long	fread32(void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile);
+unsigned long	fwrite32(const void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile);
+#endif // __W65C816__
 }
 
 

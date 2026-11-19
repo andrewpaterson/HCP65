@@ -149,12 +149,14 @@ int fclose(FILE* pcFile)
 }
 
 
-size_t fread(void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
+//fread's work, with sizes and counts of 32 bits: size times count can be more than a size_t holds on the W65C816
+//(16 bits), and fread32 is given more than one of either.  Nothing is read if the bytes don't fit 32 bits.
+static uint32_t FileRead(void* pv, uint32_t uiSize, uint32_t uiCount, FILE* pcFile)
 {
-	size_t	uiBytes;
-	size_t	uiRead;
+	uint32_t	uiBytes;
+	uint32_t	uiRead;
 
-	if (!pcFile || (pcFile->iKind != FILE_HOST) || (uiSize == 0) || (uiCount == 0))
+	if (!pcFile || (pcFile->iKind != FILE_HOST) || (uiSize == 0) || (uiCount == 0) || (uiCount > 0xFFFFFFFF / uiSize))
 	{
 		return 0;
 	}
@@ -168,13 +170,14 @@ size_t fread(void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
 }
 
 
-size_t fwrite(const void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
+//fwrite's work, as FileRead is fread's.
+static uint32_t FileWrite(const void* pv, uint32_t uiSize, uint32_t uiCount, FILE* pcFile)
 {
 	const char*	pc;
-	size_t		uiBytes;
-	size_t		i;
+	uint32_t	uiBytes;
+	uint32_t	i;
 
-	if (!pcFile || (uiSize == 0) || (uiCount == 0))
+	if (!pcFile || (uiSize == 0) || (uiCount == 0) || (uiCount > 0xFFFFFFFF / uiSize))
 	{
 		return 0;
 	}
@@ -194,6 +197,32 @@ size_t fwrite(const void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
 	}
 	return 0;
 }
+
+
+size_t fread(void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
+{
+	return (size_t)FileRead(pv, uiSize, uiCount, pcFile);
+}
+
+
+size_t fwrite(const void* pv, size_t uiSize, size_t uiCount, FILE* pcFile)
+{
+	return (size_t)FileWrite(pv, uiSize, uiCount, pcFile);
+}
+
+
+#if defined(__W65C816__)
+unsigned long fread32(void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile)
+{
+	return FileRead(pv, ulSize, ulCount, pcFile);
+}
+
+
+unsigned long fwrite32(const void* pv, unsigned long ulSize, unsigned long ulCount, FILE* pcFile)
+{
+	return FileWrite(pv, ulSize, ulCount, pcFile);
+}
+#endif // __W65C816__
 
 
 int fseek(FILE* pcFile, long iOffset, int iOrigin)

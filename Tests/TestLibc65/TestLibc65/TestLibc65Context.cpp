@@ -141,6 +141,7 @@ bool TestLibc65Begin(STestLibc65Run* psRun, const char** aszUnits, const char* s
 	AssertString(szStubs, szMissing.Text());
 
 	psRun->pcMemory = NULL;
+	psRun->bHostFiles = false;
 	if (bResult)
 	{
 		psRun->pcMemory = NewMalloc<CAsm65Memory>();
@@ -245,10 +246,44 @@ char* TestLibc65Bytes(STestLibc65Run* psRun, uint32 uiOffset)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Gives the program (begun, not yet run) the host file device, on a
+// directory of the target's own in Output that is emptied first: fopen
+// and the rest of <stdio.h> and <host.h> then work on files in it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestLibc65HostFiles(STestLibc65Run* psRun)
+{
+	CFileUtil	cFileUtil;
+	CChars		szDirectory;
+
+	if (!psRun->pcMemory || psRun->bHostFiles)
+	{
+		return;
+	}
+	szDirectory.Init("Output" _FS_ "Host");
+	szDirectory.Append((geTestLibc65Target == CPPT_W65C816) ? "W65C816" : "65C64");
+	cFileUtil.RemoveDir(szDirectory.Text());
+	cFileUtil.TouchDir(szDirectory.Text());
+	psRun->cHostFiles.Init();
+	psRun->cHostFiles.SetDirectory(szDirectory.Text());
+	psRun->pcMemory->SetHostFiles(&psRun->cHostFiles);
+	psRun->bHostFiles = true;
+	szDirectory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65End(STestLibc65Run* psRun)
 {
+	if (psRun->bHostFiles)
+	{
+		psRun->pcMemory->SetHostFiles(NULL);
+		psRun->cHostFiles.Kill();
+		psRun->bHostFiles = false;
+	}
 	if (psRun->pcMemory)
 	{
 		AssertSize(0, psRun->pcMemory->NumBadAccesses());
