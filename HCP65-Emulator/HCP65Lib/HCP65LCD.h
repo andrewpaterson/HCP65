@@ -1,5 +1,6 @@
 #ifndef __HCP65_LCD_H__
 #define __HCP65_LCD_H__
+#include "BaseLib/Chars.h"
 #include "BaseLib/Mutex.h"
 #include "HCP65Device.h"
 
@@ -44,6 +45,7 @@
 #define HCP65_SNES_R					0x0800
 #define HCP65_SNES_BUTTONS				0x0FFF
 #define HCP65_SNES_CONTROLLERS			2
+#define HCP65_SNES_XML_TAG				"Controller"	//A controller's keys in the board's <Board> tag (LoadXML).
 
 #define HCP65_LCD_COLUMNS				16
 #define HCP65_LCD_ROWS					2
@@ -138,6 +140,10 @@ protected:
 //    reset by the HCP65: only by power.  A data read gives its data register (CHCP65LCDController::GetOutput).
 //  - The SNES clock reads both controllers all the time (every 256 device clocks) into latches the registers read.
 //    A reset holds the clock and the latches keep what they had.  An unplugged controller reads as nothing pressed.
+//
+//Which of the host's keys drive each controller is the emulator's (HCP65Emulator's key mappings), kept with the board
+//by name: LoadXML reads <Controller Port="n" Keys="name"/> (n 1 or 2) and SaveXML writes one for each controller that
+//has a name.  No name is a controller that isn't plugged in.
 class CHCP65LCDBoard : public CHCP65Device
 {
 protected:
@@ -150,10 +156,13 @@ protected:
 	bool				mbPoweredOn;
 	uint16				mauiButtons[HCP65_SNES_CONTROLLERS];	//Pressed, as HCP65_SNES_*.
 	uint16				mauiLatched[HCP65_SNES_CONTROLLERS];	//What the latches hold, as the buttons.
+	CChars				maszKeys[HCP65_SNES_CONTROLLERS];		//Each controller's key mapping's name, empty for none.
 
 public:
 	void	Init(void);
 	void	Kill(void) override;
+	bool	LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError) override;
+	void	SaveXML(CXMLWriter* pcWriter) override;
 
 	uint8	Read(uint32 uiOffset) override;
 	void	Write(uint32 uiOffset, uint8 uiValue) override;
@@ -161,6 +170,8 @@ public:
 	void	CatchUp(uint64 uiCycle) override;
 
 	void	SetButtons(int iController, uint16 uiButtons);
+	void		SetKeys(int iController, const char* szKeys);
+	const char*	GetKeys(int iController);
 	void	GetPicture(SHCP65LCDPicture* psPicture, uint64 uiCycle);
 	bool	IsBusy(void);
 	uint8	GetDDRAM(uint8 uiAddress);

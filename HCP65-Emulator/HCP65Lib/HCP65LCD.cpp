@@ -1,5 +1,8 @@
 #include <string.h>
+#include "BaseLib/MarkupTag.h"
+#include "BaseLib/XMLWriter.h"
 #include "HCP65.h"
+#include "HCP65Mainboard.h"
 #include "HCP65LCD.h"
 
 
@@ -733,6 +736,7 @@ void CHCP65LCDBoard::Init(void)
 	{
 		mauiButtons[i] = 0;
 		mauiLatched[i] = 0;
+		maszKeys[i].Init();
 	}
 }
 
@@ -743,6 +747,12 @@ void CHCP65LCDBoard::Init(void)
 //////////////////////////////////////////////////////////////////////////
 void CHCP65LCDBoard::Kill(void)
 {
+	int		i;
+
+	for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
+	{
+		maszKeys[i].Kill();
+	}
 	mcMutex.Kill();
 	CHCP65Device::Kill();
 }
@@ -902,6 +912,85 @@ void CHCP65LCDBoard::SetButtons(int iController, uint16 uiButtons)
 	{
 		mauiButtons[iController] = (uint16)(uiButtons & HCP65_SNES_BUTTONS);
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each <Controller Port="n" Keys="name"/>: controller n's key mapping.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65LCDBoard::LoadXML(CMarkupTag* pcTag, const char* szDirectory, CChars* pszError)
+{
+	CMarkupTag*		pcController;
+	STagIterator	sIterator;
+	uint32			uiPort;
+	const char*		szKeys;
+
+	for (pcController = pcTag->GetTag(&sIterator); pcController; pcController = pcTag->GetNextTag(&sIterator))
+	{
+		if (strcmp(pcController->GetName(), HCP65_SNES_XML_TAG) != 0)
+		{
+			return HCP65XMLError(pszError, pcController, "Expected <" HCP65_SNES_XML_TAG ">", NULL);
+		}
+		if (!HCP65XMLNumber(pcController, "Port", true, HCP65_SNES_CONTROLLERS, 0, &uiPort, pszError))
+		{
+			return false;
+		}
+		szKeys = pcController->GetStringAttribute("Keys");
+		if ((uiPort == 0) || !szKeys)
+		{
+			return HCP65XMLError(pszError, pcController, "Expected a Port of 1 or 2 and Keys", NULL);
+		}
+		SetKeys((int)uiPort - 1, szKeys);
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A <Controller> for each controller with a key mapping.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65LCDBoard::SaveXML(CXMLWriter* pcWriter)
+{
+	int		i;
+
+	for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
+	{
+		if (!maszKeys[i].Empty())
+		{
+			pcWriter->Begin(HCP65_SNES_XML_TAG);
+			pcWriter->Attribute("Port", (int32)(i + 1));
+			pcWriter->Attribute("Keys", maszKeys[i].Text());
+			pcWriter->End();
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// iController's key mapping's name, NULL or "" for none (unplugged).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65LCDBoard::SetKeys(int iController, const char* szKeys)
+{
+	if ((iController >= 0) && (iController < HCP65_SNES_CONTROLLERS))
+	{
+		maszKeys[iController].Set(szKeys ? szKeys : "");
+	}
+}
+
+
+const char* CHCP65LCDBoard::GetKeys(int iController)
+{
+	if ((iController >= 0) && (iController < HCP65_SNES_CONTROLLERS))
+	{
+		return maszKeys[iController].Text();
+	}
+	return "";
 }
 
 

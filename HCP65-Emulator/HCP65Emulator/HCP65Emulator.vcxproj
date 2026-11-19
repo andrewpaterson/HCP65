@@ -248,6 +248,8 @@
     <ClCompile Include="BoardScene.cpp" />
     <ClCompile Include="HCP65LCDDraw.cpp" />
     <ClCompile Include="HCP65ScreenDraw.cpp" />
+    <ClCompile Include="HCP65SNESKeys.cpp" />
+    <ClCompile Include="SNESControllersDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HCP65Emulator.h" />
@@ -261,6 +263,8 @@
     <ClInclude Include="BoardScene.h" />
     <ClInclude Include="HCP65LCDDraw.h" />
     <ClInclude Include="HCP65ScreenDraw.h" />
+    <ClInclude Include="HCP65SNESKeys.h" />
+    <ClInclude Include="SNESControllersDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\CommonLibraries\Libraries\BaseLib\BaseLib.vcxproj">

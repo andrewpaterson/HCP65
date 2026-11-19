@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The Small Mainboard (SmallMainboard.xml) with an LCD and SNES Board in socket 4 in place of the UART Board: type -->
-<!-- lcdtest in the shell to bounce HCP65 along the display under the screen.  Files are relative to this one. -->
+<!-- lcdtest in the shell to bounce HCP65 along the display under the screen, or sprites to walk Maki with the first -->
+<!-- controller, which is the arrow keys (HCP65 menu, SNES Controllers).  Files are relative to this one. -->
 <Mainboard Type="Small">
 	<Processor Index="0">
 		<Board Socket="3" Type="SD Card Board">
 			<Card Socket="0" File="../../TestHCP65Lib/TestHCP65Lib/Output/SDCard.img"/>
 		</Board>
-		<Board Socket="4" Type="LCD and SNES Board"/>
+		<Board Socket="4" Type="LCD and SNES Board">
+			<Controller Port="1" Keys="Arrows"/>
+		</Board>
 		<Board Socket="16" Type="Video Board"/>
 		<Board Socket="17" Type="Sound Board"/>
 		<Board Socket="18" Type="Memory Board"/>

@@ -12,6 +12,7 @@ void CHCP65MenuListener::Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pMenu, C
 	mpcWindow = &pWindow;
 	mpcApp = pcApp;
 	mpcBoardConfiguration = &pMenu->AddItem("Board Configuration");
+	mpcSNESControllers = &pMenu->AddItem("SNES Controllers");
 }
 
 
@@ -22,6 +23,7 @@ void CHCP65MenuListener::Init(Ptr<CWindow> pWindow, Ptr<CMenuContainer> pMenu, C
 void CHCP65MenuListener::Kill(void)
 {
 	mpcBoardConfiguration = NULL;
+	mpcSNESControllers = NULL;
 	mpcApp = NULL;
 	mpcWindow = NULL;
 }
@@ -36,5 +38,9 @@ void CHCP65MenuListener::MenuItemClicked(CMenuItem* pcItem)
 	if (mpcBoardConfiguration == pcItem)
 	{
 		mpcWindow->Post(mpcApp, &CHCP65EmulatorApp::ShowBoardConfiguration);
+	}
+	else if (mpcSNESControllers == pcItem)
+	{
+		mpcWindow->Post(mpcApp, &CHCP65EmulatorApp::ShowSNESControllers);
 	}
 }
