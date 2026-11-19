@@ -41,10 +41,14 @@ Notes (as meant, not faults):
     a read (it doesn't change the latched byte), or write the same byte again.
     RS and R/~W change with E as well, so set them with E low first (the
     display wants them 40ns before E rises).
+  - The display's datasheet (HCP65/Datasheets/NMTC-S16205DRGHS.pdf, at 4.5V to
+    5V) wants E high and low for at least 230ns each and an E cycle of at
+    least 500ns: about 6 and 13 cycles of a 25MHz processor, which accesses
+    one after another can be closer than.  A driver waits between them.
   - A read with E high is passed through IC20 (74LVC573) during the access, so
-    the display's data must be out (up to 360ns after E rises on an HD44780U)
-    before the access ends.  Raising E with one read and reading again with E
-    still high gives it the whole of the first access.
+    the display's data must be out (up to 120ns after E rises, the
+    datasheet's tD) before the access ends.  Raising E with one read and
+    reading again with E still high gives it the whole of the first access.
   - The SNES latches: a controller's 16 bits are shifted into IC6 then IC7 on
     the SNES Controller Reader, so IC7 (~{Read High}) holds the first eight it
     sends (B, Y, Select, Start, Up, Down, Left, Right) and IC6 (~{Read Low}) the
@@ -58,7 +62,10 @@ Notes (as meant, not faults):
     7, may be what was meant.
   - ~{Device Interrupt} is tied high (NT1): the board never interrupts.
   - The display's backlight (LEDA, LEDK) isn't connected: the
-    NMTC-S16205DRGHS-07 is grey and reflective, with no backlight.
+    NMTC-S16205DRGHS-07 is grey and reflective, with no backlight.  (The
+    datasheet is the family's, for the NMTC-S16205DFGHSAY, which has one.)
+  - The display's controller is a KS0066 or compatible, with the English
+    character set (its datasheet's font table).
 
 The board also uses a standard board with faults of its own, which it has with
 it (see its Faults file in Component Boards):
