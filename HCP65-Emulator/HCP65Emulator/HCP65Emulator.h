@@ -9,6 +9,7 @@
 #define HCP65_EMULATOR_MACHINE			"Machines/SmallMainboard.xml"	//The boards (CHCP65Mainboard) without --machine.
 #define HCP65_EMULATOR_ARGUMENT_MACHINE	"--machine"		//The mainboard description: which boards are in which sockets.
 #define HCP65_EMULATOR_ARGUMENT_FILL	"--fill-memory"	//Fill mode (CHCP65::SetMemoryFill): memory nothing wrote reads $CC.
+#define HCP65_EMULATOR_SNES_MAPPINGS	"SNESMappings.xml"	//The SNES controllers' key mappings (CHCP65SNESKeys).
 
 
 #include "StandardLib/Object.h"
@@ -30,6 +31,7 @@
 #include "HCP65MenuListener.h"
 #include "BoardConfigurationDialog.h"
 #include "SNESControllersDialog.h"
+#include "SNESMappingDialog.h"
 #include "HCP65SNESKeys.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65EmulatorTick.h"
@@ -50,7 +52,9 @@
 //(CHCP65LCDDraw), while there is one.
 //
 //The HCP65 menu's SNES Controllers chooses the keys of each of that board's controllers (or that it isn't plugged
-//in): on OK the description is written, with the board.  The HCP65 isn't reset.
+//in): on OK the description is written, with the board.  The HCP65 isn't reset.  The key mappings are read from
+//HCP65_EMULATOR_SNES_MAPPINGS as the emulator starts (the three it has without it otherwise); SNES Key Mappings makes
+//or changes one, over a picture of the controller, and on OK writes them all there.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
@@ -80,6 +84,7 @@ protected:
 	CHCP65PS2Keyboard		mcKeyboard;
 	CHCP65SNESKeys			mcSNESKeys;		//The host's keys on the first LCD and SNES Board's controllers.
 	Ptr<CSNESControllersDialog>	mpSNESDialog;	//While it's shown.
+	Ptr<CSNESMappingDialog>		mpMappingDialog;	//While it's shown.
 	Ptr<CHCP65ScreenDraw>	mpScreenDraw;
 	Ptr<CHCP65LCDDraw>		mpLCDDraw;		//The first LCD and SNES Board's display, under the screen.
 	bool					mbValid;
@@ -97,6 +102,7 @@ public:
 	bool	Run(void);
 	void	ShowBoardConfiguration(void);
 	void	ShowSNESControllers(void);
+	void	ShowSNESMappings(void);
 
 protected:
 	void	ChangeBoards(const char** aszTypes, const uint8* auiBreakouts);

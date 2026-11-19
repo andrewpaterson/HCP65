@@ -204,9 +204,12 @@ controllers:
 `lcdtest` in the shell (`HCP65/LCDTest`) bounces HCP65 along the first line until a key is pressed,
 and `sprites` (`HCP65/Sprites`) walks Maki across its stage with the first controller.  The emulator
 shows the display under its screen, and drives the controllers from the host's keys: its HCP65
-menu's SNES Controllers picks each controller's keys, or that it isn't plugged in.  A controller's
-keys are typed on the keyboard too, so a program reading the controller sees them on the console's
-input as well.
+menu's SNES Controllers picks each controller's key mapping, or that it isn't plugged in, and SNES
+Key Mappings makes or changes a mapping: its name, and a key field for each button over a picture of
+the controller, which lights up each button while its key is held.  The mappings are kept in
+`SNESMappings.xml` beside the emulator (Arrows, WASD and Numpad without it).  A controller's keys are
+typed on the keyboard too, so a program reading the controller sees them on the console's input as
+well.
 `Machines/LCD.xml` has the board, with the arrow keys on the first controller.
 
 ## Main memory

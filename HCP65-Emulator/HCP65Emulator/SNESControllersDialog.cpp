@@ -25,7 +25,7 @@ void CSNESControllersDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, CHCP
 	{
 		for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
 		{
-			AddController(i, pcKeys->GetMapping(i));
+			AddController(pcKeys, i);
 		}
 	}
 	else
@@ -65,21 +65,22 @@ bool CSNESControllersDialog::Load(CObjectReader* pcFile) { return false; }
 
 //////////////////////////////////////////////////////////////////////////
 //
-// "Controller n" and a combo box of every mapping, at uiMapping.
+// "Controller n" and a combo box of every mapping by name, at the one it
+// has.
 //
 //////////////////////////////////////////////////////////////////////////
-void CSNESControllersDialog::AddController(int iController, size uiMapping)
+void CSNESControllersDialog::AddController(CHCP65SNESKeys* pcKeys, int iController)
 {
 	Ptr<CComboBox>	pCombo;
 	char			szLabel[32];
 	size			i;
 
 	pCombo = OMalloc<CComboBox>(mpDialog->GetWindow(), mpDialog->GetLook()->pcTheme);
-	for (i = 0; i < CHCP65SNESKeys::NumMappings(); i++)
+	for (i = 0; i < pcKeys->NumMappings(); i++)
 	{
-		pCombo->AddItem(CHCP65SNESKeys::GetMappingInfo(i)->szDescription);
+		pCombo->AddItem(pcKeys->GetName(i));
 	}
-	pCombo->Select((int32)uiMapping);
+	pCombo->Select((int32)pcKeys->GetController(iController));
 	pCombo->SetAlignment(CSH_Stretch, CSV_Center);
 	snprintf(szLabel, sizeof(szLabel), "Controller %d", iController + 1);
 	mpDialog->AddEditor(szLabel, pCombo);

@@ -32,7 +32,7 @@ public:
 	size		GetMapping(int iController);
 
 protected:
-	void		AddController(int iController, size uiMapping);
+	void		AddController(CHCP65SNESKeys* pcKeys, int iController);
 };
 
 

@@ -226,6 +226,8 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		PlugInDevices();
 	}
 	szError.Kill();
+	mcSNESKeys.Load(HCP65_EMULATOR_SNES_MAPPINGS);
+	mcSNESKeys.Attach((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
 	pcAudio = (CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME);
 	for (i = 1; i < argc; i++)
 	{
@@ -344,6 +346,7 @@ void CHCP65EmulatorApp::Class(void)
 	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
 	U_Unknown(CHCP65SNESKeys, mcSNESKeys);
 	M_Pointer(mpSNESDialog);
+	M_Pointer(mpMappingDialog);
 	M_Pointer(mpScreenDraw);
 	M_Pointer(mpLCDDraw);
 	U_Bool(mbValid);
@@ -485,7 +488,7 @@ void CHCP65EmulatorApp::ShowSNESControllers(void)
 	{
 		for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
 		{
-			mcSNESKeys.SetMapping(i, mpSNESDialog->GetMapping(i));
+			mcSNESKeys.SetController(i, mpSNESDialog->GetMapping(i));
 		}
 		mcRunner.Pause();
 		szError.Init();
@@ -497,6 +500,38 @@ void CHCP65EmulatorApp::ShowSNESControllers(void)
 		mcRunner.Resume();
 	}
 	mpSNESDialog = NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The SNES Key Mappings dialog, at the first controller's mapping: on OK
+// the mapping named is made or changed and they are all written to
+// HCP65_EMULATOR_SNES_MAPPINGS.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::ShowSNESMappings(void)
+{
+	const char*	aszKeys[HCP65_SNES_KEYS_BUTTONS];
+	int			i;
+
+	mpMappingDialog = OMalloc<CSNESMappingDialog>(mpWindow, &msDialogLook, mpTheme, &mcSNESKeys, mcSNESKeys.GetController(0));
+	if (mpMappingDialog->Show())
+	{
+		for (i = 0; i < HCP65_SNES_KEYS_BUTTONS; i++)
+		{
+			aszKeys[i] = mpMappingDialog->GetKey(i);
+		}
+		if (mcSNESKeys.SetMapping(mpMappingDialog->GetMappingName(), aszKeys) == HCP65_SNES_KEYS_NONE)
+		{
+			gcLogger.Error2(__METHOD__, " A mapping needs a name, not [", mpMappingDialog->GetMappingName(), "], and there can be only so many.", NULL);
+		}
+		else if (!mcSNESKeys.Save(HCP65_EMULATOR_SNES_MAPPINGS))
+		{
+			gcLogger.Error2(__METHOD__, " Could not write [" HCP65_EMULATOR_SNES_MAPPINGS "].", NULL);
+		}
+	}
+	mpMappingDialog = NULL;
 }
 
 
