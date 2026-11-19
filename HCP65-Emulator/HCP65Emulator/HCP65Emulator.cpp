@@ -138,6 +138,7 @@ void CHCP65EmulatorApp::Init(void)
 	mcDebugger.Init();
 	mcRunner.Init(&mcHCP65, &mcDebugger);
 	mcKeyboard.Init();
+	mcSNESKeys.Init();
 	memset(&msDialogLook, 0, sizeof(msDialogLook));
 	mszMachine.Init();
 	mbValid = false;
@@ -161,6 +162,7 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	Ptr<CMenuContainer>		pFileMenu;
 	Ptr<CMenuContainer>		pHCP65Menu;
 	Ptr<CCanvas>			pScreen;
+	Ptr<CCanvas>			pLCD;
 	Ptr<CGridContainer>		pMain;
 	Ptr<CClearCanvasDraw>	pBackground;
 	Ptr<CFont>				pWhite;
@@ -282,9 +284,15 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		pScreen->SetCanGetFocus(true);
 		pScreen->AddInputAction(IAF_AnyKeyDown, NULL, this, &CHCP65EmulatorApp::KeyDownAction);
 		pScreen->AddInputAction(IAF_AnyKeyUp, NULL, this, &CHCP65EmulatorApp::KeyUpAction);
+		mpLCDDraw = OMalloc<CHCP65LCDDraw>(mpTheme->GetColour(TC_Editor), &mcHCP65);
+		mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
+		pLCD = OMalloc<CCanvas>(mpWindow, mpLCDDraw);
+		pLCD->SetDrawnEveryPaint(true);  //The display changes, and its cursor blinks, without telling the canvas.
+		pLCD->SetAlignment(CSH_Stretch, CSV_Stretch);
 		pMain = OMalloc<CGridContainer>(mpWindow);
 		pMain->AddComponent(mpMenuBar, 0, 0, 1, 1, 1, 0);
 		pMain->AddComponent(pScreen, 0, 1, 1, 1, 1, 1);
+		pMain->AddComponent(pLCD, 0, 2, 1, 1, 1, 0);
 		mpWindow->SetContainer(pMain);
 		mpWindow->GetFocus()->SetFocus(pScreen);
 
@@ -334,7 +342,10 @@ void CHCP65EmulatorApp::Class(void)
 	M_Pointer(mpInputSource);
 	U_Unknown(CComponentInput, mcComponentInput);
 	U_Unknown(CHCP65PS2Keyboard, mcKeyboard);
+	U_Unknown(CHCP65SNESKeys, mcSNESKeys);
+	M_Pointer(mpSNESDialog);
 	M_Pointer(mpScreenDraw);
+	M_Pointer(mpLCDDraw);
 	U_Bool(mbValid);
 	U_Bool(mbInputs);
 }
@@ -364,6 +375,7 @@ void CHCP65EmulatorApp::Free(void)
 	mcRunner.Kill();
 	mcDebugger.Kill();
 	mcKeyboard.Kill();
+	mcSNESKeys.Kill();
 	mcHCP65.Kill();
 	mcMainboard.Kill();
 }
@@ -392,7 +404,8 @@ bool CHCP65EmulatorApp::Load(CObjectReader* pcFile)
 //////////////////////////////////////////////////////////////////////////
 //
 // Runs the window's ticks until the window closes (if Init worked), then
-// takes the menu bar's listener and the component input out of the window.
+// waits for any board models still being read and takes the menu bar's
+// listener and the component input out of the window.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65EmulatorApp::Run(void)
@@ -404,6 +417,11 @@ bool CHCP65EmulatorApp::Run(void)
 	if (mbValid)
 	{
 		mpWindow->Show();
+	}
+	if (mpBoardScene.IsNotNull())
+	{
+		//Here, where no Free is running: the board scene says why.
+		mpBoardScene->StopLoading();
 	}
 	mcRunner.Stop();
 
@@ -447,6 +465,38 @@ void CHCP65EmulatorApp::ShowBoardConfiguration(void)
 		ChangeBoards(aszTypes, auiBreakouts);
 	}
 	mpBoardDialog = NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The SNES Controllers dialog: on OK each controller has the keys chosen
+// and the description is written with them (the HCP65 paused meanwhile,
+// as writing it reads every board).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65EmulatorApp::ShowSNESControllers(void)
+{
+	CChars	szError;
+	int		i;
+
+	mpSNESDialog = OMalloc<CSNESControllersDialog>(mpWindow, &msDialogLook, &mcSNESKeys);
+	if (mpSNESDialog->Show() && mpSNESDialog->HasControllers())
+	{
+		for (i = 0; i < HCP65_SNES_CONTROLLERS; i++)
+		{
+			mcSNESKeys.SetMapping(i, mpSNESDialog->GetMapping(i));
+		}
+		mcRunner.Pause();
+		szError.Init();
+		if (!mcMainboard.Write(mszMachine.Text(), &szError))
+		{
+			gcLogger.Error2(__METHOD__, " ", szError.Text(), ".", NULL);
+		}
+		szError.Kill();
+		mcRunner.Resume();
+	}
+	mpSNESDialog = NULL;
 }
 
 
@@ -530,7 +580,8 @@ bool HCP65EmulatorRun(CNativeWindowFactory* pcNativeFactory, CNativeSoundFactory
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The screen onto the first Video Board, the keyboard into port 1 of the
+// The screen onto the first Video Board, the LCD's display onto the first
+// LCD and SNES Board, the keyboard into port 1 of the
 // first PS2 Board (unplugged if there is none) and nothing into its port
 // 2.  Only while the HCP65 isn't running.
 //
@@ -543,6 +594,12 @@ void CHCP65EmulatorApp::PlugInDevices(void)
 	{
 		mpScreenDraw->SetVideo((CHCP65VideoBoard*)mcMainboard.FindBoard(HCP65_VIDEO_BOARD_NAME));
 	}
+	if (mpLCDDraw.IsNotNull())
+	{
+		mpLCDDraw->SetLCD((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
+		mpWindow->InvalidateLayout();  //Its row goes or comes with the board.
+	}
+	mcSNESKeys.Attach((CHCP65LCDBoard*)mcMainboard.FindBoard(HCP65_LCD_BOARD_NAME));
 
 	pcPS2 = (CHCP65PS2Board*)mcMainboard.FindBoard(HCP65_PS2_BOARD_NAME);
 	if (pcPS2 == NULL)
@@ -560,15 +617,17 @@ void CHCP65EmulatorApp::PlugInDevices(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A host key going down or up, while the screen has the focus: the
-// keyboard sends it (from the HCP65's thread).  Keys it hasn't are
-// ignored.
+// A host key going down or up, while the screen has the focus: a SNES
+// controller whose keys have it presses or lets go of that button, and
+// the keyboard sends it (from the HCP65's thread) too, so that the keys
+// can still be typed.  Keys the keyboard hasn't are ignored.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65EmulatorApp::KeyDownAction(SComponentInputEvent* psEvent)
 {
 	if (psEvent->szName)
 	{
+		mcSNESKeys.Key(psEvent->szName, true);
 		mcKeyboard.Key(psEvent->szName, true);
 	}
 }
@@ -578,6 +637,7 @@ void CHCP65EmulatorApp::KeyUpAction(SComponentInputEvent* psEvent)
 {
 	if (psEvent->szName)
 	{
+		mcSNESKeys.Key(psEvent->szName, false);
 		mcKeyboard.Key(psEvent->szName, false);
 	}
 }

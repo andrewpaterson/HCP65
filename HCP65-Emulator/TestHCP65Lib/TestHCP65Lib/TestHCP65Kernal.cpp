@@ -14,6 +14,9 @@
 #include "StandardLib/Objects.h"
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
+#include "SupportLib/ImageReader.h"
+#include "SupportLib/ImageCel.h"
+#include "SupportLib/SFTWriter.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65DebugPort.h"
 #include "HCP65Lib/HCP65Audio.h"
@@ -23,6 +26,8 @@
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Blitter.h"
+#include "HCP65Lib/HCP65Graphics.h"
+#include "HCP65Lib/HCP65LCD.h"
 #include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Mainboard.h"
@@ -75,6 +80,19 @@
 #define TEST_HCP65_SHELL_PATH		"\\OS\\SHELL.EXE"
 #define TEST_HCP65_SPRITES_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "Sprites" _FS_ "HCP65Sprites.vcxproj"
 #define TEST_HCP65_SPRITES_PATH		"\\SPRITES.EXE"
+#define TEST_HCP65_SPRITES_HEAP		0x80000		//The stage and Maki's frames.
+#define TEST_HCP65_SPRITES_IMAGES	".." _FS_ ".." _FS_ ".." _FS_ "Sprites" _FS_ "Images"
+#define TEST_HCP65_STAGE_IMAGE		TEST_HCP65_SPRITES_IMAGES _FS_ "Fighting320.png"
+#define TEST_HCP65_MAKI_STAND_IMAGE	TEST_HCP65_SPRITES_IMAGES _FS_ "MakiStand.png"
+#define TEST_HCP65_MAKI_WALK_IMAGE	TEST_HCP65_SPRITES_IMAGES _FS_ "MakiWalk.png"
+#define TEST_HCP65_MAKI_WALK_FRAMES	6			//Side by side in MakiWalk.png.
+#define TEST_HCP65_STAGE_FILE		TEST_HCP65_OUTPUT _FS_ "STAGE.SFT"
+#define TEST_HCP65_MAKI_FILE		TEST_HCP65_OUTPUT _FS_ "MAKI.SFT"
+#define TEST_HCP65_STAGE_PATH		"\\SPRITES\\STAGE.SFT"
+#define TEST_HCP65_MAKI_PATH		"\\SPRITES\\MAKI.SFT"
+#define TEST_HCP65_SPRITES_SCALE	2			//The images are drawn twice as big as they are.
+#define TEST_HCP65_LCD_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "LCDTest" _FS_ "HCP65LCDTest.vcxproj"
+#define TEST_HCP65_LCD_PROGRAM_PATH	"\\LCDTEST.EXE"
 #define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
 #define TEST_HCP65_HELLO_TEXT		"Hello from the SD card.\n"
 #define TEST_HCP65_SHELL_PROMPT		" $ "			//After the current directory.
@@ -94,6 +112,10 @@
 #define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
 #define TEST_HCP65_BLITTER_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "BlitterBoard" _FS_ "HCP65BlitterBoard.vcxproj"
 #define TEST_HCP65_BLITTER_DRIVER_PATH	"\\OS\\Drivers\\BLITTER.DRV"
+#define TEST_HCP65_GRAPHICS_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "GraphicsBoard" _FS_ "HCP65GraphicsBoard.vcxproj"
+#define TEST_HCP65_GRAPHICS_DRIVER_PATH	"\\OS\\Drivers\\GRAPHICS.DRV"
+#define TEST_HCP65_LCD_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "LCDBoard" _FS_ "HCP65LCDBoard.vcxproj"
+#define TEST_HCP65_LCD_DRIVER_PATH	"\\OS\\Drivers\\LCD.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -111,6 +133,7 @@
 #define TEST_HCP65_SHELL_MACHINE	TEST_HCP65_MACHINES _FS_ "Shell.xml"
 #define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
 #define TEST_HCP65_BLITTER_MACHINE	TEST_HCP65_MACHINES _FS_ "Blitter.xml"
+#define TEST_HCP65_LCD_MACHINE		TEST_HCP65_MACHINES _FS_ "LCD.xml"
 #define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
@@ -127,6 +150,8 @@
 #define TEST_HCP65_PS2_SOCKET		3
 #define TEST_HCP65_VIDEO_SOCKET		16
 #define TEST_HCP65_BLITTER_SOCKET	17
+#define TEST_HCP65_GRAPHICS_SOCKET	19
+#define TEST_HCP65_LCD_SOCKET		17
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
 #define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
@@ -1695,10 +1720,115 @@ void TestHCP65KernalPS2(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// uiWidth columns of pSource from uiLeft (all its rows), each pixel
+// TEST_HCP65_SPRITES_SCALE times as big, and left to right the other way
+// if bMirror.
+//
+//////////////////////////////////////////////////////////////////////////
+static Ptr<CImage> TestSpritesScale(Ptr<CImage> pSource, uint32 uiLeft, uint32 uiWidth, bool bMirror)
+{
+	Ptr<CImage>	pDest;
+	uint8*		puiSource;
+	uint8*		puiDest;
+	lsize		uiPixel;
+	uint32		uiSourceWidth;
+	uint32		uiHeight;
+	uint32		uiDestWidth;
+	uint32		uiColumn;
+	uint32		x;
+	uint32		y;
+
+	uiSourceWidth = pSource->GetWidth();
+	uiHeight = pSource->GetHeight();
+	uiDestWidth = uiWidth * TEST_HCP65_SPRITES_SCALE;
+	pDest = OMalloc<CImage>(uiDestWidth, uiHeight * TEST_HCP65_SPRITES_SCALE, pSource);
+	uiPixel = pSource->GetByteSize() / ((lsize)uiSourceWidth * uiHeight);
+	if (pDest->GetByteSize() != uiPixel * uiDestWidth * uiHeight * TEST_HCP65_SPRITES_SCALE)
+	{
+		return NULL;
+	}
+	puiSource = (uint8*)pSource->GetData();
+	puiDest = (uint8*)pDest->GetData();
+	for (y = 0; y < uiHeight * TEST_HCP65_SPRITES_SCALE; y++)
+	{
+		for (x = 0; x < uiDestWidth; x++)
+		{
+			uiColumn = x / TEST_HCP65_SPRITES_SCALE;
+			if (bMirror)
+			{
+				uiColumn = uiWidth - 1 - uiColumn;
+			}
+			memcpy(&puiDest[(y * uiDestWidth + x) * uiPixel], &puiSource[((y / TEST_HCP65_SPRITES_SCALE) * uiSourceWidth + uiLeft + uiColumn) * uiPixel], uiPixel);
+		}
+	}
+	return pDest;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// sprites' images, with SupportLib's SFT writer (the pixels R3G3B2, the
+// colours SFTColours shows): Output/STAGE.SFT, the stage (an opaque
+// 640 by 400), and Output/MAKI.SFT, Maki's frames in a container,
+// transparent and 84 by 182 each: standing then six walking, facing
+// right, then the same facing left.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestKernalMakeSprites(void)
+{
+	CArrayImageCel	acCels;
+	Ptr<CImage>		pStand;
+	Ptr<CImage>		pWalk;
+	Ptr<CImage>		pStage;
+	uint32			uiFrameWidth;
+	uint32			i;
+	bool			bResult;
+	bool			bMirror;
+	int				iSide;
+
+	DataIOInit();
+	ObjectsInit();
+	pStage = ReadImage((char*)TEST_HCP65_STAGE_IMAGE);
+	pStand = ReadImage((char*)TEST_HCP65_MAKI_STAND_IMAGE);
+	pWalk = ReadImage((char*)TEST_HCP65_MAKI_WALK_IMAGE);
+	bResult = pStage.IsNotNull() && pStand.IsNotNull() && pWalk.IsNotNull();
+	if (bResult)
+	{
+		pStage = TestSpritesScale(pStage, 0, pStage->GetWidth(), false);
+		bResult = pStage.IsNotNull() && SaveSFT(pStage, (char*)TEST_HCP65_STAGE_FILE);
+	}
+	if (bResult)
+	{
+		acCels.Init();
+		uiFrameWidth = pWalk->GetWidth() / TEST_HCP65_MAKI_WALK_FRAMES;
+		for (iSide = 0; iSide < 2; iSide++)
+		{
+			bMirror = iSide == 1;
+			acCels.Add(OMalloc<CImageCel>(TestSpritesScale(pStand, 0, pStand->GetWidth(), bMirror)));
+			for (i = 0; i < TEST_HCP65_MAKI_WALK_FRAMES; i++)
+			{
+				acCels.Add(OMalloc<CImageCel>(TestSpritesScale(pWalk, i * uiFrameWidth, uiFrameWidth, bMirror)));
+			}
+		}
+		bResult = SaveSFTCelArray(&acCels, (char*)TEST_HCP65_MAKI_FILE);
+		acCels.Kill();
+	}
+	pStage = NULL;
+	pStand = NULL;
+	pWalk = NULL;
+	ObjectsKill(false);
+	DataIOKill();
+	AssertTrue(bResult);
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Copies the blank SD card image to Output/SDCard.img, the system card
 // the emulator boots: \OS\INIT.EXE (HCP65/Init) and \OS\SHELL.EXE
-// (HCP65/Shell), the drivers, the console's font, the maths tables and
-// \HELLO.TXT.  It has no
+// (HCP65/Shell), the programs, the drivers, the console's font, sprites'
+// images (TestKernalMakeSprites), the maths tables and \HELLO.TXT.  It has no
 // \OS\STARTUP.TXT: the kernal runs INIT.EXE.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1709,14 +1839,20 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = TestKernalCopyBlankCard(TEST_HCP65_SYSTEM_CARD_IMAGE);
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_INIT_PATH, TEST_HCP65_INIT_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SHELL_PATH, TEST_HCP65_SHELL_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
-	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SPRITES_PATH, TEST_HCP65_SPRITES_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
+	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SPRITES_PATH, TEST_HCP65_SPRITES_PROGRAM, NULL, TEST_HCP65_SPRITES_HEAP, false);
+	bResult = bResult && TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_LCD_PROGRAM_PATH, TEST_HCP65_LCD_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_BLITTER_DRIVER_PATH, TEST_HCP65_BLITTER_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_GRAPHICS_DRIVER_PATH, TEST_HCP65_GRAPHICS_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_LCD_DRIVER_PATH, TEST_HCP65_LCD_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER);
 	bResult = bResult && TestKernalPutTables(TEST_HCP65_SYSTEM_CARD_IMAGE);
 	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_FONT_PATH, TEST_HCP65_FONT);
+	bResult = bResult && TestKernalMakeSprites();
+	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_STAGE_PATH, TEST_HCP65_STAGE_FILE);
+	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_MAKI_PATH, TEST_HCP65_MAKI_FILE);
 	bResult = bResult && FatPutFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_HELLO_PATH, (uint8*)TEST_HCP65_HELLO_TEXT, strlen(TEST_HCP65_HELLO_TEXT));
 	AssertTrue(bResult);
 	return bResult;
@@ -2379,6 +2515,11 @@ static void TestConsoleType(STestConsole* psConsole, const char* szText)
 			psConsole->cKeyboard.Key("Enter", true);
 			psConsole->cKeyboard.Key("Enter", false);
 		}
+		else if (c == '\x1B')
+		{
+			psConsole->cKeyboard.Key("Escape", true);
+			psConsole->cKeyboard.Key("Escape", false);
+		}
 		else
 		{
 			szKey[0] = c;
@@ -2389,58 +2530,161 @@ static void TestConsoleType(STestConsole* psConsole, const char* szText)
 }
 
 
+#define TEST_SPRITES_STAGE_Y		40			//Sprites.cpp's picture: the stage's top,
+#define TEST_SPRITES_MAKI_Y			246			//Maki's,
+#define TEST_SPRITES_MAKI_START_X	278			//her left to start with,
+#define TEST_SPRITES_MAKI_WIDTH		84
+#define TEST_SPRITES_MAKI_ROW		(TEST_SPRITES_MAKI_Y + 60)	//and a row through her.
+
+
 //////////////////////////////////////////////////////////////////////////
 //
-// sprites typed at the prompt, and its picture checked.  It is left
-// waiting for a key.
+// The colour a pixel of uiValue is in SFTColours' palette.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestConsoleSprites(STestConsole* psConsole)
+static uint32 TestSpritesColour(uint8 uiValue)
+{
+	uint32	uiRed;
+	uint32	uiGreen;
+	uint32	uiBlue;
+
+	uiRed = uiValue & 7;
+	uiGreen = (uiValue >> 3) & 7;
+	uiBlue = (uiValue >> 6) & 3;
+	uiRed = (uiRed << 5) | (uiRed << 2) | (uiRed >> 1);
+	uiGreen = (uiGreen << 5) | (uiGreen << 2) | (uiGreen >> 1);
+	uiBlue = (uiBlue << 6) | (uiBlue << 4) | (uiBlue << 2) | uiBlue;
+	return 0xFF000000 | (uiRed << 16) | (uiGreen << 8) | uiBlue;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Output/STAGE.SFT (TestKernalMakeSprites), to free; NULL if it can't be
+// read.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint8* TestSpritesReadStage(void)
+{
+	FILE*	pFile;
+	uint8*	puiStage;
+	size_t	uiRead;
+
+	pFile = fopen(TEST_HCP65_STAGE_FILE, "rb");
+	if (!pFile)
+	{
+		return NULL;
+	}
+	puiStage = (uint8*)malloc(sizeof(SSFTImage) + 640 * 400);
+	uiRead = fread(puiStage, 1, sizeof(SSFTImage) + 640 * 400, pFile);
+	fclose(pFile);
+	if (uiRead != sizeof(SSFTImage) + 640 * 400)
+	{
+		free(puiStage);
+		return NULL;
+	}
+	return puiStage;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The colour the stage is at (x, y) on the screen.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint32 TestSpritesStage(const uint8* puiStage, uint32 x, uint32 y)
+{
+	return TestSpritesColour(puiStage[sizeof(SSFTImage) + (y - TEST_SPRITES_STAGE_Y) * 640 + x]);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Where Maki is in the frame: the first and last pixels of the row through
+// her that aren't the stage's.  False if there are none, or they are
+// further apart than she is wide.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestSpritesFindMaki(const uint32* puiFrame, const uint8* puiStage, int* piLeft, int* piRight)
+{
+	int		x;
+
+	*piLeft = -1;
+	*piRight = -1;
+	for (x = 0; x < 640; x++)
+	{
+		if (puiFrame[TEST_SPRITES_MAKI_ROW * 640 + x] != TestSpritesStage(puiStage, (uint32)x, TEST_SPRITES_MAKI_ROW))
+		{
+			if (*piLeft < 0)
+			{
+				*piLeft = x;
+			}
+			*piRight = x;
+		}
+	}
+	return (*piLeft >= 0) && ((*piRight - *piLeft) < TEST_SPRITES_MAKI_WIDTH);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The screen's last frame, and where Maki is in it (TestSpritesFindMaki).
+//
+//////////////////////////////////////////////////////////////////////////
+static bool TestSpritesFrame(STestConsole* psConsole, const uint8* puiStage, int* piLeft, int* piRight)
 {
 	uint32	uiWidth;
 	uint32	uiHeight;
-	uint32	uiWhite;
-	uint32	x;
-	uint32	y;
+
+	if (!psConsole->pcVideo->GetFrame(psConsole->puiFrame, 640, 480, &uiWidth, &uiHeight) || (uiWidth != 640) || (uiHeight != 480))
+	{
+		return false;
+	}
+	return TestSpritesFindMaki(psConsole->puiFrame, puiStage, piLeft, piRight);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// sprites typed at the prompt, and its picture checked: black, with the
+// stage from y 40 (Sprites.cpp) and Maki standing on it in the middle.
+// It is left running, waiting for Escape: a key that isn't doesn't end
+// it.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestConsoleSprites(STestConsole* psConsole, const uint8* puiStage)
+{
+	int		iLeft;
+	int		iRight;
+	bool	bShown;
 	int		i;
 
-	//sprites has the screen for its picture (Sprites.cpp): black, with tiles of colour, letters drawn on the first
-	//of them, and a white tile half off the left.  Then a key ends it and the console's text is back, blank.
 	TestConsoleType(psConsole, "sprites\r");
-	uiWhite = 0;
-	for (i = 0; i < 4000; i++)
+	bShown = false;
+	for (i = 0; (i < 4000) && !bShown; i++)
 	{
 		psConsole->cHCP65.Run(TEST_UART_RUN_CYCLES);
-		if (((i % 10) == 9) && psConsole->pcVideo->GetFrame(psConsole->puiFrame, 640, 480, &uiWidth, &uiHeight) && (psConsole->puiFrame[479 * 640 + 630] == 0xFF242455))
+		if ((i % 10) == 9)
 		{
-			break;
+			bShown = TestSpritesFrame(psConsole, puiStage, &iLeft, &iRight) && (psConsole->puiFrame[50 * 640 + 10] == TestSpritesStage(puiStage, 10, 50));
 		}
 	}
-	AssertInt(640, (int)uiWidth);
-	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[200 * 640 + 10]);
-	AssertInt((int)0xFFFF0000, (int)psConsole->puiFrame[66 * 640 + 70]);
-	AssertInt((int)0xFF00FF00, (int)psConsole->puiFrame[66 * 640 + 118]);
-	AssertInt((int)0xFF0000FF, (int)psConsole->puiFrame[66 * 640 + 166]);
-	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[66 * 640 + 100]);
-	AssertInt((int)0xFFFFFFFF, (int)psConsole->puiFrame[140 * 640 + 10]);
-	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[140 * 640 + 16]);
-	AssertInt((int)0xFF242455, (int)psConsole->puiFrame[479 * 640 + 630]);
-	for (y = 72; y < 88; y++)
+	AssertTrue(bShown);
+	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[20 * 640 + 600]);
+	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[470 * 640 + 630]);
+	AssertInt((int)TestSpritesStage(puiStage, 0, 40), (int)psConsole->puiFrame[40 * 640 + 0]);
+	AssertInt((int)TestSpritesStage(puiStage, 320, 100), (int)psConsole->puiFrame[100 * 640 + 320]);
+	AssertInt((int)TestSpritesStage(puiStage, 639, 439), (int)psConsole->puiFrame[439 * 640 + 639]);
+	AssertTrue(iLeft >= TEST_SPRITES_MAKI_START_X);
+	AssertTrue(iRight < TEST_SPRITES_MAKI_START_X + TEST_SPRITES_MAKI_WIDTH);
+	AssertTrue(iRight - iLeft > 10);
+
+	TestConsoleType(psConsole, " ");
+	for (i = 0; i < 20; i++)
 	{
-		for (x = 72; x < 80; x++)
-		{
-			//The "B" of Blits on the red tile: white where it is, the tile where it isn't.
-			if (psConsole->puiFrame[y * 640 + x] == 0xFFFFFFFF)
-			{
-				uiWhite++;
-			}
-			else
-			{
-				AssertInt((int)0xFFFF0000, (int)psConsole->puiFrame[y * 640 + x]);
-			}
-		}
+		psConsole->cHCP65.Run(TEST_UART_RUN_CYCLES);
 	}
-	AssertTrue((uiWhite > 10) && (uiWhite < 60));
+	AssertTrue(TestSpritesFrame(psConsole, puiStage, &iLeft, &iRight));
 }
 
 
@@ -2461,6 +2705,7 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	STestKernalStatus	sStatus;
 	CHCP65SDCard*		pcSDCard;
 	CChars				szScreen;
+	uint8*				puiStage;
 	uint32				uiWidth;
 	uint32				uiHeight;
 	int					i;
@@ -2527,8 +2772,11 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	AssertFalse(strstr(szScreen.Text(), TEST_HCP65_SHELL_BANNER) != NULL);
 	AssertTrue(szScreen.EndsWith("Anything else is a program to run, with a number for its argument.\n/ $\n"));
 
-	TestConsoleSprites(&sConsole);
-	TestConsoleType(&sConsole, " ");
+	puiStage = TestSpritesReadStage();
+	AssertTrue(puiStage != NULL);
+	TestConsoleSprites(&sConsole, puiStage);
+	free(puiStage);
+	TestConsoleType(&sConsole, "\x1B");
 	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
 	AssertFalse(strstr(szScreen.Text(), "sprites") != NULL);
 	AssertFalse(strstr(szScreen.Text(), "?") != NULL);
@@ -2558,8 +2806,10 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The console's machine with a Blitter Board too (Machines/Blitter.xml):
-// its driver is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
+// The console's machine with a Blitter Board and a Graphics Board too
+// (Machines/Blitter.xml).  The Graphics Board's driver is loaded from
+// \OS\Drivers\GRAPHICS.DRV and enables it; nothing draws with it yet.  The
+// Blitter Board's is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
 // are long enough are the board's, not the processor's: the screen's and
 // a row's clearing, and sprites' tiles.  The text and the picture are the
 // same, and the processor never touches main memory while the board has
@@ -2572,7 +2822,9 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	STestKernalStatus	sStatus;
 	CHCP65SDCard*		pcSDCard;
 	CHCP65BlitterBoard*	pcBlitter;
+	CHCP65GraphicsBoard*	pcGraphics;
 	CChars				szScreen;
+	uint8*				puiStage;
 	uint64				uiText;
 	int					i;
 
@@ -2597,17 +2849,20 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	sConsole.pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
 	sConsole.pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
 	pcBlitter = (CHCP65BlitterBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_BLITTER_SOCKET, HCP65_BLITTER_NAME);
+	pcGraphics = (CHCP65GraphicsBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_GRAPHICS_SOCKET, HCP65_GRAPHICS_NAME);
 	sConsole.cKeyboard.Init();
 	sConsole.cKeyboard.Attach(sConsole.pcPS2->GetPort(0));
 	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
 	TestKernalStart(&sConsole.cHCP65, psKernal);
 
-	//The board's driver is loaded and has enabled it.
+	//The boards' drivers are loaded and have enabled them.
 	szScreen.Init();
 	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
 	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
-	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET), sStatus.uiLoadedDrivers);
+	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET) | (1 << TEST_HCP65_GRAPHICS_SOCKET), sStatus.uiLoadedDrivers);
 	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcGraphics->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
+	AssertFalse(pcGraphics->IsCopying());
 
 	//The screen was cleared by the board, a line at a time (640 by 480 and a row more).  The banner's glyphs' runs are
 	//too short for it: only a run of all eight pixels is the board's.
@@ -2624,12 +2879,219 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 10 * 16 * 640);
 	uiText = pcBlitter->NumBytesCopied();
 
-	//sprites' picture, drawn by the board.
-	TestConsoleSprites(&sConsole);
-	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 5000);
+	//sprites' picture, drawn by the board: the stage is 640 by 400.
+	puiStage = TestSpritesReadStage();
+	AssertTrue(puiStage != NULL);
+	TestConsoleSprites(&sConsole, puiStage);
+	free(puiStage);
+	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 640 * 400);
 	AssertFalse(pcBlitter->IsCopying());
 	AssertFalse(sConsole.cHCP65.IsContention());
+	TestConsoleType(&sConsole, "\x1B");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
+
+	AssertFalse(sConsole.cHCP65.IsStopped());
+	szScreen.Kill();
+	sConsole.cKeyboard.Kill();
+	free(sConsole.puiFrame);
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	sConsole.cHCP65.Kill();
+	sConsole.cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The first line of the LCD, its 16 characters, into szLine; the column
+// its "HCP65" starts at, -1 if it isn't on it once among spaces.
+//
+//////////////////////////////////////////////////////////////////////////
+static int TestLCDLine(CHCP65LCDBoard* pcLCD, char* szLine)
+{
+	int		i;
+	int		iColumn;
+	char*	szFound;
+
+	for (i = 0; i < HCP65_LCD_COLUMNS; i++)
+	{
+		szLine[i] = (char)pcLCD->GetDDRAM((uint8)i);
+	}
+	szLine[HCP65_LCD_COLUMNS] = '\0';
+	szFound = strstr(szLine, "HCP65");
+	if (!szFound)
+	{
+		return -1;
+	}
+	iColumn = (int)(szFound - szLine);
+	for (i = 0; i < HCP65_LCD_COLUMNS; i++)
+	{
+		if (((i < iColumn) || (i >= iColumn + 5)) && (szLine[i] != ' '))
+		{
+			return -1;
+		}
+	}
+	return iColumn;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's machine with an LCD and SNES Board (Machines/LCD.xml).
+// Its driver is loaded from \OS\Drivers\LCD.DRV and sets the display up:
+// on, two lines, blank.  lcdtest (\LCDTEST.EXE, LCDTest.cpp) bounces
+// HCP65 along the first line, a character at a time, from column 0 to 11
+// and back (a line is looked at as it is being written now and then: it is
+// skipped); a key ends it and the display is cleared.  The driver never
+// gives the display anything while it is busy.  sprites' Maki is walked
+// by the first SNES controller.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalLCD(STestKernal* psKernal)
+{
+	STestConsole		sConsole;
+	STestKernalStatus	sStatus;
+	CHCP65SDCard*		pcSDCard;
+	CHCP65LCDBoard*		pcLCD;
+	SHCP65LCDPicture	sPicture;
+	CChars				szScreen;
+	char				szLine[HCP65_LCD_COLUMNS + 1];
+	int					iColumn;
+	int					iLast;
+	int					iMax;
+	int					iTorn;
+	bool				bBack;
+	uint8*				puiStage;
+	int					iStart;
+	int					iMoved;
+	int					iRight;
+	int					i;
+
+	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
+	if (!TestKernalPutSystemFiles())
+	{
+		return;
+	}
+	sConsole.uiStatus = TEST_KERNAL_STATUS_ADDRESS;
+	sConsole.puiFrame = (uint32*)malloc(1024 * 768 * sizeof(uint32));
+
+	sConsole.cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&sConsole.cMainboard, &sConsole.cHCP65, TEST_HCP65_LCD_MACHINE))
+	{
+		free(sConsole.puiFrame);
+		sConsole.cHCP65.Kill();
+		sConsole.cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	sConsole.pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
+	sConsole.pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
+	pcLCD = (CHCP65LCDBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_LCD_SOCKET, HCP65_LCD_BOARD_NAME);
+	sConsole.cKeyboard.Init();
+	sConsole.cKeyboard.Attach(sConsole.pcPS2->GetPort(0));
+	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
+	TestKernalStart(&sConsole.cHCP65, psKernal);
+
+	//The driver is loaded and has set the display up: on and blank.
+	szScreen.Init();
+	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
+	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
+	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_LCD_SOCKET), sStatus.uiLoadedDrivers);
+	pcLCD->GetPicture(&sPicture, sConsole.cHCP65.NumCycles());
+	AssertTrue(sPicture.bOn);
+	AssertInt(-1, TestLCDLine(pcLCD, szLine));
+	AssertString("                ", szLine);
+
+	//lcdtest: HCP65 goes right a column at a time to 11, then back.
+	TestConsoleType(&sConsole, "lcdtest\r");
+	iLast = -1;
+	iMax = -1;
+	iTorn = 0;
+	bBack = false;
+	for (i = 0; (i < 4000) && !bBack; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+		iColumn = TestLCDLine(pcLCD, szLine);
+		if (iLast == -1)
+		{
+			if (iColumn != -1)
+			{
+				AssertInt(0, iColumn);
+				iLast = iColumn;
+			}
+			continue;
+		}
+		if (iColumn == -1)
+		{
+			//The line is being written, a character at a time.
+			iTorn++;
+			continue;
+		}
+		AssertTrue(iColumn <= HCP65_LCD_COLUMNS - 5);
+		AssertTrue((iColumn == iLast) || (iColumn == iLast + 1) || (iColumn == iLast - 1));
+		if (iColumn > iMax)
+		{
+			iMax = iColumn;
+		}
+		if (iColumn < iLast)
+		{
+			AssertInt(HCP65_LCD_COLUMNS - 5, iMax);
+			bBack = true;
+		}
+		iLast = iColumn;
+	}
+	AssertTrue(bBack);
+	AssertInt(10, iLast);
+	AssertTrue(iTorn < 10);
+
+	//A key ends it, and the display is blank again.
 	TestConsoleType(&sConsole, " ");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
+	AssertInt(-1, TestLCDLine(pcLCD, szLine));
+	AssertString("                ", szLine);
+	AssertLong(0, (int64)pcLCD->NumIgnored());
+
+	//sprites: the first controller walks Maki right while Right is held, then left while Left is, and she stands
+	//still when nothing is.  Without a Blitter Board a frame takes the processor longer than one of the screen's, so
+	//she steps about every third: 0.6s of a direction is about 25 pixels.
+	puiStage = TestSpritesReadStage();
+	AssertTrue(puiStage != NULL);
+	TestConsoleSprites(&sConsole, puiStage);
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iStart, &iRight));
+	pcLCD->SetButtons(0, HCP65_SNES_RIGHT);
+	for (i = 0; i < 60; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iMoved, &iRight));
+	AssertTrue(iMoved > iStart + 20);
+	pcLCD->SetButtons(0, 0);
+	for (i = 0; i < 30; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iStart, &iRight));
+	for (i = 0; i < 20; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iMoved, &iRight));
+	AssertInt(iStart, iMoved);
+	pcLCD->SetButtons(0, HCP65_SNES_LEFT);
+	for (i = 0; i < 20; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iStart, &iRight));	//Facing left now: her frames are the other way round.
+	for (i = 0; i < 60; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iMoved, &iRight));
+	AssertTrue(iMoved < iStart - 20);
+	pcLCD->SetButtons(0, 0);
+	free(puiStage);
+	TestConsoleType(&sConsole, "\x1B");
 	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
 
 	AssertFalse(sConsole.cHCP65.IsStopped());
@@ -2699,6 +3161,10 @@ void TestHCP65Kernal(void)
 		if (TestKernalRuns("Blitter"))
 		{
 			TestHCP65KernalBlitter(&sKernal);
+		}
+		if (TestKernalRuns("LCD"))
+		{
+			TestHCP65KernalLCD(&sKernal);
 		}
 		if (TestKernalRuns("Video"))
 		{

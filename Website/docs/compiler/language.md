@@ -26,6 +26,7 @@ The preprocessor defines `__cplusplus` as `201402L`.
 | `size_t` | **2 bytes** | 4 bytes | `unsigned int` on both, so `sizeof`'s type, `size_t` and BaseLib's `size` are one type.  On the W65C816 `memcpy`, `malloc` and the others take 16 bit counts; `memcpy32`, `malloc32` and the other 32 suffixed functions take longer ones (see [Libc65](libc65.md)). |
 | `ptrdiff_t` | 4 bytes | 4 bytes | A pointer wide: `int` on the 65C64, `long` on the W65C816, so a difference of pointers into a block of more than 32KB isn't cut. |
 | Pointers to members | 4 bytes | 4 bytes | A field's offset, or a member function's address. |
+| `std::nullptr_t` | 4 bytes | 4 bytes | `nullptr`'s type, a type of its own: it becomes any pointer or pointer to a member, a `bool` only where it is tested or directly initialises one, and nothing else. |
 
 Each fundamental type is a type of its own, however wide: `int` and `long` are different types
 on the 65C64 though both are 32 bits, as are `short` and `int` on the W65C816, and `char`,
@@ -78,9 +79,13 @@ checked.
 ### BaseLib's `size` and `lsize`
 
 BaseLib counts and measures with its own `size` and `lsize` types (`BaseLib/PrimitiveTypes.h`).
-`size` is `size_t`; `lsize` is for what can pass 64KB, and BaseLib's `Memory32.h` gives `memcpy32`,
-`malloc32` and the others on every target for its counts (Libc65's on the W65C816, the plain
-functions elsewhere):
+`size` is `size_t`; `lsize` is for what can pass 64KB.  A call doesn't say which function it wants:
+on the W65C816 `memcpy`, `memmove`, `memset`, `memcmp`, `memchr`, `malloc`, `calloc` and `realloc`
+called with an `lsize` count (or a `long`, or a constant made with `KB` or `MB`) are Libc65's
+`memcpy32`, `malloc32` and the others, chosen by the count's type by overloads in
+`PrimitiveTypes.h`; with a `size`, a `size_t` or a `sizeof` they are the C library's own.
+`Memory32.h` has the 32 suffixed names on every target for the few places that name them, and
+`strlen32`, a string's whole length:
 
 | Type | W65C816 | 65C64 | Notes |
 |---|---|---|---|

@@ -38,5 +38,8 @@
     <ClInclude Include="..\Libraries\UserLib\HCP65SFT.h">
       <Filter>Header</Filter>
     </ClInclude>
+    <ClInclude Include="..\Libraries\UserLib\HCP65LCDBoard.h">
+      <Filter>Header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

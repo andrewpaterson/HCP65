@@ -7,6 +7,7 @@
 static CKernalDriver*	gapcKernalDrivers[KERNAL_NUM_DEVICE_SLOTS];
 
 volatile uint8*			gpuiKernalBlitter;
+volatile uint8*			gpuiKernalGraphics;
 
 
 //////////////////////////////////////////////////////////////////////////

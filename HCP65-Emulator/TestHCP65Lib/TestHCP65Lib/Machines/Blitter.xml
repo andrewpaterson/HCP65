@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- TestHCP65KernalBlitter's Small Mainboard: the console's (Console.xml) with a Blitter Board, -->
+<!-- TestHCP65KernalBlitter's Small Mainboard: the console's (Console.xml) with a Blitter Board and a Graphics Board, -->
 <!-- with the test's keyboard in port 1.  Files are relative to this one; the test writes the card into Output. -->
 <Mainboard Type="Small">
 	<Processor Index="0">
@@ -10,5 +10,6 @@
 		<Board Socket="16" Type="Video Board"/>
 		<Board Socket="17" Type="Blitter Board"/>
 		<Board Socket="18" Type="Memory Board"/>
+		<Board Socket="19" Type="Graphics Board"/>
 	</Processor>
 </Mainboard>

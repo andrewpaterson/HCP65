@@ -8,7 +8,7 @@
 //////////////////////////////////////////////////////////////////////////
 void CHCP65BlitterBoard::Init(void)
 {
-	CHCP65Device::Init(HCP65_SMALL_SLOT_SIZE);
+	InitBlitter(HCP65_SMALL_SLOT_SIZE, 0xFFFF);
 	mcROM.Init(HCP65_BLITTER_NAME, HCP65_DEVICE_MANUFACTURER, 0, DEVICE_BUS_32KB, DEVICE_MAIN_BUS_MASTER, HCP65_BLITTER_DRIVER);
 	mcROM.AddRegister(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, DEVICE_REGISTER_READ);
 	mcROM.AddRegister(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, DEVICE_REGISTER_WRITE);
@@ -19,13 +19,25 @@ void CHCP65BlitterBoard::Init(void)
 	mcROM.AddRegisters(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_SOURCE_LOW, 3, DEVICE_REGISTER_WRITE);
 	mcROM.AddRegisters(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_START_LOW, 2, DEVICE_REGISTER_READ);
 	mcROM.AddRegisters(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_START_LOW, 4, DEVICE_REGISTER_WRITE);
+}
 
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The board without its ROM, which a board that is a Blitter Board and
+// more (the Graphics Board) makes its own.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65BlitterBoard::InitBlitter(uint32 uiSlotSize, uint16 uiCountMask)
+{
+	CHCP65Device::Init(uiSlotSize);
+	muiCountMask = uiCountMask;
 	muiTransparentColour = 0;
 	muiCountStart = 0;
 	muiCountStop = 0;
 	muiCountHighRead = 0;
 	muiTotalCopied = 0;
-	Reset();
+	CHCP65BlitterBoard::Reset();
 }
 
 
@@ -167,13 +179,13 @@ void CHCP65BlitterBoard::WriteRegister(uint32 uiRegister, uint8 uiValue)
 		muiCountStart = (uint16)((muiCountStart & 0xFF00) | uiValue);
 		break;
 	case HCP65_BLITTER_COUNT_START_HIGH:
-		muiCountStart = (uint16)((muiCountStart & 0x00FF) | ((uint16)uiValue << 8));
+		muiCountStart = (uint16)(((muiCountStart & 0x00FF) | ((uint16)uiValue << 8)) & muiCountMask);
 		break;
 	case HCP65_BLITTER_COUNT_STOP_LOW:
 		muiCountStop = (uint16)((muiCountStop & 0xFF00) | uiValue);
 		break;
 	case HCP65_BLITTER_COUNT_STOP_HIGH:
-		muiCountStop = (uint16)((muiCountStop & 0x00FF) | ((uint16)uiValue << 8));
+		muiCountStop = (uint16)(((muiCountStop & 0x00FF) | ((uint16)uiValue << 8)) & muiCountMask);
 		break;
 	}
 }
@@ -233,7 +245,7 @@ void CHCP65BlitterBoard::Start(void)
 //////////////////////////////////////////////////////////////////////////
 uint64 CHCP65BlitterBoard::CopyEnd(void) const
 {
-	return muiCopyStart + (uint64)(uint16)(muiCountStop - muiCountStart) * HCP65_BLITTER_CYCLES_PER_BYTE;
+	return muiCopyStart + (uint64)(uint16)((muiCountStop - muiCountStart) & muiCountMask) * HCP65_BLITTER_CYCLES_PER_BYTE;
 }
 
 
@@ -269,14 +281,13 @@ void CHCP65BlitterBoard::CatchUp(uint64 uiCycle)
 	uiBytes = (uiCycle > muiCopyStart) ? (uiCycle - muiCopyStart) / HCP65_BLITTER_CYCLES_PER_BYTE : 0;
 	while ((uiBytes > 0) && (muiCount != muiCountStop))
 	{
-		uiByte = mpcHCP65->ReadMainAsMaster(muiSource);
+		uiByte = ReadSource();
 		if (!(muiFlags & HCP65_BLITTER_FLAG_TRANSPARENCY) || (uiByte != muiTransparentColour))
 		{
 			mpcHCP65->WriteMainAsMaster(muiDest, uiByte);
 		}
-		muiSource = (muiSource + 1) & 0xFFFFFF;
 		muiDest = (muiDest + 1) & 0xFFFFFF;
-		muiCount++;
+		muiCount = (uint16)((muiCount + 1) & muiCountMask);
 		muiCopyStart += HCP65_BLITTER_CYCLES_PER_BYTE;
 		muiTotalCopied++;
 		uiBytes--;
@@ -290,13 +301,28 @@ void CHCP65BlitterBoard::CatchUp(uint64 uiCycle)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The copy's next byte, from the source address, which steps past it.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8 CHCP65BlitterBoard::ReadSource(void)
+{
+	uint8	uiByte;
+
+	uiByte = mpcHCP65->ReadMainAsMaster(muiSource);
+	muiSource = (muiSource + 1) & 0xFFFFFF;
+	return uiByte;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 uint64 CHCP65BlitterBoard::NextEvent(void)
 {
 	if (mbCopying)
 	{
-		return muiCopyStart + (uint64)(uint16)(muiCountStop - muiCount) * HCP65_BLITTER_CYCLES_PER_BYTE;
+		return muiCopyStart + (uint64)(uint16)((muiCountStop - muiCount) & muiCountMask) * HCP65_BLITTER_CYCLES_PER_BYTE;
 	}
 	return HCP65_NEVER;
 }

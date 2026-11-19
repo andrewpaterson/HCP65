@@ -31,6 +31,12 @@
     <ClCompile Include="HCP65Blitter.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="HCP65Graphics.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="HCP65LCD.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="HCP65VIA.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -82,6 +88,12 @@
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65Blitter.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="HCP65Graphics.h">
+      <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="HCP65LCD.h">
       <Filter>Source</Filter>
     </ClInclude>
     <ClInclude Include="HCP65VIA.h">

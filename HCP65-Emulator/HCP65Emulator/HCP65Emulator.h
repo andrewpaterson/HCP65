@@ -24,10 +24,13 @@
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65ScreenDraw.h"
+#include "HCP65LCDDraw.h"
 #include "HCP65Lib/HCP65Mainboard.h"
 #include "FileMenuListener.h"
 #include "HCP65MenuListener.h"
 #include "BoardConfigurationDialog.h"
+#include "SNESControllersDialog.h"
+#include "HCP65SNESKeys.h"
 #include "HCP65SoundVoice.h"
 #include "HCP65EmulatorTick.h"
 #include "HCP65EmulatorDebugger.h"
@@ -42,7 +45,12 @@
 //
 //A keyboard (CHCP65PS2Keyboard) is plugged into port 1 of the first PS2 Board, if there is one; port 2 has nothing in
 //it.  The HCP65's screen shows the first Video Board's picture (CHCP65ScreenDraw); it takes the host's keys while it has
-//the focus, which it has from the start, and gives each going down and up to the keyboard.
+//the focus, which it has from the start, and gives each going down and up to the keyboard, and to a SNES controller
+//whose keys have it (CHCP65SNESKeys) as well: a program reading a controller sees its keys typed too.  Under it is the first LCD and SNES Board's display
+//(CHCP65LCDDraw), while there is one.
+//
+//The HCP65 menu's SNES Controllers chooses the keys of each of that board's controllers (or that it isn't plugged
+//in): on OK the description is written, with the board.  The HCP65 isn't reset.
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
@@ -70,7 +78,10 @@ protected:
 	Ptr<CWindowInputSource>	mpInputSource;
 	CComponentInput			mcComponentInput;
 	CHCP65PS2Keyboard		mcKeyboard;
+	CHCP65SNESKeys			mcSNESKeys;		//The host's keys on the first LCD and SNES Board's controllers.
+	Ptr<CSNESControllersDialog>	mpSNESDialog;	//While it's shown.
 	Ptr<CHCP65ScreenDraw>	mpScreenDraw;
+	Ptr<CHCP65LCDDraw>		mpLCDDraw;		//The first LCD and SNES Board's display, under the screen.
 	bool					mbValid;
 	bool					mbInputs;  //The menu listener and the component input are initialised.
 
@@ -85,6 +96,7 @@ public:
 
 	bool	Run(void);
 	void	ShowBoardConfiguration(void);
+	void	ShowSNESControllers(void);
 
 protected:
 	void	ChangeBoards(const char** aszTypes, const uint8* auiBreakouts);
