@@ -2,7 +2,8 @@
 ;
 ; The kernal maps the process's banks, puts the program's sections in them and RTIs to UserStart in user mode, with
 ; S at the top of the process's bank 0, 8 bit registers and interrupts off.  UserStart goes 16 bit, sets the stack and
-; the direct page, clears bss, calls the init table's routines (each global's R_Initialise, in link order) and main, then
+; the direct page, clears bss, calls the init table's routines (each global's R_Initialise, in link order) and main
+; (std::terminate if an exception leaves it, in a program built with exceptions), then
 ; runs the exit lists (Libc65's __RunAtExit when stdlib.cpp is linked, else the compiler's R_RunExitLists: the atexit
 ; functions and the destructors of what was made at start up and of static locals, last first) and the fini table's
 ; routines last first, and exits with main's result (COP 0).  Code and data are linked from bank 1; bank 0 is the stack
@@ -91,6 +92,23 @@ UserInitialiseCall:
 UserMain:
 		jsl _main
 		.width (A, X), 16
+		; In a program built with exceptions (R_Exceptions: its units define it) main returns with the carry set when an
+		; exception nobody caught left it: std::terminate, Libc65's __Terminate, linked when anything throws.  Without
+		; exceptions the carry is as it fell.  A is main's result, kept in Y meanwhile.
+		bcc UserReturned
+		.weak R_Exceptions
+		.weak ___Terminate
+		tay
+		lda R_Exceptions & 0xFFFF
+		ora R_Exceptions >> 16
+		beq UserNotThrown
+		lda ___Terminate & 0xFFFF
+		ora ___Terminate >> 16
+		beq UserNotThrown
+		jsl ___Terminate
+UserNotThrown:
+		tya
+UserReturned:
 		pha
 		.weak ___RunAtExit
 		.weak R_RunExitLists
@@ -154,7 +172,12 @@ UserCallEntry:
 UserCallReturn:
 		rts
 
-		; C's _Exit(int): exits the process with its argument.
+		; C's _Exit(int): exits the process with its argument, in A as C++ passes it (a function with C linkage takes its
+		; first arguments in registers: CCPPTarget's start up has the same two labels), or on the stack.
+		.global __Exit.a
+__Exit.a:
+		.width (A, X), 16
+		bra UserExit
 		.global __Exit
 __Exit:
 		.width (A, X), 16

@@ -32,6 +32,7 @@ public:
 
 	void			SetHeapSize(uint32 uiHeapSize);
 	void			SetMathTables(bool bMathTables);
+	void			SetExceptions(bool bExceptions);
 	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szUser, const char* szProjectFile, const char** aszLibraries = NULL);
 
 	uint8*			GetExecutable(void) const;

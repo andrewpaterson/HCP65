@@ -94,6 +94,10 @@
 #define TEST_HCP65_STAGE_PATH		"\\SPRITES\\STAGE.SFT"
 #define TEST_HCP65_MAKI_PATH		"\\SPRITES\\MAKI.SFT"
 #define TEST_HCP65_SPRITES_SCALE	2			//The images are drawn twice as big as they are.
+#define TEST_HCP65_EXCEPTIONS_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "ExceptionsCard.img"
+#define TEST_HCP65_EXCEPTIONS_PROGRAM	"Programs" _FS_ "ExceptionsTest" _FS_ "ExceptionsTest.vcxproj"
+#define TEST_HCP65_EXCEPTIONS_PATH	"\\excepts.exe"
+#define TEST_HCP65_EXCEPTIONS_EXIT	77		//ExceptionsTest.cpp's terminate handler's.
 #define TEST_HCP65_LCD_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "LCDTest" _FS_ "HCP65LCDTest.vcxproj"
 #define TEST_HCP65_LCD_PROGRAM_PATH	"\\LCDTEST.EXE"
 #define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
@@ -138,6 +142,7 @@
 #define TEST_HCP65_BLITTER_MACHINE	TEST_HCP65_MACHINES _FS_ "Blitter.xml"
 #define TEST_HCP65_LCD_MACHINE		TEST_HCP65_MACHINES _FS_ "LCD.xml"
 #define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
+#define TEST_HCP65_EXCEPTIONS_MACHINE	TEST_HCP65_MACHINES _FS_ "Exceptions.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
 #define TEST_HCP65_PRIVATE_TYPE		"Test Private Board"
@@ -399,7 +404,7 @@ static bool TestKernalIsDone(STestKernalStatus* psStatus)
 // image szImage as szName.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool TestKernalPutExe(const char* szImage, const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize, bool bMathTables)
+static bool TestKernalPutExe(const char* szImage, const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize, bool bMathTables, bool bExceptions = false)
 {
 	CHCP65ExeBuilder	cExe;
 	bool				bBuilt;
@@ -407,6 +412,7 @@ static bool TestKernalPutExe(const char* szImage, const char* szName, const char
 	cExe.Init();
 	cExe.SetHeapSize(uiHeapSize);
 	cExe.SetMathTables(bMathTables);
+	cExe.SetExceptions(bExceptions);
 	bBuilt = cExe.Build(TEST_HCP65_COMMON, TEST_HCP65_LIBRARIES, TEST_HCP65_USER, szProjectFile, aszLibraries);
 	AssertString("", cExe.GetErrors());
 	AssertTrue(bBuilt);
@@ -2223,6 +2229,62 @@ void TestHCP65KernalVideo(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A program built with exceptions (Programs/ExceptionsTest), run by the
+// kernal from Output/ExceptionsCard.img as \excepts.exe: it catches an
+// exception thrown two calls down, then lets one leave main, which the
+// start up (UserStart.asm) sends to std::terminate; the handler the program
+// set exits with 77.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalExceptions(STestKernal* psKernal)
+{
+	CHCP65				cHCP65;
+	CTestMainboard		cMainboard;
+	CHCP65SDCard*		pcSDCard;
+	STestKernalStatus	sStatus;
+	uint8*				puiRAM;
+	uint32				uiStatus;
+	int					i;
+
+	if (!TestKernalCopyBlankCard(TEST_HCP65_EXCEPTIONS_CARD_IMAGE) ||
+		!TestKernalPutExe(TEST_HCP65_EXCEPTIONS_CARD_IMAGE, TEST_HCP65_EXCEPTIONS_PATH, TEST_HCP65_EXCEPTIONS_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false, true))
+	{
+		return;
+	}
+	TestKernalSetStartUp(TEST_HCP65_EXCEPTIONS_CARD_IMAGE, TEST_HCP65_EXCEPTIONS_PATH, 0, &uiStatus);
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_EXCEPTIONS_MACHINE))
+	{
+		cHCP65.Kill();
+		cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	TestKernalStart(&cHCP65, psKernal);
+	puiRAM = cHCP65.GetMPURAM();
+	for (i = 0; i < TEST_HCP65_MAX_RUNS; i++)
+	{
+		cHCP65.Run(TEST_HCP65_RUN_CYCLES);
+		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+	//(The kernal stops once its boot program has exited with anything but 0.)
+	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
+	AssertInt(TEST_KERNAL_PROCESS_EXITED, sStatus.uiBootResult);
+	AssertInt(TEST_HCP65_EXCEPTIONS_EXIT, sStatus.uiExitCode);
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cHCP65.Kill();
+	cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Without a memory board the kernal scans the devices and stops: the SD
 // Card Board has nothing to read into.  Its heap is MPU RAM's, so it gets
 // that far.  A private board's memory isn't main memory, though it is
@@ -3277,6 +3339,10 @@ void TestHCP65Kernal(void)
 		if (TestKernalRuns("NoMainMemory"))
 		{
 			TestHCP65KernalNoMainMemory(&sKernal);
+		}
+		if (TestKernalRuns("Exceptions"))
+		{
+			TestHCP65KernalExceptions(&sKernal);
 		}
 	}
 	sKernal.cOS.Kill();

@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- excepts.exe, TestHCP65KernalExceptions' program (TestHCP65Kernal.cpp), built with exceptions on by the test: it
+       is never built by Visual Studio, and only its units are listed, in link order. -->
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Libraries\UserLib\UserStart.asm" />
+    <ClCompile Include="..\..\..\..\..\Libraries\UserLib\UserCalls.asm" />
+    <ClCompile Include="ExceptionsTest.cpp" />
+  </ItemGroup>
+</Project>

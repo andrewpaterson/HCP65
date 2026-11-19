@@ -60,6 +60,17 @@ void CHCP65ExeBuilder::Kill(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The program is built with exceptions (CCPPCompileOptions::mbExceptions).
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65ExeBuilder::SetExceptions(bool bExceptions)
+{
+	mcBuilder.GetOptions()->mbExceptions = bExceptions;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // szProjectFile is the program's Visual Studio project (its units, the
 // user start up first, one of them with main), as HCP65-IDE builds it;
 // szUser holds HCP65User.h.  aszLibraries (NULL terminated, or NULL) are
