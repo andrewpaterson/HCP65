@@ -52,10 +52,12 @@
 #define HCP65_LCD_DDRAM_SIZE			80
 #define HCP65_LCD_CGRAM_SIZE			64
 
-//The controller's times, in microseconds (an HD44780U's at 270kHz).
+//The controller's times, in microseconds, at 270kHz (the datasheet's execution times; its power on reset and blink
+//aren't given, so they are an HD44780U's).
 #define HCP65_LCD_POWER_ON_US			10000	//Busy with its own reset after power on.
-#define HCP65_LCD_CLEAR_US				1520	//Clear display and return home.
-#define HCP65_LCD_INSTRUCTION_US		37		//Everything else, data reads and writes too.
+#define HCP65_LCD_CLEAR_US				1530	//Clear display and return home.
+#define HCP65_LCD_INSTRUCTION_US		39		//The other instructions.
+#define HCP65_LCD_DATA_US				43		//Writing or reading data.
 #define HCP65_LCD_BLINK_US				409600	//The blinking cursor's time on, and off.
 
 
@@ -67,9 +69,9 @@ struct SHCP65LCDPicture
 };
 
 
-//The display's controller, an HD44780U (or one that works like it) with the A00 (Japanese) character ROM, as a 16 by 2
-//display of 5 by 8 dot characters.  Its time is in the HCP65's cycles.  Only $20-$7F of the ROM are drawn; the ROM's
-//other characters are blank.
+//The display's controller, a KS0066 (or compatible: it works like an HD44780U) with the character ROM in the display's
+//datasheet (HCP65/Datasheets/NMTC-S16205DRGHS.pdf), as a 16 by 2 display of 5 by 8 dot characters.  Its time is in the
+//HCP65's cycles.
 class CHCP65LCDController
 {
 protected:
@@ -92,6 +94,7 @@ protected:
 	bool	mbRS;
 	bool	mbRead;
 	bool	mbDataRead;				//Data was read while E was high: the address counter moves when E goes low.
+	uint8	muiDataRegister;		//What a data read gives.
 	uint64	muiBusyUntil;
 	uint64	muiCyclesPerSecond;
 	uint64	muiIgnored;				//Instructions and data written while busy, and dropped.
@@ -132,7 +135,7 @@ protected:
 //    same moment, so drop it with a read (or write the same byte again): here the display takes the byte from before.
 //    To read, set R/~W with E low, then read with E high.
 //  - The controller is busy after each instruction (HCP65_LCD_*_US) and ignores what it is given meanwhile.  It isn't
-//    reset by the HCP65: only by power.
+//    reset by the HCP65: only by power.  A data read gives its data register (CHCP65LCDController::GetOutput).
 //  - The SNES clock reads both controllers all the time (every 256 device clocks) into latches the registers read.
 //    A reset holds the clock and the latches keep what they had.  An unplugged controller reads as nothing pressed.
 class CHCP65LCDBoard : public CHCP65Device

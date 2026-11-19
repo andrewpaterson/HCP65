@@ -2904,7 +2904,8 @@ static void TestHCP65LCDSendText(CHCP65* pcHCP65, CHCP65LCDBoard* pcLCD, const c
 // The LCD and SNES Board as a driver would use it: the display's pins
 // set by the registers' addresses, its busy flag polled, its
 // instructions, text on both lines, a character of its own, the cursor,
-// a shift, reading back and four bit mode; the SNES controllers' latches.
+// a shift, reading back (through the data register) and four bit mode; the
+// SNES controllers' latches.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65LCDBoard(void)
@@ -2952,7 +2953,7 @@ void TestHCP65LCDBoard(void)
 	cLCD.Write(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND_E, 0x01);
 	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_COMMAND);
 	TestHCP65LCDWait(&cHCP65, &cLCD);
-	AssertTrue(cHCP65.NumCycles() - uiCycle >= (uint64)TEST_HCP65_CLOCK_RATE * 152 / 100000);
+	AssertTrue(cHCP65.NumCycles() - uiCycle >= (uint64)TEST_HCP65_CLOCK_RATE * 153 / 100000);
 	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x06);
 
 	//Text on both lines.
@@ -3007,6 +3008,23 @@ void TestHCP65LCDBoard(void)
 	//The registers repeat every 16 bytes.
 	AssertInt(0x02, cLCD.Read(HCP65_LCD_REGISTERS + 0x10 + HCP65_LCD_STATUS_E));
 	cLCD.Read(HCP65_LCD_REGISTERS + 0x3F0 + HCP65_LCD_STATUS);
+
+	//A read gives the data register, which setting the address and each read load but a write doesn't: straight after
+	//a write it gives what was there before.
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x80);
+	TestHCP65LCDSend(&cHCP65, &cLCD, true, 'Q');
+	AssertInt('Q', cLCD.GetDDRAM(0x00));
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA);
+	AssertInt('H', cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA_E));
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA);
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA);
+	AssertInt('L', cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA_E));
+	cLCD.Read(HCP65_LCD_REGISTERS + HCP65_LCD_READ_DATA);
+	TestHCP65LCDWait(&cHCP65, &cLCD);
+	AssertInt(0x03, TestHCP65LCDStatus(&cLCD));
+	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x80);
+	TestHCP65LCDSend(&cHCP65, &cLCD, true, 'H');
 
 	//A character of its own: CGRAM character 0, shown by codes $00 and $08.
 	TestHCP65LCDSend(&cHCP65, &cLCD, false, 0x40);
