@@ -510,6 +510,25 @@ extern "C" void __Rethrow(void) noexcept
 
 namespace std
 {
+	exception::exception(void) noexcept {}
+	exception::exception(const exception& cOther) noexcept {}
+	exception& exception::operator=(const exception& cOther) noexcept { return *this; }
+	exception::~exception(void) {}
+	const char* exception::what(void) const noexcept { return "std::exception"; }
+
+	bad_exception::bad_exception(void) noexcept {}
+	bad_exception::~bad_exception(void) {}
+	const char* bad_exception::what(void) const noexcept { return "std::bad_exception"; }
+
+	bad_cast::bad_cast(void) noexcept {}
+	bad_cast::~bad_cast(void) {}
+	const char* bad_cast::what(void) const noexcept { return "std::bad_cast"; }
+
+	bad_typeid::bad_typeid(void) noexcept {}
+	bad_typeid::~bad_typeid(void) {}
+	const char* bad_typeid::what(void) const noexcept { return "std::bad_typeid"; }
+
+
 	terminate_handler set_terminate(terminate_handler pfHandler) noexcept
 	{
 		terminate_handler	pfOld;

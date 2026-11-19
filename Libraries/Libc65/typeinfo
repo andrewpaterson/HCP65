@@ -25,18 +25,18 @@ namespace std
 	class bad_cast : public exception
 	{
 	public:
-		bad_cast(void) noexcept {}
-		virtual ~bad_cast(void) {}
-		virtual const char*	what(void) const noexcept { return "std::bad_cast"; }
+		bad_cast(void) noexcept;
+		virtual ~bad_cast(void);
+		virtual const char*	what(void) const noexcept;
 	};
 
 
 	class bad_typeid : public exception
 	{
 	public:
-		bad_typeid(void) noexcept {}
-		virtual ~bad_typeid(void) {}
-		virtual const char*	what(void) const noexcept { return "std::bad_typeid"; }
+		bad_typeid(void) noexcept;
+		virtual ~bad_typeid(void);
+		virtual const char*	what(void) const noexcept;
 	};
 }
 

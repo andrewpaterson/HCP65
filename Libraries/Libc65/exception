@@ -11,23 +11,24 @@
 
 namespace std
 {
+	//(The members are exception.cpp's, not inline: a program that derives from one needs them written somewhere.)
 	class exception
 	{
 	public:
-		exception(void) noexcept {}
-		exception(const exception& cOther) noexcept {}
-		exception&	operator=(const exception& cOther) noexcept { return *this; }
-		virtual ~exception(void) {}
-		virtual const char*	what(void) const noexcept { return "std::exception"; }
+		exception(void) noexcept;
+		exception(const exception& cOther) noexcept;
+		exception&	operator=(const exception& cOther) noexcept;
+		virtual ~exception(void);
+		virtual const char*	what(void) const noexcept;
 	};
 
 
 	class bad_exception : public exception
 	{
 	public:
-		bad_exception(void) noexcept {}
-		virtual ~bad_exception(void) {}
-		virtual const char*	what(void) const noexcept { return "std::bad_exception"; }
+		bad_exception(void) noexcept;
+		virtual ~bad_exception(void);
+		virtual const char*	what(void) const noexcept;
 	};
 
 
