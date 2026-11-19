@@ -16,6 +16,7 @@
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Video.h"
+#include "HCP65Lib/HCP65Blitter.h"
 #include "TestLib/Assert.h"
 
 
@@ -758,6 +759,7 @@ void TestHCP65DeviceROMFromSchematic(void)
 	CHCP65SDCard		cSDCard;
 	CHCP65PS2Board		cPS2;
 	CHCP65VideoBoard	cVideo;
+	CHCP65BlitterBoard	cBlitter;
 	CChars				szError;
 
 	DataMemoryInit();
@@ -807,6 +809,18 @@ void TestHCP65DeviceROMFromSchematic(void)
 	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "PS2" _FS_ "PS2 Board" _FS_ "PS2 Board.kicad_sch", &cPS2, &cSchematic);
 	cSchematic.Kill();
 	cPS2.Kill();
+
+	//The Blitter Board's emulated ROM is the schematic's.
+	cBlitter.Init();
+	cSchematic.Init();
+	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "Blitter" _FS_ "Blitter Board" _FS_ "Blitter Board.kicad_sch", &cBlitter, &cSchematic);
+	AssertString("Blitter Board", cSchematic.GetName());
+	AssertString("BLITTER.DRV", cSchematic.GetDriver());
+	AssertInt(DEVICE_BUS_32KB, cSchematic.GetDeviceBus());
+	AssertInt(DEVICE_MAIN_BUS_MASTER, cSchematic.GetMainBus());
+	AssertSize(18, cSchematic.NumRegisters());
+	cSchematic.Kill();
+	cBlitter.Kill();
 
 	//The PS2 Board: its name from its device ROM chip's ROM_Name (the title block's is "PS2 Board PS2"), and its
 	//registers' names without KiCad's markup (the nets are "PS2 FIFO_{ 1}" and "Clear Interrupt _{1}").
@@ -1167,7 +1181,7 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
 
 	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
-	AssertSize(7, CHCP65Mainboard::NumBoardTypes());
+	AssertSize(8, CHCP65Mainboard::NumBoardTypes());
 	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
 	AssertFalse(cMainboard.CanHold(3, HCP65_AUDIO_NAME));
@@ -2365,6 +2379,258 @@ void TestHCP65VideoBoard(void)
 	cVideo.Kill();
 }
 
+//////////////////////////////////////////////////////////////////////////
+//
+// uiValue written to the Blitter Board's 24 bit address whose low byte's
+// register is uiRegister, or its 16 bit count's.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65BlitterAddress(CHCP65BlitterBoard* pcBlitter, uint32 uiRegister, uint32 uiValue)
+{
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + uiRegister, (uint8)uiValue);
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + uiRegister + 1, (uint8)(uiValue >> 8));
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + uiRegister + 2, (uint8)(uiValue >> 16));
+}
+
+
+static void TestHCP65BlitterCount(CHCP65BlitterBoard* pcBlitter, uint16 uiStart, uint16 uiStop)
+{
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_START_LOW, (uint8)uiStart);
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_START_HIGH, (uint8)(uiStart >> 8));
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_STOP_LOW, (uint8)uiStop);
+	pcBlitter->Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_STOP_HIGH, (uint8)(uiStop >> 8));
+}
+
+
+static uint16 TestHCP65BlitterReadCount(CHCP65BlitterBoard* pcBlitter)
+{
+	uint16	uiCount;
+
+	uiCount = pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_START_LOW);
+	return (uint16)(uiCount | (pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_COUNT_START_HIGH) << 8));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The Blitter Board on its own: a copy of stop - start bytes from the
+// source address to the destination, two cycles a byte, which leaves the
+// addresses past the last byte; the transparent colour; the interrupt when
+// a copy is done; the board having main memory while it copies; and what a
+// reset clears.  The processor sits in a loop in MPU RAM throughout.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65BlitterBoard(void)
+{
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	CHCP65BlitterBoard	cBlitter;
+	uint8*				puiSource;
+	uint8*				puiDest;
+	uint16				uiCount;
+	int					i;
+	bool				bSame;
+
+	static const uint8 auiKernal[] = {
+		0x18, 0xFB,					//8000 clc  xce
+		0x80, 0xFE };				//8002 bra $8002
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	cBlitter.Init();
+	AssertTrue(cHCP65.SetDevice(3, &cBlitter));
+	TestHCP65Program(&cHCP65, auiKernal, sizeof(auiKernal));
+	cHCP65.Reset();
+	cHCP65.Run(100);
+
+	AssertInt(0x1A, cBlitter.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cBlitter.Read(0x800));
+	AssertInt(0xFF, cBlitter.Read(HCP65_BLITTER_REGISTERS + 0x10));
+	AssertInt(0xFF, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START));
+
+	//Held in reset the board can't be enabled, and Start does nothing.
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE | 0x22);
+	AssertInt(0x22, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
+	TestHCP65BlitterCount(&cBlitter, 0, 4);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertFalse(cBlitter.IsCopying());
+	cBlitter.SetHeldInReset(false);
+	AssertInt(0x22, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
+
+	//The registers repeat every 32 bytes.
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + 0x20 + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE);
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE, cBlitter.Read(0x7E0 + HCP65_BLITTER_FLAGS));
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_TRANSPARENT_COLOUR, 0x77);
+	AssertInt(0x77, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_TRANSPARENT_COLOUR));
+
+	//Sixteen bytes from $201000 to $21FFF8, across a bank's end.  A byte is two cycles.
+	puiSource = TestHCP65Main(&cHCP65, 0x201000);
+	puiDest = TestHCP65Main(&cHCP65, 0x21FFF8);
+	for (i = 0; i < 32; i++)
+	{
+		puiSource[i] = (uint8)(0x40 + i);
+	}
+	memset(puiDest, 0xEE, 8);
+	memset(TestHCP65Main(&cHCP65, 0x220000), 0xEE, 24);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x201000);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x21FFF8);
+	AssertInt(0x201000, cBlitter.GetSource());
+	AssertInt(0x21FFF8, cBlitter.GetDest());
+	TestHCP65BlitterCount(&cBlitter, 0, 16);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertTrue(cBlitter.IsCopying());
+	AssertLong((int64)(cHCP65.NumCycles() + 32), (int64)cBlitter.NextEvent());
+	AssertInt(0xEE, puiDest[0]);
+	cHCP65.Run(100);
+	AssertFalse(cBlitter.IsCopying());
+	AssertFalse(cHCP65.IsContention());
+	AssertInt(0, memcmp(puiDest, puiSource, 8));
+	AssertInt(0, memcmp(TestHCP65Main(&cHCP65, 0x220000), &puiSource[8], 8));
+	AssertInt(0xEE, *TestHCP65Main(&cHCP65, 0x220008));
+	AssertInt(0x201010, cBlitter.GetSource());
+	AssertInt(0x220008, cBlitter.GetDest());
+	AssertInt(16, TestHCP65BlitterReadCount(&cBlitter));
+	AssertLong(16, (int64)cBlitter.NumBytesCopied());
+	AssertFalse(cBlitter.IsInterrupting());
+	AssertLong((int64)HCP65_NEVER, (int64)cBlitter.NextEvent());
+
+	//Start again without the addresses written: the next sixteen bytes follow.  The count starts where it is told to
+	//(here 65530, stopping at 10 through 0).
+	TestHCP65BlitterCount(&cBlitter, 65530, 10);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	AssertInt(0, memcmp(TestHCP65Main(&cHCP65, 0x220008), &puiSource[16], 16));
+	AssertInt(0x220018, cBlitter.GetDest());
+	AssertInt(10, cBlitter.GetCount());
+	AssertLong(32, (int64)cBlitter.NumBytesCopied());
+
+	//A start that is the stop copies nothing, and is done at once.
+	TestHCP65BlitterCount(&cBlitter, 7, 7);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertFalse(cBlitter.IsCopying());
+	AssertInt(7, cBlitter.GetCount());
+	AssertLong(32, (int64)cBlitter.NumBytesCopied());
+
+	//Part way through, the count read is how far it has got (its high byte kept as the low one is read), the addresses
+	//can't be written, and disabling the board stops the copy there.
+	puiDest = TestHCP65Main(&cHCP65, 0x230000);
+	memset(puiDest, 0xEE, 1000);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x201000);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x230000);
+	TestHCP65BlitterCount(&cBlitter, 0x100, 0x100 + 1000);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(700);
+	AssertTrue(cBlitter.IsCopying());
+	uiCount = TestHCP65BlitterReadCount(&cBlitter);
+	AssertTrue((uiCount >= 0x100 + 340) && (uiCount <= 0x100 + 360));
+	AssertInt(0x230000 + (uiCount - 0x100), cBlitter.GetDest());
+	AssertInt(TestHCP65Main(&cHCP65, 0x201000)[uiCount - 0x101], puiDest[uiCount - 0x101]);
+	AssertInt(0xEE, puiDest[uiCount - 0x100]);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x123456);
+	AssertInt(0x230000 + (uiCount - 0x100), cBlitter.GetDest());
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, 0);
+	AssertFalse(cBlitter.IsCopying());
+	cHCP65.Run(2000);
+	AssertInt(uiCount, cBlitter.GetCount());
+	AssertInt(0xEE, puiDest[uiCount - 0x100]);
+
+	//Transparency: with Flags D0, the bytes that are the transparent colour aren't written.  Without it they are.
+	puiSource = TestHCP65Main(&cHCP65, 0x240000);
+	puiDest = TestHCP65Main(&cHCP65, 0x250000);
+	for (i = 0; i < 8; i++)
+	{
+		puiSource[i] = (uint8)((i & 1) ? 0x77 : (0x10 + i));
+	}
+	memset(puiDest, 0xEE, 16);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE | HCP65_BLITTER_FLAG_TRANSPARENCY);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x240000);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x250000);
+	TestHCP65BlitterCount(&cBlitter, 0, 8);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	bSame = true;
+	for (i = 0; i < 8; i++)
+	{
+		bSame &= puiDest[i] == ((i & 1) ? 0xEE : (0x10 + i));
+	}
+	AssertTrue(bSame);
+	AssertInt(0x250008, cBlitter.GetDest());
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x240000);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	AssertInt(0, memcmp(&puiDest[8], puiSource, 8));
+
+	//The bytes go in order, so a destination one past the source repeats its first byte.
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x250008);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x250009);
+	TestHCP65BlitterCount(&cBlitter, 0, 6);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	bSame = true;
+	for (i = 8; i < 15; i++)
+	{
+		bSame &= puiDest[i] == 0x10;
+	}
+	AssertTrue(bSame);
+	AssertInt(0x77, puiDest[15]);
+
+	//The interrupt, when it is enabled: latched when a copy is done, until Clear Interrupt, the next Start or the
+	//interrupt being disabled.
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE | HCP65_BLITTER_FLAG_INTERRUPT);
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
+	TestHCP65BlitterCount(&cBlitter, 0, 4);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertFalse(cBlitter.IsInterrupting());
+	cHCP65.Run(100);
+	AssertTrue(cBlitter.IsInterrupting());
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE | HCP65_BLITTER_FLAG_INTERRUPT, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_CLEAR_INTERRUPT, 0);
+	AssertFalse(cBlitter.IsInterrupting());
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	AssertTrue(cBlitter.IsInterrupting());
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertFalse(cBlitter.IsInterrupting());
+	cHCP65.Run(100);
+	AssertTrue(cBlitter.IsInterrupting());
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE);
+	AssertFalse(cBlitter.IsInterrupting());
+
+	//A reset clears the flags, the addresses and the count, not the count's start and stop or the transparent colour.
+	cBlitter.Reset();
+	AssertInt(0, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
+	AssertInt(0, cBlitter.GetSource());
+	AssertInt(0, cBlitter.GetDest());
+	AssertInt(0, TestHCP65BlitterReadCount(&cBlitter));
+	AssertInt(0x77, cBlitter.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_TRANSPARENT_COLOUR));
+	puiDest = TestHCP65Main(&cHCP65, 0x260000);
+	memset(puiDest, 0xEE, 8);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x240000);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x260000);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	AssertInt(0, memcmp(puiDest, puiSource, 4));
+	AssertInt(0xEE, puiDest[4]);
+
+	//While it copies the board has main memory: the processor reading it is contention, which shuts main memory off, so
+	//the rest of the copy is lost.
+	memset(puiDest, 0xEE, 8);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_SOURCE_LOW, 0x240000);
+	TestHCP65BlitterAddress(&cBlitter, HCP65_BLITTER_DEST_LOW, 0x260000);
+	cBlitter.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertFalse(cHCP65.IsContention());
+	AssertInt(0xFF, cHCP65.Read(0x260000));
+	AssertTrue(cHCP65.IsContention());
+	cHCP65.Run(100);
+	AssertInt(0xEE, puiDest[0]);
+
+	cHCP65.Kill();
+	cBlitter.Kill();
+	cMemory.Kill();
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -2393,6 +2659,7 @@ void TestHCP65Machine(void)
 	TestHCP65PS2Board();
 	TestHCP65PS2Interrupt();
 	TestHCP65VideoBoard();
+	TestHCP65BlitterBoard();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();

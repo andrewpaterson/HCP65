@@ -82,6 +82,20 @@ protected:
 };
 
 
+//A copy in main memory (kernel mode's addresses of it, which are where it really is): uiCount bytes from puiSource to
+//puiDest, lowest first, without those that are uiTransparent unless it is KERNAL_COPY_OPAQUE.  A Blitter Board makes it
+//if there is one and the copy is long enough for that to be quicker, the processor if not (KernalCopy.asm).  The Video
+//Board's driver draws a blit's runs with it.  Neither end may be in MPU RAM, which the board can't reach.  It can't be
+//called through a pointer.
+#define KERNAL_COPY_OPAQUE				0xFFFF
+
+void			KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, uint16 uiTransparent);
+
+//The Blitter Board's registers while its driver is loaded, NULL when it isn't: its driver sets it.  The kernal's copies
+//and a driver that gives the board copies itself (the Video Board's text) write them; each sets all that its copy needs
+//but the count's start, which stays 0.
+extern "C" volatile uint8*	gpuiKernalBlitter;
+
 uint16			KernalStartDriver(CKernalDriver* pcDriver, uint16 uiSlot);
 CKernalDriver*	KernalGetDriver(uint16 uiSlot);
 CKernalDriver*	KernalFindDriver(const char* szManufacturer, const char* szName, uint16 uiIndex);

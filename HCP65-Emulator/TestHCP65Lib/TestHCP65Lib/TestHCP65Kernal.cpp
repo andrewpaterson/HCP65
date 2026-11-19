@@ -22,6 +22,7 @@
 #include "HCP65Lib/HCP65VIA.h"
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
+#include "HCP65Lib/HCP65Blitter.h"
 #include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Mainboard.h"
@@ -91,6 +92,8 @@
 #define TEST_HCP65_VIDEO_PROGRAM_PATH	"\\vidtest.exe"
 #define TEST_HCP65_VIDEO_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VideoBoard" _FS_ "HCP65VideoBoard.vcxproj"
 #define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
+#define TEST_HCP65_BLITTER_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "BlitterBoard" _FS_ "HCP65BlitterBoard.vcxproj"
+#define TEST_HCP65_BLITTER_DRIVER_PATH	"\\OS\\Drivers\\BLITTER.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -107,6 +110,7 @@
 #define TEST_HCP65_PS2_MACHINE		TEST_HCP65_MACHINES _FS_ "PS2.xml"
 #define TEST_HCP65_SHELL_MACHINE	TEST_HCP65_MACHINES _FS_ "Shell.xml"
 #define TEST_HCP65_CONSOLE_MACHINE	TEST_HCP65_MACHINES _FS_ "Console.xml"
+#define TEST_HCP65_BLITTER_MACHINE	TEST_HCP65_MACHINES _FS_ "Blitter.xml"
 #define TEST_HCP65_VIDEO_MACHINE	TEST_HCP65_MACHINES _FS_ "Video.xml"
 #define TEST_HCP65_NO_MEMORY_MACHINE	TEST_HCP65_MACHINES _FS_ "NoMainMemory.xml"
 #define TEST_HCP65_STRAY_TYPE		"Test Stray Device"		//CTestMainboard's own boards.
@@ -122,6 +126,7 @@
 #define TEST_HCP65_VIA_SOCKET		3
 #define TEST_HCP65_PS2_SOCKET		3
 #define TEST_HCP65_VIDEO_SOCKET		16
+#define TEST_HCP65_BLITTER_SOCKET	17
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
 #define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
@@ -1708,6 +1713,7 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_UART_DRIVER_PATH, TEST_HCP65_UART_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_BLITTER_DRIVER_PATH, TEST_HCP65_BLITTER_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER);
 	bResult = bResult && TestKernalPutTables(TEST_HCP65_SYSTEM_CARD_IMAGE);
 	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_FONT_PATH, TEST_HCP65_FONT);
@@ -2385,6 +2391,61 @@ static void TestConsoleType(STestConsole* psConsole, const char* szText)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// sprites typed at the prompt, and its picture checked.  It is left
+// waiting for a key.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestConsoleSprites(STestConsole* psConsole)
+{
+	uint32	uiWidth;
+	uint32	uiHeight;
+	uint32	uiWhite;
+	uint32	x;
+	uint32	y;
+	int		i;
+
+	//sprites has the screen for its picture (Sprites.cpp): black, with tiles of colour, letters drawn on the first
+	//of them, and a white tile half off the left.  Then a key ends it and the console's text is back, blank.
+	TestConsoleType(psConsole, "sprites\r");
+	uiWhite = 0;
+	for (i = 0; i < 4000; i++)
+	{
+		psConsole->cHCP65.Run(TEST_UART_RUN_CYCLES);
+		if (((i % 10) == 9) && psConsole->pcVideo->GetFrame(psConsole->puiFrame, 640, 480, &uiWidth, &uiHeight) && (psConsole->puiFrame[479 * 640 + 630] == 0xFF242455))
+		{
+			break;
+		}
+	}
+	AssertInt(640, (int)uiWidth);
+	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[200 * 640 + 10]);
+	AssertInt((int)0xFFFF0000, (int)psConsole->puiFrame[66 * 640 + 70]);
+	AssertInt((int)0xFF00FF00, (int)psConsole->puiFrame[66 * 640 + 118]);
+	AssertInt((int)0xFF0000FF, (int)psConsole->puiFrame[66 * 640 + 166]);
+	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[66 * 640 + 100]);
+	AssertInt((int)0xFFFFFFFF, (int)psConsole->puiFrame[140 * 640 + 10]);
+	AssertInt((int)0xFF000000, (int)psConsole->puiFrame[140 * 640 + 16]);
+	AssertInt((int)0xFF242455, (int)psConsole->puiFrame[479 * 640 + 630]);
+	for (y = 72; y < 88; y++)
+	{
+		for (x = 72; x < 80; x++)
+		{
+			//The "B" of Blits on the red tile: white where it is, the tile where it isn't.
+			if (psConsole->puiFrame[y * 640 + x] == 0xFFFFFFFF)
+			{
+				uiWhite++;
+			}
+			else
+			{
+				AssertInt((int)0xFFFF0000, (int)psConsole->puiFrame[y * 640 + x]);
+			}
+		}
+	}
+	AssertTrue((uiWhite > 10) && (uiWhite < 60));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Boots the system card (Output/SDCard.img) at the real board's 25MHz with
 // the SD Card Board, the Video Board, the PS2 Board (the test's keyboard
 // in port 1) and a Memory Board: the console is the Video Board's text,
@@ -2402,9 +2463,6 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	CChars				szScreen;
 	uint32				uiWidth;
 	uint32				uiHeight;
-	uint32				uiWhite;
-	uint32				x;
-	uint32				y;
 	int					i;
 
 	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
@@ -2469,43 +2527,7 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	AssertFalse(strstr(szScreen.Text(), TEST_HCP65_SHELL_BANNER) != NULL);
 	AssertTrue(szScreen.EndsWith("Anything else is a program to run, with a number for its argument.\n/ $\n"));
 
-	//sprites has the screen for its picture (Sprites.cpp): black, with tiles of colour, letters drawn on the first
-	//of them, and a white tile half off the left.  Then a key ends it and the console's text is back, blank.
-	TestConsoleType(&sConsole, "sprites\r");
-	uiWhite = 0;
-	for (i = 0; i < 4000; i++)
-	{
-		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
-		if (((i % 10) == 9) && sConsole.pcVideo->GetFrame(sConsole.puiFrame, 640, 480, &uiWidth, &uiHeight) && (sConsole.puiFrame[479 * 640 + 630] == 0xFF242455))
-		{
-			break;
-		}
-	}
-	AssertInt(640, (int)uiWidth);
-	AssertInt((int)0xFF000000, (int)sConsole.puiFrame[200 * 640 + 10]);
-	AssertInt((int)0xFFFF0000, (int)sConsole.puiFrame[66 * 640 + 70]);
-	AssertInt((int)0xFF00FF00, (int)sConsole.puiFrame[66 * 640 + 118]);
-	AssertInt((int)0xFF0000FF, (int)sConsole.puiFrame[66 * 640 + 166]);
-	AssertInt((int)0xFF000000, (int)sConsole.puiFrame[66 * 640 + 100]);
-	AssertInt((int)0xFFFFFFFF, (int)sConsole.puiFrame[140 * 640 + 10]);
-	AssertInt((int)0xFF000000, (int)sConsole.puiFrame[140 * 640 + 16]);
-	AssertInt((int)0xFF242455, (int)sConsole.puiFrame[479 * 640 + 630]);
-	for (y = 72; y < 88; y++)
-	{
-		for (x = 72; x < 80; x++)
-		{
-			//The "B" of Blits on the red tile: white where it is, the tile where it isn't.
-			if (sConsole.puiFrame[y * 640 + x] == 0xFFFFFFFF)
-			{
-				uiWhite++;
-			}
-			else
-			{
-				AssertInt((int)0xFFFF0000, (int)sConsole.puiFrame[y * 640 + x]);
-			}
-		}
-	}
-	AssertTrue((uiWhite > 10) && (uiWhite < 60));
+	TestConsoleSprites(&sConsole);
 	TestConsoleType(&sConsole, " ");
 	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
 	AssertFalse(strstr(szScreen.Text(), "sprites") != NULL);
@@ -2523,6 +2545,92 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 	}
 	AssertInt(1024, (int)sConsole.pcVideo->GetActiveWidth());
 	AssertLong(65000000, (int64)sConsole.pcVideo->GetPixelClockRate());
+
+	AssertFalse(sConsole.cHCP65.IsStopped());
+	szScreen.Kill();
+	sConsole.cKeyboard.Kill();
+	free(sConsole.puiFrame);
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	sConsole.cHCP65.Kill();
+	sConsole.cMainboard.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's machine with a Blitter Board too (Machines/Blitter.xml):
+// its driver is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
+// are long enough are the board's, not the processor's: the screen's and
+// a row's clearing, and sprites' tiles.  The text and the picture are the
+// same, and the processor never touches main memory while the board has
+// it.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalBlitter(STestKernal* psKernal)
+{
+	STestConsole		sConsole;
+	STestKernalStatus	sStatus;
+	CHCP65SDCard*		pcSDCard;
+	CHCP65BlitterBoard*	pcBlitter;
+	CChars				szScreen;
+	uint64				uiText;
+	int					i;
+
+	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
+	if (!TestKernalPutSystemFiles())
+	{
+		return;
+	}
+	sConsole.uiStatus = TEST_KERNAL_STATUS_ADDRESS;
+	sConsole.puiFrame = (uint32*)malloc(1024 * 768 * sizeof(uint32));
+
+	sConsole.cHCP65.Init(TEST_UART_CLOCK_RATE);
+	if (!TestKernalPlugIn(&sConsole.cMainboard, &sConsole.cHCP65, TEST_HCP65_BLITTER_MACHINE))
+	{
+		free(sConsole.puiFrame);
+		sConsole.cHCP65.Kill();
+		sConsole.cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	sConsole.pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
+	sConsole.pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
+	pcBlitter = (CHCP65BlitterBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_BLITTER_SOCKET, HCP65_BLITTER_NAME);
+	sConsole.cKeyboard.Init();
+	sConsole.cKeyboard.Attach(sConsole.pcPS2->GetPort(0));
+	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
+	TestKernalStart(&sConsole.cHCP65, psKernal);
+
+	//The board's driver is loaded and has enabled it.
+	szScreen.Init();
+	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
+	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
+	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET), sStatus.uiLoadedDrivers);
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
+
+	//The screen was cleared by the board, a line at a time (640 by 480 and a row more).  The banner's glyphs' runs are
+	//too short for it: only a run of all eight pixels is the board's.
+	uiText = pcBlitter->NumBytesCopied();
+	AssertTrue(uiText >= 640 * 496);
+	AssertTrue(uiText < 640 * 496 * 2 + 4096);
+
+	//help twice scrolls the screen: each row that comes up is cleared by the board, sixteen lines of 640.
+	for (i = 0; i < 2; i++)
+	{
+		TestConsoleType(&sConsole, "help\r");
+		AssertTrue(TestConsoleRunUntil(&sConsole, "Anything else is a program to run, with a number for its argument.\n/ $\n", &szScreen));
+	}
+	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 10 * 16 * 640);
+	uiText = pcBlitter->NumBytesCopied();
+
+	//sprites' picture, drawn by the board.
+	TestConsoleSprites(&sConsole);
+	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 5000);
+	AssertFalse(pcBlitter->IsCopying());
+	AssertFalse(sConsole.cHCP65.IsContention());
+	TestConsoleType(&sConsole, " ");
+	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
 
 	AssertFalse(sConsole.cHCP65.IsStopped());
 	szScreen.Kill();
@@ -2587,6 +2695,10 @@ void TestHCP65Kernal(void)
 		if (TestKernalRuns("Console"))
 		{
 			TestHCP65KernalConsole(&sKernal);
+		}
+		if (TestKernalRuns("Blitter"))
+		{
+			TestHCP65KernalBlitter(&sKernal);
 		}
 		if (TestKernalRuns("Video"))
 		{

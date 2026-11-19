@@ -84,6 +84,7 @@
     <ClCompile Include="KernalMemory.cpp" />
     <ClCompile Include="KernalDevices.cpp" />
     <ClCompile Include="KernalDriver.cpp" />
+    <ClCompile Include="KernalCopy.asm" />
     <ClCompile Include="KernalSDCard.cpp" />
     <ClCompile Include="KernalSDCard.asm" />
     <ClCompile Include="KernalProcess.cpp" />

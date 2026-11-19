@@ -1,29 +1,29 @@
-; memcpy, memmove, memset, memcmp and strlen with 16 bit counts for the W65C816, and BaseLib's MemSwp16
-; (MemSwp with a size length): what BaseLib's natural arrays (counted with size, so at most
-; 65535 bytes) call through SArrayNaturalSize::Copy and the like (BaseLib's ArrayBlock.h).  stringW65C816.asm
-; has the C library's, with size_t (32 bit) counts.  The count is pushed as 2 bytes and kept
+; memcpy, memmove, memset, memcmp and strlen for the W65C816, whose size_t is 16 bits, and BaseLib's MemSwp
+; (with a size length, size being size_t there): what C and BaseLib's natural arrays (SArrayNaturalSize::Copy
+; and the like, BaseLib's ArrayBlock.h) call.  stringW65C816.asm has the 32 suffixed ones, with 32 bit
+; counts, and the other string functions.  The count is pushed as 2 bytes and kept
 ; in a word, but the pointers are 24 bit and a block can still cross into the next bank:
 ; the moves (mvn and mvp) stop at a bank's end as stringW65C816.asm's do.  Y never wraps in the
 ; others ([[D + n]:24 + Y] adds Y to all 24 bits).  The code changes itself (the moves'
 ; banks), so it isn't reentrant: an interrupt handler mustn't call these.
 ; The calling convention is the compiler's register arguments (IR816Backend.h, W65C816.txt):
 ; the first argument (a pointer) in A (low) and X (high), and the next that fits (a count, or
-; memset16's value) in Y, the rest pushed last first (pointers 4 bytes, size and int 2); A and
+; memset's value) in Y, the rest pushed last first (pointers 4 bytes, size and int 2); A and
 ; X are 16 bits wide on the way in and out, the result is in A (low) and X (high), D and the
 ; data bank are kept and A, X and Y change.  The register entries are name.<registers> (the
 ; compiler's suffix); the plain names are stack entries that load the registers and call them.
-; The moves (but memset16 within one bank, which works from S) push Y, X and A, the data bank,
+; The moves (but memset within one bank, which works from S) push Y, X and A, the data bank,
 ; 12 bytes of locals and D, and point D at the stack:
 ;	D + 1		the caller's D
 ;	D + 3		Count: the bytes of this move less 1
-;	D + 5		Dst: the destination (memmove16 down: its last byte)
-;	D + 9		Src: the source (memmove16 down: its last byte)
+;	D + 5		Dst: the destination (memmove down: its last byte)
+;	D + 9		Src: the source (memmove down: its last byte)
 ;	D + 13		Bytes: the bytes left
 ;	D + 15		the caller's data bank
 ;	D + 16		Argument: the destination (A and X)
-;	D + 20		RegisterY: memcpy16's and memmove16's count, memset16's value
+;	D + 20		RegisterY: memcpy's and memmove's count, memset's value
 ;	D + 22		the return address
-;	D + 25		Pushed: memcpy16's and memmove16's source, memset16's count
+;	D + 25		Pushed: memcpy's and memmove's source, memset's count
 
 Count		= 3
 Dst			= 5
@@ -35,9 +35,9 @@ Pushed		= 25
 
 
 		.section text.MemMove816_16
-		.global _memcpy16, _memmove16, _memset16, _memcpy16.axssy, _memmove16.axssy, _memset16.axy
+		.global _memcpy, _memmove, _memset, _memcpy.axssy, _memmove.axssy, _memset.axy
 
-_memcpy16:
+_memcpy:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -48,12 +48,12 @@ _memcpy16:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _memcpy16.axssy
+		jsl _memcpy.axssy
 		ply
 		ply
 		rtl
 
-_memmove16:
+_memmove:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -64,12 +64,12 @@ _memmove16:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _memmove16.axssy
+		jsl _memmove.axssy
 		ply
 		ply
 		rtl
 
-_memset16:
+_memset:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -78,12 +78,12 @@ _memset16:
 		lda [S + 8]
 		tax
 		lda [S + 6]
-		jsl _memset16.axy
+		jsl _memset.axy
 		ply
 		rtl
 
-; void* memcpy16(void* pvDest, const void* pvSource, unsigned short uiBytes)
-_memcpy16.axssy:
+; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
+_memcpy.axssy:
 		.width (A, X), 16
 		phy
 		phx
@@ -101,9 +101,9 @@ _memcpy16.axssy:
 		jsr Arguments
 		brl MoveUp
 
-; void* memmove16(void* pvDest, const void* pvSource, unsigned short uiBytes): up unless the
+; void* memmove(void* pvDest, const void* pvSource, size_t uiBytes): up unless the
 ; destination is above the source and in it.
-_memmove16.axssy:
+_memmove.axssy:
 		.width (A, X), 16
 		phy
 		phx
@@ -147,12 +147,12 @@ ToUp:
 		.width (A, X), 16
 		brl MoveUp
 
-; void* memset16(void* pvDest, int iValue, unsigned short uiBytes): as stringW65C816.asm's memset.
+; void* memset(void* pvDest, int iValue, size_t uiBytes): as stringW65C816.asm's memset.
 ; Within one bank, without a frame (the arguments are read from S), the data bank set to the
 ; destination's and the value's byte twice in a word stored 16 bytes at a time, then the
 ; words and the byte left; otherwise (or for 0 bytes) the first byte, then each from the one
 ; before.
-_memset16.axy:
+_memset.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -434,9 +434,9 @@ Moved:
 		rts
 
 
-; int memcmp16(const void* pv1, const void* pv2, unsigned short uiBytes): words while there
+; int memcmp(const void* pv1, const void* pv2, size_t uiBytes): words while there
 ; are two bytes left, then the byte left; the bytes of a word that differs are compared first
-; to last.  It takes the first pointer in A and X and the count in Y (memcmp16.axssy), pushes them,
+; to last.  It takes the first pointer in A and X and the count in Y (memcmp.axssy), pushes them,
 ; 4 bytes of locals and D, and points D at the stack:
 ;	D + 1		the caller's D
 ;	D + 3		Save: the two bytes that differ
@@ -452,9 +452,9 @@ Second		= 16
 
 
 		.section text.Memcmp816_16
-		.global _memcmp16, _memcmp16.axssy
+		.global _memcmp, _memcmp.axssy
 
-_memcmp16:
+_memcmp:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -465,12 +465,12 @@ _memcmp16:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _memcmp16.axssy
+		jsl _memcmp.axssy
 		ply
 		ply
 		rtl
 
-_memcmp16.axssy:
+_memcmp.axssy:
 		.width (A, X), 16
 		phy
 		phx
@@ -549,9 +549,9 @@ Difference:
 
 
 		.section text.MemSwp816_16
-		.global _MemSwp16__FPKvPKvj, _MemSwp16__FPKvPKvj.axssy
+		.global _MemSwp__FPKvPKvj, _MemSwp__FPKvPKvj.axssy
 
-; void MemSwp16(const void* pv1, const void* pv2, size uiLength) (BaseLib's StringHelper.h; MemSwp,
+; void MemSwp(const void* pv1, const void* pv2, size uiLength) (BaseLib's StringHelper.h; MemSwp,
 ; with an lsize length, is stringW65C816.asm's): a word at a time, then the byte left,
 ; Y running up from both pointers.  The register entry (the compiler's register arguments: pv1
 ; in A and X, pv2 pushed, uiLength in Y) pushes uiLength and pv1 and points D at the stack: pv1
@@ -560,7 +560,7 @@ MemSwp16P1	= 3
 MemSwp16Length	= 7
 MemSwp16P2	= 12
 
-_MemSwp16__FPKvPKvj.axssy:
+_MemSwp__FPKvPKvj.axssy:
 		.width (A, X), 16
 		phy
 		phx
@@ -609,7 +609,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 again under its return address, loads pv1 and uiLength
 ; into A, X and Y and calls the register entry.
-_MemSwp16__FPKvPKvj:
+_MemSwp__FPKvPKvj:
 		.width (A, X), 16
 		lda [S + 10]
 		pha
@@ -620,26 +620,26 @@ _MemSwp16__FPKvPKvj:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _MemSwp16__FPKvPKvj.axssy
+		jsl _MemSwp__FPKvPKvj.axssy
 		ply
 		ply
 		rtl
 
 
 		.section text.Strlen816_16
-		.global _strlen16, _strlen16.ax
+		.global _strlen, _strlen.ax
 
-_strlen16:
+_strlen:
 		.width (A, X), 16
 		lda [S + 6]
 		tax
 		lda [S + 4]
-		bra _strlen16.ax
+		bra _strlen.ax
 
-; unsigned short strlen16(const char* sz): sz's length, counted in Y (a word), or 65535 (MAX_SIZE)
+; size_t strlen(const char* sz): sz's length, counted in Y (a word), or 65535 (MAX_SIZE)
 ; when there is no zero in its first 65535 bytes: what BaseLib's StrLen (natural strings) uses.
-; It takes sz in A and X (strlen16.ax), pushes it and D and points D at the stack: sz is at D + 3.
-_strlen16.ax:
+; It takes sz in A and X (strlen.ax), pushes it and D and points D at the stack: sz is at D + 3.
+_strlen.ax:
 		.width (A, X), 16
 		phx
 		pha

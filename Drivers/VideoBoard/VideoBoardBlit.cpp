@@ -10,6 +10,8 @@
 #define VIDEO_CLIP_RIGHT	2
 #define VIDEO_CLIP_BOTTOM	3
 
+#define VIDEO_BLIT_MOST		0x8000		//The most bytes in one of a blit's copies.
+
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -116,7 +118,7 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 	uiPixel = (uint32)iY * muiWidth + (uint32)iLeft;
 	for (; (uiRow < uiHeight) && (iY < paiClip[VIDEO_CLIP_BOTTOM]); uiRow++, iY++)
 	{
-		if (!BlitPixels(uiPixel, uiSource, (uint32)(iRight - iLeft)))
+		if (!BlitPixels(uiPixel, uiSource, (uint32)(iRight - iLeft), KERNAL_COPY_OPAQUE))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
@@ -137,7 +139,6 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip)
 {
 	uint8*	puiCode;
-	uint8*	puiPixel;
 	uint8	uiCode;
 	uint16	uiCount;
 	bool	bMixed;
@@ -211,24 +212,10 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 			{
 				iLeft = paiClip[VIDEO_CLIP_LEFT];
 			}
-			if (bMixed)
+			if (iLeft < iRight)
 			{
-				for (; iLeft < iRight; iLeft++)
-				{
-					puiPixel = KernalUserPointer(psBlit->uiImage + uiOffset + (uint32)(iLeft - psBlit->iX - (int32)uiX), NULL);
-					if (!puiPixel)
-					{
-						return KERNAL_DRIVER_BAD_ARGUMENT;
-					}
-					if (*puiPixel != SFT_PIXEL_TRANSPARENT)
-					{
-						*((uint8*)(muiWindow + (uint32)(iRowPixel + iLeft))) = *puiPixel;
-					}
-				}
-			}
-			else if (iLeft < iRight)
-			{
-				if (!BlitPixels((uint32)(iRowPixel + iLeft), psBlit->uiImage + uiOffset + (uint32)(iLeft - psBlit->iX - (int32)uiX), (uint32)(iRight - iLeft)))
+				if (!BlitPixels((uint32)(iRowPixel + iLeft), psBlit->uiImage + uiOffset + (uint32)(iLeft - psBlit->iX - (int32)uiX), (uint32)(iRight - iLeft),
+						bMixed ? SFT_PIXEL_TRANSPARENT : KERNAL_COPY_OPAQUE))
 				{
 					return KERNAL_DRIVER_BAD_ARGUMENT;
 				}
@@ -244,11 +231,33 @@ uint16 CKernalVideoBoard::BlitTransparent(const SKernalBlit* psBlit, uint16 uiWi
 //
 // uiLength of the running process's bytes at uiUserAddress to the frame
 // being drawn's pixels from uiPixel (which the caller has inside the
-// picture).  False if the process hasn't that memory.
+// picture), without those that are uiTransparent unless it is
+// KERNAL_COPY_OPAQUE.  They are copies in main memory (KernalMainCopy: the
+// Blitter Board's if there is one), one for each bank of the process's
+// that the bytes are in.  False if the process hasn't that memory.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CKernalVideoBoard::BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength)
+bool CKernalVideoBoard::BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength, uint16 uiTransparent)
 {
-	return KernalCopyFromUser((uint8*)(muiWindow + uiPixel), uiUserAddress, uiLength);
-}
+	uint8*	puiSource;
+	uint32	uiInBank;
 
+	while (uiLength > 0)
+	{
+		puiSource = KernalUserPointer(uiUserAddress, &uiInBank);
+		if (!puiSource)
+		{
+			return false;
+		}
+		uiInBank = (uiInBank < uiLength) ? uiInBank : uiLength;
+		if (uiInBank > VIDEO_BLIT_MOST)
+		{
+			uiInBank = VIDEO_BLIT_MOST;
+		}
+		KernalMainCopy((uint8*)(muiWindow + uiPixel), puiSource, (uint16)uiInBank, uiTransparent);
+		uiUserAddress += uiInBank;
+		uiPixel += uiInBank;
+		uiLength -= uiInBank;
+	}
+	return true;
+}

@@ -49,7 +49,8 @@
 //Main memory contention: there is no arbiter on the main memory bus.  A device using it (the SD Card Board's DMA)
 //says until when (SetMainMemoryBusy); a processor access to main memory before then latches Contention, as the
 //mainboard's Main Memory Abort and Small Enable boards do: main memory is shut off (reads float to $FF, writes are
-//lost) and NMI is held low until reset.
+//lost) and NMI is held low until reset.  The device's own reads and writes of main memory are ReadMainAsMaster and
+//WriteMainAsMaster.
 //
 //Fill mode (a debugging aid; SetMemoryFill): main memory and MPU RAM are filled with HCP65_DEBUG_FILL_BYTE at reset,
 //and each bank the kernal gives a process (it tells the emulator's debug port) is filled again, by the emulator, not by
@@ -139,6 +140,8 @@ public:
 	bool				IsMemoryFill(void) const;
 	void				FillMainMemoryBank(uint8 uiBank);
 	void				SetMainMemoryBusy(uint64 uiUntil);
+	uint8				ReadMainAsMaster(uint32 uiPhysical);
+	void				WriteMainAsMaster(uint32 uiPhysical, uint8 uiValue);
 	bool				IsContention(void) const;
 
 	uint8				Read(uint32 uiAddress);

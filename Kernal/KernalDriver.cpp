@@ -6,6 +6,8 @@
 //The driver of each slot's board, NULL if it has none.
 static CKernalDriver*	gapcKernalDrivers[KERNAL_NUM_DEVICE_SLOTS];
 
+volatile uint8*			gpuiKernalBlitter;
+
 
 //////////////////////////////////////////////////////////////////////////
 //

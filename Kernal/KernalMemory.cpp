@@ -15,8 +15,7 @@ static const uint8	gauiKernalWindows[] = { 1, 2, 3, 0 };
 
 
 //Libc65's heap (malloc).
-extern CTrueMallocator	gcHeap;
-extern bool				gbHeap;
+extern "C" void		__HeapInit(void* pvStart, uint32 uiBytes);
 
 uint8					gauiKernalBanks[KERNAL_NUM_BANKS];
 uint8					gauiKernalBankOwners[KERNAL_NUM_BANKS];
@@ -34,8 +33,7 @@ static uint8			guiKernalMainHeapBank;	//Its first bank, which it keeps.
 //////////////////////////////////////////////////////////////////////////
 extern "C" void KernalInitHeap(void)
 {
-	gcHeap.Init((void*)KERNAL_MPU_HEAP_START, KERNAL_MPU_HEAP_END - KERNAL_MPU_HEAP_START);
-	gbHeap = true;
+	__HeapInit((void*)KERNAL_MPU_HEAP_START, KERNAL_MPU_HEAP_END - KERNAL_MPU_HEAP_START);
 	gbKernalMainHeap = false;
 }
 

@@ -5,12 +5,13 @@
 ; source's or the destination's bank and the next goes on from there.  memset stores the
 ; first byte and moves the rest up from one byte below, so each byte copies the one before
 ; it.  string.cpp has the other string functions (and these, for the 65C64's reference).
-; stringW65C816_16.asm has memcpy16 and the like, with 16 bit counts, for BaseLib's natural arrays.
+; These are the 32 suffixed ones (memcpy32 and the others, with 32 bit counts, for what can pass 64KB): size_t is 16
+; bits on the W65C816, and stringW65C816_16.asm has memcpy and the like.
 ; The bit array finders (with lsize counts) and the tables they share with stringW65C816_16.asm's are at the end.
 ; The code changes itself, so it isn't reentrant: an interrupt handler mustn't call these.
 ; The calling convention is the compiler's register arguments (IR816Backend.h, W65C816.txt):
 ; the C functions here take the first argument (a pointer) in A (low) and X (high) and an int
-; after it in Y, the rest pushed last first (pointers and size_t 4 bytes, int 2); A and X are 16
+; after it in Y, the rest pushed last first (pointers and counts 4 bytes, int 2); A and X are 16
 ; bits wide on the way in and out, the result is in A (low) and X (high), D and the data bank
 ; are kept and A, X and Y change.  The register entries are name.ax and name.axy (the
 ; suffix says which registers); the plain names are stack entries (function pointers,
@@ -37,9 +38,9 @@ Pushed		= 27
 
 
 		.section text.MemMoveW65C816
-		.global _memcpy, _memmove, _memset, _memcpy.ax, _memmove.ax, _memset.axy
+		.global _memcpy32, _memmove32, _memset32, _memcpy32.ax, _memmove32.ax, _memset32.axy
 
-_memcpy:
+_memcpy32:
 		.width (A, X), 16
 		lda [S + 14]
 		pha
@@ -52,7 +53,7 @@ _memcpy:
 		lda [S + 14]
 		tax
 		lda [S + 12]
-		jsl _memcpy.ax
+		jsl _memcpy32.ax
 		tay
 		tsc
 		clc
@@ -61,7 +62,7 @@ _memcpy:
 		tya
 		rtl
 
-_memmove:
+_memmove32:
 		.width (A, X), 16
 		lda [S + 14]
 		pha
@@ -74,7 +75,7 @@ _memmove:
 		lda [S + 14]
 		tax
 		lda [S + 12]
-		jsl _memmove.ax
+		jsl _memmove32.ax
 		tay
 		tsc
 		clc
@@ -83,7 +84,7 @@ _memmove:
 		tya
 		rtl
 
-_memset:
+_memset32:
 		.width (A, X), 16
 		lda [S + 12]
 		pha
@@ -94,12 +95,12 @@ _memset:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _memset.axy
+		jsl _memset32.axy
 		ply
 		ply
 		rtl
 
-; void* memcpy(void* pvDest, const void* pvSource, size_t uiBytes)
+; void* memcpy32(void* pvDest, const void* pvSource, unsigned long ulBytes)
 ; Up to SmallBytes bytes are copied here, last first, by a byte (if odd) then words through the
 ; pointers ([[D + n]:24 + Y] crosses banks), with D at the stack: D + 1 the caller's D, D + 3
 ; the destination (A and X), D + 7 the return address, D + 10 the source, D + 14 the size.
@@ -110,7 +111,7 @@ SmallDst	= 3
 SmallSrc	= 10
 SmallSize	= 14
 
-_memcpy.ax:
+_memcpy32.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -169,9 +170,9 @@ MemcpyLarge:
 		jsr Arguments
 		brl MoveUp
 
-; void* memmove(void* pvDest, const void* pvSource, size_t uiBytes): up unless the destination
+; void* memmove32(void* pvDest, const void* pvSource, unsigned long ulBytes): up unless the destination
 ; is above the source and in it.
-_memmove.ax:
+_memmove32.ax:
 		.width (A, X), 16
 		phy
 		phx
@@ -216,12 +217,12 @@ ToUp:
 		.width (A, X), 16
 		brl MoveUp
 
-; void* memset(void* pvDest, int iValue, size_t uiBytes): within one bank, without a frame
+; void* memset32(void* pvDest, int iValue, unsigned long ulBytes): within one bank, without a frame
 ; (the arguments are read from S), the data bank set to the destination's and the value's
 ; byte twice in a word stored 16 bytes at a time (sta [n + Y], about 4 cycles a byte), then
 ; the words and the byte left; otherwise (or for 0 bytes) the first byte, then each from the
 ; one before.
-_memset.axy:
+_memset32.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -538,12 +539,12 @@ Moved:
 ; argument in A and X, an int after it in Y) pushes Y, X and A, 6 bytes of locals and D, and
 ; points D at the stack:
 ;	D + 1		the caller's D
-;	D + 3		Hi: a size_t count's high word (X is its low word)
+;	D + 3		Hi: a 32 bit count's high word (X is its low word)
 ;	D + 5		Save: the destination to return, or what is being worked out
 ;	D + 9		First: the first argument (A and X)
 ;	D + 13		IntArg: memchr's, strchr's and strrchr's int (Y)
 ;	D + 15		the return address
-;	D + 18		the pushed arguments: Second (the second pointer, then a size_t), or memchr's size
+;	D + 18		the pushed arguments: Second (the second pointer, then a 32 bit count), or memchr32's count
 
 Hi			= 3
 Save		= 5
@@ -554,18 +555,18 @@ SizeArg		= 18
 
 
 		.section text.StringW65C816
-		.global _memcmp, _memchr, _strlen, _strcpy, _strncpy, _strcat, _strncat
+		.global _memcmp32, _memchr32, _strlen32, _memchr, _strcpy, _strncpy, _strcat, _strncat
 		.global _strcmp, _strncmp, _strchr, _strrchr
-		.global _memcmp.ax, _memchr.axy, _strlen.ax, _strcpy.ax, _strncpy.ax, _strcat.ax, _strncat.ax
-		.global _strcmp.ax, _strncmp.ax, _strchr.axy, _strrchr.axy
+		.global _memcmp32.ax, _memchr32.axy, _strlen32.ax, _memchr.axy, _strcpy.ax, _strncpy.axssy, _strcat.ax, _strncat.axssy
+		.global _strcmp.ax, _strncmp.axssy, _strchr.axy, _strrchr.axy
 
 ; The stack entries.
-_strlen:
+_strlen32:
 		.width (A, X), 16
 		lda [S + 6]
 		tax
 		lda [S + 4]
-		brl _strlen.ax
+		brl _strlen32.ax
 
 _strcpy:
 		.width (A, X), 16
@@ -595,50 +596,6 @@ _strcat:
 		ply
 		rtl
 
-_strncpy:
-		.width (A, X), 16
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		tax
-		lda [S + 12]
-		jsl _strncpy.ax
-		tay
-		tsc
-		clc
-		adc 8
-		tcs
-		tya
-		rtl
-
-_strncat:
-		.width (A, X), 16
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		tax
-		lda [S + 12]
-		jsl _strncat.ax
-		tay
-		tsc
-		clc
-		adc 8
-		tcs
-		tya
-		rtl
-
 _strcmp:
 		.width (A, X), 16
 		lda [S + 10]
@@ -653,20 +610,37 @@ _strcmp:
 		ply
 		rtl
 
-_strncmp:
+; The 16 bit entries of the functions with a count (size_t is 16 bits): strncpy, strncat and strncmp (name.axssy:
+; the first pointer in A and X, the second pushed, the count in Y) push the count as 32 bits and the second pointer
+; again and call their 32 bit bodies; memchr (memchr.axy: the pointer in A and X, the value in Y, the count pushed)
+; pushes its count as 32 bits and calls memchr32's.
+_strncpy:
 		.width (A, X), 16
-		lda [S + 14]
+		lda [S + 10]
 		pha
-		lda [S + 14]
+		lda [S + 10]
 		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
+		lda [S + 16]
+		tay
+		lda [S + 10]
 		tax
-		lda [S + 12]
-		jsl _strncmp.ax
+		lda [S + 8]
+		jsl _strncpy.axssy
+		ply
+		ply
+		rtl
+
+_strncpy.axssy:
+		.width (A, X), 16
+		pea 0
+		phy
+		tay
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		tya
+		jsl Strncpy32
 		tay
 		tsc
 		clc
@@ -675,20 +649,68 @@ _strncmp:
 		tya
 		rtl
 
-_memcmp:
+_strncat:
 		.width (A, X), 16
-		lda [S + 14]
+		lda [S + 10]
 		pha
-		lda [S + 14]
+		lda [S + 10]
 		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
-		pha
-		lda [S + 14]
+		lda [S + 16]
+		tay
+		lda [S + 10]
 		tax
-		lda [S + 12]
-		jsl _memcmp.ax
+		lda [S + 8]
+		jsl _strncat.axssy
+		ply
+		ply
+		rtl
+
+_strncat.axssy:
+		.width (A, X), 16
+		pea 0
+		phy
+		tay
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		tya
+		jsl Strncat32
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_strncmp:
+		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		lda [S + 16]
+		tay
+		lda [S + 10]
+		tax
+		lda [S + 8]
+		jsl _strncmp.axssy
+		ply
+		ply
+		rtl
+
+_strncmp.axssy:
+		.width (A, X), 16
+		pea 0
+		phy
+		tay
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		pha
+		tya
+		jsl Strncmp32
 		tay
 		tsc
 		clc
@@ -699,6 +721,57 @@ _memcmp:
 
 _memchr:
 		.width (A, X), 16
+		lda [S + 10]
+		pha
+		lda [S + 10]
+		tay
+		lda [S + 8]
+		tax
+		lda [S + 6]
+		jsl _memchr.axy
+		ply
+		rtl
+
+_memchr.axy:
+		.width (A, X), 16
+		pha
+		lda [S + 6]
+		pea 0
+		pha
+		lda [S + 5]
+		jsl _memchr32.axy
+		tay
+		tsc
+		clc
+		adc 6
+		tcs
+		tya
+		rtl
+
+_memcmp32:
+		.width (A, X), 16
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		pha
+		lda [S + 14]
+		tax
+		lda [S + 12]
+		jsl _memcmp32.ax
+		tay
+		tsc
+		clc
+		adc 8
+		tcs
+		tya
+		rtl
+
+_memchr32:
+		.width (A, X), 16
 		lda [S + 12]
 		pha
 		lda [S + 12]
@@ -708,7 +781,7 @@ _memchr:
 		lda [S + 10]
 		tax
 		lda [S + 8]
-		jsl _memchr.axy
+		jsl _memchr32.axy
 		ply
 		ply
 		rtl
@@ -731,8 +804,8 @@ _strrchr:
 		lda [S + 4]
 		brl _strrchr.axy
 
-; size_t strlen(const char* sz): A the low word, X the high.
-_strlen.ax:
+; unsigned long strlen32(const char* sz): A the low word, X the high.
+_strlen32.ax:
 		.width (A, X), 16
 		phy
 		phx
@@ -803,9 +876,9 @@ _strcat.ax:
 		jsr FindEnd
 		brl CopyString
 
-; char* strncpy(char* szDest, const char* szSource, size_t uiChars): the source's characters,
+; Strncpy32: char* strncpy(char* szDest, const char* szSource, unsigned long ulChars): the source's characters,
 ; then zeros, uiChars in all.
-_strncpy.ax:
+Strncpy32:
 		.width (A, X), 16
 		phy
 		phx
@@ -866,9 +939,9 @@ StrncpyEnd:
 		.width X, 16
 		brl ReturnSaved
 
-; char* strncat(char* szDest, const char* szSource, size_t uiChars): at most uiChars of the
+; Strncat32: char* strncat(char* szDest, const char* szSource, unsigned long ulChars): at most uiChars of the
 ; source at the destination's end, then a zero.
-_strncat.ax:
+Strncat32:
 		.width (A, X), 16
 		phy
 		phx
@@ -968,8 +1041,8 @@ StrcmpChar:
 		inc [D + Second + 2]
 		bra StrcmpChar
 
-; int strncmp(const char* sz1, const char* sz2, size_t uiChars)
-_strncmp.ax:
+; Strncmp32: int strncmp(const char* sz1, const char* sz2, unsigned long ulChars)
+Strncmp32:
 		.width (A, X), 16
 		phy
 		phx
@@ -1045,10 +1118,10 @@ Difference:
 		tya
 		rtl
 
-; int memcmp(const void* pv1, const void* pv2, size_t uiBytes): words while there are two
+; int memcmp32(const void* pv1, const void* pv2, unsigned long ulBytes): words while there are two
 ; bytes left, then the byte left; the bytes of a word that differs are compared first to
 ; last.  One byte (CNumber compares a digit at a time) is compared straight away.
-_memcmp.ax:
+_memcmp32.ax:
 		.width (A, X), 16
 		phy
 		phx
@@ -1133,8 +1206,8 @@ MemcmpDifference:
 		.width X, 16
 		brl Difference
 
-; void* memchr(const void* pv, int iValue, size_t uiBytes): iValue as an unsigned char.
-_memchr.axy:
+; void* memchr32(const void* pv, int iValue, unsigned long ulBytes): iValue as an unsigned char.
+_memchr32.axy:
 		.width (A, X), 16
 		phy
 		phx
@@ -1343,10 +1416,10 @@ MoreNone:
 
 
 		.section text.MemSwpW65C816
-		.global _MemSwp__FPKvPKvm, _MemSwp__FPKvPKvm.ax
+		.global _MemSwp32__FPKvPKvm, _MemSwp32__FPKvPKvm.ax
 
-; void MemSwp(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's StringHelper.cpp, left
-; out for the W65C816; stringW65C816_16.asm has MemSwp16, with a size length): a word at a time, then the byte left, Y running up from both pointers
+; void MemSwp32(const void* pv1, const void* pv2, lsize uiLength) (BaseLib's
+; StringHelper.h; stringW65C816_16.asm has MemSwp, with a size length): a word at a time, then the byte left, Y running up from both pointers
 ; (carrying into the next bank), 64KB at a time.  The register entry (the compiler's register arguments: pv1 in A and
 ; X, pv2 and uiLength pushed) pushes pv1 and points D at the stack: pv1 is at D + 3 (MemSwpP1), then the return
 ; address, pv2 at D + 10 and the length at D + 14.
@@ -1354,7 +1427,7 @@ MemSwpP1	= 3
 MemSwpP2	= 10
 MemSwpLength	= 14
 
-_MemSwp__FPKvPKvm.ax:
+_MemSwp32__FPKvPKvm.ax:
 		.width (A, X), 16
 		phx
 		pha
@@ -1404,7 +1477,7 @@ MemSwpDone:
 
 ; The stack entry (function pointers, assembly): pushes pv2 and the length again under its return address, loads pv1
 ; into A and X and calls the register entry.
-_MemSwp__FPKvPKvm:
+_MemSwp32__FPKvPKvm:
 		.width (A, X), 16
 		lda [S + 14]
 		pha
@@ -1417,7 +1490,7 @@ _MemSwp__FPKvPKvm:
 		lda [S + 14]
 		tax
 		lda [S + 12]
-		jsl _MemSwp__FPKvPKvm.ax
+		jsl _MemSwp32__FPKvPKvm.ax
 		tsc
 		clc
 		adc 8

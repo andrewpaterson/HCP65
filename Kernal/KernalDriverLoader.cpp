@@ -201,7 +201,7 @@ static uint16 KernalPlaceDriver(CAsm65Object* pcObject, CFatFile* pcFile, SKerna
 	{
 		return KERNAL_LOAD_BAD_FILE;
 	}
-	memset(&puiBase[psSection->uiNumBytes], 0, psSection->uiSize - psSection->uiNumBytes);
+	memset32(&puiBase[psSection->uiNumBytes], 0, psSection->uiSize - psSection->uiNumBytes);
 
 	uiResult = KernalRelocateDriver(pcObject, puiBase);
 	if (uiResult != KERNAL_LOAD_SUCCESS)

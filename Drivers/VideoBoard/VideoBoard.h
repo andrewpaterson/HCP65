@@ -42,9 +42,8 @@
 #define VIDEO_TEXT_MAX_PENDING			1024		//Cells owed to the other frame before it is all drawn again.
 #define VIDEO_TEXT_GLYPHS				256
 #define VIDEO_TEXT_PIXEL				0xFF		//The palette entry that is a cell's foreground: what a glyph's pixels are.
-#define VIDEO_TEXT_ROW_BYTES			(VIDEO_TEXT_MAX_COLUMNS / 8)	//A row's cells as bits: 16, which the shifts know.
-#define VIDEO_TEXT_FRAME_BYTES			(VIDEO_TEXT_MAX_ROWS * VIDEO_TEXT_ROW_BYTES)
 #define VIDEO_TEXT_NO_CLEAR				0xFF		//mauiRowClears: the row isn't owed a clear.
+#define VIDEO_CLEAR_SIZE				1024		//gpuiVideoClear: the widest mode's line.
 #define VIDEO_TEXT_DEFAULT_COLOUR		0x07		//Light grey on black.
 #define VIDEO_TEXT_BLINK_FRAMES			16			//The cursor's blink: about a quarter of a second on, then off.
 #define VIDEO_TEXT_FLIP_TICKS			16			//The longest a mode change waits for a vertical blank (KERNAL_TICKS_PER_SECOND).
@@ -72,15 +71,14 @@ struct SVideoMode
 //
 //The font is an SFT container of 256 transparent images of 8 by 16 (UserLib/HCP65SFT.h), which SetTextMode checks:
 //gauiVideoGlyphs is where each one's runs start in it, 0 for one without a pixel.  A glyph's runs draw only its pixels,
-//so the cell under them must be blank in the colour's background: each frame keeps which of its cells aren't
-//(gauiVideoDirty, a bit a cell) and the background each row was last cleared to (gauiVideoRowGround), and a cell that
-//isn't is cleared first.
+//so a cell is cleared before its glyph is drawn.
 extern "C"
 {
 	extern uint8	guiVideoFlags;			//What Flags was last written.
 	extern uint16	guiVideoWidth;			//The pixels in a line.
 	extern uint32	guiVideoPalette;		//The Palette Byte register's address.
 	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap in one bank, NULL if there were none.
+	extern uint8*	gpuiVideoClear;			//VIDEO_CLEAR_SIZE zeros there too: the line a Blitter Board clears a row with.  NULL if there were none.
 	extern uint16	guiVideoColumns;
 	extern uint16	guiVideoRows;
 	extern uint8	guiVideoTextColour;
@@ -93,8 +91,6 @@ extern "C"
 	extern uint8	gauiVideoCellColours[VIDEO_TEXT_MAX_CELLS];
 	extern uint16	gauiVideoPending[VIDEO_TEXT_MAX_PENDING];
 	extern uint16	gauiVideoGlyphs[VIDEO_TEXT_GLYPHS];
-	extern uint8	gauiVideoDirty[2 * VIDEO_TEXT_FRAME_BYTES];	//Frame 0's rows, each VIDEO_TEXT_ROW_BYTES, then frame 1's.
-	extern uint8	gauiVideoRowGround[2 * VIDEO_TEXT_MAX_ROWS];
 
 	extern uint16	guiVideoCell;			//VideoRenderCell's cell; VideoWriteCells' first, then the one after its last.
 	extern uint32	guiVideoSource;			//VideoWriteCells' characters' address,
@@ -102,12 +98,14 @@ extern "C"
 	extern uint16	guiVideoDrew;			//and whether any was drawn.
 	extern uint32	guiVideoFillAddress;	//VideoFillZero: the first byte
 	extern uint16	guiVideoFillGroups;		//and how many sixteens of them.
+	extern uint16	guiVideoFillLines;		//VideoClearLines: how many lines from guiVideoFillAddress.
 
 	void	VideoRenderCell(void);
 	void	VideoRenderPending(void);
 	void	VideoRenderAll(void);
 	void	VideoWriteCells(void);
 	void	VideoFillZero(void);
+	void	VideoClearLines(void);
 }
 
 
@@ -171,7 +169,7 @@ protected:
 	void	ClearRow(uint16 uiRow);
 	uint16	BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
 	uint16	BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
-	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength);
+	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength, uint16 uiTransparent);
 
 	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	uint16	ScrollText(uint32 uiLines);

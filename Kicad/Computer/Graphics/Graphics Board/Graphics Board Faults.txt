@@ -15,9 +15,193 @@ HCP65 Graphics Board - schematic faults
    Decode Stage A's ~{Reset}_OUT).  See Component Boards/Flags Enable
    Interrupt/Flags Enable Interrupt Faults.txt.
 
+2. ~{Done} goes to a pin of the Graphics Signals board that isn't connected
+
+   The HCP65:Graphics_Signals symbol has ~{Done} on pin 4 and calls pin 9
+   N.C.  On the Graphics Signals board (its schematic and its PCB) ~{Done} is
+   J7 pin 9, and J7 pin 4 goes nowhere.  So the comparator's ~{C=A} (B17 pin
+   40) reaches nothing on B19, and its ~{Done} input (IC2's two resets) floats.
+
+   Effect: reaching the stop count doesn't clear Running or Counting, so the
+   copy doesn't stop; and as floating inputs the resets can clear them at any
+   time.
+
+   Fix: ~{Done} on pin 9 of the symbol (or on pin 4 of the Graphics Signals
+   board).
+
+3. The data bus is the wrong way round at the Device Buffer
+
+   The slot's DD0 (J5 A28) is on B16 pin 31 (D0_IN/OUT), whose other side is
+   pin 34 (D0), and pin 34 is on the board's D7.  DD7 (J5 A21) comes out on
+   the board's D0 the same way, and so on between.  The SD Card Board, which
+   has the same buffer and the same slot pins, has DD0 on pin 24 and so on its
+   D0.
+
+   Effect: every byte the processor writes to a register, or reads from one
+   or from the ROM, has its bits in the reverse order.
+
+   Fix: the DD labels on B16's IN/OUT pins in the other order (DD0 on pin 24
+   to DD7 on pin 31), as on the SD Card Board.
+
+4. The Register 24bit with IO's strobes are each one pin out
+
+   The HCP65:Register_24bit_with_IO symbol has Latch Bank, Latch High, Latch
+   Low, Read Bank, Read High and Read Low on pins 21 to 26 and calls pin 27
+   N.C.  On the Register 24bit with IO board they are J2 pins 22 to 27, and
+   pin 21 goes nowhere.  So on B13:
+
+     Write Source Address Bank (pin 21)   reaches nothing
+     Write Source Address High (pin 22)   latches the bank
+     Write Source Address Low  (pin 23)   latches the high byte
+     Read Source Address Bank  (pin 24)   latches the low byte
+     Read Source Address High  (pin 25)   reads the bank
+     Read Source Address Low   (pin 26)   reads the high byte
+
+   and the board's Read Low (pin 27) floats, so the low byte can be driven
+   onto the data bus at any time.
+
+   Effect: the source address's low byte can only be set by reading the bank
+   register (it takes whatever is on the data bus), and its other bytes are
+   set by the wrong writes.
+
+   Fix: the symbol's pins 21 to 27 as the board has them (N.C., Latch Bank,
+   Latch High, Latch Low, Read Bank, Read High, Read Low).
+
+5. The source address's bank goes into its flip-flop backwards
+
+   The Adder 8bit's sums S0 to S7 (B21, SourceA+O16 to SourceA+O23) are on
+   B4's IN23 down to IN16: SourceA+O16 on pin 2 (IN23), SourceA+O23 on pin 11
+   (IN16).  The Blitter Board has Source16 on IN16 and Source23 on IN23, and
+   the destination (B14) is the right way round here.
+
+   Effect: the bank of every address read from has its bits in the reverse
+   order (bank $01 reads from bank $80).
+
+   Fix: SourceA+O16 to SourceA+O23 on B4's IN16 to IN23.
+
+6. The destination address and count can't be loaded while the board is idle
+
+   The Counter 24bit's and the Counter 16bit with IO's counters are 74LVC161s,
+   which load on a rising clock edge while ~{PE} is low.  Their clock is CLK1,
+   and the Graphics Signals board holds its clock flip-flops (IC10) in reset
+   while Running is low: CLK1 is high and still whenever nothing is being
+   copied.
+
+   Effect: a write to the Destination Address registers (B12) does nothing unless a copy
+   is running and a CLK1 edge falls inside the write.
+
+   Fix: a clock for the loads that runs while the board is idle (CLK1 not
+   stopped, or the write strobes made into the counters' clock while idle),
+   or counters that load without a clock.
+
+7. ~{Load Count Start} never goes low
+
+   On the Graphics Signals board IC3 (74LVC74) is clocked by Write Start with
+   its D high, and ~{1Q} is ~{Load Count Start}.  Its reset (~{1RD}, pin 1)
+   is CLK0, which is low whenever the board is idle, and still low when Write
+   Start rises: Running is only then being set, and CLK0 first rises on a Main
+   CLK edge after that.
+
+   Effect: the flip-flop is clocked while it is held in reset, so the count is
+   never loaded with the start count.  It carries on from where the last copy
+   left it (0 after a reset).
+
+   Fix: the reset from a clock that is high while idle (CLK2), with the load
+   held until the count's clock has had an edge; see the fault before this
+   one, as the load needs that edge too.
+
+8. Transparency Enable is the wrong way up
+
+   On the Graphics Transparency board IC6 (74LVC1G32) ORs Transparency Enable
+   with the comparator's ~{P=Q} to make ~{Transparent}.  Here Transparency
+   Enable is the Flags board's F0 (B8 pin 18), bit 0 of the flags as written.
+
+   Effect: with bit 0 set no pixel is transparent, and with it clear the
+   transparent colour is left out.
+
+   Fix: F0 through an inverter, or the flag documented as "opaque".
+
+9. Which way round the four clocks run depends on when Start is written
+
+   On the Graphics Signals board CLK0 is a flip-flop that toggles on Main CLK's
+   rising edge and CLK3 one that toggles on its falling edge, both released
+   from reset when Running is set.  Running is set by the write strobe, not by
+   Main CLK, so either edge can come first.
+
+   If the falling edge is first the order is CLK0, CLK1, CLK2, CLK3, as named:
+   the addresses are latched (CLK0) a quarter into the read and are steady
+   through the write.  If the rising edge is first the order is reversed, and
+   the address latches change in the middle of every write strobe.
+
+   Effect: in the second case each byte is written to its address and the one
+   after, and an address that changes under a write strobe can write
+   elsewhere.  Which case happens isn't settled on this board: it depends on
+   how the device write strobe sits against Main CLK on the main board, which
+   hasn't been checked.
+
+   Fix: Running taken through a flip-flop on one edge of Main CLK before it
+   releases the clocks.
+
+10. The processor can reach only half of each offset table, and not the same half
+
+   The offsets are in two Memory 32KB boards (B2 the low bytes, B3 the high),
+   addressed by the count or, when the processor has the device's RAM, by A0
+   to A14 (B1).  B18 (the Video Board's Device RAM Select) picks B2 for the
+   device's addresses $4000-$7FFF and B3 for $8000-$BFFF, by A14 to A16, and
+   A14 is also the memories' M14.
+
+   Effect: the processor reaches B2 only with A14 high (its entries 16384 to
+   32767) and B3 only with A14 low (its entries 0 to 16383).  No entry can have
+   both its bytes written.
+
+   Fix: 32KB of the device's addresses for each memory (selected by A15 and
+   A16, with A14 only an address).
+
+11. The count steps as a write begins, so the last write is cut short
+
+   The count (B5) is clocked by CLK1, whose rising edge is where the write
+   half begins.  The write on which the count reaches the stop count is
+   stopped by ~{Done} as it starts.
+
+   Effect: N bytes need a stop count of start + N + 1, and the byte after
+   them gets a write strobe a few gate delays long, which may or may not
+   write.
+
+   Fix: B5's CLK (pin 4) from CLK3, not CLK1, so that the count steps as each
+   read begins.  Counting is set by the first CLK3 edge, so the count doesn't
+   step on it: the count is start + k through byte k, ~{Done} comes as byte
+   N's read would begin, and what is cut short is a read.  The stop count for
+   N bytes is then start + N.  The address counters stay on CLK1.
+
+   On this board the count is also the offset table's address, and the
+   memories' latches (LLE, CLK1) close on the edge the count would then step
+   on, keeping the entry before.  LLE has to move to another clock with it;
+   its timing hasn't been worked through.
+
+Also, not wiring faults but what the board does as drawn:
+
+  - ~{Done} is a level: it stays low while the count is the stop count.
+    Until one of them changes, Running can't be set again and the interrupt
+    comes back on the next Main CLK after it is cleared.
+  - Nothing resets Running: after power on it can be set, and the board
+    copying.
+  - A transparent pixel leaves the internal data bus undriven through the
+    write half (the holding latch's outputs are enabled by ~{Write}), while
+    the comparator that decides transparency is reading it.
+  - The count is 15 bits: C15 isn't connected and the comparator's C15 is
+    grounded, so a stop count with bit 15 set is never reached.
+  - There is no wait for ~{Main Access}: without it the counts go on and the
+    bytes are skipped.
+  - The offset is 16 bits and never negative (the Adder 8bit's other inputs
+    are grounded): a byte is read from the source address plus the table's
+    entry for the count, which is at most 65535 past it.
+
 The board also uses standard boards with faults of their own, which it has
 with them (see each one's Faults file in Component Boards):
   - Clock Hold Standard: a NOR where an OR is needed, so the clock hold code
     is fought over on every cycle.
   - Counter 24bit: its upper 20 bits count whether or not Count Enable is
     high, whenever the low nibble is $F.
+  - Counter 16bit with IO: the same as the Counter 24bit, on its upper 12
+    bits.  The count's clock only runs while it is counting here, so it does
+    no harm.

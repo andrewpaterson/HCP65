@@ -309,7 +309,11 @@ void TestLibc65StdlibAllocation(void)
 		"	*p++ = (e != NULL) && (memcmp(e, \"1234\", 4) == 0);\n"
 		"	f = (char*)realloc(NULL, 16);\n"
 		"	*p++ = f != NULL;\n"
+		"#if defined(__W65C816__)\n"
+		"	*p++ = malloc32(0x100000) == NULL;\n"  //size_t is 16 bits there: more than the heap is malloc32's.
+		"#else\n"
 		"	*p++ = malloc(0x100000) == NULL;\n"
+		"#endif\n"
 		"	free(NULL);\n"
 		"	*p++ = abs(-5);\n"
 		"	*p++ = abs(5);\n"
@@ -349,14 +353,24 @@ void TestLibc65StdlibAllocationOverflow(void)
 	size				i;
 
 	//Sizes whose rounding or header, or count times size, don't fit in a size_t must fail, not wrap to a small
-	//block.
+	//block.  On the W65C816 (a 16 bit size_t) calloc's count times size must fit 16 bits, and the 32 bit sizes are
+	//the 32 suffixed functions'.
 	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
 		"#include <stdlib.h>\n"
+		"#if defined(__W65C816__)\n"
+		"int Plain(void) { return calloc(0x100, 0x101) == NULL; }\n"
+		"#define malloc malloc32\n"
+		"#define calloc calloc32\n"
+		"#define realloc realloc32\n"
+		"#else\n"
+		"int Plain(void) { return 1; }\n"
+		"#endif\n"
 		"int main()\n"
 		"{\n"
 		"	long*	p;\n"
 		"	char*	pc;\n"
 		"	p = (long*)0x100000;\n"
+		"	*p++ = Plain();\n"
 		"	*p++ = malloc(0xFFFFFFFD) == NULL;\n"
 		"	*p++ = malloc(0xFFFFFFF8) == NULL;\n"
 		"	*p++ = malloc(0x7FFFFFFF) == NULL;\n"
@@ -370,7 +384,7 @@ void TestLibc65StdlibAllocationOverflow(void)
 		"}\n"));
 	AssertTrue(TestLibc65Run(&sRun, 2000000));
 
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < 9; i++)
 	{
 		AssertInt(1, TestLibc65Result(&sRun, i));
 	}
@@ -426,6 +440,98 @@ void TestLibc65StdlibFragmentation(void)
 
 	AssertInt(0, TestLibc65Result(&sRun, 0));
 	AssertInt(0, TestLibc65Result(&sRun, 1));
+
+	TestLibc65End(&sRun);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// On the W65C816 the heap is by banks (CppCompilerLib/Size16Plan.txt): no
+// block crosses a 64KB bank, a bank goes back when its last block is freed,
+// and what doesn't fit a bank (malloc32's, or malloc's largest) has whole
+// banks of its own, from the top.  The
+// heap is 0008:0000 to 000F:FFFF here: the first bank has the maps and is
+// kept, so seven whole banks can be one allocation once the small blocks
+// are gone.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestLibc65StdlibBanks(void)
+{
+	static const char*	aszUnits[] = { "stdlib.cpp", "string.cpp", "string.asm", "ctype.cpp", NULL };
+	STestLibc65Run		sRun;
+	size				i;
+
+	if (geTestLibc65Target != CPPT_W65C816)
+	{
+		return;
+	}
+	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
+		"#include <stdlib.h>\n"
+		"#include <string.h>\n"
+		"static int InOneBank(void* pv, unsigned long ulBytes) { return ((unsigned long)pv >> 16) == (((unsigned long)pv + ulBytes - 1) >> 16); }\n"
+		"int main()\n"
+		"{\n"
+		"	long*	p;\n"
+		"	char*	apc[200];\n"
+		"	char*	pcLarge;\n"
+		"	char*	pcAgain;\n"
+		"	char*	pc;\n"
+		"	int		iBad;\n"
+		"	int		i;\n"
+		"	p = (long*)0x100000;\n"
+		"	iBad = 0;\n"
+		"	for (i = 0; i < 200; i++)\n"
+		"	{\n"
+		"		apc[i] = (char*)malloc(1000 + i);\n"
+		"		if (!apc[i] || !InOneBank(apc[i], 1000 + i))\n"
+		"		{\n"
+		"			iBad++;\n"
+		"		}\n"
+		"	}\n"
+		"	*p++ = iBad;\n"
+		"	*p++ = ((unsigned long)apc[199] >> 16) > ((unsigned long)apc[0] >> 16);\n"
+		"	pcLarge = (char*)malloc32(0x30000);\n"
+		"	*p++ = (pcLarge != NULL) && (((unsigned long)pcLarge & 0xFFFF) == 0) && ((unsigned long)pcLarge >= 0xD0000);\n"
+		"	pcLarge[0] = 1;\n"
+		"	pcLarge[0x2FFFF] = 2;\n"
+		"	free(pcLarge);\n"
+		"	for (i = 0; i < 200; i++)\n"
+		"	{\n"
+		"		free(apc[i]);\n"
+		"	}\n"
+		"	pcLarge = (char*)malloc32(0x70000);\n"
+		"	*p++ = (unsigned long)pcLarge;\n"
+		"	free(pcLarge);\n"
+		"	*p++ = malloc32(0x80000) == NULL;\n"
+		"	pc = (char*)malloc(1000);\n"
+		"	memset(pc, 0x5A, 1000);\n"
+		"	pcLarge = (char*)realloc32(pc, 100000);\n"
+		"	*p++ = (pcLarge != NULL) && (((unsigned long)pcLarge & 0xFFFF) == 0) && (pcLarge[0] == 0x5A) && (pcLarge[999] == 0x5A);\n"
+		"	pcLarge[99999] = 7;\n"
+		"	pcAgain = (char*)realloc32(pcLarge, 120000);\n"
+		"	*p++ = (pcAgain == pcLarge) && (pcAgain[99999] == 7);\n"
+		"	pc = (char*)realloc(pcAgain, 500);\n"
+		"	*p++ = (pc != NULL) && InOneBank(pc, 500) && (pc[0] == 0x5A) && (pc[499] == 0x5A);\n"
+		"	free(pc);\n"
+		"	pc = (char*)malloc(0xFFFF);\n"
+		"	*p++ = (pc != NULL) && (((unsigned long)pc & 0xFFFF) == 0);\n"
+		"	free(pc);\n"
+		"	pcLarge = (char*)malloc32(0x70000);\n"
+		"	*p++ = (unsigned long)pcLarge;\n"
+		"	return 0;\n"
+		"}\n"));
+	AssertTrue(TestLibc65Run(&sRun, 20000000));
+
+	AssertInt(0, TestLibc65Result(&sRun, 0));
+	AssertInt(1, TestLibc65Result(&sRun, 1));
+	AssertInt(1, TestLibc65Result(&sRun, 2));
+	AssertInt(0x90000, TestLibc65Result(&sRun, 3));
+	for (i = 4; i < 9; i++)
+	{
+		AssertInt(1, TestLibc65Result(&sRun, i));
+	}
+	AssertInt(0x90000, TestLibc65Result(&sRun, 9));
 
 	TestLibc65End(&sRun);
 }
@@ -715,6 +821,7 @@ void TestLibc65Stdlib(void)
 	TestLibc65StdlibAllocation();
 	TestLibc65StdlibAllocationOverflow();
 	TestLibc65StdlibFragmentation();
+	TestLibc65StdlibBanks();
 	TestLibc65StdlibExit();
 	TestLibc65StdlibUnderscoreExit();
 	TestLibc65StdlibAtExit();

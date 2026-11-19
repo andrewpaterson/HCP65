@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////////////////////
 //
 // The sizes the 65C64's headers promise: char 8 bits, short 16, int and long 32, long long 64, pointers 32.  The
-// W65C816's int is 16 bits.
+// W65C816's int and size_t are 16 bits (ptrdiff_t stays 32).
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65LimitsSizes(void)
@@ -58,7 +58,7 @@ void TestLibc65LimitsSizes(void)
 
 	for (i = 0; i < sizeof(aiExpected) / sizeof(int32); i++)
 	{
-		AssertInt(((i == 2) && (geTestLibc65Target == CPPT_W65C816)) ? 2 : aiExpected[i], TestLibc65Result(&sRun, i));
+		AssertInt((((i == 2) || (i == 6)) && (geTestLibc65Target == CPPT_W65C816)) ? 2 : aiExpected[i], TestLibc65Result(&sRun, i));
 	}
 
 	TestLibc65End(&sRun);
@@ -67,8 +67,8 @@ void TestLibc65LimitsSizes(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The limits' values, and that the types really wrap at them.  The W65C816's INT_MIN, INT_MAX and UINT_MAX are
-// 16 bits'.
+// The limits' values, and that the types really wrap at them.  The W65C816's INT_MIN, INT_MAX, UINT_MAX and
+// SIZE_MAX are 16 bits'.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65LimitsValues(void)
@@ -174,6 +174,10 @@ void TestLibc65LimitsValues(void)
 		if ((geTestLibc65Target == CPPT_W65C816) && (i >= 9) && (i < 12))
 		{
 			iExpected = aiExpectedW65C816[i - 9];
+		}
+		if ((geTestLibc65Target == CPPT_W65C816) && (i == 36))
+		{
+			iExpected = 65535;  //SIZE_MAX: size_t is 16 bits.
 		}
 		AssertInt(iExpected, TestLibc65Result(&sRun, i));
 	}

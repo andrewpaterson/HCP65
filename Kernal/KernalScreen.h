@@ -10,8 +10,8 @@
 //that process's (the console draws nothing) until it sets text again or ends, when the console has its text back, or
 //the board is turned off and let go if the console isn't on it.
 //
-//The Video Board's driver draws what is asked.  This is where a Blitter Board's driver will be given a blit to do
-//instead.
+//The Video Board's driver draws what is asked.  A blit's runs are copies in main memory (KernalMainCopy,
+//KernalDriver.h), which a Blitter Board makes if there is one.
 class CKernalScreen
 {
 protected:

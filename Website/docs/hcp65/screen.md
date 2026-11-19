@@ -70,5 +70,37 @@ An SFT pixel is a colour with red in bits 0 to 2, green in bits 3 to 5 and blue 
 
 What isn't an image, or is cut short, is `KERNAL_DEVICE_BAD_ARGUMENT`.
 
-The Video Board's driver draws the blit in software.  The screen call is where a Blitter Board's
-driver will be given it instead.
+The Video Board's driver draws a blit as copies in main memory, one for each run of the image's
+pixels inside the clip rectangle.  With a Blitter Board in the computer (its driver is
+`\OS\Drivers\BLITTER.DRV`) the longer copies are the board's: it copies a byte in two processor
+cycles, and leaves a mixed run's transparent pixels out itself, but its registers take time to
+write, so the processor makes the copies under 15 pixels (9 of a mixed run).  Without a board the
+processor makes them all, and what is drawn is the same.
+
+The console's text uses the board the same way: the processor draws a glyph's runs, which are
+short (the board would draw one of eight pixels or more), and the board clears a row, or the
+screen, a line at a time from a line of zeros the driver keeps in main memory.
+
+## The Blitter Board
+
+The board copies bytes from one place in main memory to another, as the main bus's master: a read
+then a write for each, two processor cycles a byte.  The processor mustn't touch main memory until
+the copy is done.  Its registers, from `$400` in its slot:
+
+| Offset | Write | Read |
+|---|---|---|
+| 0 | Flags: bit 0 transparency, bit 6 enable, bit 7 interrupt enable | Flags: bits 0 to 5, bit 6 enable, bit 7 interrupt pending |
+| 1 | Clear interrupt | |
+| 2 | Transparent colour | Transparent colour |
+| 4, 5, 6 | Destination address: low, high, bank | |
+| 7 | Start | |
+| 8, 9, 10 | Source address: low, high, bank | |
+| 12, 13 | Count start: low, high | The count: low, high (the high byte is kept as the low is read) |
+| 14, 15 | Count stop: low, high | |
+
+Start loads the count with its start and copies bytes, stepping the count and both addresses, until
+the count is its stop: stop less start bytes.  The addresses are left just past the last byte.  With
+transparency on, a byte that is the transparent colour is read but not written.  The bytes go in
+order, lowest first.
+
+The emulator's board is the board as it is meant to work; the schematic as drawn has faults.

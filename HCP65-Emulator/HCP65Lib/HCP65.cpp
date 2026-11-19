@@ -509,6 +509,49 @@ void CHCP65::SetMainMemoryBusy(uint64 uiUntil)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The byte at uiPhysical in main memory as a device that has the main bus
+// reads it (a board's DMA): $FF where no chip answers, or once contention
+// has shut main memory off.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8 CHCP65::ReadMainAsMaster(uint32 uiPhysical)
+{
+	uint8*	puiBank;
+
+	puiBank = mapuiMainBanks[(uiPhysical >> 16) & 0xFF];
+	return (!mbContention && puiBank) ? puiBank[uiPhysical & 0xFFFF] : 0xFF;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A device that has the main bus writes uiValue at uiPhysical: as the
+// processor's write, a watched chip's board is given it.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65::WriteMainAsMaster(uint32 uiPhysical, uint8 uiValue)
+{
+	uint8*	puiBank;
+	uint32	uiBank;
+
+	uiBank = (uiPhysical >> 16) & 0xFF;
+	puiBank = mapuiMainBanks[uiBank];
+	if (!mbContention && puiBank)
+	{
+		if (mapcWatchedBanks[uiBank])
+		{
+			mapcWatchedBanks[uiBank]->WriteMemoryChip(mauiWatchedChips[uiBank], ((uint32)mauiWatchedBanks[uiBank] << 16) | (uiPhysical & 0xFFFF), uiValue);
+		}
+		else
+		{
+			puiBank[uiPhysical & 0xFFFF] = uiValue;
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65::IsContention(void) const
