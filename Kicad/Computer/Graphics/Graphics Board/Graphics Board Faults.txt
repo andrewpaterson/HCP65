@@ -196,6 +196,22 @@ HCP65 Graphics Board - schematic faults
 
    Fix: AD15 on B16 pin 18 and AD16 on pin 19.
 
+13. AD15 and AD16 float in a 32KB socket
+
+   This is a 128KB only board: its offsets are above $07FFF in the slot.  It
+   fits a 32KB socket all the same, and a 32KB socket has nothing on AD15 and
+   AD16 (the Small Mainboard's sockets 3 and 4 leave J5 A19 and A20
+   unconnected).  Here they go only to the Device Buffer's inputs (B16 pins
+   18 and 19), which the Blitter Board, a 32KB board, grounds.
+
+   Effect: in a 32KB socket the board's A15 and A16 are unknown, so its ROM
+   and registers may or may not answer, and it can answer with an offset
+   memory anywhere in the slot.
+
+   Fix: a gentle pull down (10K to GND) on each of AD15 and AD16.  In a 32KB
+   socket both are then low: the ROM, which says the board needs a 128KB
+   socket, and the registers answer, and the offsets don't.
+
 Also, not wiring faults but what the board does as drawn:
 
   - ~{Done} is a level: it stays low while the count is the stop count.
@@ -218,12 +234,6 @@ Also, not wiring faults but what the board does as drawn:
     the room on that board to route them.  So the source address is whatever
     was last written after a reset and unknown after power on, where the
     Blitter Board's is 0: a driver writes it before each copy.
-  - The board needs a 128KB socket.  A 32KB socket has nothing on AD15 and
-    AD16 (the Small Mainboard's sockets 3 and 4 leave J5 A19 and A20
-    unconnected), and here they go to the Device Buffer's inputs, which then
-    float: the Blitter Board grounds those inputs.  With them floating the
-    board's A15 and A16 are unknown, and the ROM, the registers and the
-    offsets may or may not answer.
   - The offset is 16 bits and never negative (the Adder 8bit's other inputs
     are grounded): a byte is read from the source address plus the table's
     entry for the count, which is at most 65535 past it.
