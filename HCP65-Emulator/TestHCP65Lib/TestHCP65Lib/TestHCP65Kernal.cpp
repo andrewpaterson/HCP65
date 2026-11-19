@@ -2940,7 +2940,8 @@ static int TestLCDLine(CHCP65LCDBoard* pcLCD, char* szLine)
 // Its driver is loaded from \OS\Drivers\LCD.DRV and sets the display up:
 // on, two lines, blank.  lcdtest (\LCDTEST.EXE, LCDTest.cpp) bounces
 // HCP65 along the first line, a character at a time, from column 0 to 11
-// and back; a key ends it and the display is cleared.  The driver never
+// and back (a line is looked at as it is being written now and then: it is
+// skipped); a key ends it and the display is cleared.  The driver never
 // gives the display anything while it is busy.  sprites' Maki is walked
 // by the first SNES controller.
 //
@@ -2957,6 +2958,7 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 	int					iColumn;
 	int					iLast;
 	int					iMax;
+	int					iTorn;
 	bool				bBack;
 	uint8*				puiStage;
 	int					iStart;
@@ -3004,6 +3006,7 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 	TestConsoleType(&sConsole, "lcdtest\r");
 	iLast = -1;
 	iMax = -1;
+	iTorn = 0;
 	bBack = false;
 	for (i = 0; (i < 4000) && !bBack; i++)
 	{
@@ -3018,7 +3021,13 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 			}
 			continue;
 		}
-		AssertTrue((iColumn >= 0) && (iColumn <= HCP65_LCD_COLUMNS - 5));
+		if (iColumn == -1)
+		{
+			//The line is being written, a character at a time.
+			iTorn++;
+			continue;
+		}
+		AssertTrue(iColumn <= HCP65_LCD_COLUMNS - 5);
 		AssertTrue((iColumn == iLast) || (iColumn == iLast + 1) || (iColumn == iLast - 1));
 		if (iColumn > iMax)
 		{
@@ -3033,6 +3042,7 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 	}
 	AssertTrue(bBack);
 	AssertInt(10, iLast);
+	AssertTrue(iTorn < 10);
 
 	//A key ends it, and the display is blank again.
 	TestConsoleType(&sConsole, " ");
