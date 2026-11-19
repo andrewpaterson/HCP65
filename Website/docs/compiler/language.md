@@ -79,9 +79,13 @@ checked.
 ### BaseLib's `size` and `lsize`
 
 BaseLib counts and measures with its own `size` and `lsize` types (`BaseLib/PrimitiveTypes.h`).
-`size` is `size_t`; `lsize` is for what can pass 64KB, and BaseLib's `Memory32.h` gives `memcpy32`,
-`malloc32` and the others on every target for its counts (Libc65's on the W65C816, the plain
-functions elsewhere):
+`size` is `size_t`; `lsize` is for what can pass 64KB.  A call doesn't say which function it wants:
+on the W65C816 `memcpy`, `memmove`, `memset`, `memcmp`, `memchr`, `malloc`, `calloc` and `realloc`
+called with an `lsize` count (or a `long`, or a constant made with `KB` or `MB`) are Libc65's
+`memcpy32`, `malloc32` and the others, chosen by the count's type by overloads in
+`PrimitiveTypes.h`; with a `size`, a `size_t` or a `sizeof` they are the C library's own.
+`Memory32.h` has the 32 suffixed names on every target for the few places that name them, and
+`strlen32`, a string's whole length:
 
 | Type | W65C816 | 65C64 | Notes |
 |---|---|---|---|
