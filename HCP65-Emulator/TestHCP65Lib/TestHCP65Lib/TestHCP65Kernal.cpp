@@ -23,6 +23,7 @@
 #include "HCP65Lib/HCP65PS2.h"
 #include "HCP65Lib/HCP65PS2Keyboard.h"
 #include "HCP65Lib/HCP65Blitter.h"
+#include "HCP65Lib/HCP65Graphics.h"
 #include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Mainboard.h"
@@ -94,6 +95,8 @@
 #define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
 #define TEST_HCP65_BLITTER_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "BlitterBoard" _FS_ "HCP65BlitterBoard.vcxproj"
 #define TEST_HCP65_BLITTER_DRIVER_PATH	"\\OS\\Drivers\\BLITTER.DRV"
+#define TEST_HCP65_GRAPHICS_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "GraphicsBoard" _FS_ "HCP65GraphicsBoard.vcxproj"
+#define TEST_HCP65_GRAPHICS_DRIVER_PATH	"\\OS\\Drivers\\GRAPHICS.DRV"
 
 //The test's machine is fast enough that modplay.exe never runs out of samples, so what it plays is exactly what the host
 //renders.
@@ -127,6 +130,7 @@
 #define TEST_HCP65_PS2_SOCKET		3
 #define TEST_HCP65_VIDEO_SOCKET		16
 #define TEST_HCP65_BLITTER_SOCKET	17
+#define TEST_HCP65_GRAPHICS_SOCKET	19
 #define TEST_HCP65_MEMORY_SOCKET	18			//The Memory Board (socket V): window 1, $400000 to $7FFFFF.
 #define TEST_HCP65_PRIVATE_SOCKET	3			//A private board (socket X), scanned before the Memory Board.
 #define TEST_HCP65_SOCKET_V			3			//The main memory channel's sockets, S to Z.
@@ -1714,6 +1718,7 @@ static bool TestKernalPutSystemFiles(void)
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_PS2_DRIVER_PATH, TEST_HCP65_PS2_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDEO_DRIVER_PATH, TEST_HCP65_VIDEO_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_BLITTER_DRIVER_PATH, TEST_HCP65_BLITTER_DRIVER);
+	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_GRAPHICS_DRIVER_PATH, TEST_HCP65_GRAPHICS_DRIVER);
 	bResult = bResult && TestKernalPutDriver(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_SOUND_DRIVER_PATH, TEST_HCP65_SOUND_DRIVER);
 	bResult = bResult && TestKernalPutTables(TEST_HCP65_SYSTEM_CARD_IMAGE);
 	bResult = bResult && FatPutDiskFileOnImage(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_FONT_PATH, TEST_HCP65_FONT);
@@ -2558,8 +2563,10 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The console's machine with a Blitter Board too (Machines/Blitter.xml):
-// its driver is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
+// The console's machine with a Blitter Board and a Graphics Board too
+// (Machines/Blitter.xml).  The Graphics Board's driver is loaded from
+// \OS\Drivers\GRAPHICS.DRV and enables it; nothing draws with it yet.  The
+// Blitter Board's is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
 // are long enough are the board's, not the processor's: the screen's and
 // a row's clearing, and sprites' tiles.  The text and the picture are the
 // same, and the processor never touches main memory while the board has
@@ -2572,6 +2579,7 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	STestKernalStatus	sStatus;
 	CHCP65SDCard*		pcSDCard;
 	CHCP65BlitterBoard*	pcBlitter;
+	CHCP65GraphicsBoard*	pcGraphics;
 	CChars				szScreen;
 	uint64				uiText;
 	int					i;
@@ -2597,17 +2605,20 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	sConsole.pcVideo = (CHCP65VideoBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_VIDEO_SOCKET, HCP65_VIDEO_BOARD_NAME);
 	sConsole.pcPS2 = (CHCP65PS2Board*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_PS2_SOCKET, HCP65_PS2_BOARD_NAME);
 	pcBlitter = (CHCP65BlitterBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_BLITTER_SOCKET, HCP65_BLITTER_NAME);
+	pcGraphics = (CHCP65GraphicsBoard*)TestKernalBoard(&sConsole.cMainboard, TEST_HCP65_GRAPHICS_SOCKET, HCP65_GRAPHICS_NAME);
 	sConsole.cKeyboard.Init();
 	sConsole.cKeyboard.Attach(sConsole.pcPS2->GetPort(0));
 	sConsole.pcPS2->GetPort(1)->SetPlugged(false);
 	TestKernalStart(&sConsole.cHCP65, psKernal);
 
-	//The board's driver is loaded and has enabled it.
+	//The boards' drivers are loaded and have enabled them.
 	szScreen.Init();
 	AssertTrue(TestConsoleRunUntil(&sConsole, TEST_HCP65_SHELL_BANNER "\n/ $\n", &szScreen));
 	TestKernalReadStatus(sConsole.cHCP65.GetMPURAM(), sConsole.uiStatus, &sStatus);
-	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET), sStatus.uiLoadedDrivers);
+	AssertInt((1 << TEST_HCP65_VIDEO_SOCKET) | (1 << TEST_HCP65_PS2_SOCKET) | (1 << TEST_HCP65_BLITTER_SOCKET) | (1 << TEST_HCP65_GRAPHICS_SOCKET), sStatus.uiLoadedDrivers);
 	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcBlitter->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
+	AssertInt(HCP65_BLITTER_FLAG_ENABLE, pcGraphics->Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS) & HCP65_BLITTER_FLAG_ENABLE);
+	AssertFalse(pcGraphics->IsCopying());
 
 	//The screen was cleared by the board, a line at a time (640 by 480 and a row more).  The banner's glyphs' runs are
 	//too short for it: only a run of all eight pixels is the board's.

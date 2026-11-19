@@ -155,7 +155,8 @@ HCP65 Graphics Board - schematic faults
    both its bytes written.
 
    Fix: 32KB of the device's addresses for each memory (selected by A15 and
-   A16, with A14 only an address).
+   A16, with A14 only an address).  The emulated board has B2 at $08000-$0FFFF
+   and B3 at $10000-$17FFF, where the Video Board has its first two palettes.
 
 11. The count steps as a write begins, so the last write is cut short
 
@@ -189,9 +190,17 @@ Also, not wiring faults but what the board does as drawn:
     write half (the holding latch's outputs are enabled by ~{Write}), while
     the comparator that decides transparency is reading it.
   - The count is 15 bits: C15 isn't connected and the comparator's C15 is
-    grounded, so a stop count with bit 15 set is never reached.
+    grounded, so a stop count with bit 15 set is never reached.  The emulated
+    board ignores bit 15 of the start and stop counts.
   - There is no wait for ~{Main Access}: without it the counts go on and the
     bytes are skipped.
+  - Reset doesn't clear the source address.  It is B13, a Register 24bit with
+    IO, whose registers are three 74LVC573 latches: they have no clear, and
+    the board has no reset pin (~{Reset} goes only to B12 and B5).  Registers
+    that clear (74LVC273s) don't have the 573's pins in a row and there isn't
+    the room on that board to route them.  So the source address is whatever
+    was last written after a reset and unknown after power on, where the
+    Blitter Board's is 0: a driver writes it before each copy.
   - The offset is 16 bits and never negative (the Adder 8bit's other inputs
     are grounded): a byte is read from the source address plus the table's
     entry for the count, which is at most 65535 past it.

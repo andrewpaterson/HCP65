@@ -66,6 +66,7 @@ protected:
 	bool		mbCopying;
 	uint64		muiCopyStart;			//The CPU cycle the copy's next byte starts.
 	uint64		muiTotalCopied;			//Bytes copied by every copy.
+	uint16		muiCountMask;			//The count's bits: all 16 here.
 
 public:
 	void	Init(void);
@@ -85,8 +86,10 @@ public:
 	uint64	NumBytesCopied(void) const;
 
 protected:
-	uint8	ReadRegister(uint32 uiRegister);
-	void	WriteRegister(uint32 uiRegister, uint8 uiValue);
+	void			InitBlitter(uint32 uiSlotSize, uint16 uiCountMask);
+	virtual uint8	ReadRegister(uint32 uiRegister);
+	virtual void	WriteRegister(uint32 uiRegister, uint8 uiValue);
+	virtual uint8	ReadSource(void);
 	void	WriteFlags(uint8 uiValue);
 	void	Start(void);
 	uint64	CopyEnd(void) const;

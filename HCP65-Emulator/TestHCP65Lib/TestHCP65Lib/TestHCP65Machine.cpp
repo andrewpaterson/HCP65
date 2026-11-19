@@ -17,6 +17,7 @@
 #include "HCP65Lib/HCP65Terminal.h"
 #include "HCP65Lib/HCP65Video.h"
 #include "HCP65Lib/HCP65Blitter.h"
+#include "HCP65Lib/HCP65Graphics.h"
 #include "TestLib/Assert.h"
 
 
@@ -760,6 +761,7 @@ void TestHCP65DeviceROMFromSchematic(void)
 	CHCP65PS2Board		cPS2;
 	CHCP65VideoBoard	cVideo;
 	CHCP65BlitterBoard	cBlitter;
+	CHCP65GraphicsBoard	cGraphics;
 	CChars				szError;
 
 	DataMemoryInit();
@@ -821,6 +823,18 @@ void TestHCP65DeviceROMFromSchematic(void)
 	AssertSize(18, cSchematic.NumRegisters());
 	cSchematic.Kill();
 	cBlitter.Kill();
+
+	//The Graphics Board's emulated ROM is the schematic's.
+	cGraphics.Init();
+	cSchematic.Init();
+	TestHCP65DeviceROMSchematicMatches(TEST_HCP65_KICAD _FS_ "Graphics" _FS_ "Graphics Board" _FS_ "Graphics Board.kicad_sch", &cGraphics, &cSchematic);
+	AssertString("Graphics Board", cSchematic.GetName());
+	AssertString("GRAPHICS.DRV", cSchematic.GetDriver());
+	AssertInt(DEVICE_BUS_128KB, cSchematic.GetDeviceBus());
+	AssertInt(DEVICE_MAIN_BUS_MASTER, cSchematic.GetMainBus());
+	AssertSize(21, cSchematic.NumRegisters());
+	cSchematic.Kill();
+	cGraphics.Kill();
 
 	//The PS2 Board: its name from its device ROM chip's ROM_Name (the title block's is "PS2 Board PS2"), and its
 	//registers' names without KiCad's markup (the nets are "PS2 FIFO_{ 1}" and "Clear Interrupt _{1}").
@@ -1181,7 +1195,9 @@ void TestHCP65MainboardChangeBoards(void)
 	AssertInt(2, ((CHCP65SDCard*)pcSDCard)->NumSectors(1));
 
 	//What fits where.  Sockets 3 and 4 are 32KB, 5, 6 and 7 aren't on the Small Mainboard.
-	AssertSize(8, CHCP65Mainboard::NumBoardTypes());
+	AssertSize(9, CHCP65Mainboard::NumBoardTypes());
+	AssertFalse(cMainboard.CanHold(3, HCP65_GRAPHICS_NAME));
+	AssertTrue(cMainboard.CanHold(16, HCP65_GRAPHICS_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_SD_NAME));
 	AssertTrue(cMainboard.CanHold(3, HCP65_MEMORY_BOARD_NAME));
 	AssertFalse(cMainboard.CanHold(3, HCP65_AUDIO_NAME));
@@ -2634,6 +2650,172 @@ void TestHCP65BlitterBoard(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The Graphics Board on its own: a Blitter Board whose bytes are read from
+// the source address + the offset its table has for the count.  The
+// offsets are device RAM, the processor's while no copy is under way; the
+// source address isn't changed by a copy or a reset and can be read; the
+// count is 15 bits.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65GraphicsBoard(void)
+{
+	CHCP65				cHCP65;
+	CHCP65MemoryBoard	cMemory;
+	CHCP65GraphicsBoard	cGraphics;
+	uint8*				puiSource;
+	uint8*				puiDest;
+	int					i;
+
+	static const uint8 auiKernal[] = {
+		0x18, 0xFB,					//8000 clc  xce
+		0x80, 0xFE };				//8002 bra $8002
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	TestHCP65AddMemory(&cHCP65, &cMemory);
+	cGraphics.Init();
+	AssertTrue(cHCP65.SetDevice(16, &cGraphics));
+	TestHCP65Program(&cHCP65, auiKernal, sizeof(auiKernal));
+	cHCP65.Reset();
+	cHCP65.Run(100);
+	cGraphics.SetHeldInReset(false);
+
+	AssertInt(0x1A, cGraphics.Read(0));		//The device ROM's magic, $C0DAFE1A.
+	AssertInt(0xFF, cGraphics.Read(0x800));
+	AssertInt(0xFF, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_LOW - 1));
+	AssertInt(0xFF, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_HIGH + HCP65_GRAPHICS_OFFSETS));
+
+	//The offsets: low bytes at $08000, high bytes at $10000.
+	AssertInt(0, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_LOW + 5));
+	cGraphics.Write(HCP65_GRAPHICS_OFFSETS_LOW + 5, 0x34);
+	cGraphics.Write(HCP65_GRAPHICS_OFFSETS_HIGH + 5, 0x12);
+	AssertInt(0x34, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_LOW + 5));
+	AssertInt(0x12, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_HIGH + 5));
+	AssertInt(0x1234, cGraphics.GetOffset(5));
+	cGraphics.Write(HCP65_GRAPHICS_OFFSETS_LOW + 0x7FFF, 0xCD);
+	cGraphics.Write(HCP65_GRAPHICS_OFFSETS_HIGH + 0x7FFF, 0xAB);
+	AssertInt(0xABCD, cGraphics.GetOffset(0x7FFF));
+	AssertInt(0, cGraphics.GetOffset(0));
+
+	//The source address can be read.
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_SOURCE_LOW, 0x201000);
+	AssertInt(0x00, cGraphics.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_SOURCE_LOW));
+	AssertInt(0x10, cGraphics.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_SOURCE_HIGH));
+	AssertInt(0x20, cGraphics.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_SOURCE_BANK));
+
+	//Eight bytes backwards: offsets 7 down to 0 at counts 16 to 23.  The source address stays; the destination steps.
+	puiSource = TestHCP65Main(&cHCP65, 0x201000);
+	puiDest = TestHCP65Main(&cHCP65, 0x230000);
+	for (i = 0; i < 16; i++)
+	{
+		puiSource[i] = (uint8)(0x40 + i);
+		cGraphics.SetOffset((uint16)(16 + i), (uint16)(7 - i));
+	}
+	memset(puiDest, 0xEE, 16);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE);
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_DEST_LOW, 0x230000);
+	TestHCP65BlitterCount(&cGraphics, 16, 24);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertTrue(cGraphics.IsCopying());
+	AssertLong((int64)(cHCP65.NumCycles() + 16), (int64)cGraphics.NextEvent());
+
+	//While it copies the offsets are the board's, and the source address still takes a write.
+	AssertInt(0xFF, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_LOW + 5));
+	cGraphics.Write(HCP65_GRAPHICS_OFFSETS_LOW + 5, 0x99);
+	cHCP65.Run(100);
+	AssertFalse(cGraphics.IsCopying());
+	AssertFalse(cHCP65.IsContention());
+	AssertInt(0x34, cGraphics.Read(HCP65_GRAPHICS_OFFSETS_LOW + 5));
+	for (i = 0; i < 8; i++)
+	{
+		AssertInt(0x47 - i, puiDest[i]);
+	}
+	AssertInt(0xEE, puiDest[8]);
+	AssertInt(0x201000, cGraphics.GetSource());
+	AssertInt(0x230008, cGraphics.GetDest());
+	AssertInt(24, TestHCP65BlitterReadCount(&cGraphics));
+	AssertLong(8, (int64)cGraphics.NumBytesCopied());
+
+	//Stretched to twice as wide, without the transparent colour: offsets 0, 0, 1, 1...  The offset carries into the
+	//bank: the source address is 4 below a bank's end.
+	puiSource = TestHCP65Main(&cHCP65, 0x24FFFC);
+	puiDest = TestHCP65Main(&cHCP65, 0x260000);
+	for (i = 0; i < 8; i++)
+	{
+		puiSource[i] = (uint8)((i == 2) ? 0x77 : (0x10 + i));
+		cGraphics.SetOffset((uint16)(2 * i), (uint16)i);
+		cGraphics.SetOffset((uint16)(2 * i + 1), (uint16)i);
+	}
+	memset(puiDest, 0xEE, 32);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_TRANSPARENT_COLOUR, 0x77);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE | HCP65_BLITTER_FLAG_TRANSPARENCY);
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_SOURCE_LOW, 0x24FFFC);
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_DEST_LOW, 0x260000);
+	TestHCP65BlitterCount(&cGraphics, 0, 16);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	for (i = 0; i < 16; i++)
+	{
+		AssertInt(((i / 2) == 2) ? 0xEE : (0x10 + i / 2), puiDest[i]);
+	}
+	AssertInt(0xEE, puiDest[16]);
+
+	//An offset is 16 bits and never negative: $FFFF is 65535 past the source address.
+	*TestHCP65Main(&cHCP65, 0x24FFFC + 0xFFFF) = 0x5A;
+	cGraphics.SetOffset(100, 0xFFFF);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE);
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_DEST_LOW, 0x260000);
+	TestHCP65BlitterCount(&cGraphics, 100, 101);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	cHCP65.Run(100);
+	AssertInt(0x5A, puiDest[0]);
+
+	//The count is 15 bits: bit 15 of its start and stop is ignored, and it wraps from 32767 to 0.
+	puiSource = TestHCP65Main(&cHCP65, 0x201000);
+	cGraphics.SetOffset(32766, 3);
+	cGraphics.SetOffset(32767, 2);
+	cGraphics.SetOffset(0, 1);
+	cGraphics.SetOffset(1, 0);
+	memset(puiDest, 0xEE, 8);
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_SOURCE_LOW, 0x201000);
+	TestHCP65BlitterAddress(&cGraphics, HCP65_BLITTER_DEST_LOW, 0x260000);
+	TestHCP65BlitterCount(&cGraphics, 0xFFFE, 0x8002);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertLong((int64)(cHCP65.NumCycles() + 8), (int64)cGraphics.NextEvent());
+	cHCP65.Run(100);
+	AssertFalse(cGraphics.IsCopying());
+	AssertInt(0x43, puiDest[0]);
+	AssertInt(0x42, puiDest[1]);
+	AssertInt(0x41, puiDest[2]);
+	AssertInt(0x40, puiDest[3]);
+	AssertInt(0xEE, puiDest[4]);
+	AssertInt(2, TestHCP65BlitterReadCount(&cGraphics));
+
+	//The interrupt when a copy is done, as the Blitter Board's.
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS, HCP65_BLITTER_FLAG_ENABLE | HCP65_BLITTER_FLAG_INTERRUPT);
+	TestHCP65BlitterCount(&cGraphics, 0, 4);
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_START, 0);
+	AssertFalse(cGraphics.IsInterrupting());
+	cHCP65.Run(100);
+	AssertTrue(cGraphics.IsInterrupting());
+	cGraphics.Write(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_CLEAR_INTERRUPT, 0);
+	AssertFalse(cGraphics.IsInterrupting());
+
+	//A reset clears the flags, the destination address and the count, not the source address or the offsets.
+	cGraphics.Reset();
+	AssertInt(0, cGraphics.Read(HCP65_BLITTER_REGISTERS + HCP65_BLITTER_FLAGS));
+	AssertInt(0x201000, cGraphics.GetSource());
+	AssertInt(0, cGraphics.GetDest());
+	AssertInt(0, TestHCP65BlitterReadCount(&cGraphics));
+	AssertInt(0xFFFF, cGraphics.GetOffset(100));
+
+	cHCP65.Kill();
+	cGraphics.Kill();
+	cMemory.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestHCP65Machine(void)
@@ -2660,6 +2842,7 @@ void TestHCP65Machine(void)
 	TestHCP65PS2Interrupt();
 	TestHCP65VideoBoard();
 	TestHCP65BlitterBoard();
+	TestHCP65GraphicsBoard();
 	TestHCP65Timer();
 	TestHCP65Contention();
 	TestHCP65MemoryFill();

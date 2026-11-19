@@ -156,6 +156,8 @@ _gauiKernalExports:
 		; Main memory's copies (KernalDriver.h).
 		.long Export_gpuiKernalBlitter
 		.long _gpuiKernalBlitter
+		.long Export_gpuiKernalGraphics
+		.long _gpuiKernalGraphics
 		.long Export_KernalMainCopy__FPhPKhtt_axssy
 		.long _KernalMainCopy__FPhPKhjj.axssy
 KernalExportsEnd:
@@ -302,5 +304,7 @@ Export_KernalMainFree__FPv_ax:
 		.byte "_KernalMainFree__FPv.ax", 0
 Export_gpuiKernalBlitter:
 		.byte "_gpuiKernalBlitter", 0
+Export_gpuiKernalGraphics:
+		.byte "_gpuiKernalGraphics", 0
 Export_KernalMainCopy__FPhPKhtt_axssy:
 		.byte "_KernalMainCopy__FPhPKhjj.axssy", 0

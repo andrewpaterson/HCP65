@@ -96,6 +96,10 @@ void			KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, ui
 //but the count's start, which stays 0.
 extern "C" volatile uint8*	gpuiKernalBlitter;
 
+//The Graphics Board's registers while its driver is loaded, NULL when it isn't: its driver sets it.  Its offsets are
+//device RAM in the same slot (Drivers/GraphicsBoard/GraphicsBoard.h has where).
+extern "C" volatile uint8*	gpuiKernalGraphics;
+
 uint16			KernalStartDriver(CKernalDriver* pcDriver, uint16 uiSlot);
 CKernalDriver*	KernalGetDriver(uint16 uiSlot);
 CKernalDriver*	KernalFindDriver(const char* szManufacturer, const char* szName, uint16 uiIndex);

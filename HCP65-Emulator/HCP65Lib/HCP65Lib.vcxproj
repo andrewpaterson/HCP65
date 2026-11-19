@@ -33,6 +33,7 @@
     <ClCompile Include="HCP65Terminal.cpp" />
     <ClCompile Include="HCP65Video.cpp" />
     <ClCompile Include="HCP65Blitter.cpp" />
+    <ClCompile Include="HCP65Graphics.cpp" />
     <ClCompile Include="HCP65VIA.cpp" />
     <ClCompile Include="HCP65MemoryBoard.cpp" />
     <ClCompile Include="HCP65Mainboard.cpp" />
@@ -52,6 +53,7 @@
     <ClInclude Include="HCP65Terminal.h" />
     <ClInclude Include="HCP65Video.h" />
     <ClInclude Include="HCP65Blitter.h" />
+    <ClInclude Include="HCP65Graphics.h" />
     <ClInclude Include="HCP65VIA.h" />
     <ClInclude Include="HCP65MemoryBoard.h" />
     <ClInclude Include="HCP65Mainboard.h" />

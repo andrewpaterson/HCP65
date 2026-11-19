@@ -140,6 +140,7 @@ The HCP65's own boards have the manufacturer `HCP65`:
 | `VIA Board` | 32KB | Doesn't use it | `VIA.DRV` |
 | `PS2 Board` | 32KB | Doesn't use it | `PS2.DRV` |
 | `Blitter Board` | 32KB | Drives it (copies in main memory) | `BLITTER.DRV` |
+| `Graphics Board` | 128KB | Drives it (copies in main memory) | `GRAPHICS.DRV` |
 | `Memory Board` | 32KB | Windows A and B: it is 4MB of main memory | none: the kernel sets its window |
 | `Coprocessor Board` | 32KB | Windows A and B, private: the coprocessors' 4MB | `COPROC.DRV` |
 | `Video Board` | 128KB | Windows A and B, private: its video memory | `VIDEO.DRV` |

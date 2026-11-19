@@ -104,3 +104,27 @@ transparency on, a byte that is the transparent colour is read but not written. 
 order, lowest first.
 
 The emulator's board is the board as it is meant to work; the schematic as drawn has faults.
+
+## The Graphics Board
+
+The Graphics Board is a Blitter Board whose source bytes needn't be in order, for drawing a sprite
+stretched, shrunk or backwards.  The destination steps a byte at a time as the Blitter Board's does,
+but each byte is read from the source address plus an offset, which the board looks up by the count
+in a table the processor has written.  The offsets 0, 0, 1, 1, 2, 2... draw a row twice as wide;
+0, 2, 4... half as wide; 7, 6, 5... backwards.  A table is for a scale, not for a sprite: the source
+address is set to each row's first byte, and as the count has a start, several tables can be kept
+at once.
+
+Its registers are the Blitter Board's, at the same offsets, with these differences:
+
+- The source address (8, 9, 10) can be read as well as written.  A copy doesn't change it, and a
+  reset doesn't clear it.
+- The count is 15 bits: bit 15 of its start and stop is ignored, and it wraps from 32767 to 0.
+
+The offsets are 16 bits and unsigned, so a byte is read from at most 65535 past the source address.
+They are device RAM: the low byte of the offset for count *n* is at `$08000` + *n* in the board's
+slot and its high byte at `$10000` + *n*.  The processor has them while no copy is under way.
+
+The board's driver, `GRAPHICS.DRV`, enables it for the kernel.  Nothing draws with it yet.
+
+As the Blitter Board's, the emulator's Graphics Board is the board as it is meant to work.
