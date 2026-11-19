@@ -1,0 +1,44 @@
+//std::type_info, what typeid gives, and the exceptions a failed dynamic_cast<T&> and a typeid of a null pointer's
+//object throw.  The compiler does type_info's members itself, where they are called, from the type info it writes for
+//each type (CommonLibraries CppCompilerLib/CPPVtable.h): a type_info's address is the type's in the whole program, so
+//== compares addresses, and name is the type as the program writes it.
+#ifndef __LIBC65_TYPEINFO__
+#define __LIBC65_TYPEINFO__
+#include <exception>
+
+
+namespace std
+{
+	class type_info
+	{
+	public:
+		bool		operator==(const type_info& cOther) const noexcept;
+		bool		operator!=(const type_info& cOther) const noexcept;
+		bool		before(const type_info& cOther) const noexcept;
+		const char*	name(void) const noexcept;
+
+		type_info(const type_info& cOther) = delete;
+		type_info&	operator=(const type_info& cOther) = delete;
+	};
+
+
+	class bad_cast : public exception
+	{
+	public:
+		bad_cast(void) noexcept {}
+		virtual ~bad_cast(void) {}
+		virtual const char*	what(void) const noexcept { return "std::bad_cast"; }
+	};
+
+
+	class bad_typeid : public exception
+	{
+	public:
+		bad_typeid(void) noexcept {}
+		virtual ~bad_typeid(void) {}
+		virtual const char*	what(void) const noexcept { return "std::bad_typeid"; }
+	};
+}
+
+
+#endif // __LIBC65_TYPEINFO__

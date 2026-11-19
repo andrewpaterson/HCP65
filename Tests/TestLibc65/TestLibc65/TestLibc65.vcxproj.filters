@@ -34,6 +34,9 @@
     <ClCompile Include="TestLibc65Limits.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="TestLibc65Exception.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="TestLibc65SoftFloat.cpp">
       <Filter>Source</Filter>
     </ClCompile>

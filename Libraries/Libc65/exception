@@ -1,0 +1,66 @@
+//Exceptions: std::exception, what happens to one nobody handles (terminate) and to one a function's throw() list
+//doesn't allow (unexpected), and whether one is on its way (uncaught_exception).  [support.exception]
+//exception_ptr and nested_exception are still to come (CommonLibraries CppCompilerLib/ExceptionsPlan.txt stage 8).
+//
+//The routines the compiler calls for throw, try and catch are exception.cpp's, declared at this file's end for the
+//code that tests them; a program doesn't call them.
+#ifndef __LIBC65_EXCEPTION__
+#define __LIBC65_EXCEPTION__
+#include <stddef.h>
+
+
+namespace std
+{
+	class exception
+	{
+	public:
+		exception(void) noexcept {}
+		exception(const exception& cOther) noexcept {}
+		exception&	operator=(const exception& cOther) noexcept { return *this; }
+		virtual ~exception(void) {}
+		virtual const char*	what(void) const noexcept { return "std::exception"; }
+	};
+
+
+	class bad_exception : public exception
+	{
+	public:
+		bad_exception(void) noexcept {}
+		virtual ~bad_exception(void) {}
+		virtual const char*	what(void) const noexcept { return "std::bad_exception"; }
+	};
+
+
+	typedef void (*terminate_handler)(void);
+	typedef void (*unexpected_handler)(void);
+
+	terminate_handler	set_terminate(terminate_handler pfHandler) noexcept;
+	terminate_handler	get_terminate(void) noexcept;
+	[[noreturn]] void	terminate(void) noexcept;
+
+	unexpected_handler	set_unexpected(unexpected_handler pfHandler) noexcept;
+	unexpected_handler	get_unexpected(void) noexcept;
+	[[noreturn]] void	unexpected(void);
+
+	bool				uncaught_exception(void) noexcept;
+}
+
+
+//What the compiler calls.  An exception object is made in memory __AllocateException gives (the compiler constructs it
+//there) and thrown with its type's type info and its destructor (NULL for none); the function then returns the way
+//that says "thrown" and each caller on the way either passes it on or asks __Match whether a handler takes it.
+extern "C"
+{
+	void*	__AllocateException(size_t uiBytes) noexcept;
+	void	__FreeException(void* pvObject) noexcept;
+	void	__Throw(void* pvObject, const void* pvTypeInfo, void (*pfDestroy)(void*)) noexcept;
+	void*	__Match(const void* pvHandlerTypeInfo) noexcept;
+	void*	__BeginCatch(void) noexcept;
+	void	__EndCatch(void) noexcept;
+	void	__Rethrow(void) noexcept;
+	void	__Terminate(void) noexcept;
+	void	__Unexpected(void);
+}
+
+
+#endif // __LIBC65_EXCEPTION__

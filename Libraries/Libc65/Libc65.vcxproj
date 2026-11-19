@@ -80,6 +80,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ctype.cpp" />
+    <ClCompile Include="exception.cpp" />
     <ClCompile Include="host.cpp" />
     <ClCompile Include="math.cpp" />
     <ClCompile Include="new.cpp" />
@@ -119,7 +120,9 @@
     <ClInclude Include="stdlib.h" />
     <ClInclude Include="string.h" />
     <ClInclude Include="time.h" />
+    <ClInclude Include="exception" />
     <ClInclude Include="new" />
+    <ClInclude Include="typeinfo" />
   </ItemGroup>
   <ItemGroup>
     <None Include="MathTbls\ALOG2-A.HEX" />

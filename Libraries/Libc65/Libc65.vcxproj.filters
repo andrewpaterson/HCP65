@@ -24,6 +24,9 @@
     <ClCompile Include="math.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="exception.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="new.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -131,7 +134,13 @@
     <ClInclude Include="time.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="exception">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="new">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="typeinfo">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
