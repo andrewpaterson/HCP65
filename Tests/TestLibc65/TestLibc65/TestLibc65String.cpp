@@ -279,8 +279,8 @@ void TestLibc65StringFills(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The W65C816's 16 bit count memcpy16, memmove16, memset16, memcmp16, strlen16 and
-// BaseLib's MemSwp16 (stringW65C816_16.asm, for BaseLib's natural arrays)
+// The W65C816's 16 bit count (size_t) memcpy, memmove, memset, memcmp, strlen and
+// BaseLib's MemSwp (stringW65C816_16.asm, for C and BaseLib's natural arrays)
 // across 64KB boundaries: a copy up, overlapping moves down and up, a fill
 // across a bank and one within it, a fill of 0 bytes, compares that are
 // equal or differ in a word's first or second byte, and a swap.  The program
@@ -305,7 +305,7 @@ void TestLibc65String16(void)
 	//The program's pc is 0x108000 (TestLibc65Bytes' offset 0); the banks start at offsets 0x8000, 0x18000 and on.
 	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
 		"#include <string.h>\n"
-		"void MemSwp16(const void* pv1, const void* pv2, unsigned int uiLength);\n"
+		"void MemSwp(const void* pv1, const void* pv2, unsigned int uiLength);\n"
 		"int main()\n"
 		"{\n"
 		"	unsigned char*	pc;\n"
@@ -320,34 +320,34 @@ void TestLibc65String16(void)
 		"		pc[0x57F00 + i] = (unsigned char)(i * 3);\n"
 		"		pc[0x67F00 + i] = (unsigned char)(i * 11 + 5);\n"
 		"	}\n"
-		"	memcpy16(pc + 0x17F40, pc + 0x7F00, 512);\n"
-		"	memmove16(pc + 0x27F00 + 37, pc + 0x27F00, 400);\n"
-		"	memmove16(pc + 0x37F00, pc + 0x37F00 + 37, 400);\n"
-		"	memset16(pc + 0x47FF0, 0x5A, 100);\n"
-		"	memset16(pc + 0x50010, 0xA5, 77);\n"
-		"	memset16(pc + 0x50100, 0x11, 0);\n"
+		"	memcpy(pc + 0x17F40, pc + 0x7F00, 512);\n"
+		"	memmove(pc + 0x27F00 + 37, pc + 0x27F00, 400);\n"
+		"	memmove(pc + 0x37F00, pc + 0x37F00 + 37, 400);\n"
+		"	memset(pc + 0x47FF0, 0x5A, 100);\n"
+		"	memset(pc + 0x50010, 0xA5, 77);\n"
+		"	memset(pc + 0x50100, 0x11, 0);\n"
 		"	iWrong = 0;\n"
-		"	iWrong += memcmp16(pc + 0x7F00, pc + 0x17F40, 512) != 0;\n"
-		"	iWrong += memcmp16(pc, pc + 1, 0) != 0;\n"
+		"	iWrong += memcmp(pc + 0x7F00, pc + 0x17F40, 512) != 0;\n"
+		"	iWrong += memcmp(pc, pc + 1, 0) != 0;\n"
 		"	pc[0x17F40 + 300] ^= 0x80;\n"
-		"	iWrong += memcmp16(pc + 0x7F00, pc + 0x17F40, 512) >= 0;\n"
-		"	iWrong += memcmp16(pc + 0x7F00, pc + 0x17F40, 300) != 0;\n"
-		"	iWrong += memcmp16(pc + 0x7F00, pc + 0x17F40, 301) >= 0;\n"
+		"	iWrong += memcmp(pc + 0x7F00, pc + 0x17F40, 512) >= 0;\n"
+		"	iWrong += memcmp(pc + 0x7F00, pc + 0x17F40, 300) != 0;\n"
+		"	iWrong += memcmp(pc + 0x7F00, pc + 0x17F40, 301) >= 0;\n"
 		"	pc[0x17F40 + 101] ^= 0x80;\n"
-		"	iWrong += memcmp16(pc + 0x7F00, pc + 0x17F40, 512) <= 0;\n"
-		"	iWrong += memcmp16(pc + 0x7F00, pc + 0x17F40, 101) != 0;\n"
+		"	iWrong += memcmp(pc + 0x7F00, pc + 0x17F40, 512) <= 0;\n"
+		"	iWrong += memcmp(pc + 0x7F00, pc + 0x17F40, 101) != 0;\n"
 		"	pc[0x17F40 + 101] ^= 0x80;\n"
 		"	pc[0x17F40 + 300] ^= 0x80;\n"
-		"	iWrong += strlen16(\"hello\") != 5;\n"
-		"	iWrong += strlen16(\"\") != 0;\n"
+		"	iWrong += strlen(\"hello\") != 5;\n"
+		"	iWrong += strlen(\"\") != 0;\n"
 		"	memset(pc + 0x70000, 'a', 65534);\n"
 		"	pc[0x70000 + 65534] = 0;\n"
-		"	iWrong += strlen16((char*)pc + 0x70000) != 65534;\n"
-		"	memset(pc + 0x70000, 'a', 70000);\n"
+		"	iWrong += strlen((char*)pc + 0x70000) != 65534;\n"
+		"	memset32(pc + 0x70000, 'a', 70000);\n"
 		"	pc[0x70000 + 70000] = 0;\n"
-		"	iWrong += strlen16((char*)pc + 0x70000) != 65535;\n"
-		"	MemSwp16(pc + 0x57F00, pc + 0x67F00, 0);\n"
-		"	MemSwp16(pc + 0x57F00, pc + 0x67F00, 301);\n"
+		"	iWrong += strlen((char*)pc + 0x70000) != 65535;\n"
+		"	MemSwp(pc + 0x57F00, pc + 0x67F00, 0);\n"
+		"	MemSwp(pc + 0x57F00, pc + 0x67F00, 301);\n"
 		"	for (i = 0; i < 512; i++)\n"
 		"	{\n"
 		"		iWrong += pc[0x57F00 + i] != ((i < 301) ? (unsigned char)(i * 11 + 5) : (unsigned char)(i * 3));\n"

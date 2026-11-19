@@ -67,7 +67,11 @@ typedef unsigned long long		uintmax_t;
 #define UINTMAX_MAX		UINT64_MAX
 #define PTRDIFF_MIN		INT32_MIN
 #define PTRDIFF_MAX		INT32_MAX
+#ifdef __W65C816__
+#define SIZE_MAX		UINT16_MAX
+#else
 #define SIZE_MAX		UINT32_MAX
+#endif // __W65C816__
 
 #define INT8_C(x)		(x)
 #define INT16_C(x)		(x)

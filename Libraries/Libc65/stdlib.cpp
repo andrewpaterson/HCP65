@@ -870,26 +870,30 @@ void qsort(void* pvBase, size_t uiCount, size_t uiBytes, int (*fCompare)(const v
 {
 	char*	pcBase;
 	char*	pcKey;
+	char*	pcBefore;
 	size_t	i;
 	size_t	j;
 	size_t	k;
 	char	c;
 
+	//The element before is a pointer of its own: k - uiBytes, unsigned, would be k + 65536 - uiBytes on the W65C816
+	//(a 16 bit size_t and 32 bit pointers).
 	pcBase = (char*)pvBase;
 	for (i = 1; i < uiCount; i++)
 	{
 		for (j = i; j > 0; j--)
 		{
 			pcKey = pcBase + j * uiBytes;
-			if (fCompare(pcKey - uiBytes, pcKey) <= 0)
+			pcBefore = pcKey - uiBytes;
+			if (fCompare(pcBefore, pcKey) <= 0)
 			{
 				break;
 			}
 			for (k = 0; k < uiBytes; k++)
 			{
 				c = pcKey[k];
-				pcKey[k] = pcKey[k - uiBytes];
-				pcKey[k - uiBytes] = c;
+				pcKey[k] = pcBefore[k];
+				pcBefore[k] = c;
 			}
 		}
 	}

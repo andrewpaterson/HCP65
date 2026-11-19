@@ -179,7 +179,7 @@ int main(void)
 	{
 		return MODPLAY_EXIT_NO_FILE;
 	}
-	pvFile = malloc(uiSize);
+	pvFile = malloc32(uiSize);  //A module can be more than 64KB.
 	if (!pvFile)
 	{
 		return MODPLAY_EXIT_NO_MEMORY;

@@ -3,12 +3,14 @@
 #define __LIBC65_STDDEF_H__
 
 
-//As wide as a pointer: int on the 65C64 (as on Win32), long on the W65C816 (int is 16 bits there).
+//size_t is unsigned int on both: 32 bits on the 65C64 (as on Win32), 16 on the W65C816, where it is sizeof's type and
+//BaseLib's size and malloc's blocks never cross a bank (string.h's and stdlib.h's 32 suffixed functions take longer
+//counts there).  ptrdiff_t is as wide as a pointer: long on the W65C816, so a difference of pointers into a block of
+//more than 32KB isn't cut (the standard asks only that it be signed and pointer - pointer's type).
+typedef unsigned int			size_t;
 #ifdef __W65C816__
-typedef unsigned long			size_t;
 typedef long					ptrdiff_t;
 #else
-typedef unsigned int			size_t;
 typedef int						ptrdiff_t;
 #endif // __W65C816__
 typedef long long				max_align_t;

@@ -13,10 +13,10 @@ units as a library, so a program only gets the functions it uses.  `stdlib.cpp` 
 
 | Header | Has |
 |---|---|
-| `stdint.h`, `inttypes.h`, `stddef.h`, `limits.h`, `stdbool.h` | The types and limits for each processor.  The fixed width types are `int` where `int` is that wide (`int16_t` on the W65C816, `int32_t` on the 65C64; `int32_t` is `long` on the W65C816); `size_t` and `ptrdiff_t` are a pointer wide, `unsigned int` and `int` on the 65C64 and `unsigned long` and `long` on the W65C816. |
+| `stdint.h`, `inttypes.h`, `stddef.h`, `limits.h`, `stdbool.h` | The types and limits for each processor.  The fixed width types are `int` where `int` is that wide (`int16_t` on the W65C816, `int32_t` on the 65C64; `int32_t` is `long` on the W65C816); `size_t` is `unsigned int` (16 bits on the W65C816, `SIZE_MAX` 65535) and `ptrdiff_t` a pointer wide (`int` on the 65C64, `long` on the W65C816). |
 | `stdarg.h` | `va_list` and `va_arg`, walking up the stack from the last named parameter. |
-| `string.h`, `memory.h` | The string and memory functions. |
-| `stdlib.h`, `malloc.h` | `malloc` and `free`, conversions (`strtol`, `strtod` ...), `rand`, `qsort`, `atexit`, `exit`. |
+| `string.h`, `memory.h` | The string and memory functions.  On the W65C816 they take 16 bit counts (`size_t`), and `memcpy32`, `memmove32`, `memset32`, `memcmp32`, `memchr32` and `strlen32` take 32 bit ones. |
+| `stdlib.h`, `malloc.h` | `malloc` and `free`, conversions (`strtol`, `strtod` ...), `rand`, `qsort`, `atexit`, `exit`.  On the W65C816 `malloc32`, `calloc32` and `realloc32` take 32 bit sizes. |
 | `stdio.h` | The `printf` family, `stdout` and `stderr`, and files. |
 | `math.h` | The maths library (below). |
 | `ctype.h`, `time.h`, `signal.h`, `errno.h`, `assert.h` | |
@@ -29,7 +29,7 @@ There is no C++ standard library beyond `<new>`.
 
 | Unit | Written in |
 |---|---|
-| `string.cpp` | C++.  On the W65C816, `stringW65C816.asm` and `stringW65C816_16.asm` replace the block and vector functions (`memcpy`, `memset`, `memmove`, `strlen`, `strcmp` ...), using `mvn` and `mvp`.  On the 65C64, `string.asm`. |
+| `string.cpp` | C++.  On the W65C816, `stringW65C816_16.asm` (`memcpy`, `memmove`, `memset`, `memcmp`, `strlen`, with 16 bit counts) and `stringW65C816.asm` (the 32 suffixed ones and the other string functions; `memchr`, `strncpy`, `strncat` and `strncmp` are 16 bit entries into their 32 bit bodies) replace the block and vector functions, using `mvn` and `mvp`.  On the 65C64, `string.asm`. |
 | `softfloat.cpp` | C++, the bit exact reference.  `softfloatW65C816.asm` and `softfloat.asm` replace it on each processor, so the C++ compiles to nothing there. |
 | `stdlib.cpp`, `stdio.cpp`, `math.cpp`, `ctype.cpp`, `time.cpp`, `new.cpp`, `signal.cpp`, `host.cpp` | C++. |
 | `IRW65C816Runtime-*.asm` | The W65C816's multiply, divide, shift and BCD routines (see [W65C816 Runtime](../hcp65/runtime/w65c816.md)). |
@@ -42,6 +42,11 @@ the same time however many blocks there are, and a freed block is joined to the 
 side.  On the emulators the heap is `0008:0000` to `000F:FFFF`, or above the program from
 `0020:0000` when there is more than 2MB of memory.  A program the HCP65 kernal runs has its heap
 size given by its `UserHeapSize` symbol.
+
+On the W65C816 the heap is by banks: each 64KB bank is a region of its own, so no block crosses a
+bank.  Small blocks come from the banks at the bottom of the heap, and a bank goes back when its
+last block is freed.  What doesn't fit a bank (from `malloc32`, or `malloc`'s largest sizes) takes
+whole adjacent banks from the top, rounded up to 64KB.  `free` and `realloc` take either kind.
 
 ## Input and output
 
