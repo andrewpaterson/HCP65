@@ -28,8 +28,8 @@
 //the last ticks it again.  GetBreakouts is what was ticked.  They go beside the combo box, not under it, as the dialog's
 //height is set when it is shown.
 //
-//The picture's models are loaded while the dialog is up, one at a tick, as each can take seconds the first time (see
-//CBoardSceneDraw), during which the dialog doesn't answer.
+//The picture's models are read while the dialog is up, on threads of the scene's (CBoardSceneDraw), as each can take
+//seconds the first time: a board appears in its socket when its model has been read, and the dialog answers meanwhile.
 //
 //The picture and the rows are in a column of BOARD_SCENE_WIDTH in the middle of the dialog, with what's left over shared out
 //either side, so they keep their size however wide the dialog is.
@@ -52,7 +52,6 @@ protected:
 	CHCP65Mainboard*		mpcMainboard;
 	Ptr<CCanvas>			mpSceneCanvas;
 	Ptr<CBoardSceneDraw>	mpScene;		//NULL for no picture.
-	bool					mbPainted;		//The dialog has been painted, so a model can be loaded.
 	int64					miStartTime;	//When the mainboard started turning, -1 before it has.
 
 public:

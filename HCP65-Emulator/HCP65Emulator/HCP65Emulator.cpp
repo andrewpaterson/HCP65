@@ -392,7 +392,8 @@ bool CHCP65EmulatorApp::Load(CObjectReader* pcFile)
 //////////////////////////////////////////////////////////////////////////
 //
 // Runs the window's ticks until the window closes (if Init worked), then
-// takes the menu bar's listener and the component input out of the window.
+// waits for any board models still being read and takes the menu bar's
+// listener and the component input out of the window.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CHCP65EmulatorApp::Run(void)
@@ -404,6 +405,11 @@ bool CHCP65EmulatorApp::Run(void)
 	if (mbValid)
 	{
 		mpWindow->Show();
+	}
+	if (mpBoardScene.IsNotNull())
+	{
+		//Here, where no Free is running: the board scene says why.
+		mpBoardScene->StopLoading();
 	}
 	mcRunner.Stop();
 

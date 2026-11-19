@@ -33,7 +33,6 @@ void CBoardConfigurationDialog::Init(Ptr<CWindow> pOwner, SDialogLook* psLook, C
 	maBreakoutBoxes.Init();
 	mpcMainboard = pcMainboard;
 	mpScene = pScene;
-	mbPainted = false;
 	miStartTime = -1;
 	mpDialog = OMalloc<CDialog>(pOwner, psLook, "Board Configuration");
 
@@ -89,7 +88,6 @@ void CBoardConfigurationDialog::Class(void)
 	U_Pointer(mpcMainboard);
 	M_Pointer(mpSceneCanvas);
 	M_Pointer(mpScene);
-	U_Bool(mbPainted);
 	U_Int64(miStartTime);
 }
 
@@ -142,11 +140,10 @@ bool CBoardConfigurationDialog::Load(CObjectReader* pcFile)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The dialog's ticker.  Nothing reaches the screen while a model is being
-// read, so the first tick paints the dialog and the window's messages are
-// handled before the next tick.  After that each tick loads a model that's
-// wanted and isn't yet, or else moves the picture on.  So what's chosen
-// appears in its socket as soon as it can be.
+// The dialog's ticker.  Each tick has the scene load the models that are
+// wanted and aren't yet, which it does on threads of its own, and moves
+// the picture on: what's chosen appears in its socket as soon as its
+// model is read, and what's there turns meanwhile.
 //
 //////////////////////////////////////////////////////////////////////////
 void CBoardConfigurationDialog::TickScene(void)
@@ -154,23 +151,8 @@ void CBoardConfigurationDialog::TickScene(void)
 	const char*	aszTypes[HCP65_NUM_DEVICE_SLOTS];
 	int64		iNow;
 
-	if (!mbPainted)
-	{
-		mbPainted = true;
-		mpDialog->GetWindow()->Paint();
-		mpDialog->GetWindow()->RequestTick(BOARD_CONFIGURATION_FRAME_MS);
-		return;
-	}
-
 	GetTypes(aszTypes);
-	if (mpScene->LoadNext(aszTypes))
-	{
-		mpScene->SetBoards(aszTypes);
-		mpSceneCanvas->Invalidate();
-		mpDialog->GetWindow()->Paint();
-		mpDialog->GetWindow()->RequestTick(1);
-		return;
-	}
+	mpScene->Load(aszTypes);
 
 	iNow = GetDebugTickCount();
 	if (miStartTime < 0)
