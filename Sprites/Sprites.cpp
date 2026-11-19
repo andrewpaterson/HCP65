@@ -39,7 +39,7 @@
 #define SPRITES_FLOWER_X		554		//Where the flower is on the stage (Fighting320.png's (277, 153), twice as big),
 #define SPRITES_FLOWER_Y		(SPRITES_STAGE_Y + 306)
 #define SPRITES_FLOWER_WIDTH	80		//and how big.
-#define SPRITES_MAKI_STEP		2		//Pixels a frame as she walks: one of the stage's own.
+#define SPRITES_MAKI_STEP		3		//Pixels a frame as she walks.
 #define SPRITES_MAKI_WALK		6		//Her walk's frames.
 #define SPRITES_MAKI_FACING		(1 + SPRITES_MAKI_WALK)	//Frames facing each way: the left's follow the right's.
 #define SPRITES_MAKI_FRAMES		(2 * SPRITES_MAKI_FACING)
@@ -483,7 +483,7 @@ int main(void)
 			bWalking = x > 0;
 			if (bWalking)
 			{
-				x = (int16)(x - SPRITES_MAKI_STEP);
+				x = (int16)((x > SPRITES_MAKI_STEP) ? x - SPRITES_MAKI_STEP : 0);
 			}
 		}
 		else if ((uiButtons & LCD_BOARD_SNES_RIGHT) && !(uiButtons & LCD_BOARD_SNES_LEFT))
@@ -492,7 +492,7 @@ int main(void)
 			bWalking = x < (SPRITES_WIDTH - SPRITES_MAKI_WIDTH);
 			if (bWalking)
 			{
-				x = (int16)(x + SPRITES_MAKI_STEP);
+				x = (int16)((x < SPRITES_WIDTH - SPRITES_MAKI_WIDTH - SPRITES_MAKI_STEP) ? x + SPRITES_MAKI_STEP : SPRITES_WIDTH - SPRITES_MAKI_WIDTH);
 			}
 		}
 

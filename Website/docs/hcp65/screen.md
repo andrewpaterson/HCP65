@@ -41,8 +41,10 @@ standing and six walking, each way), with letters blitted from the console's fon
 controller of an LCD and SNES Board walks her left and right.  Each frame it draws the stage again
 only where she was in the frame being drawn: of each of her rows, from her first pixel to her last
 (a blit with `KERNAL_BLIT_SPANS`, below).  Then it draws her and flips the frames at the vertical
-blank.  It draws a frame in about 10ms on the emulator's 25MHz processor, so she walks a step every
-frame, 60 a second.  Escape ends it.
+blank.  It draws a frame in about 10ms on the emulator's 25MHz processor, so she walks a step (3
+pixels) every frame, 60 a second.  The flower at the stage's bottom right
+(`\SPRITES\FLOWER.SFT`, cut from the stage by `Images/MakeFlower.py`) is in front of her: it is
+drawn again over her while she is across it.  Escape ends it.
 
 ## Blits
 
