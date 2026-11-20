@@ -1,17 +1,75 @@
-//Allocation and placement new.  new Type, new Type[count], delete and delete[] call the global operators below
-//(defined in new.cpp, over malloc and free); the generator makes placement new itself: new(pv) Class constructs
-//at pv.
+//Allocation and placement new, and what a new that fails does.  [support.dynamic]
+//
+//new Type, new Type[count], delete and delete[] call the global operators below (defined in new.cpp, over malloc and
+//free), which a program can replace.  operator new calls the new handler (set_new_handler) each time malloc has nothing,
+//until it has, or there is no handler: then it throws std::bad_alloc in a program built with exceptions, and returns
+//NULL in one without.  The nothrow forms return NULL instead.  new Type[count] with a count too big for the memory
+//throws std::bad_array_new_length (the compiler checks it; without exceptions the result is NULL).  The compiler makes
+//new (pv) Class at pv.
 #ifndef __LIBC65_NEW__
 #define __LIBC65_NEW__
 #include <stddef.h>
+#include <exception>
+
+
+namespace std
+{
+	//(The members are new.cpp's, not inline: a program that derives from one needs them written somewhere.)
+	class bad_alloc : public exception
+	{
+	public:
+		bad_alloc(void) noexcept;
+		bad_alloc(const bad_alloc& cOther) noexcept;
+		bad_alloc&	operator=(const bad_alloc& cOther) noexcept;
+		virtual ~bad_alloc(void);
+		virtual const char*	what(void) const noexcept;
+	};
+
+
+	class bad_array_new_length : public bad_alloc
+	{
+	public:
+		bad_array_new_length(void) noexcept;
+		virtual ~bad_array_new_length(void);
+		virtual const char*	what(void) const noexcept;
+	};
+
+
+	struct nothrow_t
+	{
+	};
+	extern const nothrow_t	nothrow;
+
+
+	typedef void (*new_handler)(void);
+
+	new_handler	set_new_handler(new_handler pfHandler) noexcept;
+	new_handler	get_new_handler(void) noexcept;
+}
 
 
 void*	operator new(size_t uiBytes);
 void*	operator new[](size_t uiBytes);
+void*	operator new(size_t uiBytes, const std::nothrow_t& cNothrow) noexcept;
+void*	operator new[](size_t uiBytes, const std::nothrow_t& cNothrow) noexcept;
 void	operator delete(void* pv) noexcept;
 void	operator delete[](void* pv) noexcept;
+void	operator delete(void* pv, size_t uiBytes) noexcept;
+void	operator delete[](void* pv, size_t uiBytes) noexcept;
+void	operator delete(void* pv, const std::nothrow_t& cNothrow) noexcept;
+void	operator delete[](void* pv, const std::nothrow_t& cNothrow) noexcept;
+
 inline void*	operator new(size_t uiBytes, void* pv) noexcept { return pv; }
 inline void*	operator new[](size_t uiBytes, void* pv) noexcept { return pv; }
+inline void		operator delete(void* pv, void* pvPlace) noexcept {}
+inline void		operator delete[](void* pv, void* pvPlace) noexcept {}
+
+
+//What the compiler calls when new Type[count]'s count is too big, in a program built with exceptions.
+extern "C"
+{
+	void	__ThrowBadArrayNewLength(void);
+}
 
 
 #endif // __LIBC65_NEW__

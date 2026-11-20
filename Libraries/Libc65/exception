@@ -1,12 +1,24 @@
 //Exceptions: std::exception, what happens to one nobody handles (terminate) and to one a function's throw() list
-//doesn't allow (unexpected), and whether one is on its way (uncaught_exception).  [support.exception]
-//exception_ptr and nested_exception are still to come (CommonLibraries CppCompilerLib/ExceptionsPlan.txt stage 8).
+//doesn't allow (unexpected), whether one is on its way (uncaught_exception), exception_ptr and nested_exception.
+//[support.exception]  What throws is there only in a program built with exceptions (__cpp_exceptions).
 //
 //The routines the compiler calls for throw, try and catch are exception.cpp's, declared at this file's end for the
 //code that tests them; a program doesn't call them.
 #ifndef __LIBC65_EXCEPTION__
 #define __LIBC65_EXCEPTION__
 #include <stddef.h>
+
+
+//What exception_ptr is made of: it holds the exception object, which the runtime counts the holders of.
+extern "C"
+{
+	void*	__CurrentException(void) noexcept;
+	void	__ExceptionPtrCopy(void* pvObject) noexcept;
+	void	__ExceptionPtrRelease(void* pvObject) noexcept;
+}
+
+
+struct __ExceptionPtrNull;
 
 
 namespace std
@@ -44,6 +56,108 @@ namespace std
 	[[noreturn]] void	unexpected(void);
 
 	bool				uncaught_exception(void) noexcept;
+
+
+	//An exception held, for as long as an exception_ptr holds it, however many handlers it leaves.  [propagation]
+	//(The members are exception.cpp's, not inline, as std::exception's are.)
+	class exception_ptr
+	{
+	protected:
+		void*	mpvObject;
+
+	public:
+		exception_ptr(void) noexcept;
+		exception_ptr(const __ExceptionPtrNull* pcNull) noexcept;	//From nullptr.
+		exception_ptr(void* pvObject, bool bHeld) noexcept;		//The runtime's: the object, already counted.
+		exception_ptr(const exception_ptr& cOther) noexcept;
+		~exception_ptr(void);
+
+		exception_ptr&	operator=(const exception_ptr& cOther) noexcept;
+		explicit		operator bool(void) const noexcept;
+		void*			Object(void) const noexcept;
+	};
+
+
+	bool	operator==(const exception_ptr& cLeft, const exception_ptr& cRight) noexcept;
+	bool	operator!=(const exception_ptr& cLeft, const exception_ptr& cRight) noexcept;
+
+	//With nullptr (which becomes a pointer to the null type).
+	bool	operator==(const exception_ptr& cLeft, const __ExceptionPtrNull* pcNull) noexcept;
+	bool	operator==(const __ExceptionPtrNull* pcNull, const exception_ptr& cRight) noexcept;
+	bool	operator!=(const exception_ptr& cLeft, const __ExceptionPtrNull* pcNull) noexcept;
+	bool	operator!=(const __ExceptionPtrNull* pcNull, const exception_ptr& cRight) noexcept;
+
+
+	exception_ptr	current_exception(void) noexcept;
+
+
+	[[noreturn]] void	rethrow_exception(exception_ptr cException);
+
+
+#ifdef __cpp_exceptions
+	template<class E> exception_ptr make_exception_ptr(E cException) noexcept
+	{
+		try
+		{
+			throw cException;
+		}
+		catch (...)
+		{
+			return current_exception();
+		}
+	}
+#endif // __cpp_exceptions
+
+
+	//An exception that holds the one being handled when it was made.  [except.nested]
+	class nested_exception
+	{
+	protected:
+		exception_ptr	mcNested;
+
+	public:
+		nested_exception(void) noexcept;
+		nested_exception(const nested_exception& cOther) noexcept;
+		nested_exception&	operator=(const nested_exception& cOther) noexcept;
+		virtual ~nested_exception(void);
+
+		[[noreturn]] void	rethrow_nested(void) const;
+		exception_ptr		nested_ptr(void) const noexcept;
+	};
+
+
+	template<class T> struct __RemoveReference { typedef T type; };
+	template<class T> struct __RemoveReference<T&> { typedef T type; };
+	template<class T> struct __RemoveReference<T&&> { typedef T type; };
+
+
+	//What throw_with_nested throws for a class: it and a nested_exception.
+	template<class T> struct __WithNested : public T, public nested_exception
+	{
+		explicit __WithNested(const T& cObject) : T(cObject) {}
+	};
+
+
+#ifdef __cpp_exceptions
+	//(A class: one that is final, or already a nested_exception, is not looked for.)
+	template<class T> [[noreturn]] void throw_with_nested(T&& cObject)
+	{
+		throw __WithNested<typename __RemoveReference<T>::type>(cObject);
+	}
+
+
+	//(A polymorphic class.)
+	template<class E> void rethrow_if_nested(const E& cObject)
+	{
+		const nested_exception*	pcNested;
+
+		pcNested = dynamic_cast<const nested_exception*>(&cObject);
+		if (pcNested)
+		{
+			pcNested->rethrow_nested();
+		}
+	}
+#endif // __cpp_exceptions
 }
 
 
@@ -61,6 +175,9 @@ extern "C"
 	void	__Rethrow(void) noexcept;
 	void	__Terminate(void) noexcept;
 	void	__Unexpected(void);
+	void	__ThrowBadException(void);
+	void	__ThrowBadCast(void);
+	void	__ThrowBadTypeid(void);
 }
 
 
