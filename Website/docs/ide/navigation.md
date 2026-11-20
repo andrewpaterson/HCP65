@@ -65,7 +65,7 @@ thousands in one file open and scroll as quickly as ten.
 | F4 | Jump to Source: goes to the symbol's own declaration or definition, whichever line is selected. |
 | A click, the arrows | Only select (and preview), unless Navigate with Single Click is on. |
 | Escape | Gives the keys back to the editor. |
-| Typing | Goes to the editor: the tree doesn't take characters, space included. |
+| Space, typing | Nothing.  Space doesn't open a usage as Enter does, and nothing typed in the tree reaches the editor. |
 
 Its toolbar, down the left:
 
