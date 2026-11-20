@@ -67,6 +67,9 @@ configuration whose files and settings it builds, and what to link.  This is
 | `Exceptions="true"` | Compiles the program with C++ exceptions: `throw`, `try` and `catch`.  Without it they are errors, and no code pays for them.  See [The C++ language](language.md). |
 | `WarnMissingOverride="false"` | No warning for a function that overrides a base class's virtual function without being declared `override` (or `final`).  The warning is on unless a configuration says this. |
 | `KeepUnusedObjects="true"` | Link a global whose making or destroying runs code (a constructor, a destructor, an initialiser that isn't a constant) though nothing refers to it, so it is made and destroyed as the standard says.  Without it such a global goes with the rest of what nothing uses. |
+| `WarnStringToPointer="true"` | Warn when a string literal, which is `const`, becomes a `char*`.  C++14 has no such conversion; the compiler still makes it, as code written before is full of it, and says nothing unless a configuration asks. |
+| `MultiWordCasts="true"` | Accept `unsigned int(3)`, a cast written as a type of more than one word and brackets, as the Microsoft compiler does.  Without it that is an error, as C++14 has it: write `unsigned(3)` or `(unsigned int)3`. |
+| `CConversions="true"` | The sources are C: a `void*` becomes a pointer to any object and a number an enum's value with no cast, an enum is incremented, and a pointer is compared with `0` by `<` and `>`.  C++ refuses each of these. |
 | `BreakpointSpace` | The emulator's address space (`Kernel` or `User`) that the IDE's breakpoints go in. |
 | `Card`, `CardPath` | An SD card image, and the path on its FAT volume, that `-card` and the IDE's debugger copy the program to. |
 
@@ -119,6 +122,9 @@ units are linked only when something uses them.  Sources can be `.cpp` or `.asm`
 | `-no-override-warning` | No warning for an override not declared `override`. |
 | `-exceptions` | C++ exceptions: `throw`, `try` and `catch` are compiled. |
 | `-keep-unused-objects` | Link a global that is made or destroyed by code though nothing uses it. |
+| `-warn-string-to-pointer` | Warn when a string literal becomes a `char*`. |
+| `-multi-word-casts` | Accept `unsigned int(3)`, a cast whose type is more than one word. |
+| `-c-conversions` | The sources are C: a `void*` and a number convert as C has them. |
 | `-exe <file> -entry <symbol> [-limit <n>] [-symbol <name>=<n>]...` | Link an executable. |
 | `-image <file> -size <n> [-fill <n>] [-limit <n>] [-load <n>] -region <start>,<end>,<offset>...` | Link an image. |
 | `-module <file> -entry <symbol> [-limit <n>]` | Link a module (a driver). |
