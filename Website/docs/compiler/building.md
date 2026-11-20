@@ -64,7 +64,7 @@ configuration whose files and settings it builds, and what to link.  This is
 | `NoFloats="true"` | Floating point is an error.  The kernal is built this way. |
 | `MathTables="false"` | Build to run without the maths tables in memory: the multiplies use the table-free runtime.  For the kernal, its drivers and the operating system, which run before the tables are loaded. |
 | `PreferSize="true"` | Prefer smaller code to faster where the compiler has the choice. |
-| `Exceptions="true"` | Compiles the program with C++ exceptions: `throw`, `try` and `catch`.  Without it they are errors, and no code pays for them.  See [The C++ language](language.md). |
+| `Exceptions="true"` | Compiles the program with C++ exceptions: `throw`, `try` and `catch`.  Without it they are errors, and no code pays for them; with it a program is a few percent bigger and slower.  See [Exceptions](language.md#exceptions). |
 | `WarnMissingOverride="false"` | No warning for a function that overrides a base class's virtual function without being declared `override` (or `final`).  The warning is on unless a configuration says this. |
 | `KeepUnusedObjects="true"` | Link a global whose making or destroying runs code (a constructor, a destructor, an initialiser that isn't a constant) though nothing refers to it, so it is made and destroyed as the standard says.  Without it such a global goes with the rest of what nothing uses. |
 | `WarnStringToPointer="true"` | Warn when a string literal, which is `const`, becomes a `char*`.  C++14 has no such conversion; the compiler still makes it, as code written before is full of it, and says nothing unless a configuration asks. |
@@ -120,7 +120,7 @@ units are linked only when something uses them.  Sources can be `.cpp` or `.asm`
 | `-no-mathtables` | Build without the maths tables. |
 | `-prefer-size` | Prefer smaller code to faster. |
 | `-no-override-warning` | No warning for an override not declared `override`. |
-| `-exceptions` | C++ exceptions: `throw`, `try` and `catch` are compiled. |
+| `-exceptions` | C++ exceptions: `throw`, `try` and `catch` are compiled (see [Exceptions](language.md#exceptions)). |
 | `-keep-unused-objects` | Link a global that is made or destroyed by code though nothing uses it. |
 | `-warn-string-to-pointer` | Warn when a string literal becomes a `char*`. |
 | `-multi-word-casts` | Accept `unsigned int(3)`, a cast whose type is more than one word. |

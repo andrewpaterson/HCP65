@@ -149,7 +149,7 @@ compiler's own file and line, which says which construct it was.
 
 | Not supported | Notes |
 |---|---|
-| Exceptions without the build switch | `try`, `catch` and `throw` are compiled only for a program built with `Exceptions="true"` (see [Building](building.md)); without it they are errors. |
+| Exceptions without the build switch | `try`, `catch` and `throw` are compiled only for a program built with `Exceptions="true"` (see [Exceptions](#exceptions)); without it they are errors. |
 | `(decltype(f())::name) + 1` | Read as a cast, where `decltype`'s operand isn't the name of a variable or a parameter declared with a class's name: the parser can't tell what the member is.  `(decltype(d)::name) + 1` for such a `d` is the member's value. |
 | A member template whose parameters are its class's pack and then its own | `template<class... B> static int Mix(A... a, B... b)` in `template<class... A> struct Pair`: the call isn't matched. |
 | A partial specialisation, outside the class, of a class template's member variable template | The template itself, defined in the class or outside it, is each instance's own. |
@@ -169,6 +169,49 @@ so a class or a function nothing uses isn't checked in full.
 Overload resolution is a simplified form of the standard's ranking: exact match, then promotion,
 then conversion, then a user defined conversion.  It gives the standard's answer for the code it
 has been used on, but not every case.
+
+## Exceptions
+
+`throw`, `try` and `catch` are compiled for a program built with `Exceptions="true"` (or
+`-exceptions`; see [Building](building.md)).  The option is off by default: without it they are
+errors, and not a byte of any program pays for them.  With it, all of C++14's exceptions are there:
+handlers by value, by reference and `(...)`, `throw;`, function-try-blocks, `noexcept` and
+`throw(...)` lists with `std::unexpected`, what is half made undone (a constructor's members and
+bases, an array's elements, `new`'s memory, a static local's guard), and what the language throws:
+`std::bad_alloc` from `new`, `std::bad_array_new_length`, `std::bad_cast` and `std::bad_typeid`.
+Libc65's `<exception>` has `std::exception_ptr` and `std::nested_exception`.
+
+A function that throws returns as it always does, with the carry flag set, and its caller tests the
+flag after the call.  So nothing walks the stack and no tables are written, a throw is fast, and the
+debugger steps through it; the cost is on the normal path, a test and a branch after each call that
+may throw, and the code that undoes what a function made, which only an exception runs.  A function
+declared `noexcept` costs its callers nothing.
+
+What turning the option on costs, in the Lib65 test suites (the same programs built with it on
+against off, and the kernal as a one-off):
+
+| Programs | Processor | Bytes | Cycles |
+|---|---|---|---|
+| BaseLib's tests | 65C64 | +3.9% | +2.3% |
+| BaseLib's tests | W65C816 | +0.6% | +1.1% |
+| StandardLib's tests | 65C64 | +5.9% | +2.4% |
+| StandardLib's tests | W65C816 | +1.0% | +1.7% |
+| SupportLib's tests | 65C64 | +6.1% | +1.9% |
+| SupportLib's tests | W65C816 | +1.0% | +0.4% |
+| The kernal (`OS.SYS`) | W65C816 | +2.8% | |
+
+What a program built with exceptions must do:
+
+- Declare `noexcept` every function written in assembly that C++ calls: assembly leaves the carry
+  as it falls, which a tested call would take for an exception.  The build says which ones aren't
+  (*"f is assembly and is called by C++ that tests for an exception: declare it noexcept"*).
+  Libc65's, BaseLib's and the kernal's are.
+- Not let an exception leave an interrupt handler or a kernal call: nothing catches it there, and it
+  is `std::terminate`.
+
+Not there yet: `std::throw_with_nested` takes a class and doesn't tell a `final` one, or one that is
+already a `std::nested_exception`, from the others; `std::rethrow_if_nested` takes a polymorphic
+class.
 
 ## Floating point
 
