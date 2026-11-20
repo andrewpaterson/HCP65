@@ -107,6 +107,48 @@ place of the last one's.  A press on a kept line puts the caret on what it start
 
 Breadcrumbs and sticky lines can each be turned off: File, Settings..., **Editor**.
 
+### Bookmarks
+
+| Keys | What they do |
+|---|---|
+| Ctrl+F11 | Toggle Bookmark on the caret's line. |
+| Ctrl+Shift+F11 | Toggle Bookmark with Mnemonic: asks for a digit or a letter. |
+| F2, Shift+F2 | Next and Previous Bookmark in this file, round its ends. |
+| Ctrl+0 to Ctrl+9 | Go to the bookmark with that digit, in whichever file. |
+
+A bookmarked line has a blue cell in the gutter, with its mnemonic in it if it has one, and a mark on
+the scroll bar.  A press on the cell takes the bookmark off.  A mnemonic belongs to one line: giving it
+to another takes it from the first.
+
+The **Bookmarks** tool window (View, Bookmarks) lists them by file, each with its line's text and a
+preview; Enter or a double click goes to one.
+
+Bookmarks move with their lines as you edit, and are kept with the workspace, in your own
+[`.hcp65user`](solutions.md#files-kept-beside-the-solution) file beside it.
+
+### Changes, usages and overrides
+
+| Keys | What they do |
+|---|---|
+| Ctrl+Alt+Shift+Down, Ctrl+Alt+Shift+Up | Next and Previous Change: the next lines changed since the last commit, or the ones before. |
+| Ctrl+Shift+F7 | Highlight Usages in File. |
+
+**Changed lines** are marked on the scroll bar as well as in the gutter, in the same colours, so you can
+see where in a long file you have been working.
+
+**Highlight Usages in File** keeps the usages of the name at the caret highlighted in this file while
+you move about, marks them on the scroll bar, and says how many there are.  F3 and Shift+F3 step
+through them; Escape, or an edit, ends it.  (Leaving the caret on a name highlights its usages too, but
+only until the caret moves.)
+
+**Override marks** are in the gutter beside what they are about:
+
+| Mark | Beside | A press on it |
+|---|---|---|
+| `^` | a function that overrides one of a base class | goes to the function it overrides |
+| `v` | a function that is overridden, or a class with derived classes | goes to what overrides it, or the derived classes |
+| `x` | a function that does both | opens Go to Related Symbol's chooser |
+
 ### Typing to find a row
 
 In Solution Explorer, the Structure tree, the Find Usages, Find and Duplicates trees, and a chooser

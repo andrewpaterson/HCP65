@@ -101,8 +101,12 @@ the second undoes it.
   in the gutter.  See [Building](building.md#listings-in-the-editor).
 - **Breakpoints.**  F9 or a click in the gutter's first column.  See
   [Debugging](debugging.md#breakpoints).
+- **Bookmarks and override marks.**  In the gutter's next two columns.  See
+  [Bookmarks](navigation.md#bookmarks) and [overrides](navigation.md#changes-usages-and-overrides).
+- **Marks on the scroll bar.**  Find's matches, bookmarks, changed lines and usages kept highlighted
+  each mark where they are in the file; press the scroll bar at one to go there.
 
 ## Not there yet
 
-There is no automatic indenting, no code completion, and no bookmarks.  Find and Replace are in
+There is no automatic indenting and no code completion.  Find and Replace are in
 [Finding Your Way](navigation.md#find-and-replace-in-the-file).

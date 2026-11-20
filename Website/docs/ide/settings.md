@@ -123,6 +123,11 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+F12 | File Structure |
 | Alt+Down, Alt+Up | Next and Previous Method |
 | Ctrl+G | Go to Line |
+| Ctrl+F11, Ctrl+Shift+F11 | Toggle Bookmark, Toggle Bookmark with Mnemonic |
+| F2, Shift+F2 | Next and Previous Bookmark |
+| Ctrl+0 to Ctrl+9 | Go to Bookmark 0 to 9 |
+| Ctrl+Alt+Shift+Down, Ctrl+Alt+Shift+Up | Next and Previous Change |
+| Ctrl+Shift+F7 | Highlight Usages in File |
 | Ctrl+Shift+M | Move Caret to Matching Brace |
 | Ctrl+[, Ctrl+] | Move Caret to Code Block Start and End (with Shift, select to it) |
 | Alt+F7 | Find Usages |

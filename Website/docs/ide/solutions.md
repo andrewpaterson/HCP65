@@ -90,7 +90,7 @@ with Set as Startup Project, or the solution's first application if none was cho
 | `<project>.hcp65project` | A project's licence for new files.  Shared. |
 | `fileTemplates\` | The workspace's [file and code templates](templates.md#schemes), where it has changed any.  Shared. |
 | `<workspace>.layout.user` | The window layout and the files that were open.  Yours alone. |
-| `<workspace>.hcp65user` | Your [breakpoints](debugging.md#breakpoints).  Yours alone. |
+| `<workspace>.hcp65user` | Your [breakpoints](debugging.md#breakpoints) and [bookmarks](navigation.md#bookmarks).  Yours alone. |
 
 With no workspace, the `.layout.user` and `.hcp65user` files are named for the solution, or for the
 project opened on its own.
