@@ -31,17 +31,17 @@ protected:
 	size	muiErrors;
 
 public:
-	void	Init(void);
-	void	Kill(void);
-	void	Clear(void);
+	void		Init(void);
+	void		Kill(void);
+	void		Clear(void);
 
-	void	Add(uint32 uiLine, uint32 uiColumn, const char* szMessage, const char* szDetail = NULL);
-	void	Add(const char* szSource, uint32 uiLine, uint32 uiColumn, const char* szMessage, const char* szDetail = NULL);
-	size	NumErrors(void) const;
-	char*	Text(void);
+	void		Add(uint32 uiLine, uint32 uiColumn, const char* szMessage, const char* szDetail = NULL);
+	void		Add(const char* szSource, uint32 uiLine, uint32 uiColumn, const char* szMessage, const char* szDetail = NULL);
+	size		NumErrors(void) const;
+	const char*	Text(void) const;
 
 protected:
-	void	AppendMessage(const char* szMessage, const char* szDetail);
+	void		AppendMessage(const char* szMessage, const char* szDetail);
 };
 
 

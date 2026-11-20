@@ -130,9 +130,9 @@ public:
 	void			SetSourceFile(const char* szFile);
 
 	CAsm65Output*	GetOutput(void);
-	char*			GetErrors(void);
+	const char*		GetErrors(void) const;
 	size			NumErrors(void) const;
-	char*			GetWarnings(void);
+	const char*		GetWarnings(void) const;
 	size			NumWarnings(void) const;
 	bool			GetSymbol(const char* szName, int64* piValue);
 	uint32			NumPasses(void) const;

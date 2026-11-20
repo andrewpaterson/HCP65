@@ -60,7 +60,7 @@ void CAsm65Library::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65Library::GetName(void)
+const char* CAsm65Library::GetName(void) const
 {
 	return mszName.Text();
 }

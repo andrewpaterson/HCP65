@@ -78,7 +78,7 @@ public:
 	bool				Make(CAsm65Output* pcOutput, CChars* pszErrors);
 	bool				Write(const char* szFilename);
 
-	char*				GetFile(void);
+	const char*			GetFile(void) const;
 	uint32				GetSize(void) const;
 	uint8				GetFill(void) const;
 	uint32				GetLimit(void) const;

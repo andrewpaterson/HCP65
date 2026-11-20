@@ -82,7 +82,7 @@ public:
 	void			SetName(const char* szName);
 	void			Rewind(void) override;
 	const char*		NextLine(void) override;
-	char*			GetFile(void);
+	const char*		GetFile(void) const;
 	uint32			GetLine(void) const;
 
 protected:

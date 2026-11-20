@@ -75,7 +75,7 @@ public:
 
 	size					NumWrites(void) const;
 	SAsmW65C816FrameWrite*	GetWrite(size uiIndex);
-	char*					GetWrites(void);
+	const char*				GetWrites(void) const;
 	static void				AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest);
 
 protected:

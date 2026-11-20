@@ -40,15 +40,15 @@ protected:
 	CChars			mszDifferences;
 
 public:
-	void	Init(CAsm65Memory* pcFastMemory, CFast65C64* pcFast);
-	void	Kill(void);
+	void		Init(CAsm65Memory* pcFastMemory, CFast65C64* pcFast);
+	void		Kill(void);
 
-	size	Run(size uiMaxSteps, size uiMemoryInterval);
-	bool	Step(void);
-	bool	CompareMemory(void);
+	size		Run(size uiMaxSteps, size uiMemoryInterval);
+	bool		Step(void);
+	bool		CompareMemory(void);
 
-	char*	GetDifferences(void);
-	bool	IsStopped(void) const;
+	const char*	GetDifferences(void) const;
+	bool		IsStopped(void) const;
 };
 
 

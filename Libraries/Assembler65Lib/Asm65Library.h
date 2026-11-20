@@ -44,7 +44,7 @@ public:
 	void			Init(const char* szName);
 	void			Kill(void);
 
-	char*			GetName(void);
+	const char*		GetName(void) const;
 	CAsm65Object*	AddObject(const char* szName);
 	size			NumObjects(void) const;
 	CAsm65Object*	GetObject(size uiIndex);

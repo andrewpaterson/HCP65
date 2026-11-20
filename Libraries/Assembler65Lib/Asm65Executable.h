@@ -68,8 +68,8 @@ public:
 	bool		Make(CAsm65Output* pcOutput, CAsm65Linker* pcLinker, CChars* pszErrors);
 	bool		Write(const char* szFilename);
 
-	char*		GetFile(void);
-	char*		GetEntry(void);
+	const char*	GetFile(void) const;
+	const char*	GetEntry(void) const;
 	uint32		GetLimit(void) const;
 	size		NumSymbols(void) const;
 	char*		GetSymbolName(size uiIndex);

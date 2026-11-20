@@ -177,7 +177,7 @@ void CAsm65Object::Kill(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65Object::GetName(void)
+const char* CAsm65Object::GetName(void) const
 {
 	return mszName.Text();
 }

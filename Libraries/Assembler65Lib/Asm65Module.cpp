@@ -264,8 +264,8 @@ bool CAsm65Module::Write(const char* szFilename)
 }
 
 
-char* CAsm65Module::GetFile(void)		{ return mszFile.Text(); }
-char* CAsm65Module::GetEntry(void)		{ return mszEntry.Text(); }
+const char* CAsm65Module::GetFile(void) const	{ return mszFile.Text(); }
+const char* CAsm65Module::GetEntry(void) const	{ return mszEntry.Text(); }
 uint32 CAsm65Module::GetLimit(void) const		{ return muiLimit; }
 uint32 CAsm65Module::GetBase(void) const		{ return muiBase; }
 uint8* CAsm65Module::GetBytes(void) const		{ return macBytes.GetData(); }

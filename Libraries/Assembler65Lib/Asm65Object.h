@@ -172,7 +172,7 @@ public:
 	void				Init(const char* szName);
 	void				Kill(void);
 
-	char*				GetName(void);
+	const char*			GetName(void) const;
 
 	uint32				AddSection(const char* szName, const char* szGroup, EAsm65SectionKind eKind);
 	size				NumSections(void) const;

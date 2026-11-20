@@ -269,7 +269,7 @@ void CAsm65IncludeSource::Pop(void)
 // source's name (empty if SetName wasn't called).
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65IncludeSource::GetFile(void)
+const char* CAsm65IncludeSource::GetFile(void) const
 {
 	return (muiDepth > 0) ? maszPaths[muiDepth - 1].Text() : mszName.Text();
 }

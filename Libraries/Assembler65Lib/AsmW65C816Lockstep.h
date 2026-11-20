@@ -43,16 +43,16 @@ protected:
 	CChars			mszDifferences;
 
 public:
-	void	Init(CAsm65Memory* pcFastMemory, CFastW65C816* pcFast);
-	void	Kill(void);
-	void	SetFrameCheck(CAsmW65C816FrameCheck* pcFrameCheck);
+	void		Init(CAsm65Memory* pcFastMemory, CFastW65C816* pcFast);
+	void		Kill(void);
+	void		SetFrameCheck(CAsmW65C816FrameCheck* pcFrameCheck);
 
-	size	Run(size uiMaxSteps, size uiMemoryInterval);
-	bool	Step(void);
-	bool	CompareMemory(void);
+	size		Run(size uiMaxSteps, size uiMemoryInterval);
+	bool		Step(void);
+	bool		CompareMemory(void);
 
-	char*	GetDifferences(void);
-	bool	IsStopped(void) const;
+	const char*	GetDifferences(void) const;
+	bool		IsStopped(void) const;
 };
 
 

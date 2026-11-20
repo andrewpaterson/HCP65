@@ -221,8 +221,8 @@ public:
 
 	CAsm65Output*		GetOutput(void);
 	CAsm65LineTable*	GetLineTable(void);
-	char*				GetMap(void);
-	char*				GetErrors(void);
+	const char*			GetMap(void) const;
+	const char*			GetErrors(void) const;
 	size				NumErrors(void) const;
 	bool				GetSymbol(const char* szName, int64* piValue);
 	void				DescribeMissing(const char* szWhat, const char* szName, CChars* pszDest);

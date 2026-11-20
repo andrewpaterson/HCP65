@@ -294,7 +294,7 @@ bool CAsm65Image::Write(const char* szFilename)
 }
 
 
-char* CAsm65Image::GetFile(void)							{ return mszFile.Text(); }
+const char* CAsm65Image::GetFile(void) const					{ return mszFile.Text(); }
 uint32 CAsm65Image::GetSize(void) const							{ return muiSize; }
 uint8 CAsm65Image::GetFill(void) const							{ return muiFill; }
 uint32 CAsm65Image::GetLimit(void) const							{ return muiLimit; }

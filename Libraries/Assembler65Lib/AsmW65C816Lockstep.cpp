@@ -169,7 +169,7 @@ bool CAsmW65C816Lockstep::CompareMemory(void)
 // What differed first, empty if nothing has.
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsmW65C816Lockstep::GetDifferences(void)
+const char* CAsmW65C816Lockstep::GetDifferences(void) const
 {
 	return mszDifferences.Text();
 }

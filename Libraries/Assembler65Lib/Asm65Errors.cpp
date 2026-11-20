@@ -119,7 +119,7 @@ size CAsm65Errors::NumErrors(void) const
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65Errors::Text(void)
+const char* CAsm65Errors::Text(void) const
 {
 	return mszErrors.Text();
 }

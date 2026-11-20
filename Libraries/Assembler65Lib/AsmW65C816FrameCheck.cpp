@@ -252,7 +252,7 @@ SAsmW65C816FrameWrite* CAsmW65C816FrameCheck::GetWrite(size uiIndex)
 // address and AppendWrite), or nothing.
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsmW65C816FrameCheck::GetWrites(void)
+const char* CAsmW65C816FrameCheck::GetWrites(void) const
 {
 	return mszWrites.Text();
 }

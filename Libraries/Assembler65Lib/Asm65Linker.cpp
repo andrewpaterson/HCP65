@@ -1950,7 +1950,7 @@ CAsm65LineTable* CAsm65Linker::GetLineTable(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65Linker::GetMap(void)
+const char* CAsm65Linker::GetMap(void) const
 {
 	return mszMap.Text();
 }
@@ -1960,7 +1960,7 @@ char* CAsm65Linker::GetMap(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65Linker::GetErrors(void)
+const char* CAsm65Linker::GetErrors(void) const
 {
 	return mcErrors.Text();
 }

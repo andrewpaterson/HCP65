@@ -1783,7 +1783,7 @@ CAsm65Output* CAsm65BaseAssembler::GetOutput(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65BaseAssembler::GetErrors(void)
+const char* CAsm65BaseAssembler::GetErrors(void) const
 {
 	return mcErrors.Text();
 }
@@ -1803,7 +1803,7 @@ size CAsm65BaseAssembler::NumErrors(void) const
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65BaseAssembler::GetWarnings(void)
+const char* CAsm65BaseAssembler::GetWarnings(void) const
 {
 	return mcWarnings.Text();
 }

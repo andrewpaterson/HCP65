@@ -258,8 +258,8 @@ bool CAsm65Executable::Write(const char* szFilename)
 }
 
 
-char* CAsm65Executable::GetFile(void)						{ return mszFile.Text(); }
-char* CAsm65Executable::GetEntry(void)						{ return mszEntry.Text(); }
+const char* CAsm65Executable::GetFile(void) const					{ return mszFile.Text(); }
+const char* CAsm65Executable::GetEntry(void) const					{ return mszEntry.Text(); }
 uint32 CAsm65Executable::GetLimit(void) const						{ return muiLimit; }
 size CAsm65Executable::NumSymbols(void) const						{ return maszSymbols.NumElements(); }
 char* CAsm65Executable::GetSymbolName(size uiIndex)			{ return maszSymbols.GetText(uiIndex); }
