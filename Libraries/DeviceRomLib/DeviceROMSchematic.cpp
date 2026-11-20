@@ -173,7 +173,7 @@ bool CDeviceROMSchematic::Error(const char* szMessage, const char* szDetail)
 //////////////////////////////////////////////////////////////////////////
 bool CDeviceROMSchematic::IsSymbol(CKicadSchemSymbol* pcSymbol, const char* szLibSymbol)
 {
-	char*	szName;
+	const char*	szName;
 	char*	szColon;
 
 	szName = pcSymbol->GetLibId();
@@ -250,7 +250,7 @@ CKicadSchemNet* CDeviceROMSchematic::GetPinNet(CKicadSchemSymbol* pcSymbol, cons
 //////////////////////////////////////////////////////////////////////////
 bool CDeviceROMSchematic::IsPowerNet(CKicadSchemNet* pcNet, int* piLevel)
 {
-	char*	szName;
+	const char*	szName;
 
 	szName = pcNet->GetName();
 	if ((strcmp(szName, "GND") == 0) || (strcmp(szName, "GNDD") == 0) || (strcmp(szName, "VSS") == 0))
