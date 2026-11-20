@@ -58,7 +58,7 @@ public:
 	uint8*			GetImageAt(uint32 uiAddress);
 	uint32			GetCodeEnd(void) const;
 	bool			GetSymbol(const char* szName, uint32* puiAddress);
-	const char*		GetErrors(void);
+	const char*		GetErrors(void) const;
 	CCPP65Builder*	GetBuilder(void);
 
 protected:

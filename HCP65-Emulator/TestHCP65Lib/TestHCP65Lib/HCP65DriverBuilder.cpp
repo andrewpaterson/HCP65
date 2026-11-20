@@ -56,4 +56,4 @@ bool CHCP65DriverBuilder::Write(const char* szFilename) { return mcModule.Write(
 uint8* CHCP65DriverBuilder::GetModule(void) const { return mcModule.GetBytes(); }
 size CHCP65DriverBuilder::GetModuleSize(void) const { return mcModule.GetSize(); }
 CAsm65Linker* CHCP65DriverBuilder::GetLinker(void) { return mcBuilder.GetLinker(); }
-const char* CHCP65DriverBuilder::GetErrors(void) { return mszErrors.Text(); }
+const char* CHCP65DriverBuilder::GetErrors(void) const { return mszErrors.Text(); }

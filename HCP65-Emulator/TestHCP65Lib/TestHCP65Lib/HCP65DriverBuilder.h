@@ -29,7 +29,7 @@ public:
 	uint8*			GetModule(void) const;
 	size			GetModuleSize(void) const;
 	CAsm65Linker*	GetLinker(void);
-	const char*		GetErrors(void);
+	const char*		GetErrors(void) const;
 };
 
 

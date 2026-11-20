@@ -133,7 +133,7 @@ size CHCP65ExeBuilder::GetExecutableSize(void) const
 //
 //
 //////////////////////////////////////////////////////////////////////////
-const char* CHCP65ExeBuilder::GetErrors(void)
+const char* CHCP65ExeBuilder::GetErrors(void) const
 {
 	return mszErrors.Text();
 }

@@ -212,7 +212,7 @@ uint32 CHCP65KernalBuilder::GetCodeEnd(void) const
 //
 //
 //////////////////////////////////////////////////////////////////////////
-const char* CHCP65KernalBuilder::GetErrors(void)
+const char* CHCP65KernalBuilder::GetErrors(void) const
 {
 	return mszErrors.Text();
 }

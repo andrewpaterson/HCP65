@@ -37,7 +37,7 @@ public:
 
 	uint8*			GetExecutable(void) const;
 	size			GetExecutableSize(void) const;
-	const char*		GetErrors(void);
+	const char*		GetErrors(void) const;
 
 protected:
 	bool			MakeExecutable(void);
