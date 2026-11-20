@@ -26,7 +26,7 @@ runs the emulator with a shared memory channel to it, or attaches to one already
 
 A step is one instruction when the disassembly has the keys, and one source line in a source file.
 
-F5 debugs what was last built: build first (Ctrl+Shift+B).
+F5 debugs what was last built: build first (Ctrl+F9).
 
 ## What debugging starts
 

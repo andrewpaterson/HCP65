@@ -56,7 +56,7 @@ card is given without a path, or an MSVC or GCC configuration has anything only 
 
 ## Building
 
-Build, Build (Ctrl+Shift+B) builds every solution of the workspace in the chosen build configuration, in
+Build, Build (Ctrl+F9) builds every solution of the workspace in the chosen build configuration, in
 order, a solution whose program another loads (a kernal) first.  The IDE goes on working while it builds.
 It builds the files as they are on disk, so save first (Ctrl+Shift+S saves them all).
 

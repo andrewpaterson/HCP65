@@ -135,7 +135,7 @@ Alt+Enter.
 
 | Keys | Command |
 |---|---|
-| Ctrl+Shift+B | Build |
+| Ctrl+F9 | Build |
 | F5 | Start Debugging, Continue |
 | Ctrl+F5 | Start Without Debugging |
 | Shift+F5 | Stop Debugging |
