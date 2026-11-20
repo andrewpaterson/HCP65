@@ -116,6 +116,57 @@ the selected one that has it is selected.  It is matched as Go to matches names 
 next row that matches, Backspace takes a character back, Escape ends it and Enter opens the row.  While
 nothing matches, the corner's border is red and the selection stays where it was.
 
+## Find and Replace in the file
+
+| Keys | What they do |
+|---|---|
+| Ctrl+F | Find: a bar over the code. |
+| Ctrl+R | Replace: the same bar with a second row. |
+| F3, Shift+F3 | Find Next and Find Previous. |
+| Ctrl+F3 | Find Word at Caret. |
+
+**Find** opens a bar over the code, not a dialog, with the selected text in it (if it is on one line) or
+the word at the caret.  As you type, every match in the file is highlighted and marked on the scroll
+bar, the first one from the caret is selected, and the bar says which it is of how many: `3 of 17`.
+
+- **Enter** or **F3** goes to the next match and **Shift+Enter** or **Shift+F3** to the previous, round
+  the ends of the file.
+- **Escape** closes the bar and leaves the match selected, with the keys back in the editor.
+- **Match Case**, **Words** (whole words only) and **Regex** change what matches.  They are the same in
+  every editor's bar and are remembered.
+- **In Selection** keeps the search to the text that was selected when the bar opened.  It is ticked
+  for you when that was more than a line.
+- Edit the file while the bar is open and it searches again.
+
+**Replace** adds what to replace with, **Replace** (the current match, then on to the next) and
+**Replace All** (every match, as one edit: one Undo puts them all back).
+
+With the bar closed, **F3** and **Shift+F3** look again for what you last searched for, from the caret,
+and **Ctrl+F3** looks for the word the caret is in.
+
+### Regular expressions
+
+With **Regex** ticked, here and in [Find in Files](#find-in-files), what you type is a regular
+expression, as IntelliJ IDEA's:
+
+| Written | Matches |
+|---|---|
+| `.` | any character but a line's end |
+| `[abc]` `[a-z0-9_]` `[^abc]` | one of a set, a range, or one that isn't |
+| `\d` `\w` `\s` | a digit, a word character, white space; `\D` `\W` `\S` one that isn't |
+| `^` `$` | the start and the end of a line |
+| `\b` | the start or end of a word |
+| `(x)` `(?:x)` | a group, and one that isn't remembered |
+| `x\|y` | x or y |
+| `x*` `x+` `x?` `x{2,3}` | none or more, one or more, none or one, two to three; add `?` for as few as will do |
+| `\1` | what the first group matched, again |
+| `\.` `\(` `\\` | the character itself |
+
+A `{` that doesn't start a count is just a `{`, so `foo\(\) {` finds what it looks like.  In the
+replacement `$1` is what the first group matched (`$0` all of the match), `\n` a new line and `\t` a
+tab.  What isn't a regular expression is said to be wrong, in the bar, and finds nothing.  An expression
+that would take for ever on some text (`(a+)+b` on a long run of `a`) is given up on.
+
 ## Find Usages
 
 Alt+F7 finds every use of the symbol at the caret across the workspace and shows them in the **Find
@@ -188,16 +239,44 @@ always shows every usage, and [Rename](refactoring/rename.md) always changes eve
 ## Find in Files
 
 Ctrl+Shift+F looks for text in a scope's files.  Its dialog has a tab for each [scope](#scopes), Match
-case and Words (whole words only), and a preview of the first results as you type, each with its file's
-code under it.  Text selected in the editor (on one line) is what it looks for; otherwise what you looked
+case, Words (whole words only) and Regex (a [regular expression](#regular-expressions)), a file mask,
+and a preview of the first results as you type, each with its file's code under it.  Text selected in the editor (on one line) is what it looks for; otherwise what you looked
 for last.  Enter opens the result selected.
 
 **Open in Find Window** lists every result in the **Find** tool window beside Find Usages: a tree of the
-files and their lines, with the same keys, preview and toolbar as Find Usages (without the groupings, the
-filters and the tabs).  Open files are searched as their editors have them, unsaved changes included.  The
-search runs a little at a time, so the IDE never stops answering keys.
+files and their lines, with the same keys, preview and toolbar as Find Usages (without the groupings and
+the filters).  Open files are searched as their editors have them, unsaved changes included.  The search
+runs a little at a time, so the IDE never stops answering keys.
 
-There are no regular expressions, file masks or Replace in Files yet.
+Each find is shown in the Find tool window's tab that is chosen, named for the text.  **Pin Tab**, on the
+toolbar, keeps a tab as it is (a `*` goes before its name) and the next find gets a tab of its own.
+**Rerun** looks again for the tab's own text, in its own scope.  A tab is closed by its cross.
+
+On the **Directory** tab, the `...` button beside the directory opens a chooser of folders.
+
+The **File mask** keeps the search to some of the scope's files: `*.cpp, *.h` is names with `*` and
+`?`, parted by commas, whatever their case.  A `!` before one leaves its files out: `*.h, !Test*`.
+
+### Replace in Files
+
+Ctrl+Shift+R is the same dialog with **Replace with** (a regular expression's `$1` is a group).
+
+- **Replace All** asks first, saying how many matches in how many files, then replaces them all.
+- **Open in Find Window** lists the matches in the Find tool window, each with what it becomes after
+  it:
+
+    ```text
+    Replace 'Area' with 'Size' in the solution  3 matches in 2 files
+      Shapes.h  2 matches
+        13: int  Area(void) override;  ->  Size
+    ```
+
+    Its toolbar's **Replace All** replaces them all, and **Replace Selected** the selected one, or every
+    one in the selected file.
+
+Each file is opened and changed in its editor, and all of them are one Undo.  They are left changed, not
+saved: Save All (Ctrl+Shift+S) keeps them.  A match whose text has changed since it was found is left
+alone, and the status line says how many were.
 
 ## Find Duplicates
 

@@ -104,6 +104,5 @@ the second undoes it.
 
 ## Not there yet
 
-There is no Find or Replace within the file (Ctrl+F, Ctrl+R): use [Find in
-Files](navigation.md#find-in-files) with the Current File scope.  There is no automatic indenting,
-no code completion, and no bookmarks.
+There is no automatic indenting, no code completion, and no bookmarks.  Find and Replace are in
+[Finding Your Way](navigation.md#find-and-replace-in-the-file).
