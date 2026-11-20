@@ -1,7 +1,8 @@
 # Settings and Keys
 
-File, Settings... (Ctrl+Alt+S) has three pages: **Keymap**, [File and Code
-Templates](templates.md#the-templates) and **Find Duplicates**.  What OK changes applies straight away.
+File, Settings... (Ctrl+Alt+S) has five pages: **Keymap**, [File and Code
+Templates](templates.md#the-templates), **Find Duplicates**, [Claude](claude-tab.md) and **Editor**.  What
+OK changes applies straight away.
 
 ## The keymap
 
@@ -30,12 +31,18 @@ lists: **Statements** (counting those inside an `if` or a loop, 3 to begin with)
 must be reached.  A function's whole body written elsewhere is always listed.  **Literals may differ** is
 what the Find Duplicates dialog's tick starts as.
 
+## Editor
+
+Two ticks, both on to begin with: **Show breadcrumbs** (what the caret is in, under the code) and **Show
+sticky lines** (the first lines of what the top of the view is in, kept over the code).  See
+[Moving in a file](navigation.md#breadcrumbs).
+
 ## Where settings are kept
 
 | File | What is in it |
 |---|---|
 | `Keymap.xml` | The keys you have changed. |
-| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author. |
+| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author; where Claude is started; the Editor page's ticks and the Structure tree's sorting. |
 | `RecentSolutions.xml` | File, Recent Solutions, and what was open last. |
 | `fileTemplates\` | Your Default scheme's [templates](templates.md#schemes). |
 
@@ -54,6 +61,7 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+Alt+S | Settings |
 | Ctrl+F4 | Close the document |
 | Alt+1 | Solution Explorer, with the active file selected |
+| Alt+7 | Structure: the active file's outline |
 | Shift+Escape | Hide the tool window that has the keys |
 | Menu, Shift+F10 | The context menu |
 | F4 | Jump to Source (from a tool window) |
@@ -108,6 +116,11 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+Alt+Home | Go to Related Symbol |
 | Ctrl+Alt+F7 | Show Usages |
 | Alt+O | Switch between header and source |
+| Ctrl+F12 | File Structure |
+| Alt+Down, Alt+Up | Next and Previous Method |
+| Ctrl+G | Go to Line |
+| Ctrl+Shift+M | Move Caret to Matching Brace |
+| Ctrl+[, Ctrl+] | Move Caret to Code Block Start and End (with Shift, select to it) |
 | Alt+F7 | Find Usages |
 | Shift+F12 | Find All References |
 | Ctrl+Alt+Shift+F7 | Find Usages Settings |

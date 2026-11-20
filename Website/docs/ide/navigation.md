@@ -58,6 +58,64 @@ still extends the selection; Ctrl+click no longer does.
 Back, as does a big move of the caret (a click far away, Ctrl+End) or choosing another tab.  Back reopens
 a file if it was closed since.  The history is kept for the session only.
 
+## Moving in a file
+
+| Keys | What they do |
+|---|---|
+| Ctrl+F12 | File Structure: a chooser of everything the file declares. |
+| Alt+7 | The Structure tool window: the same, as a tree that stays open. |
+| Alt+Down, Alt+Up | Next and Previous Method: the caret goes to the next function's name, or the one before. |
+| Ctrl+G | Go to Line: type a line, or a line and a column (`120` or `120:8`). |
+| Ctrl+Shift+M | Move Caret to Matching Brace: from a bracket to the one that closes or opens it. |
+| Ctrl+[, Ctrl+] | Move Caret to Code Block Start and End; with Shift the text between is selected. |
+
+What a file declares is its **outline**: its namespaces, classes, enums, functions, fields, variables
+and typedefs, each inside the one it is written in, with a function's parameters after its name.  The
+outline is read from the file as it is in the editor, saved or not.
+
+**File Structure** lists the outline in a chooser over the editor, each entry indented under the one it
+is in with its line after it, and the one the caret is in selected.  Type and the entries are filtered
+as Go to filters; Enter or a click puts the caret on the entry's name.
+
+The **Structure** tool window, tabbed with Solution Explorer, shows the outline of the file you are
+editing as a tree and keeps up as you edit.  The entry the caret is in is selected as the caret moves.
+A click or Enter on an entry puts the caret on its name.  Its context menu sorts the entries by name in
+place of the order they are in the file, and hides fields; both choices are kept.
+
+**Go to Line** opens a small prompt over the editor with the caret's line and column in it.  Enter goes
+there (a line past the end is the last line), and where you were goes on Back.  What isn't a line is
+said to be wrong and the prompt stays; Escape leaves the caret alone.
+
+### Breadcrumbs
+
+Under the code is a strip that says what the caret is in, outermost first:
+
+```text
+Deep > CLadder > Climb
+```
+
+A namespace, a class in it, a function in the class.  It follows the caret.  A press on one puts the
+caret on its name, and opens a chooser of what is beside it (a class's other members, say) so you can
+go on to one of those: Escape if you don't want to.
+
+### Sticky lines
+
+When you scroll into a long function, its first line would be out of sight.  It is kept instead, at the
+top of the view over the code, with the first lines of the class and the namespace it is in above it,
+outermost first and five at most.  As you scroll on into the next function its first line takes the
+place of the last one's.  A press on a kept line puts the caret on what it starts.
+
+Breadcrumbs and sticky lines can each be turned off: File, Settings..., **Editor**.
+
+### Typing to find a row
+
+In Solution Explorer, the Structure tree, the Find Usages, Find and Duplicates trees, and a chooser
+that has no field to type in: just type.  What you type is shown in the corner, and the first row from
+the selected one that has it is selected.  It is matched as Go to matches names (`sexp` finds
+`Solution Explorer`), or anywhere in the row whatever its case.  Up and Down go to the previous and
+next row that matches, Backspace takes a character back, Escape ends it and Enter opens the row.  While
+nothing matches, the corner's border is red and the selection stays where it was.
+
 ## Find Usages
 
 Alt+F7 finds every use of the symbol at the caret across the workspace and shows them in the **Find

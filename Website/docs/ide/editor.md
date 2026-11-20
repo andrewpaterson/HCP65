@@ -106,4 +106,4 @@ the second undoes it.
 
 There is no Find or Replace within the file (Ctrl+F, Ctrl+R): use [Find in
 Files](navigation.md#find-in-files) with the Current File scope.  There is no automatic indenting,
-no Go to Line, no code completion, and no bookmarks.
+no code completion, and no bookmarks.
