@@ -709,9 +709,9 @@ bool CDeviceROMSchematic::WriteXML(const char* szFileName)
 }
 
 
-char* CDeviceROMSchematic::GetName(void) { return mszName.Text(); }
-char* CDeviceROMSchematic::GetManufacturer(void) { return mszManufacturer.Text(); }
-char* CDeviceROMSchematic::GetDriver(void) { return mszDriver.Text(); }
+const char* CDeviceROMSchematic::GetName(void) const { return mszName.Text(); }
+const char* CDeviceROMSchematic::GetManufacturer(void) const { return mszManufacturer.Text(); }
+const char* CDeviceROMSchematic::GetDriver(void) const { return mszDriver.Text(); }
 uint8 CDeviceROMSchematic::GetRevision(void) const { return muiRevision; }
 uint8 CDeviceROMSchematic::GetDeviceBus(void) const { return muiDeviceBus; }
 uint8 CDeviceROMSchematic::GetMainBus(void) const { return muiMainBus; }

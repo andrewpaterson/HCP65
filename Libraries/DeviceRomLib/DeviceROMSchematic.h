@@ -73,9 +73,9 @@ public:
 	void			SaveXML(CXMLWriter* pcWriter);
 	bool			WriteXML(const char* szFileName);
 
-	char*			GetName(void);
-	char*			GetManufacturer(void);
-	char*			GetDriver(void);
+	const char*		GetName(void) const;
+	const char*		GetManufacturer(void) const;
+	const char*		GetDriver(void) const;
 	uint8			GetRevision(void) const;
 	uint8			GetDeviceBus(void) const;
 	uint8			GetMainBus(void) const;
