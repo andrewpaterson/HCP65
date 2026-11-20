@@ -354,6 +354,7 @@ void CKernalVideoBoard::SetMode(uint8 uiMode)
 
 	muiWidth = (uint16)(psMode->auiHorizontal[0] * 8);
 	muiHeight = psMode->auiVertical[0];
+	guiVideoWidth = muiWidth;
 	puiRow = (volatile uint8*)(mpsDevice->uiAddress + VIDEO_ROW_TABLE);
 	uiStart = 0;
 	for (i = 0; i < muiHeight; i++)
@@ -386,6 +387,7 @@ void CKernalVideoBoard::Off(void)
 	muiMode = 0xFF;
 	muiWidth = 0;
 	muiHeight = 0;
+	guiVideoWidth = 0;
 }
 
 

@@ -75,7 +75,7 @@ struct SVideoMode
 extern "C"
 {
 	extern uint8	guiVideoFlags;			//What Flags was last written.
-	extern uint16	guiVideoWidth;			//The pixels in a line.
+	extern uint16	guiVideoWidth;			//The pixels in a line of the mode set (muiWidth), for the assembly: text's and the blits'.
 	extern uint32	guiVideoPalette;		//The Palette Byte register's address.
 	extern uint8*	gpuiVideoFont;			//VIDEO_FONT_SIZE bytes of the kernal's main memory heap in one bank, NULL if there were none.
 	extern uint8*	gpuiVideoClear;			//VIDEO_CLEAR_SIZE zeros there too: the line a Blitter Board clears a row with.  NULL if there were none.

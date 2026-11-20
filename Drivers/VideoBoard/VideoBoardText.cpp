@@ -118,7 +118,6 @@ bool CKernalVideoBoard::SetTextMode(uint8 uiMode)
 		uiCell = (uint16)(uiCell + guiVideoColumns);
 		uiPixel += (uint32)muiWidth * VIDEO_TEXT_CELL_HEIGHT;
 	}
-	guiVideoWidth = muiWidth;
 	guiVideoPalette = (uint32)&mpuiRegisters[VIDEO_PALETTE_BYTE];
 
 	//Each palette p is foreground p & 15 on background (p >> 4) & 7, but the cursor's (VIDEO_TEXT_CURSOR_PALETTE), the
