@@ -42,7 +42,8 @@ syntax highlighting and grew into the compiler.
 
 The compiler takes a large subset of C++14: classes with multiple inheritance and virtual
 functions, templates (with partial specialisation and variadic templates), overloading,
-operators, references and namespaces.  Exceptions, lambdas and `auto` are not supported yet.
+operators, references and namespaces, lambdas, `auto` and `constexpr`, and exceptions for a
+program built with them turned on.
 The measure of how much is supported is the project's own libraries: all of BaseLib,
 StandardLib and SupportLib compile for both processors, and their test suites run on the
 emulators.  [Supported C++](language.md) has the details.

@@ -103,17 +103,17 @@ both.  A host build checks the W65C816's size model with `g++ -m32 -DBASELIB_SIZ
 | Area | Supported |
 |---|---|
 | Statements | Everything in C: `if`, `while`, `do`, `for`, `switch`, `break`, `continue`, `return`, `goto`.  Declarations in conditions (`if (int x = f())`). |
-| Functions | Overloading, default arguments, recursion, variadic functions (`stdarg.h`), pointers to functions. |
-| Classes | Structs, classes and unions, named or not, local and anonymous; multiple inheritance with several polymorphic bases; virtual functions, pure virtuals, virtual destructors; `override` and `final`; constructors, destructors, member initialisers, default member initialisers, delegating constructors; `= default` and `= delete`; static members; friends; nested classes. |
-| Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one. |
+| Functions | Overloading, default arguments (a template instance's are worked out with its template arguments), recursion, variadic functions (`stdarg.h`), pointers to functions.  A function, or a member function, declared by the name of its type (`typedef int Binary(int, int); Binary Add;`). |
+| Classes | Structs, classes and unions, named or not, local and anonymous; multiple inheritance with several polymorphic bases; virtual functions, pure virtuals, virtual destructors; `override` and `final`; constructors, destructors, member initialisers, default member initialisers, delegating constructors; `= default` (in the class or after it) and `= delete`; `const` and `volatile` member functions, which overload; static members; friends; nested classes; virtual base classes; a class's own `operator new` and `operator delete`. |
+| Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one.  `c ? x : y` of two bit-fields can be assigned to: it is the one picked. |
 | Objects by value | Passed and returned by value; temporaries destroyed at the end of their full expression; results made in place (as C++17 requires). |
-| Operators | Member and free operator functions, conversion functions, `operator->`, pointers to members (`.*` and `->*`). |
-| Templates | Class, function and member templates; explicit and partial specialisation; non-type and default arguments; deduction from `T`, `T*`, `T&` and `X<..., T, N, ...>`; explicit instantiation; variadic templates with a function parameter pack expanded in a call's arguments. |
+| Operators | Member and free operator functions, conversion functions, `operator->`, pointers to members (`.*` and `->*`).  A built-in operator on an object that no operator function takes is done on what the object's conversion function gives (`count + 1` for a class with `operator int`), when the class has one that fits. |
+| Templates | Class, function and member templates; explicit and partial specialisation; non-type and default arguments; deduction from `T`, `T*`, `T&` and `X<..., T, N, ...>`; explicit instantiation; variadic templates (`sizeof...`, packs expanded in arguments and in lists); template template parameters; alias templates; member class templates; SFINAE; a function template that is declared and not defined, called where the call isn't evaluated (`sizeof`, `decltype`, `noexcept`). |
 | Names | Namespaces (named, unnamed, inline), `using` declarations and directives, argument dependent lookup, `using Base::Base;` (inherited constructors), type aliases (`using Int = int;`). |
-| C++11 | `nullptr`, `enum class`, `static_assert`, `override`, `final`, brace initialisation of aggregates, `T&&` parameters that pass their arguments on. |
+| C++11 and C++14 | `nullptr`, `enum class`, `static_assert`, `override`, `final`; `auto`, `decltype` (as a name's first qualifier too, `decltype(d)::T`), `decltype(auto)` and return types written after the function; lambdas, generic ones too, which capture by copy (arrays as well) or by reference and convert to a pointer to a function when they capture nothing; range-based `for`; rvalue references, move constructors and move assignment; `constexpr` functions and variables, worked out when the program is compiled; `typeid` (with `<typeinfo>`); `thread_local`; wide, Unicode and raw string literals; brace initialisation, with the braces of nested aggregates left out (`Nested n = { 1, 2, 3 };`). |
 | Casts | C style, `static_cast`, `reinterpret_cast`, `const_cast`, functional casts, and `dynamic_cast<T*>`. |
 | Memory | `new`, `new[]`, `delete`, `delete[]` and placement `new(address)`, over Libc65's `operator new`. |
-| Constants | Constant expressions with enumerators, `const` variables, casts, `sizeof` and type traits; floating point constants worked out as the processor would. |
+| Constants | Constant expressions with enumerators, `const` and `constexpr` variables (locals and their members too), casts, `sizeof` and type traits, calls of `constexpr` functions, an object with a `constexpr` conversion to an integer, comparisons and differences of addresses; floating point constants worked out as the processor would.  A value that doesn't fit the type it is converted to as a constant is an error: `Byte<300>` for an `unsigned char` parameter, an enumerator past its enum's fixed type. |
 
 ### Extensions
 
@@ -148,23 +148,18 @@ compiler's own file and line, which says which construct it was.
 
 | Not supported | Notes |
 |---|---|
-| Exceptions | `try`, `catch` and `throw` are being added.  They will be compiled only for a program built with `Exceptions="true"` (see [Building](building.md)), which also defines `__cpp_exceptions`; a program built without it is told so where it uses one.  For now a function that uses one is an error either way. |
-| Lambdas | |
-| `auto` and `decltype` | |
-| Range-based `for` | Parsed, but an error in a function. |
-| `constexpr` functions | `constexpr` is taken as `inline`: a call isn't a constant expression. |
-| Alias templates | `template<class T> using W = V<T>;` |
-| `typeid` and `std::type_info` | No `<typeinfo>`. |
-| Static locals with a non constant initialiser | Static locals that are objects too: they need a first time guard. |
-| Virtual inheritance | |
-| Rvalue references as a type of their own | `&&` is taken as `&`.  No move constructors, no `std::move`. |
-| `std::initializer_list` | Brace initialisation of aggregates works. |
-| Parameter packs anywhere but a call's arguments | No `sizeof...`, no packs in base lists or initialisers. |
-| Template template parameters, SFINAE | Constructor templates and member class templates neither. |
-| Class `operator new` and `delete` | The global ones are always used. |
-| Wide, Unicode and raw string literals | |
-| `thread_local` | |
-| The C++ standard library | Libc65 has the C library and `<new>` only. |
+| Exceptions without the build switch | `try`, `catch` and `throw` are compiled only for a program built with `Exceptions="true"` (see [Building](building.md)); without it they are errors. |
+| Constructor templates | A class whose only constructor is a template is filled as an aggregate. |
+| Default arguments of a lambda's parameters | `[](int w = 3) { return w; }()` finds no function. |
+| A function template called before its definition | A call that is evaluated needs the template's definition to have been read; one in `sizeof`, `decltype` or `noexcept` needs only its declaration. |
+| A copy constructor or assignment defaulted after its class, in a class with virtual bases | In the class, or without virtual bases, it is written. |
+| `decltype(d)::name` where only the type of `d` tells a type from a member | Where a type can be written it is taken for one, so `sizeof(decltype(d)::member)` is refused. |
+| Some constants | A named cast in a constant (`static_cast<int>(3 > 2)`); a class template's static member defined after the class; reading a union's member that isn't the one last given a value is refused only where the two differ in size. |
+| The C++ standard library | Libc65 has the C library and `<new>`, `<exception>` and `<typeinfo>` only. |
+
+What a declaration alone shows to be wrong is refused wherever it is written; the checks that
+need a class laid out, or a function declared to the compiler, are made where it is first used,
+so a class or a function nothing uses isn't checked in full.
 
 Overload resolution is a simplified form of the standard's ranking: exact match, then promotion,
 then conversion, then a user defined conversion.  It gives the standard's answer for the code it
