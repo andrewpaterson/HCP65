@@ -75,3 +75,21 @@ page holds `$42` at offset 0, then process 5's bank 0 is physical bank `$42` of 
 
 The lookup happens in the first half of each bus cycle, while PHI2 is low.  No remapping is done in
 kernel mode; the kernel sees physical addresses.
+
+### Interrupts from user mode
+
+An interrupt taken in user mode does all of its stack work in user mode, on the process's own stack
+in its own bank 0.  The processor pushes the program bank, the return address and the status first;
+only the vector pull (VPB low) counts the [kernel mode count](#kernel-mode-and-user-mode) up.  `RTI`
+counts it back down as soon as its opcode is fetched, so its pulls come back from the same stack.
+
+The count is decoded straight away, but the rest of the processor board takes kernel mode from a
+latch that changes at the end of each cycle.  So the vector's first byte is still read in user mode,
+from the process's own bank 0, and only its second byte comes from the kernel's bank 0.  For that
+reason **every process's bank 0 holds the same vectors as the kernel's**: when the kernel loads a
+program it copies `$FFE0`–`$FFFF` of its bank 0 into the process's bank 0.  A process's stack ends
+below them, at `$EFFF`.
+
+A program can overwrite its own copy of the vectors, since its bank 0 is its own memory.  That only
+breaks the program that does it: the next interrupt it takes goes wrong, and no other process is
+affected.

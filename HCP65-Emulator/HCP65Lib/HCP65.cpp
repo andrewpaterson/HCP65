@@ -649,7 +649,12 @@ void CHCP65::UpdateMode(void)
 //
 // The processor's bus events.  The interrupt pushes happen before the
 // vector pull (so in the interrupted mode) and RTI's pulls after its opcode
-// fetch (so in the mode being returned to).
+// fetch (so in the mode being returned to).  The vector pull counts the
+// interrupt depth up, but the processor board's mode is a latch that the
+// rest of the board sees from the next cycle: the vector's first byte is
+// read in the mode interrupted (from a process's own bank 0, which is why
+// the kernal copies its vectors into every process's) and its second in
+// kernel mode.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65::Signal(void* pvContext, uint8 uiSignal)
@@ -660,6 +665,9 @@ void CHCP65::Signal(void* pvContext, uint8 uiSignal)
 	if (uiSignal == FAST_W65C816_SIGNAL_VECTOR_PULL)
 	{
 		pcHCP65->muiInterruptDepth = (uint8)((pcHCP65->muiInterruptDepth + 1) & 0x7F);
+	}
+	else if (uiSignal == FAST_W65C816_SIGNAL_VECTOR_SECOND)
+	{
 		pcHCP65->UpdateMode();
 	}
 	else if (uiSignal == FAST_W65C816_SIGNAL_RTI)

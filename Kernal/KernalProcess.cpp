@@ -559,6 +559,15 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 
 	*(uint32*)KernalUserAddress(KERNAL_USER_MEMORY_SIZE) = uiMemorySize;
 
+	//The kernal's vectors in the process's bank 0 too.  An interrupt's vector pull is what puts the board in kernel
+	//mode, and the rest of the processor board sees that from the cycle after the first one of it: the first vector
+	//byte comes from the process's bank 0 (Website docs/hcp65/memory-map.md).  A program that overwrites them breaks
+	//only itself.
+	if (!KernalCopyToUser(KERNAL_VECTORS, (const uint8*)KERNAL_VECTORS, KERNAL_VECTORS_SIZE))
+	{
+		return KERNAL_PROCESS_NO_MEMORY;
+	}
+
 	//The interrupt frame RTI pulls from the process's stack: P, the entry's PC and its bank.
 	puiStack = KernalUserAddress(KERNAL_USER_STACK_TOP - 3);
 	puiStack[0] = KERNAL_PROCESS_STATUS;

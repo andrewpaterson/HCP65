@@ -9,6 +9,8 @@
 #define KERNAL_USER_STACK_TOP		0xEFFF		//In the process's bank 0.
 #define KERNAL_USER_MEMORY_SIZE		0xFF0300	//Where Libc65 reads the memory size (a process address).
 #define KERNAL_USER_HIGH_MEMORY		0x200000	//A program's heap (its UserHeapSize) starts here.
+#define KERNAL_VECTORS				0x00FFE0	//The vectors, $FFE0 to $FFFF of bank 0: the kernal's, and a copy in every process's.
+#define KERNAL_VECTORS_SIZE			0x20
 
 //COP n: A is the address of the call's arguments on the process's stack (UserCalls.asm and HCP65User.h).
 #define KERNAL_CALL_EXIT			0			//A is the exit code.  Doesn't return.
