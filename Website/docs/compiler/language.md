@@ -25,7 +25,7 @@ The preprocessor defines `__cplusplus` as `201402L`.
 | Pointers, references | 4 bytes | 4 bytes | On the W65C816 a 24 bit address with a zero top byte. |
 | `size_t` | **2 bytes** | 4 bytes | `unsigned int` on both, so `sizeof`'s type, `size_t` and BaseLib's `size` are one type.  On the W65C816 `memcpy`, `malloc` and the others take 16 bit counts; `memcpy32`, `malloc32` and the other 32 suffixed functions take longer ones (see [Libc65](libc65.md)). |
 | `ptrdiff_t` | 4 bytes | 4 bytes | A pointer wide: `int` on the 65C64, `long` on the W65C816, so a difference of pointers into a block of more than 32KB isn't cut. |
-| Pointers to members | 4 bytes | 4 bytes | A field's offset, or a member function's address. |
+| Pointers to members | 4 bytes | 4 bytes | A field's offset plus one, or a member function's address; the null one is 0. |
 | `std::nullptr_t` | 4 bytes | 4 bytes | `nullptr`'s type, a type of its own: it becomes any pointer or pointer to a member, a `bool` only where it is tested or directly initialises one, and nothing else. |
 
 Each fundamental type is a type of its own, however wide: `int` and `long` are different types
