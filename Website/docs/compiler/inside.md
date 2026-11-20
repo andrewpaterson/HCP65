@@ -53,6 +53,11 @@ works the way a C++ compiler does, doing only what is used:
   called.
 - A class's vtable, and so its virtual functions, is written when an object of the class is first
   made.
+- A class whose destructor is virtual has one more virtual function, which the compiler writes: its
+  deleting destructor (`_Class__opDeleting`), which destroys the object and frees it with the
+  class's own `operator delete` and size.  `delete p` calls it through the vtable, so an object
+  deleted through a pointer to a base is freed as its own class frees.  Its call of the global
+  `operator delete` is a weak reference: a program that never deletes needn't have one.
 
 So a header like `BaseLib/ArrayTemplate.h`, with all it includes, compiles as long as what the
 program uses is supported.
