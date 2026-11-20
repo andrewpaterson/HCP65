@@ -100,8 +100,13 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+N | Go to Class |
 | Ctrl+Shift+N | Go to File |
 | Ctrl+Alt+Shift+N | Go to Symbol |
-| Ctrl+B | Go to Source (or the usages, on a declaration) |
+| Ctrl+B, Ctrl+click | Go to Source (or the usages, on a declaration) |
 | F12 | Go to Definition |
+| Ctrl+Alt+B | Go to Implementation(s) |
+| Ctrl+U | Go to Super Method |
+| Ctrl+Shift+B | Go to Type Declaration |
+| Ctrl+Alt+Home | Go to Related Symbol |
+| Ctrl+Alt+F7 | Show Usages |
 | Alt+O | Switch between header and source |
 | Alt+F7 | Find Usages |
 | Shift+F12 | Find All References |

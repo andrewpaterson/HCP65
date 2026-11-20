@@ -28,10 +28,30 @@ Exact names come first, then names that start with what you typed, then the clos
 
 | Keys | What they do |
 |---|---|
-| Ctrl+B | Go to Source.  On a use: its definition, or its declaration if it has no definition.  On an `#include`: the file it includes.  On a declaration: a popup of its usages, one of which opens. |
+| Ctrl+B, Ctrl+click | Go to Source.  On a use: its definition, or its declaration if it has no definition.  On an `#include`: the file it includes.  On a declaration: a chooser of its usages, one of which opens. |
 | F12 | Go to Definition, as Visual Studio's. |
+| Ctrl+Alt+B | Go to Implementation(s).  From a virtual function: the functions that override it.  From a class: the classes derived from it.  From a function's declaration: its definition. |
+| Ctrl+U | Go to Super Method.  From a member function (named at the caret, or the one the caret is anywhere in): what it overrides in its base classes.  From a class: its base classes. |
+| Ctrl+Shift+B | Go to Type Declaration: the class, enum or typedef that the variable, field, parameter or function at the caret is declared with. |
+| Ctrl+Alt+Home | Go to Related Symbol: everything below, and the file's header or source, in one chooser under headings. |
+| Ctrl+Alt+F7 | Show Usages: the chooser of the usages of the name at the caret, wherever it is. |
 | Alt+O | Switch between a `.cpp` and its header. |
 | Ctrl+Alt+Left, Ctrl+Alt+Right | Back and Forward. |
+
+When one of these has a single place to go, it goes there.  When it has several it lists them in a
+**chooser** under the caret, the nearest class's first, with a preview of the selected one's code beside
+them:
+
+- type and the rows are filtered as Go to filters (`rsq` finds `CRoundedSquare::Draw`);
+- Up and Down move through them, Enter or a click goes to the one selected, Escape closes it;
+- the usages' chooser has **Open in Find Window**, which lists them all in Find Usages.
+
+When it has nowhere to go, the status line says so ("No implementations of CRoundedSquare.").
+Go to Type Declaration reads the type from the declaration, so a built in type (`int`) or `auto` has
+nothing to go to.
+
+**Ctrl+click** puts the caret on the name clicked and goes as Ctrl+B does from there.  Shift+click
+still extends the selection; Ctrl+click no longer does.
 
 **Back and Forward** go through the places the caret has been, as a browser's history does.  A jump
 (Go to, Find Usages, F4, Next Occurrence, a file opened from Solution Explorer) puts where you were on
