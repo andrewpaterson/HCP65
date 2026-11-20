@@ -1,0 +1,74 @@
+HCP65 Kernal Mode - schematic faults
+====================================
+
+What the board is meant to do (the user, 2026-11-20): an interrupt's vector
+pull (~VP low) puts the processor board in kernel mode only at the vector
+access, so all of the interrupt's stack work is done in user space, on the
+process's own stack in its own bank 0; RTI takes it back out of kernel mode
+before any of its stack work.  The count of interrupts is zero in user mode
+and above zero in kernel mode, and kernel mode is forced until the Native
+Latch is set (the boot's reset vector).  Every process's bank 0 holds the
+same vectors as the kernal's, because the vector's first byte is read in
+user mode.  The emulator and the kernal follow that (HCP65Lib/HCP65.cpp,
+Kernal/KernalProcess.cpp).
+
+1. Kernal Mode PART is the count being 127, not above zero (IC2)
+
+   IC2 is a 74LVC11, a triple 3-input AND: 1Y (pin 12) is C0.C1.C2, 2Y
+   (pin 6) is C3.C4.C5, and 3Y (pin 8) is 1Y.2Y.C6, which is Kernal Mode
+   PART.  So it is high only when all seven bits of the count are set.
+
+   Effect: the count is 1 after an interrupt from user mode, so the board
+   doesn't see kernel mode: the bank byte stays remapped and the vector, the
+   kernal's code and its data are all read from the process's banks.
+
+   Fix: the same three gates as ORs, wired as they are, so Kernal Mode PART
+   is (C0+C1+C2)+(C3+C4+C5)+C6, the count above zero.  For example three
+   74LVC1G332s (single 3-input OR, 3.3V and 5V tolerant, so they take the
+   74HCT193s' 5V outputs), or a 74HC4075 (triple 3-input OR, a different
+   pinout from the 74LVC11's) powered from 5V, whose output the 3.3V parts
+   it drives (IC6, a 74LVC04) tolerate.
+
+2. Kernal mode is held off once the Native Latch is set, not forced before
+   it (IC1)
+
+   IC1 is a 74LVC1G02 (NOR) of ~{Kernal Mode}_PART (pin 2) and Native Latch
+   (pin 1): Kernal Mode (pin 4) is Kernal Mode PART and not Native Latch.
+   Before the latch is set that follows the count (which the reset's vector
+   pull only makes 1 too late for the reset vector); after it, Kernal Mode
+   is low whatever the count is.
+
+   Effect: once the boot has gone native the board is never in kernel mode.
+   Before then it is only in kernel mode when the count says so, which isn't
+   in time for the reset vector to come from the MPU Memory Board.
+
+   Fix: a NAND in IC1's place, a 74LVC1G00 (the same SOT353 pinout as the
+   74LVC1G02: A pin 1, B pin 2, Y pin 4), so Kernal Mode is Kernal Mode PART
+   or not Native Latch: forced before the latch is set, the count after.
+
+3. The bank byte switches a cycle before the rest of the board's mode does
+   (IC7, IC8)
+
+   IC7's first half (the remap latch: 1~{OE} pin 1) and IC8 (the bank byte
+   straight through: ~{OE1} pin 1, ~{OE2} pin 19) are switched by the Kernal
+   Mode net and ~{Kernal Mode} (IC6 pin 6): the count decoded straight
+   away.  The rest of the processor board takes Kernal Mode OUT and ~{Kernal
+   Mode} OUT, which IC13 latches from the same net at the end of each cycle
+   (CP is ~{PHI2}).  So in the first cycle of a vector pull, as soon as ~VP
+   counts the count up, the bank byte goes to the processor's own ($00)
+   while the memory boards still see user mode, and likewise at an RTI the
+   other way round.
+
+   Effect: the vector's first byte is read from bank 0 of main memory (a
+   bank no process has: a remap page can't name it), not from the process's
+   own bank 0 with its copy of the kernal's vectors, so an interrupt from
+   user mode jumps to a wrong address.  Which byte wins depends on the
+   gates' delays against the access, so it can come and go.
+
+   Fix: switch IC7 and IC8 with the latched mode, so the bank byte and the
+   decode change on the same edge: IC7's 1~{OE} (pin 1) from Kernal Mode OUT
+   (IC13 Q, pin 5) and IC8's ~{OE1} and ~{OE2} (pins 1 and 19) from ~{Kernal
+   Mode} OUT (IC13 ~{Q}, pin 3).  The vector's first byte then comes from
+   the process's bank 0 and its second from the kernal's, as intended, and
+   RTI's pulls are all in user mode.  IC6's third inverter (pins 5 and 6) is
+   then spare.
