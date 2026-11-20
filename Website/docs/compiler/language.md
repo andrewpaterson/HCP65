@@ -73,9 +73,10 @@ A function declared `override` must override a virtual function of a base class,
 may override one declared `final`: both are errors.  A function that overrides one without being
 declared `override` (or `final`) gets a warning, as G++'s `-Wsuggest-override` gives, except a
 destructor.  The warning is on unless a build configuration turns it off
-(`WarnMissingOverride="false"`, see [Building](building.md)).  As the compiler's other checks of
-a class, these are made where the class is first needed whole, so a class nothing uses isn't
-checked.
+(`WarnMissingOverride="false"`, see [Building](building.md)).  A class declared `final` is no
+base class.  A class with a base, or with a member declared `override` or `final`, is checked
+where it is defined, whether or not anything uses it; only a class nested in another class or in
+a function waits until it is first needed whole.
 
 ### BaseLib's `size` and `lsize`
 
@@ -108,11 +109,11 @@ both.  A host build checks the W65C816's size model with `g++ -m32 -DBASELIB_SIZ
 | Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one.  `c ? x : y` of two bit-fields can be assigned to: it is the one picked. |
 | Objects by value | Passed and returned by value; temporaries destroyed at the end of their full expression; results made in place (as C++17 requires). |
 | Operators | Member and free operator functions, conversion functions, `operator->`, pointers to members (`.*` and `->*`).  A built-in operator on an object that no operator function takes is done on what the object's conversion function gives (`count + 1` for a class with `operator int`), when the class has one that fits. |
-| Templates | Class, function and member templates; explicit and partial specialisation; non-type and default arguments; deduction from `T`, `T*`, `T&` and `X<..., T, N, ...>`; explicit instantiation; deduction through an alias template and of a template template parameter (`Get(C<T>&)`); partial specialisations of variable templates, and on function and member pointer types (`F<R(A...)>`, `F<R (C::*)(A...) const>`) and on types their parameters are only used in (`Has<T, Void<typename T::Type>>`); variadic templates (`sizeof...`, packs expanded in arguments, lists and base classes); template template parameters; alias templates; member class templates, constructor templates and variable templates that are static members; a class template's member classes, each instance its own; SFINAE; a function template that is declared, called, and defined after. |
+| Templates | Class, function and member templates; explicit and partial specialisation; non-type and default arguments; deduction from `T`, `T*`, `T&` and `X<..., T, N, ...>`; explicit instantiation; deduction through an alias template and of a template template parameter (`Get(C<T>&)`); partial specialisations of variable templates, and on function and member pointer types (`F<R(A...)>`, `F<R (C::*)(A...) const>`) and on types their parameters are only used in (`Has<T, Void<typename T::Type>>`); variadic templates (`sizeof...`, packs expanded in arguments, lists and base classes); template template parameters; alias templates; member class templates, constructor templates and variable templates that are static members; a class template's member classes, member class templates and member variable templates, each instance its own, defined in the class template or outside it (`template<class T> struct Outer<T>::Inner { };`), and their members defined outside too; SFINAE; a function template that is declared, called, and defined after. |
 | Names | Namespaces (named, unnamed, inline), `using` declarations and directives, argument dependent lookup, `using Base::Base;` (inherited constructors), type aliases (`using Int = int;`). |
-| C++11 and C++14 | `nullptr`, `enum class`, `static_assert`, `override`, `final`; `auto`, `decltype` (as a name's first qualifier too, `decltype(d)::T`), `decltype(auto)` and return types written after the function; lambdas, generic ones too (`auto...` as well), which capture by copy (arrays and parameter packs as well) or by reference, have default arguments, and convert to a pointer to a function when they capture nothing; range-based `for`; rvalue references, move constructors and move assignment; `constexpr` functions and variables, worked out when the program is compiled; `typeid` (with `<typeinfo>`); `thread_local`; wide, Unicode and raw string literals; brace initialisation, with the braces of nested aggregates left out (`Nested n = { 1, 2, 3 };`). |
+| C++11 and C++14 | `nullptr`, `enum class`, `static_assert`, `override`, `final`; `auto`, `decltype` (as a name's first qualifier too, `decltype(d)::T`), `decltype(auto)` and return types written after the function; lambdas, generic ones too (`auto...` as well, which can expand the pack of the function they are in beside their own), which capture by copy (arrays and parameter packs as well) or by reference, have default arguments, and convert to a pointer to a function when they capture nothing; `[[deprecated]]`, with what it says, on a function, a variable, a member, a class, an enumeration, an enumerator and a typedef: a warning where it is used; range-based `for`; rvalue references, move constructors and move assignment; `constexpr` functions and variables, worked out when the program is compiled; `typeid` (with `<typeinfo>`); `thread_local`; wide, Unicode and raw string literals; brace initialisation, with the braces of nested aggregates left out (`Nested n = { 1, 2, 3 };`). |
 | Casts | C style, `static_cast`, `reinterpret_cast`, `const_cast`, functional casts, and `dynamic_cast<T*>`. |
-| Memory | `new`, `new[]`, `delete`, `delete[]` and placement `new(address)`, over Libc65's `operator new`.  A class's own `operator new` and `delete`, and an `operator delete` that takes the size, which is given it (the global one where the size is known: not for an object with a virtual destructor). |
+| Memory | `new`, `new[]`, `delete`, `delete[]` and placement `new(address)`, over Libc65's `operator new`.  A class's own `operator new` and `delete`, and an `operator delete` that takes the size, which is given it (the global one where the size is known: for an object with a virtual destructor its own class's, whatever the pointer's; not for `delete[]` of elements with no destructor, which keeps no count). |
 | Constants | Constant expressions with enumerators, `const` and `constexpr` variables (locals and their members too), casts, `sizeof` and type traits, calls of `constexpr` functions and literals with a `constexpr` literal operator (`int a[3_k]`), an object with a `constexpr` conversion to an integer, comparisons and differences of addresses; floating point constants worked out as the processor would.  A value that doesn't fit the type it is converted to as a constant is an error: `Byte<300>` for an `unsigned char` parameter, an enumerator past its enum's fixed type. |
 
 ### Extensions
@@ -149,11 +150,17 @@ compiler's own file and line, which says which construct it was.
 | Not supported | Notes |
 |---|---|
 | Exceptions without the build switch | `try`, `catch` and `throw` are compiled only for a program built with `Exceptions="true"` (see [Building](building.md)); without it they are errors. |
-| A copy constructor or assignment defaulted after its class, in a class with virtual bases | In the class, or without virtual bases, it is written. |
-| A member class of a class template defined outside it | `template<class T> struct Outer<T>::Inner { };`.  Defined in the class template it is each instance's own. |
-| `(decltype(d)::name) + 1` | Read as a cast.  `sizeof(decltype(d)::name)` and `typeid` of it are the member's. |
+| `(decltype(f())::name) + 1` | Read as a cast, where `decltype`'s operand isn't the name of a variable or a parameter declared with a class's name: the parser can't tell what the member is.  `(decltype(d)::name) + 1` for such a `d` is the member's value. |
+| A member template whose parameters are its class's pack and then its own | `template<class... B> static int Mix(A... a, B... b)` in `template<class... A> struct Pair`: the call isn't matched. |
+| A partial specialisation, outside the class, of a class template's member variable template | The template itself, defined in the class or outside it, is each instance's own. |
 | A union's inactive member in a constant | Reading the member that wasn't the last given a value is refused only where the two differ in size. |
 | The C++ standard library | Libc65 has the C library and `<new>`, `<exception>` and `<typeinfo>` only. |
+
+A member's name that two base classes each declare is ambiguous wherever it is used
+(`c.v`, `c.F()`, `C::Type`), unless one of them hides the other's or the name says whose
+(`c.A::v`).  Default arguments are a template's first declaration's: a later declaration of a
+function template, a definition outside the class of a template's member, and an explicit
+specialisation can add none.
 
 What a declaration alone shows to be wrong is refused wherever it is written; the checks that
 need a class laid out, or a function declared to the compiler, are made where it is first used,
