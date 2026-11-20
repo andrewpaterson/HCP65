@@ -40,7 +40,8 @@ enum EHCP65KernalImage
 class CHCP65KernalBuilder
 {
 protected:
-	CCPP65Builder	mcBuilder;
+	CCPP65Builder	mcBuilder;		//Freed by Release: the image is all that is kept.
+	bool			mbBuilder;		//mcBuilder hasn't been released.
 	CAsm65Image		mcImage;
 	EHCP65KernalImage	meImage;
 	uint32			muiCodeEnd;		//The end of the code and data, above bank 0.
@@ -52,6 +53,7 @@ public:
 
 	bool			Build(const char* szCommonLibraries, const char* szHCP65Libraries, const char* szKernal, const char* szBoot);
 	bool			Write(const char* szFilename);
+	void			Release(void);
 
 	uint8*			GetImage(void) const;
 	uint32			GetImageSize(void) const;

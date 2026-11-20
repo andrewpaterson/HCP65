@@ -195,6 +195,7 @@ struct STestKernal
 {
 	CHCP65KernalBuilder	cBoot;
 	CHCP65KernalBuilder	cOS;
+	uint32				uiKernalEnd;	//The kernal's __end: its compiler is released once it is built (TestKernalBuild).
 };
 
 
@@ -916,6 +917,13 @@ static bool TestKernalBuild(STestKernal* psKernal)
 	{
 		AssertTrue(strstr(pcLines->GetFile(psLine->uiFile), "Start.asm") != NULL);
 	}
+
+	//What the kernal tests use of the builds from here on is the images and __end: their compilers are freed, so that
+	//the programs the tests build don't run beside two whole programs' units, objects and links.
+	psKernal->uiKernalEnd = 0;
+	AssertTrue(psKernal->cOS.GetSymbol("__end", &psKernal->uiKernalEnd));
+	psKernal->cBoot.Release();
+	psKernal->cOS.Release();
 	return true;
 }
 
@@ -1063,7 +1071,7 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	AssertInt(0, sStatus.uiDriverError);
 	AssertInt((1 << TEST_HCP65_AUDIO_SOCKET) | (1 << TEST_HCP65_AUDIO2_SOCKET), sStatus.uiLoadedDrivers);
 	AssertSize(1, pcPort->NumDrivers());
-	AssertTrue(psKernal->cOS.GetSymbol("__end", &uiKernalEnd));
+	uiKernalEnd = psKernal->uiKernalEnd;
 	AssertString(TEST_HCP65_SOUND_DRIVER_PATH, pcPort->GetDriver(0)->szName);
 	AssertInt(TEST_HCP65_AUDIO_SOCKET, pcPort->GetDriver(0)->uiSlot);
 	AssertTrue(pcPort->GetDriver(0)->uiAddress >= uiKernalEnd);

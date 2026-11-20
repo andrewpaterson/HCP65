@@ -14,6 +14,7 @@
 void CHCP65KernalBuilder::Init(EHCP65KernalImage eImage)
 {
 	mcBuilder.Init();
+	mbBuilder = true;
 	meImage = eImage;
 	if (eImage == HKI_Boot)
 	{
@@ -42,7 +43,7 @@ void CHCP65KernalBuilder::Kill(void)
 {
 	mszErrors.Kill();
 	mcImage.Kill();
-	mcBuilder.Kill();
+	Release();
 }
 
 
@@ -146,7 +147,7 @@ bool CHCP65KernalBuilder::GetSymbol(const char* szName, uint32* puiAddress)
 {
 	int64	lliValue;
 
-	if (!mcBuilder.GetSymbol(szName, &lliValue))
+	if (!mbBuilder || !mcBuilder.GetSymbol(szName, &lliValue))
 	{
 		return false;
 	}
@@ -224,5 +225,21 @@ const char* CHCP65KernalBuilder::GetErrors(void) const
 //////////////////////////////////////////////////////////////////////////
 CCPP65Builder* CHCP65KernalBuilder::GetBuilder(void)
 {
-	return &mcBuilder;
+	return mbBuilder ? &mcBuilder : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The compiler is freed: the image is kept (it is the linked bytes, copied), and GetSymbol, GetBuilder and Write's
+// map have nothing after.  A whole program's units, objects and link, which every later build would run beside.
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65KernalBuilder::Release(void)
+{
+	if (mbBuilder)
+	{
+		mcBuilder.Kill();
+		mbBuilder = false;
+	}
 }
