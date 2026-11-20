@@ -79,7 +79,10 @@ int CPump::Total(int i)
 ```
 
 Refused: a virtual function, a recursive one, one that returns part of the way through, a constructor, destructor
-or operator, a function template.
+or operator, a function template.  In a program built with exceptions also: a function whose body is a
+function-try-block (its handlers can't be written where it is called), and one with an exception specification
+(`noexcept`, `throw()`, `throw(A, B)`) whose body may throw, by a call, a `new` or a `throw`, since inlined the
+exception would no longer stop at it.
 
 Problems Detected first: a call that is part of an expression it can't be taken out of (it stays a call, and the
 function isn't taken out); an argument that does something and would be written more than once, or not at all; a

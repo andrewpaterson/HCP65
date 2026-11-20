@@ -30,7 +30,10 @@ loop) assigns it before anything reads it, and as used afterwards if anything af
 where the selection is in a loop, anything in the loop.
 
 A selection that ends by returning becomes `return Name(...);`.  One that returns part of the way through, or leaves
-by `break`, `continue` or `goto`, is refused: it has more than one way out.
+by `break`, `continue` or `goto`, is refused: it has more than one way out.  A `throw` is no way out of that kind: the
+exception leaves the new function as it left the statements, so a selection that returns and ends with a `throw`
+(`if (a) return 1; throw E();`) is extracted, and called as `return Name(...);`.  In a handler, the handler's
+parameter is given to the new function as a local would be.
 
 ### Where it goes
 

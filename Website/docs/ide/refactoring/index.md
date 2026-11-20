@@ -4,6 +4,8 @@ The IDE refactors C++ the way IntelliJ IDEA refactors Java: a change of structur
 extracted function) is made everywhere it has to be made, across every file of the workspace, as one step
 you can undo.  It works from the code model's index of every name and from the compiler's own type checking,
 not from text, so `Init` the member of `CTank` is renamed without touching `Init` the member of `CPipe`.
+The type checking is done with the active build configuration's compiler options, the same ones the build uses,
+so a program built with exceptions (or multi word casts, or C conversions) is read as it is built.
 
 ## How to start one
 
