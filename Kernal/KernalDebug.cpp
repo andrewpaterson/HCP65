@@ -5,7 +5,7 @@
 SHCP65DebugMessage	gsKernalDebugMessage;	//Only read during the WDM that tells of it.
 
 
-extern "C" void		KernalDebugTell(SHCP65DebugMessage* psMessage);		//KernalDebug.asm: the WDM.
+extern "C" void		KernalDebugTell(SHCP65DebugMessage* psMessage) noexcept;		//KernalDebug.asm: the WDM.
 
 
 //////////////////////////////////////////////////////////////////////////

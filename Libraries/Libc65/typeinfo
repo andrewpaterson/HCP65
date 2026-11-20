@@ -26,8 +26,8 @@ namespace std
 	{
 	public:
 		bad_cast(void) noexcept;
-		virtual ~bad_cast(void);
-		virtual const char*	what(void) const noexcept;
+		~bad_cast(void) override;
+		const char*	what(void) const noexcept override;
 	};
 
 
@@ -35,8 +35,8 @@ namespace std
 	{
 	public:
 		bad_typeid(void) noexcept;
-		virtual ~bad_typeid(void);
-		virtual const char*	what(void) const noexcept;
+		~bad_typeid(void) override;
+		const char*	what(void) const noexcept override;
 	};
 }
 

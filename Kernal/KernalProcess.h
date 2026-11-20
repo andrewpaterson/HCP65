@@ -50,7 +50,7 @@ struct SKernalCall
 
 extern "C" SKernalCall	gsKernalCall;
 
-extern "C" void		KernalEnterUser(void);		//Start.asm: RTI into the process; returns when it exits.
+extern "C" void		KernalEnterUser(void) noexcept;		//Start.asm: RTI into the process; returns when it exits.
 extern "C" void		KernalCopCall(void);		//Called by Start.asm's COP handler.
 
 uint16	KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode);

@@ -42,10 +42,10 @@
 extern "C" volatile uint8*	gpuiKernalSDGPIO;
 volatile uint8*				gpuiKernalSDGPIO;
 
-extern "C" void		KernalSDSendBits(const uint8* puiBytes, uint16 uiBytes);
-extern "C" void		KernalSDReceiveBits(uint8* puiBytes, uint16 uiBits);
-extern "C" uint16	KernalSDWaitStart(uint16 uiClocks);
-extern "C" void		KernalSDClocks(uint16 uiClocks);
+extern "C" void		KernalSDSendBits(const uint8* puiBytes, uint16 uiBytes) noexcept;
+extern "C" void		KernalSDReceiveBits(uint8* puiBytes, uint16 uiBits) noexcept;
+extern "C" uint16	KernalSDWaitStart(uint16 uiClocks) noexcept;
+extern "C" void		KernalSDClocks(uint16 uiClocks) noexcept;
 
 static volatile uint8	gbKernalSDBlockDone;
 

@@ -48,10 +48,10 @@ void				KernalSetInterruptHandler(uint16 uiSlot, KernalInterruptHandler fHandler
 void				KernalClearInterruptHandler(uint16 uiSlot);
 uint32				KernalTicks(void);
 
-extern "C" void		KernalWaitForInterrupt(void);		//With I set: waits for an IRQ or NMI, then lets a pending IRQ be dispatched.
-extern "C" void		KernalRunPendingInterrupts(void);	//Runs the handlers deferred while the main memory bus was busy.
+extern "C" void		KernalWaitForInterrupt(void) noexcept;		//With I set: waits for an IRQ or NMI, then lets a pending IRQ be dispatched.
+extern "C" void		KernalRunPendingInterrupts(void) noexcept;	//Runs the handlers deferred while the main memory bus was busy.
 extern "C" void		KernalInterruptsOn(void);			//cli
-extern "C" void		KernalInterruptsOff(void);			//sei
+extern "C" void		KernalInterruptsOff(void) noexcept;			//sei
 
 
 #endif // __KERNAL_INTERRUPTS_H__

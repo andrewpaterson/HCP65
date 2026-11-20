@@ -21,8 +21,8 @@ namespace std
 		bad_alloc(void) noexcept;
 		bad_alloc(const bad_alloc& cOther) noexcept;
 		bad_alloc&	operator=(const bad_alloc& cOther) noexcept;
-		virtual ~bad_alloc(void);
-		virtual const char*	what(void) const noexcept;
+		~bad_alloc(void) override;
+		const char*	what(void) const noexcept override;
 	};
 
 
@@ -30,8 +30,8 @@ namespace std
 	{
 	public:
 		bad_array_new_length(void) noexcept;
-		virtual ~bad_array_new_length(void);
-		virtual const char*	what(void) const noexcept;
+		~bad_array_new_length(void) override;
+		const char*	what(void) const noexcept override;
 	};
 
 

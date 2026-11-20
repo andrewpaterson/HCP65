@@ -39,8 +39,8 @@ namespace std
 	{
 	public:
 		bad_exception(void) noexcept;
-		virtual ~bad_exception(void);
-		virtual const char*	what(void) const noexcept;
+		~bad_exception(void) override;
+		const char*	what(void) const noexcept override;
 	};
 
 
