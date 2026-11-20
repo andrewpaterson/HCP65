@@ -53,6 +53,10 @@ works the way a C++ compiler does, doing only what is used:
   called.
 - A class's vtable, and so its virtual functions, is written when an object of the class is first
   made.
+- A `dynamic_cast` that has to look for its answer calls `R_DynamicCast`, a routine the compiler
+  writes once into a program that casts, with the two classes' type infos; nothing from Libc65 is
+  needed for it.  A cast to a base is a conversion, and `dynamic_cast<void*>` reads the vtable in
+  place.
 - A class whose destructor is virtual has one more virtual function, which the compiler writes: its
   deleting destructor (`_Class__opDeleting`), which destroys the object and frees it with the
   class's own `operator delete` and size.  `delete p` calls it through the vtable, so an object
