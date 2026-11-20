@@ -70,6 +70,10 @@ Double-click a file, or press Enter on it, to open it.  Its right-click menu has
 | Remove Solution | Takes the solution out of the workspace.  Its files aren't touched. |
 | Rename... | [Rename File](refactoring/rename.md#rename-file) on the selected file. |
 | Properties... | On a project: the licence its new files are written with (LGPL 3, AGPL 3 or None), kept in `<project>.hcp65project` beside the `.vcxproj`.  See [New Files and Templates](templates.md#a-projects-licence). |
+| Always Select Opened File | Ticked, the tree selects the file of whichever editor is shown as you go from tab to tab, without Alt+1. |
+| Open Files with Single Click | Ticked, one click on a file opens it. |
+
+The two ticks are off to begin with and are kept in your [settings](settings.md#where-settings-are-kept).
 
 Alt+Insert in Solution Explorer makes a [new file](templates.md#new-files) in the selected project,
 filter or file's directory.
@@ -90,7 +94,7 @@ with Set as Startup Project, or the solution's first application if none was cho
 | `<project>.hcp65project` | A project's licence for new files.  Shared. |
 | `fileTemplates\` | The workspace's [file and code templates](templates.md#schemes), where it has changed any.  Shared. |
 | `<workspace>.layout.user` | The window layout and the files that were open.  Yours alone. |
-| `<workspace>.hcp65user` | Your [breakpoints](debugging.md#breakpoints) and [bookmarks](navigation.md#bookmarks).  Yours alone. |
+| `<workspace>.hcp65user` | Your [breakpoints](debugging.md#breakpoints), [bookmarks](navigation.md#bookmarks) and [recent files](navigation.md#recent-files).  Yours alone. |
 
 With no workspace, the `.layout.user` and `.hcp65user` files are named for the solution, or for the
 project opened on its own.

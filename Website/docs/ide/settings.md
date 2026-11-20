@@ -42,7 +42,7 @@ sticky lines** (the first lines of what the top of the view is in, kept over the
 | File | What is in it |
 |---|---|
 | `Keymap.xml` | The keys you have changed. |
-| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author; where Claude is started; the Editor page's ticks and the Structure tree's sorting; Find's Match Case, Words and Regex. |
+| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author; where Claude is started; the Editor page's ticks and the Structure tree's sorting; Find's Match Case, Words and Regex; Solution Explorer's Always Select Opened File and Open Files with Single Click. |
 | `RecentSolutions.xml` | File, Recent Solutions, and what was open last. |
 | `fileTemplates\` | Your Default scheme's [templates](templates.md#schemes). |
 
@@ -63,6 +63,8 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Alt+1 | Solution Explorer, with the active file selected |
 | Alt+7 | Structure: the active file's outline |
 | Shift+Escape | Hide the tool window that has the keys |
+| Ctrl+Tab, Ctrl+Shift+Tab | The Switcher: the open files and the tool windows |
+| Alt+Right, Alt+Left | Select Next Tab and Select Previous Tab |
 | Menu, Shift+F10 | The context menu |
 | F4 | Jump to Source (from a tool window) |
 | F7, Shift+F7 | Next and Previous Difference (in a diff) |
@@ -128,6 +130,9 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+0 to Ctrl+9 | Go to Bookmark 0 to 9 |
 | Ctrl+Alt+Shift+Down, Ctrl+Alt+Shift+Up | Next and Previous Change |
 | Ctrl+Shift+F7 | Highlight Usages in File |
+| Ctrl+E, Ctrl+Shift+E | Recent Files, Recent Locations |
+| Ctrl+Shift+Backspace | Last Edit Location |
+| Alt+F1 | Select In |
 | Ctrl+Shift+M | Move Caret to Matching Brace |
 | Ctrl+[, Ctrl+] | Move Caret to Code Block Start and End (with Shift, select to it) |
 | Alt+F7 | Find Usages |

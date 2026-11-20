@@ -58,6 +58,56 @@ still extends the selection; Ctrl+click no longer does.
 Back, as does a big move of the caret (a click far away, Ctrl+End) or choosing another tab.  Back reopens
 a file if it was closed since.  The history is kept for the session only.
 
+## Moving between files
+
+| Keys | What they do |
+|---|---|
+| Ctrl+E | **Recent Files**: the files you have had in editors, the one before this one first |
+| Ctrl+Shift+E | **Recent Locations**: the places you have been, with their code |
+| Ctrl+Tab, Ctrl+Shift+Tab | The **Switcher**: the open files and the tool windows |
+| Alt+Right, Alt+Left | **Select Next Tab** and **Select Previous Tab** |
+| Ctrl+Shift+Backspace | **Last Edit Location** |
+| Alt+F1 | **Select In**: show the file in Solution Explorer or Structure |
+
+They are in the Navigate menu, and the Switcher and the tab commands in Window, where **Reopen Closed
+Tab** is too: it opens the tab you closed last, with its caret where it was.
+
+### Recent Files
+
+Ctrl+E lists the files you have had in editors, the open ones first, each most recent first.  The file
+you were in before this one is selected, so Ctrl+E then Enter goes back to it, and again returns.  Type
+to narrow the list, as [Go to File](#go-to-class-file-and-symbol) matches names.  A file that has been
+closed since opens with its caret where it was.
+
+The recent files are kept with the workspace, in its [`.hcp65user`](solutions.md#files-kept-beside-the-solution)
+file: they are there the next time you open it.
+
+### Recent Locations
+
+Ctrl+Shift+E lists the places [Back](#going-to-a-definition) would return to, the newest first: each
+place's line, its file and line number, and the code around it beside the list.  Type to narrow it.
+**Show Changed Only** lists the places you have edited instead, and **Show All** goes back.
+
+### The Switcher
+
+Hold Ctrl and press Tab: the Switcher lists the open files, most recent first, then the tool windows.
+Still holding Ctrl, Tab (or Down) moves on and Shift+Tab (or Up) moves back, round the ends; let Ctrl
+go and the selected file or tool window is shown.  So a quick Ctrl+Tab goes to the file you were in
+before, and another returns.
+
+### Edit locations
+
+Ctrl+Shift+Backspace takes the caret to where you last edited, and again to the place edited before
+that, in whichever file; edits within a few lines of each other count as one place.  **Next Edit
+Location** (Navigate menu) comes forward again.  [Back](#going-to-a-definition) returns from one.  The
+places follow their text as it is edited, and are kept for the session only.
+
+### Select In
+
+Alt+F1 asks where to show the active file: **Solution Explorer** selects it in the tree, which gets the
+keys, and **Structure** opens its outline at the caret.  Solution Explorer can also follow the editor
+by itself: see [Always Select Opened File](solutions.md#solution-explorer).
+
 ## Moving in a file
 
 | Keys | What they do |
