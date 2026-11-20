@@ -174,7 +174,7 @@ bool CDeviceROMSchematic::Error(const char* szMessage, const char* szDetail)
 bool CDeviceROMSchematic::IsSymbol(CKicadSchemSymbol* pcSymbol, const char* szLibSymbol)
 {
 	const char*	szName;
-	char*	szColon;
+	const char*	szColon;
 
 	szName = pcSymbol->GetLibId();
 	szColon = strchr(szName, ':');
@@ -279,7 +279,7 @@ bool CDeviceROMSchematic::ReachesOther(CKicadSchemNet* pcNet, CKicadSchemSymbol*
 	CKicadSchemSubnet*		pcSubnet;
 	SKicadSchemNetPin*		psPin;
 	CKicadSchemLibSymbol*	pcLibSymbol;
-	char*					szReference;
+	const char*				szReference;
 	size					i;
 	size					j;
 
@@ -562,7 +562,7 @@ bool CDeviceROMSchematic::ReadDescription(CKicadSchemSymbol* pcStageA)
 	SKicadSchemNetPin*		psPin;
 	CKicadSchemSymbol*		pcROM;
 	CKicadSchemProperties*	pcProperties;
-	char*					szValue;
+	const char*				szValue;
 	const char*				szRevision;
 	long					lRevision;
 	uint8					uiMainBus;
