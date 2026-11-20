@@ -883,8 +883,9 @@ uint8 CHCP65LCDBoard::Access(uint32 uiRegister, bool bWrite, uint8 uiValue)
 //////////////////////////////////////////////////////////////////////////
 //
 // Its latches, 0 for pressed: the high register is the first eight
-// buttons it sends, the low one the last four and four that are never
-// pressed.  They follow the buttons unless the board is held in reset.
+// buttons it sends, the low one the last four and then the controller's
+// four ID bits, all high: that is what says it is a SNES controller.
+// They follow the buttons unless the board is held in reset.
 //
 //////////////////////////////////////////////////////////////////////////
 uint8 CHCP65LCDBoard::ReadController(int iController, bool bHigh)

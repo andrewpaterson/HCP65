@@ -25,7 +25,7 @@
 #define HCP65_LCD_STATUS_E				0x05	//R: E high, the busy flag (D7) and the address counter.
 #define HCP65_LCD_READ_DATA				0x06	//R: E low.
 #define HCP65_LCD_READ_DATA_E			0x07	//R: E high, the data at the address counter.
-#define HCP65_LCD_SNES_1_LOW			0x08	//R: controller 1's A, X, L and R in D0-D3, D4-D7 high.  0 is pressed.
+#define HCP65_LCD_SNES_1_LOW			0x08	//R: controller 1's A, X, L and R in D0-D3, 0 is pressed; D4-D7 the ID, all high for a SNES controller.
 #define HCP65_LCD_SNES_1_HIGH			0x09	//R: controller 1's B, Y, Select, Start, Up, Down, Left and Right in D0-D7.
 #define HCP65_LCD_SNES_2_LOW			0x0A	//R: controller 2's, the same.
 #define HCP65_LCD_SNES_2_HIGH			0x0B
