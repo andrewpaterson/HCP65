@@ -129,13 +129,14 @@ __attribute__((weak)) void operator delete[](void* pv) noexcept
 
 __attribute__((weak)) void operator delete(void* pv, size_t uiBytes) noexcept
 {
-	free(pv);
+	//As the standard's: a program that replaces only the one without the size has replaced both.  [new.delete.single] 16
+	operator delete(pv);
 }
 
 
 __attribute__((weak)) void operator delete[](void* pv, size_t uiBytes) noexcept
 {
-	free(pv);
+	operator delete[](pv);
 }
 
 
