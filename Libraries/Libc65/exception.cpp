@@ -2,7 +2,8 @@
 //each function (a function that throws returns with a flag set, and its caller tests it); what is here is the rest:
 //where the thrown object lives, which handler takes it ([except.handle] 3), and what happens when none does.
 //
-//Nothing in this file throws or tests a call, so it is the same compiled with exceptions on or off.
+//The routines the compiler calls don't throw.  What throws (__Unexpected's handler, rethrow_exception and the routines
+//for bad_cast, bad_typeid and bad_exception) is compiled only in a program built with exceptions (__cpp_exceptions).
 #include <exception>
 #include <typeinfo>
 #include <stdlib.h>
@@ -66,6 +67,7 @@ struct SException
 	SException*			psNextHandled;
 	void*				pvCaught;		//What a handler of a pointer type is given, when it isn't the thrown pointer as it is.
 	unsigned int		uiHandlers;		//How many handlers are in it (a rethrown one can be caught again while its first handler is left).
+	unsigned int		uiHeld;			//How many exception_ptrs hold it.
 	bool				bInFlight;
 	bool				bPooled;
 };
@@ -81,10 +83,11 @@ struct SExceptions
 	std::terminate_handler	pfTerminate;
 	std::unexpected_handler	pfUnexpected;
 	unsigned int			uiPoolUsed;		//A bit for each of the pool's blocks.
+	SException*				psPending;		//What rethrow_exception's throw; is to throw (__Rethrow), else NULL.
 };
 
 
-static SExceptions	gsExceptions = { NULL, NULL, 0, NULL, NULL, 0 };
+static SExceptions	gsExceptions = { NULL, NULL, 0, NULL, NULL, 0, NULL };
 
 
 //When malloc has nothing: enough to throw bad_alloc and a few more.
@@ -98,6 +101,9 @@ struct SExceptionPoolBlock
 };
 
 static SExceptionPoolBlock	gasExceptionPool[EXCEPTION_POOL_BLOCKS];
+
+
+static void	DestroyIfDone(SException* psException);
 
 
 static SException* ExceptionOf(void* pvObject)
@@ -127,6 +133,9 @@ extern "C" void __Terminate(void) noexcept
 }
 
 
+//A function's throw(A, B) list doesn't allow the exception leaving it: the exception is being handled (the compiler
+//began its catch) and the unexpected handler is called.  What the handler throws goes on, to be checked against the
+//list again; one that returns is terminate.  [except.unexpected]
 extern "C" void __Unexpected(void)
 {
 	if (gsExceptions.pfUnexpected)
@@ -134,6 +143,69 @@ extern "C" void __Unexpected(void)
 		gsExceptions.pfUnexpected();
 	}
 	__Terminate();
+}
+
+
+//The exception leaving a function, which its throw(A, B) list doesn't allow either, though the list has
+//std::bad_exception: it is replaced by one.  [except.unexpected] 3
+#ifdef __cpp_exceptions
+extern "C" void __ThrowBadException(void)
+{
+	__BeginCatch();
+	__EndCatch();
+	throw std::bad_exception();
+}
+
+
+//dynamic_cast<T&> of an object that isn't a T.  [expr.dynamic.cast] 9
+extern "C" void __ThrowBadCast(void)
+{
+	throw std::bad_cast();
+}
+
+
+//typeid of what a null pointer points to.  [expr.typeid] 2
+extern "C" void __ThrowBadTypeid(void)
+{
+	throw std::bad_typeid();
+}
+#endif // __cpp_exceptions
+
+
+//exception_ptr: the exception being handled (the newest), held; NULL if there is none.
+extern "C" void* __CurrentException(void) noexcept
+{
+	SException*	psException;
+
+	psException = gsExceptions.psHandled;
+	if (!psException)
+	{
+		return NULL;
+	}
+	psException->uiHeld++;
+	return ObjectOf(psException);
+}
+
+
+extern "C" void __ExceptionPtrCopy(void* pvObject) noexcept
+{
+	if (pvObject)
+	{
+		ExceptionOf(pvObject)->uiHeld++;
+	}
+}
+
+
+extern "C" void __ExceptionPtrRelease(void* pvObject) noexcept
+{
+	SException*	psException;
+
+	if (pvObject)
+	{
+		psException = ExceptionOf(pvObject);
+		psException->uiHeld--;
+		DestroyIfDone(psException);
+	}
 }
 
 
@@ -185,6 +257,21 @@ static void FreeException(SException* psException)
 }
 
 
+//An exception nothing is in (no handler, not in flight, no exception_ptr) is destroyed and its memory given back.
+static void DestroyIfDone(SException* psException)
+{
+	if (psException->bInFlight || (psException->uiHandlers != 0) || (psException->uiHeld != 0))
+	{
+		return;
+	}
+	if (psException->pfDestroy)
+	{
+		psException->pfDestroy(ObjectOf(psException));
+	}
+	FreeException(psException);
+}
+
+
 //For an object that was never thrown: its constructor threw.
 extern "C" void __FreeException(void* pvObject) noexcept
 {
@@ -202,6 +289,7 @@ extern "C" void __Throw(void* pvObject, const void* pvTypeInfo, void (*pfDestroy
 	psException->psNextHandled = NULL;
 	psException->pvCaught = NULL;
 	psException->uiHandlers = 0;
+	psException->uiHeld = 0;
 	psException->bInFlight = true;
 	psException->psNextInFlight = gsExceptions.psInFlight;
 	gsExceptions.psInFlight = psException;
@@ -479,23 +567,18 @@ extern "C" void __EndCatch(void) noexcept
 			break;
 		}
 	}
-	if (!psException->bInFlight)
-	{
-		if (psException->pfDestroy)
-		{
-			psException->pfDestroy(ObjectOf(psException));
-		}
-		FreeException(psException);
-	}
+	DestroyIfDone(psException);
 }
 
 
 //throw; with no operand: the exception being handled is in flight again.  With none, terminate.  [except.throw] 9
+//rethrow_exception's is the exception it holds (psPending).
 extern "C" void __Rethrow(void) noexcept
 {
 	SException*	psException;
 
-	psException = gsExceptions.psHandled;
+	psException = gsExceptions.psPending ? gsExceptions.psPending : gsExceptions.psHandled;
+	gsExceptions.psPending = NULL;
 	if (!psException || psException->bInFlight)
 	{
 		__Terminate();
@@ -578,5 +661,68 @@ namespace std
 	bool uncaught_exception(void) noexcept
 	{
 		return gsExceptions.uiUncaught != 0;
+	}
+
+
+	//The exception held is thrown again: throw; throws it (psPending).  A null one is terminate.  [propagation] 9
+	void rethrow_exception(exception_ptr cException)
+	{
+		if (!cException.Object())
+		{
+			__Terminate();
+		}
+#ifdef __cpp_exceptions
+		gsExceptions.psPending = ExceptionOf(cException.Object());
+		throw;
+#else
+		__Terminate();
+		abort();
+#endif // __cpp_exceptions
+	}
+
+
+	exception_ptr::exception_ptr(void) noexcept : mpvObject(NULL) {}
+	exception_ptr::exception_ptr(const __ExceptionPtrNull* pcNull) noexcept : mpvObject(NULL) {}
+	exception_ptr::exception_ptr(void* pvObject, bool bHeld) noexcept : mpvObject(pvObject) {}
+	exception_ptr::exception_ptr(const exception_ptr& cOther) noexcept : mpvObject(cOther.mpvObject) { __ExceptionPtrCopy(mpvObject); }
+	exception_ptr::~exception_ptr(void) { __ExceptionPtrRelease(mpvObject); }
+
+
+	exception_ptr& exception_ptr::operator=(const exception_ptr& cOther) noexcept
+	{
+		__ExceptionPtrCopy(cOther.mpvObject);
+		__ExceptionPtrRelease(mpvObject);
+		mpvObject = cOther.mpvObject;
+		return *this;
+	}
+
+
+	exception_ptr::operator bool(void) const noexcept { return mpvObject != NULL; }
+	void* exception_ptr::Object(void) const noexcept { return mpvObject; }
+
+	bool operator==(const exception_ptr& cLeft, const exception_ptr& cRight) noexcept { return cLeft.Object() == cRight.Object(); }
+	bool operator!=(const exception_ptr& cLeft, const exception_ptr& cRight) noexcept { return cLeft.Object() != cRight.Object(); }
+	bool operator==(const exception_ptr& cLeft, const __ExceptionPtrNull* pcNull) noexcept { return cLeft.Object() == NULL; }
+	bool operator==(const __ExceptionPtrNull* pcNull, const exception_ptr& cRight) noexcept { return cRight.Object() == NULL; }
+	bool operator!=(const exception_ptr& cLeft, const __ExceptionPtrNull* pcNull) noexcept { return cLeft.Object() != NULL; }
+	bool operator!=(const __ExceptionPtrNull* pcNull, const exception_ptr& cRight) noexcept { return cRight.Object() != NULL; }
+
+
+	exception_ptr current_exception(void) noexcept
+	{
+		return exception_ptr(__CurrentException(), true);
+	}
+
+
+	nested_exception::nested_exception(void) noexcept : mcNested(current_exception()) {}
+	nested_exception::nested_exception(const nested_exception& cOther) noexcept : mcNested(cOther.mcNested) {}
+	nested_exception& nested_exception::operator=(const nested_exception& cOther) noexcept { mcNested = cOther.mcNested; return *this; }
+	nested_exception::~nested_exception(void) {}
+	exception_ptr nested_exception::nested_ptr(void) const noexcept { return mcNested; }
+
+
+	void nested_exception::rethrow_nested(void) const
+	{
+		rethrow_exception(mcNested);
 	}
 }
