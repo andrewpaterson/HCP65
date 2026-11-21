@@ -9,6 +9,8 @@ both too.
 The keys are Visual Studio's and IntelliJ IDEA's where those agree, and IntelliJ's where they don't.
 All of them can be changed in [Settings](settings.md#the-keymap).
 
+Over text you can edit or select (an editor, a text field, a preview) the pointer is an I-beam.
+
 ## Moving and typing
 
 | Keys | What they do |

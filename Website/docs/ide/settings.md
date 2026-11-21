@@ -61,9 +61,11 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+Alt+S | Settings |
 | Ctrl+F4 | Close the document |
 | Alt+1 | Solution Explorer, with the active file selected |
-| Alt+7 | Structure: the active file's outline |
-| Alt+8 | Hierarchy |
+| Alt+2, Alt+3, Alt+4, Alt+5, Alt+6 | Bookmarks, Find Usages, Run, Debug, Build: shown, or hidden if the keys are in it |
+| Alt+7 | Structure: the active file's outline (hidden if the keys are in it) |
+| Alt+8, Alt+9 | Hierarchy, Find (the same) |
 | Shift+Escape | Hide the tool window that has the keys |
+| Ctrl+Shift+F12 | Hide All Tool Windows, and again to put them back |
 | Ctrl+Tab, Ctrl+Shift+Tab | The Switcher: the open files and the tool windows |
 | Ctrl+Shift+I | Quick Definition |
 | Ctrl+P | Parameter Info |

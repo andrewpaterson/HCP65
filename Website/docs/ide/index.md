@@ -48,7 +48,8 @@ It runs on Windows (`HCP65IDE.exe`) and Linux (`HCP65IDE`).  The source is in
   Bookmarks, Hierarchy, Build, Indexing, Run, Debug and Claude underneath.  Each can be dragged to another edge, tabbed with others, floated in a window of its
   own, auto hidden on an edge, or closed.  View opens a closed one again, and Window, Reset
   Window Layout puts them all back where they start.  Shift+Escape hides the tool window that has
-  the keys.
+  the keys, most have [a key of their own](navigation.md#the-tool-windows-keys) (Alt+1 to Alt+9) that
+  shows or hides them, and Ctrl+Shift+F12 hides them all to give the editor the whole window.
 - **The status line.**  What the last command did, or why it couldn't.  Every refactoring says what
   it changed here ("Moved Geometry::Area to Shapes: 1 use; 1 label in assembly changed.").
 

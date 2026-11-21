@@ -66,7 +66,8 @@ nothing to go to.
 
 **Ctrl+click** puts the caret on the name clicked and goes as Ctrl+B does from there.  Shift+click
 still extends the selection; Ctrl+click no longer does.  While Ctrl is held, the name under the pointer
-that a click would go from is underlined, and [its declaration](#what-a-name-is) is shown under it.
+that a click would go from is underlined, the pointer becomes a hand over it, and
+[its declaration](#what-a-name-is) is shown under it.
 
 **Back and Forward** go through the places the caret has been, as a browser's history does.  A jump
 (Go to, Find Usages, F4, Next Occurrence, a file opened from Solution Explorer) puts where you were on
@@ -110,7 +111,7 @@ The three commands are in the View menu.
 | Ctrl+H | **Type Hierarchy**: a class, its base classes and the classes derived from it |
 | Ctrl+Shift+H | **Method Hierarchy**: which of those classes define a member function |
 | Ctrl+Alt+H | **Call Hierarchy**: what calls a function, or what it calls |
-| Alt+8 | The Hierarchy tool window, with the keys in its tree |
+| Alt+8 | The Hierarchy tool window, with the keys in its tree; pressed there, it hides the window |
 
 Each opens in the **Hierarchy** tool window, in the tab that is showing unless that tab is pinned
 (Pin Tab on its toolbar): then a new tab is made, so you can keep one hierarchy while you look at
@@ -118,9 +119,10 @@ another.  The commands are in the Navigate menu.
 
 - **Type Hierarchy** is of the class at the caret: a class's name, the class of a member named there,
   or the class a variable is declared with.  The class is shown under its base class, and that under
-  its own, with the classes derived from it under it.  The toolbar's **Supertypes Hierarchy** shows the
-  class with all its base classes under it instead, and **Subtypes Hierarchy** the class with its
-  derived classes alone; **Class Hierarchy** goes back.
+  its own, with the classes derived from it under it.  A class with more than one base class is under
+  the first it names, and says the others after its own name (`CLamp  also: CSwitchable, CNamed`).  The
+  toolbar's **Supertypes Hierarchy** shows the class with all its base classes under it instead, and
+  **Subtypes Hierarchy** the class with its derived classes alone; **Class Hierarchy** goes back.
 - **Method Hierarchy** is of the member function at the caret, or the one the caret is anywhere in.  It
   shows the same classes, each with what it has of the function after its name: `+` it defines the
   function, `-` it inherits it from a base class, `abstract` it declares it without a body (`= 0`), and
@@ -129,9 +131,12 @@ another.  The commands are in the Navigate menu.
 - **Call Hierarchy** is of the function at the caret, or the one the caret is in.  Under it are the
   functions that call it, each with the file and line of its call (and how many calls, if more than
   one).  Open a caller and its own callers are looked for and shown, and so on up; a function already
-  above itself says `recursive` and goes no further.  The toolbar's **Callee Hierarchy** turns it
-  round: what the function calls, in the order it calls them, and what each of those calls as it is
-  opened.  **Caller Hierarchy** turns it back.
+  above itself says `recursive` and goes no further.  A function that overrides one of a base class
+  can also be reached by a call of the base class's function, so those callers come after its own,
+  each marked with the function it calls (`DrawAll  via CShape::Draw  Main.cpp:12`).  A call that names
+  its class (`CSquare::Draw()`) always goes to that class's function, so it is listed for that one
+  alone.  The toolbar's **Callee Hierarchy** turns it round: what the function calls, in the order it
+  calls them, and what each of those calls as it is opened.  **Caller Hierarchy** turns it back.
 
 In all three, the preview beside the tree shows the selected row's code, and Enter or a double click
 goes there: a class's definition, a function's, or the call.  A row's chevron, or Left and Right, open
@@ -193,7 +198,7 @@ by itself: see [Always Select Opened File](solutions.md#solution-explorer).
 | Keys | What they do |
 |---|---|
 | Ctrl+F12 | File Structure: a chooser of everything the file declares. |
-| Alt+7 | The Structure tool window: the same, as a tree that stays open. |
+| Alt+7 | The Structure tool window: the same, as a tree that stays open.  Pressed in it, it hides the window. |
 | Alt+Down, Alt+Up | Next and Previous Method: the caret goes to the next function's name, or the one before. |
 | Ctrl+G | Go to Line: type a line, or a line and a column (`120` or `120:8`). |
 | Ctrl+Shift+M | Move Caret to Matching Brace: from a bracket to the one that closes or opens it. |
@@ -482,6 +487,40 @@ file under it, and each place's first line, which opens the place.  It has the s
 toolbar as Find, and **Rerun** looks again for the same code in the same scope.  The search runs a
 little at a time, so the IDE carries on meanwhile, and only files with the names the code is written
 with are parsed.
+
+## The tool windows' keys
+
+| Keys | Tool window |
+|---|---|
+| Alt+1 | Solution Explorer, with the file you are editing selected |
+| Alt+2 | Bookmarks |
+| Alt+3 | Find Usages |
+| Alt+4 | Run |
+| Alt+5 | Debug |
+| Alt+6 | Build |
+| Alt+7 | Structure |
+| Alt+8 | Hierarchy |
+| Alt+9 | Find |
+| Shift+Escape | Hides the tool window that has the keys |
+| Ctrl+Shift+F12 | **Hide All Tool Windows**, and again to put them back |
+
+A tool window's key shows the window, brings its tab to the front and puts the keys in it.  Press the
+same key again while the keys are still in it and the window is hidden, and the keys go back to the
+editor: so Alt+6 looks at the build's errors and Alt+6 again gets them out of the way.  If the window
+is showing but the keys are elsewhere, its key just moves the keys to it.  Alt+1 is the exception: it
+always shows Solution Explorer with the file you are editing selected, and never hides it.  Duplicates,
+Indexing and Claude have no keys; all of them are in the View menu, each with its keys beside its name,
+and the keys can be changed in [Settings](settings.md#the-keymap).
+
+**Hide All Tool Windows** (Ctrl+Shift+F12, in the View menu) hides every docked tool window so the
+editor has the whole window.  Press it again and they come back as they were: each group the size it
+was, its tabs in the same order, the same tab in front.  If you show a tool window or two by their
+keys while the rest are hidden, and hide them again, the next Ctrl+Shift+F12 still brings the whole
+layout back.  A tool window that is floating, or auto hidden on an edge, is left where it is.  What was
+hidden is remembered until the IDE is closed.
+
+**Jump to Last Tool Window** (in the View menu; it has no key until you give it one) shows the tool
+window that last had the keys, if it has been hidden since, and puts the keys back in it.
 
 ## Next and Previous Occurrence
 
