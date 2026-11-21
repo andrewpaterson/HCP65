@@ -25,10 +25,8 @@
 #define KERNAL_MAX_PATH					128
 
 
-//Banks every process gets: 0 (its stack and direct page) and $FF (where Libc65 reads its memory size).  Without a
-//memory size its heap is banks $08-$0F.
+//Banks every process gets: 0 (its stack and direct page) and $FF (where Libc65 reads its heap block).
 static const uint8 gauiKernalProcessBanks[] = { 0x00, 0xFF };
-static const uint8 gauiKernalLowHeapBanks[] = { 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
 
 
 
@@ -464,19 +462,13 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 //
 // Whether uiSize bytes from uiAt are where a process's own code and data
 // may go: in bank 1 up to KERNAL_USER_HIGH_MEMORY (bank 0 is its direct
-// page and stack, and its heap is mapped from KERNAL_USER_HIGH_MEMORY),
-// and, for a process without a heap there (bHighHeap false), not in the
-// small heap's banks (gauiKernalLowHeapBanks).  The linker's -limit
-// should catch a program that grew too big; this stops one that wasn't
-// linked with it from being loaded over its heap.
+// page and stack, and its heap is mapped from KERNAL_USER_HIGH_MEMORY).
+// The linker's -limit should catch a program that grew too big; this
+// stops one that wasn't linked with it from being loaded over its heap.
 //
 //////////////////////////////////////////////////////////////////////////
-static bool KernalIsProcessSection(uint32 uiAt, uint32 uiSize, bool bHighHeap)
+static bool KernalIsProcessSection(uint32 uiAt, uint32 uiSize)
 {
-	size	uiBank;
-	size	uiLastBank;
-	size	i;
-
 	if (uiSize == 0)
 	{
 		return true;
@@ -485,26 +477,7 @@ static bool KernalIsProcessSection(uint32 uiAt, uint32 uiSize, bool bHighHeap)
 	{
 		return false;
 	}
-	uiBank = (size)(uiAt >> 16);
-	uiLastBank = (size)((uiAt + uiSize - 1) >> 16);
-	if (uiBank == 0)
-	{
-		return false;
-	}
-	if (!bHighHeap)
-	{
-		for (; uiBank <= uiLastBank; uiBank++)
-		{
-			for (i = 0; i < sizeof(gauiKernalLowHeapBanks); i++)
-			{
-				if (uiBank == gauiKernalLowHeapBanks[i])
-				{
-					return false;
-				}
-			}
-		}
-	}
-	return true;
+	return (uiAt >> 16) != 0;
 }
 
 
@@ -513,9 +486,10 @@ static bool KernalIsProcessSection(uint32 uiAt, uint32 uiSize, bool bHighHeap)
 // Reads an executable from the volume into a new process's banks: a
 // CAsm65Object whose sections are all placed (at an address in the
 // process's own banks), with a UserStart symbol and optionally a
-// UserHeapSize: the heap the program needs, mapped from $200000
-// (KERNAL_USER_HIGH_MEMORY), whose end is the memory size Libc65 reads.
-// Without one it has the small heap below.  Every section must be where
+// UserHeapSize: the heap the program needs at once, mapped from $200000
+// (KERNAL_USER_HIGH_MEMORY) before it starts; Libc65 maps the rest of its
+// heap as it needs it (HCP65User.h's SKernalHeapInfo, which the loader
+// writes at $FF0300).  Every section must be where
 // the process's code and data may go (KernalIsProcessSection), or nothing
 // is mapped and it is KERNAL_PROCESS_BAD_ADDRESS.  Puts the interrupt
 // frame RTI starts it with on its stack.
@@ -605,7 +579,7 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 		{
 			return KERNAL_PROCESS_BAD_FILE;
 		}
-		if (!KernalIsProcessSection(psSection->uiAt, psSection->uiSize, uiMemorySize > KERNAL_USER_HIGH_MEMORY))
+		if (!KernalIsProcessSection(psSection->uiAt, psSection->uiSize))
 		{
 			return KERNAL_PROCESS_BAD_ADDRESS;
 		}
@@ -626,14 +600,6 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 	if (uiMemorySize > KERNAL_USER_HIGH_MEMORY)
 	{
 		bLoaded &= KernalMapRange(uiProcess, KERNAL_USER_HIGH_MEMORY, uiMemorySize - KERNAL_USER_HIGH_MEMORY);
-	}
-	else
-	{
-		uiMemorySize = 0;
-		for (i = 0; i < sizeof(gauiKernalLowHeapBanks); i++)
-		{
-			bLoaded &= KernalMapBank(uiProcess, gauiKernalLowHeapBanks[i]);
-		}
 	}
 	for (i = 0; (i < pcObject->NumSections()) && bLoaded; i++)
 	{

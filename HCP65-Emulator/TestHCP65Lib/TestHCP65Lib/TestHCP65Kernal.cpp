@@ -186,7 +186,7 @@
 #define TEST_KERNAL_PROCESS_EXITED			5
 #define TEST_KERNAL_PROCESS_BAD_ADDRESS		7
 #define TEST_HCP65_MISPLACED_CARD		TEST_HCP65_OUTPUT _FS_ "Misplaced.img"	//The card with a misplaced modplay.exe.
-#define TEST_HCP65_MISPLACED_AT			0x080000	//In the small heap's banks.
+#define TEST_HCP65_MISPLACED_AT			0x200000	//In the heap's banks.
 #define TEST_KERNAL_FAT32					3
 
 
@@ -797,7 +797,7 @@ static void TestKernalRenderSong(lsize uiFrames, CArrayUint8* pacFrames)
 //////////////////////////////////////////////////////////////////////////
 //
 // An executable the kernal must refuse: its code (a few STPs) at uiAt, its
-// UserStart there, and no UserHeapSize, so it would have the small heap.
+// UserStart there, where its heap is.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalMakeMisplacedExe(uint32 uiAt, CArrayUint8* pacDest)
@@ -1199,7 +1199,7 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	acExpected.Kill();
 	acPlayed.Kill();
 
-	//Booted again with a card whose modplay.exe has its code in the small heap's banks and no UserHeapSize: the kernal
+	//Booted again with a card whose modplay.exe has its code in the heap's banks: the kernal
 	//refuses to load it (KERNAL_PROCESS_BAD_ADDRESS) and boottest.exe exits with 100 and why.  The card is a copy.
 	acMisplaced.Init();
 	AssertTrue(TestKernalMakeMisplacedExe(TEST_HCP65_MISPLACED_AT, &acMisplaced));

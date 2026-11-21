@@ -13,9 +13,8 @@
 #define KERNAL_RESULT_NO_ENTRY		4		//An executable without UserStart.
 #define KERNAL_RESULT_EXITED		5		//KernalExecute: the program ran and exited.
 #define KERNAL_RESULT_NO_PROCESS	6		//KernalExecute: all four process IDs are in use.
-#define KERNAL_RESULT_BAD_ADDRESS	7		//An executable with code or data where its stack or heap is (below bank 1, from
-										//$200000, or in banks $08 to $0F without a UserHeapSize).  Or memory a call
-										//was given that the program hasn't.
+#define KERNAL_RESULT_BAD_ADDRESS	7		//An executable with code or data where its stack or heap is (below bank 1, or
+										//from $200000).  Or memory a call was given that the program hasn't.
 #define KERNAL_RESULT_END			8		//KernalDirectoryEntry: there are no more entries.
 
 #define KERNAL_FILE_NOT_FOUND		0xFFFFFFFF
