@@ -154,6 +154,8 @@ compiler's own file and line, which says which construct it was.
 | A member template whose parameters are its class's pack and then its own | `template<class... B> static int Mix(A... a, B... b)` in `template<class... A> struct Pair`: the call isn't matched. |
 | A partial specialisation, outside the class, of a class template's member variable template | The template itself, defined in the class or outside it, is each instance's own. |
 | A union's inactive member in a constant | Reading the member that wasn't the last given a value is refused only where the two differ in size. |
+| `switch (C c = value)` with `C` a class | A switch's condition may declare a variable of an integer or enum type; one of a class converted to an integer isn't compiled yet. |
+| A local's alignment on the W65C816 | A local is placed as `alignas` asks, on both processors, but a W65C816 frame can start at any byte, so a local without `alignas` isn't always at a multiple of its type's `alignof`. |
 | The C++ standard library | Libc65 has the C library and `<new>`, `<exception>` and `<typeinfo>` only. |
 
 A member's name that two base classes each declare is ambiguous wherever it is used
