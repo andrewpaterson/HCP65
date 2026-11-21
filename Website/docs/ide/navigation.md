@@ -89,6 +89,41 @@ The three commands are in the View menu.
   With an expression selected it shows that expression's type instead, worked out as
   [Introduce Variable](refactoring/introduce.md) works it out.  It goes when the caret moves.
 
+## Hierarchies
+
+| Keys | What they show |
+|---|---|
+| Ctrl+H | **Type Hierarchy**: a class, its base classes and the classes derived from it |
+| Ctrl+Shift+H | **Method Hierarchy**: which of those classes define a member function |
+| Ctrl+Alt+H | **Call Hierarchy**: what calls a function, or what it calls |
+| Alt+8 | The Hierarchy tool window, with the keys in its tree |
+
+Each opens in the **Hierarchy** tool window, in the tab that is showing unless that tab is pinned
+(Pin Tab on its toolbar): then a new tab is made, so you can keep one hierarchy while you look at
+another.  The commands are in the Navigate menu.
+
+- **Type Hierarchy** is of the class at the caret: a class's name, the class of a member named there,
+  or the class a variable is declared with.  The class is shown under its base class, and that under
+  its own, with the classes derived from it under it.  The toolbar's **Supertypes Hierarchy** shows the
+  class with all its base classes under it instead, and **Subtypes Hierarchy** the class with its
+  derived classes alone; **Class Hierarchy** goes back.
+- **Method Hierarchy** is of the member function at the caret, or the one the caret is anywhere in.  It
+  shows the same classes, each with what it has of the function after its name: `+` it defines the
+  function, `-` it inherits it from a base class, `abstract` it declares it without a body (`= 0`), and
+  `!` it neither defines it nor inherits a definition, so something that makes one of it won't compile.
+  Enter on a class that defines the function goes to its function.
+- **Call Hierarchy** is of the function at the caret, or the one the caret is in.  Under it are the
+  functions that call it, each with the file and line of its call (and how many calls, if more than
+  one).  Open a caller and its own callers are looked for and shown, and so on up; a function already
+  above itself says `recursive` and goes no further.  The toolbar's **Callee Hierarchy** turns it
+  round: what the function calls, in the order it calls them, and what each of those calls as it is
+  opened.  **Caller Hierarchy** turns it back.
+
+In all three, the preview beside the tree shows the selected row's code, and Enter or a double click
+goes there: a class's definition, a function's, or the call.  A row's chevron, or Left and Right, open
+and close it.  Rerun makes the hierarchy again after the code has changed, and
+[Next and Previous Occurrence](#next-and-previous-occurrence) step through its rows.
+
 ## Moving between files
 
 | Keys | What they do |
@@ -232,8 +267,8 @@ only until the caret moves.)
 
 ### Typing to find a row
 
-In Solution Explorer, the Structure tree, the Find Usages, Find and Duplicates trees, and a chooser
-that has no field to type in: just type.  What you type is shown in the corner, and the first row from
+In Solution Explorer, the Structure tree, the Find Usages, Find, Duplicates, Bookmarks and Hierarchy
+trees, and a chooser that has no field to type in: just type.  What you type is shown in the corner, and the first row from
 the selected one that has it is selected.  It is matched as Go to matches names (`sexp` finds
 `Solution Explorer`), or anywhere in the row whatever its case.  Up and Down go to the previous and
 next row that matches, Backspace takes a character back, Escape ends it and Enter opens the row.  While
@@ -430,6 +465,6 @@ with are parsed.
 ## Next and Previous Occurrence
 
 Ctrl+Alt+Down and Ctrl+Alt+Up step through the results of the tool window with the keys: Find Usages',
-Find's, Duplicates', or the [Build tab's](building.md#the-build-tab) errors.  From an editor, they step through the one
+Find's, Duplicates', a [hierarchy's](#hierarchies) rows, or the [Build tab's](building.md#the-build-tab) errors.  From an editor, they step through the one
 such tool window that can be seen and has something to step to; if there are none, or more than one, the
 status line says so.  Each step opens the place in the editor.

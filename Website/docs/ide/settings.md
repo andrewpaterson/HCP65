@@ -62,6 +62,7 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+F4 | Close the document |
 | Alt+1 | Solution Explorer, with the active file selected |
 | Alt+7 | Structure: the active file's outline |
+| Alt+8 | Hierarchy |
 | Shift+Escape | Hide the tool window that has the keys |
 | Ctrl+Tab, Ctrl+Shift+Tab | The Switcher: the open files and the tool windows |
 | Ctrl+Shift+I | Quick Definition |
@@ -133,6 +134,7 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+0 to Ctrl+9 | Go to Bookmark 0 to 9 |
 | Ctrl+Alt+Shift+Down, Ctrl+Alt+Shift+Up | Next and Previous Change |
 | Ctrl+Shift+F7 | Highlight Usages in File |
+| Ctrl+H, Ctrl+Shift+H, Ctrl+Alt+H | Type Hierarchy, Method Hierarchy, Call Hierarchy |
 | Ctrl+E, Ctrl+Shift+E | Recent Files, Recent Locations |
 | Ctrl+Shift+Backspace | Last Edit Location |
 | Alt+F1 | Select In |
