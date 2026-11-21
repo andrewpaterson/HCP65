@@ -190,12 +190,31 @@
 #define TEST_KERNAL_FAT32					3
 
 
+#define TEST_HCP65_COP_ENTRIES		4			//A function's stack entry and the register entries it may have.
+
+
 //The two builds the tests boot: the boot loader's ROM and the kernal, OS.SYS, which every card has.
 struct STestKernal
 {
 	CHCP65KernalBuilder	cBoot;
 	CHCP65KernalBuilder	cOS;
 	uint32				uiKernalEnd;	//The kernal's __end: its compiler is released once it is built (TestKernalBuild).
+	uint32				auiHeapBanks[2][TEST_HCP65_COP_ENTRIES];	//KernalMapHeapBanks' and KernalUnmapHeapBanks' entries (0 if
+																	//none), for TEST_HCP65_TIME_COP.
+};
+
+
+//TEST_HCP65_TIME_COP (environment): the boot test times each heap call (COP from the program to back in user mode)
+//that maps or unmaps banks.
+#define TEST_HCP65_COP_ENTRY			0x00FF04	//Start.asm's CopStub, the native COP vector's (text.Stubs at $FF00).
+#define TEST_HCP65_COP_MAX_STEPS		4000		//A call that hasn't reached either by then isn't timed.
+struct STestCopTimes
+{
+	uint32	auiCount[2];	//Map, unmap.
+	uint64	auiTotal[2];
+	uint64	auiLeast[2];
+	uint64	auiMost[2];
+	uint32	uiCops;			//Every COP the vector's breakpoint stopped at.
 };
 
 
@@ -889,9 +908,13 @@ static bool TestKernalBuildImage(CHCP65KernalBuilder* pcBuilder, const char* szF
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalBuild(STestKernal* psKernal)
 {
+	static const char*	aszEntries[TEST_HCP65_COP_ENTRIES] = { "", ".axy", ".ax", ".a" };
 	CAsm65LineTable*	pcLines;
 	SAsm65LineEntry*	psLine;
 	uint32				uiAddress;
+	char				szName[64];
+	int					i;
+	int					j;
 
 	if (!TestKernalBuildImage(&psKernal->cBoot, TEST_HCP65_BOOT_ROM, TEST_HCP65_OUTPUT _FS_ "Boot.map") ||
 		!TestKernalBuildImage(&psKernal->cOS, TEST_HCP65_OS_FILE, TEST_HCP65_OUTPUT _FS_ "Kernal.map"))
@@ -922,9 +945,94 @@ static bool TestKernalBuild(STestKernal* psKernal)
 	//the programs the tests build don't run beside two whole programs' units, objects and links.
 	psKernal->uiKernalEnd = 0;
 	AssertTrue(psKernal->cOS.GetSymbol("__end", &psKernal->uiKernalEnd));
+	for (i = 0; i < 2; i++)
+	{
+		for (j = 0; j < TEST_HCP65_COP_ENTRIES; j++)
+		{
+			snprintf(szName, sizeof(szName), "%s%s", (i == 0) ? "_KernalMapHeapBanks__Fmj" : "_KernalUnmapHeapBanks__Fmj", aszEntries[j]);
+			psKernal->auiHeapBanks[i][j] = 0;
+			psKernal->cOS.GetSymbol(szName, &psKernal->auiHeapBanks[i][j]);
+		}
+		AssertTrue(psKernal->auiHeapBanks[i][0] != 0);
+	}
 	psKernal->cBoot.Release();
 	psKernal->cOS.Release();
 	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Runs uiCycles like CHCP65::Run, but each time a COP enters the kernal
+// (a breakpoint at its vector) steps the call: one that maps or unmaps
+// heap banks is timed from the vector to back in user mode.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestKernalRunTimingCops(CHCP65* pcHCP65, STestKernal* psKernal, uint64 uiCycles, STestCopTimes* psTimes)
+{
+	uint64	uiDone;
+	uint64	uiStart;
+	uint64	uiTook;
+	uint32	uiAddress;
+	int		iKind;
+	int		iSteps;
+	int		i;
+	int		iEntry;
+	uint16	uiA;
+	uint16	uiX;
+	uint16	uiY;
+
+	uiDone = 0;
+	while (uiDone < uiCycles)
+	{
+		uiDone += pcHCP65->Run(uiCycles - uiDone);
+		if (!pcHCP65->IsAtBreakpoint())
+		{
+			break;
+		}
+
+		psTimes->uiCops++;
+		uiStart = pcHCP65->NumCycles();
+		iKind = -1;
+		for (iSteps = 0; (iSteps < TEST_HCP65_COP_MAX_STEPS) || (iKind >= 0); iSteps++)
+		{
+			uiDone += pcHCP65->Run(1);
+			if (!pcHCP65->IsKernelMode() || pcHCP65->IsStopped())
+			{
+				break;
+			}
+			uiAddress = pcHCP65->GetMPU()->GetProgramAddress();
+			for (i = 0; i < 2 * TEST_HCP65_COP_ENTRIES; i++)
+			{
+				if ((psKernal->auiHeapBanks[i / TEST_HCP65_COP_ENTRIES][i % TEST_HCP65_COP_ENTRIES] == uiAddress) && (uiAddress != 0))
+				{
+					iKind = i / TEST_HCP65_COP_ENTRIES;
+					iEntry = i % TEST_HCP65_COP_ENTRIES;
+					uiA = pcHCP65->GetMPU()->GetC();
+					uiX = pcHCP65->GetMPU()->GetX();
+					uiY = pcHCP65->GetMPU()->GetY();
+				}
+			}
+		}
+		if ((iKind >= 0) && !pcHCP65->IsKernelMode())
+		{
+			uiTook = pcHCP65->NumCycles() - uiStart;
+			if ((psTimes->auiCount[iKind] == 0) || (uiTook < psTimes->auiLeast[iKind]))
+			{
+				psTimes->auiLeast[iKind] = uiTook;
+			}
+			if (uiTook > psTimes->auiMost[iKind])
+			{
+				psTimes->auiMost[iKind] = uiTook;
+			}
+			if (getenv("TEST_HCP65_VERBOSE"))
+			{
+				printf("%s entry %d A $%04X X $%04X Y $%04X: %u cycles\n", (iKind == 0) ? "map" : "unmap", iEntry, uiA, uiX, uiY, (unsigned int)uiTook);
+			}
+			psTimes->auiTotal[iKind] += uiTook;
+			psTimes->auiCount[iKind]++;
+		}
+	}
 }
 
 
@@ -977,8 +1085,10 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	uint8*				puiROM;
 	uint8*				puiPlayed;
 	uint8*				puiTables;
+	STestCopTimes		sCopTimes;
 	int					i;
 	bool				bSilence;
+	bool				bTimeCops;
 
 	if (!TestKernalPutFiles())
 	{
@@ -1012,9 +1122,22 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	//The sound board's frames are taken as they are played: it keeps no more than 64K of them.
 	acPlayed.Init();
 	puiRAM = cHCP65.GetMPURAM();
+	memset(&sCopTimes, 0, sizeof(sCopTimes));
+	bTimeCops = getenv("TEST_HCP65_TIME_COP") != NULL;
+	if (bTimeCops)
+	{
+		cHCP65.GetModeBreakpoints(true)->Add(TEST_HCP65_COP_ENTRY, true);
+	}
 	for (i = 0; i < (int)(TEST_HCP65_MAX_RUNS * (TEST_HCP65_RUN_CYCLES / uiRunCycles)); i++)
 	{
-		cHCP65.Run(uiRunCycles);
+		if (bTimeCops)
+		{
+			TestKernalRunTimingCops(&cHCP65, psKernal, uiRunCycles, &sCopTimes);
+		}
+		else
+		{
+			cHCP65.Run(uiRunCycles);
+		}
 		do
 		{
 			uiFrames = pcAudio->ReadFrames(auiFrames, 0x1000);
@@ -1098,6 +1221,18 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	if (getenv("TEST_HCP65_VERBOSE"))
 	{
 		printf("kernal heap peak %u bytes, main memory heap peak %u bytes\n", (unsigned int)sStatus.uiHeapPeak, (unsigned int)sStatus.uiMainHeapPeak);
+	}
+	if (bTimeCops)
+	{
+		cHCP65.GetModeBreakpoints(true)->Remove(TEST_HCP65_COP_ENTRY);
+		printf("%u COPs\n", (unsigned int)sCopTimes.uiCops);
+		for (i = 0; i < 2; i++)
+		{
+			printf("%s banks: %u calls, cycles from the COP vector to user mode: least %u, mean %u, most %u\n", (i == 0) ? "map" : "unmap", (unsigned int)sCopTimes.auiCount[i], (unsigned int)sCopTimes.auiLeast[i], sCopTimes.auiCount[i] ? (unsigned int)(sCopTimes.auiTotal[i] / sCopTimes.auiCount[i]) : 0, (unsigned int)sCopTimes.auiMost[i]);
+		}
+		fflush(stdout);
+		AssertTrue(sCopTimes.auiCount[0] > 0);
+		AssertTrue(sCopTimes.auiCount[1] > 0);
 	}
 
 	//The kernal doesn't clear main memory: a bank no process was given still holds the fill byte.  Processes are given
