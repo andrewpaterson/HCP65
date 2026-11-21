@@ -42,8 +42,10 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 //A read only register at 00FF:0300: the 32 bit size of the memory at 0000:0000 (Init's uiLowSize).  Libc65's
 //malloc puts its heap at 0020:0000 when there is more than 2MB, and at 0100:0000 (past the devices' page) when there
-//is more than 16MB.
+//is more than 16MB.  It is the first of ASM65_MEMORY_SIZE_BYTES read only bytes, the shape of the HCP65 kernal's heap
+//block (HCP65User.h's SKernalHeapInfo): the rest are 0, so the heap has no marker and isn't mapped as it is asked for.
 #define ASM65_MEMORY_SIZE_REGISTER	0x00FF0300
+#define ASM65_MEMORY_SIZE_BYTES		16
 
 //A simulated storage device's registers (SetDrive), at 00FF:0000.  Write the first sector, the address and
 //the number of sectors, then a command: the sectors are copied at once.  Each register is 32 bits.
@@ -79,7 +81,7 @@ protected:
 	uint8*				mpuiLow;
 	uint32				muiLowSize;
 	uint8				mauiHigh[ASM65_MEMORY_HIGH_SIZE];
-	uint8				mauiMemorySize[4];
+	uint8				mauiMemorySize[ASM65_MEMORY_SIZE_BYTES];
 	size				muiBadAccesses;
 	size				muiCycles;
 	CFileDrive*			mpcDrive;

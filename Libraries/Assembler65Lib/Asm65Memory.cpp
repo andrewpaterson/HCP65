@@ -40,6 +40,7 @@ void CAsm65Memory::Init(uint32 uiLowSize)
 		gcLogger.Error2(__METHOD__, " Could not allocate [", IntToString(uiLowSize), "] bytes of low memory.", NULL);
 		muiLowSize = 0;
 	}
+	memset(mauiMemorySize, 0, sizeof(mauiMemorySize));
 	for (i = 0; i < 4; i++)
 	{
 		mauiMemorySize[i] = (uint8)(muiLowSize >> (8 * i));
@@ -118,7 +119,7 @@ uint8* CAsm65Memory::Byte(uint32 uiAddress)
 	{
 		return &mauiHost[uiAddress - ASM65_HOST_BASE];
 	}
-	if ((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + 4))
+	if ((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + ASM65_MEMORY_SIZE_BYTES))
 	{
 		return &mauiMemorySize[uiAddress - ASM65_MEMORY_SIZE_REGISTER];
 	}
@@ -160,7 +161,7 @@ void CAsm65Memory::SetByte(uint32 uiAddress, uint8 uiValue)
 		}
 		return;
 	}
-	if ((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + 4))
+	if ((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + ASM65_MEMORY_SIZE_BYTES))
 	{
 		//Read only.
 		muiBadAccesses++;
