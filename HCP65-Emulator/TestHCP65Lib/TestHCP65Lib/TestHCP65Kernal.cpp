@@ -970,6 +970,8 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	uint32				uiFrames;
 	uint32				uiFirstDifference;
 	uint32				uiExpectedFrames;
+	uint32				uiHeapBanks;
+	uint32				uiUnusedBank;
 	uint8*				puiRAM;
 	uint8*				puiMain;
 	uint8*				puiROM;
@@ -1058,7 +1060,6 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 
 	//The kernal never used main memory while the SD Card Board's DMA had it, and reset the stray device.
 	AssertFalse(cHCP65.IsContention());
-	AssertInt(HCP65_DEBUG_FILL_BYTE, *cHCP65.MainMemoryAt(0x7F0000));
 	AssertInt(1 << TEST_HCP65_STRAY_SOCKET, sStatus.uiStrayInterrupts);
 
 	//The scan found the boards (the memory board too) by their device ROMs, and the stray device's blank ROM unrecognised.
@@ -1098,6 +1099,14 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	{
 		printf("kernal heap peak %u bytes, main memory heap peak %u bytes\n", (unsigned int)sStatus.uiHeapPeak, (unsigned int)sStatus.uiMainHeapPeak);
 	}
+
+	//The kernal doesn't clear main memory: a bank no process was given still holds the fill byte.  Processes are given
+	//banks from the lowest and the main memory heap takes them from the highest (window 1's top), so the bank below the
+	//heap's is one.
+	uiHeapBanks = (sStatus.uiMainHeapPeak + 0xFFFF) >> 16;
+	uiUnusedBank = HCP65_MEMORY_WINDOW_SIZE + ((sStatus.uiMainBanks - uiHeapBanks - 1) << 16);
+	AssertInt(HCP65_DEBUG_FILL_BYTE, *cHCP65.MainMemoryAt(uiUnusedBank));
+	AssertInt(HCP65_DEBUG_FILL_BYTE, *cHCP65.MainMemoryAt(uiUnusedBank + 0xFFFF));
 	AssertInt(20000, sStatus.uiUserValue);
 	AssertInt(0xFF, cHCP65.GetProcessID());
 	AssertInt(1, cHCP65.GetInterruptDepth());
