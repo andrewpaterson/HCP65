@@ -48,7 +48,7 @@ Exact names come first, then names that start with what you typed, then the clos
 | F12 | Go to Definition, as Visual Studio's.  A macro's name goes to its `#define`. |
 | Ctrl+Alt+B | Go to Implementation(s).  From a virtual function: the functions that override it.  From a class: the classes derived from it.  From a function's declaration: its definition. |
 | Ctrl+U | Go to Super Method.  From a member function (named at the caret, or the one the caret is anywhere in): what it overrides in its base classes.  From a class: its base classes. |
-| Ctrl+Shift+B | Go to Type Declaration: the class, enum or typedef that the variable, field, parameter or function at the caret is declared with. |
+| Ctrl+Shift+B | Go to Type Declaration: the class, enum or typedef that the variable, field, parameter or function at the caret is declared with, or that the expression there is. |
 | Ctrl+Alt+Home | Go to Related Symbol: everything below, and the file's header or source, in one chooser under headings. |
 | Ctrl+Alt+F7 | Show Usages: the chooser of the usages of the name at the caret, wherever it is. |
 | Alt+O | Switch between a `.cpp` and its header. |
@@ -64,7 +64,9 @@ them:
 
 When it has nowhere to go, the status line says so ("No implementations of CRoundedSquare.").
 Go to Type Declaration reads the type from the declaration, so a built in type (`int`) or `auto` has
-nothing to go to.
+nothing to go to.  With the caret on no name it goes to the type of the expression the caret is in
+(on the bracket of `pcShape->Clone()`, the class it returns), after checking the file as
+[Type Info](#what-a-name-is) does there.
 
 **Ctrl+click** puts the caret on the name clicked and goes as Ctrl+B does from there.  Shift+click
 still extends the selection; Ctrl+click no longer does.  While Ctrl is held, the name under the pointer
@@ -83,7 +85,7 @@ a file if it was closed since.  The history is kept for the session only.
 | Ctrl held, pointer on a name | The name's declaration, under it |
 | Ctrl+Shift+I | **Quick Definition**: the definition's code, without leaving where you are |
 | Ctrl+P | **Parameter Info**: the parameters of the call the caret is in |
-| Ctrl+Shift+P | **Type Info**: the type of what is at the caret, or of the selection |
+| Ctrl+Shift+P | **Type Info**: the type of what is at the caret (a name, or the expression it is in), or of the selection |
 
 The three commands are in the View menu.
 
@@ -106,7 +108,10 @@ The three commands are in the View menu.
 - **Type Info** shows the type the name at the caret is declared with: a variable's, a field's or a
   parameter's (`CPainter*`, `int[PAINT_MAXIMUM]`), what a function returns, a class as it is declared.
   With an expression selected it shows that expression's type instead, worked out as
-  [Introduce Variable](refactoring/introduce.md) works it out.  It goes when the caret moves.
+  [Introduce Variable](refactoring/introduce.md) works it out.  With nothing selected and the caret on
+  no name (a call's bracket, an operator, the `&` of `&cCircle`, a number) it shows the type of the
+  expression the caret is in.  That last one checks the whole file first, which is quick in a small
+  file and takes a second or two in a large one.  It goes when the caret moves.
 
 ## Hierarchies
 
