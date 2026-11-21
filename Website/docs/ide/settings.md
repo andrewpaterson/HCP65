@@ -64,6 +64,9 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Alt+7 | Structure: the active file's outline |
 | Shift+Escape | Hide the tool window that has the keys |
 | Ctrl+Tab, Ctrl+Shift+Tab | The Switcher: the open files and the tool windows |
+| Ctrl+Shift+I | Quick Definition |
+| Ctrl+P | Parameter Info |
+| Ctrl+Shift+P | Type Info |
 | Alt+Right, Alt+Left | Select Next Tab and Select Previous Tab |
 | Menu, Shift+F10 | The context menu |
 | F4 | Jump to Source (from a tool window) |

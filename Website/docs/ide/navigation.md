@@ -51,12 +51,43 @@ Go to Type Declaration reads the type from the declaration, so a built in type (
 nothing to go to.
 
 **Ctrl+click** puts the caret on the name clicked and goes as Ctrl+B does from there.  Shift+click
-still extends the selection; Ctrl+click no longer does.
+still extends the selection; Ctrl+click no longer does.  While Ctrl is held, the name under the pointer
+that a click would go from is underlined, and [its declaration](#what-a-name-is) is shown under it.
 
 **Back and Forward** go through the places the caret has been, as a browser's history does.  A jump
 (Go to, Find Usages, F4, Next Occurrence, a file opened from Solution Explorer) puts where you were on
 Back, as does a big move of the caret (a click far away, Ctrl+End) or choosing another tab.  Back reopens
 a file if it was closed since.  The history is kept for the session only.
+
+## What a name is
+
+| Keys | What they show |
+|---|---|
+| Ctrl held, pointer on a name | The name's declaration, under it |
+| Ctrl+Shift+I | **Quick Definition**: the definition's code, without leaving where you are |
+| Ctrl+P | **Parameter Info**: the parameters of the call the caret is in |
+| Ctrl+Shift+P | **Type Info**: the type of what is at the caret, or of the selection |
+
+The three commands are in the View menu.
+
+- **The declaration under the pointer.**  Hold Ctrl and point at a name: it is underlined, and a small
+  box under it shows the declaration as it is written (`virtual int Area(void) = 0`, `CShape* pcFirst`,
+  `PM_Outline = 4`) and, dimmer, where it is: its class if it has one, its file and its line.  A member
+  function's is as its class declares it, defaults and all.  Let Ctrl go, or move off the name, and
+  both go.  A macro's name, a keyword and a number show nothing.
+- **Quick Definition** opens a chooser at the caret with the code of the symbol's definition beside it
+  (its declaration, if it is defined nowhere).  For a virtual function the functions that override it
+  are listed too, and for a class the classes derived from it: Up and Down preview each.  Enter goes to
+  the one selected; Escape closes it and leaves the caret where it was.
+- **Parameter Info** shows, over the caret's line, the parameters of the function whose call the caret
+  is in, with the one the caret's argument is given to brighter than the rest.  If the class has other
+  functions of that name, each has a row, the one called first.  It follows the caret from argument to
+  argument and into a call inside the call, stays while you type, and goes when the caret leaves the
+  brackets, on Escape or on a click.
+- **Type Info** shows the type the name at the caret is declared with: a variable's, a field's or a
+  parameter's (`CPainter*`, `int[PAINT_MAXIMUM]`), what a function returns, a class as it is declared.
+  With an expression selected it shows that expression's type instead, worked out as
+  [Introduce Variable](refactoring/introduce.md) works it out.  It goes when the caret moves.
 
 ## Moving between files
 
