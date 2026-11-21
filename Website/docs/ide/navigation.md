@@ -1,17 +1,30 @@
 # Finding Your Way
 
-## Go to Class, File and Symbol
+## Go to Class, File, Symbol and Action
 
 | Keys | Opens |
 |---|---|
 | Ctrl+N | Go to Class |
 | Ctrl+Shift+N | Go to File |
 | Ctrl+Alt+Shift+N | Go to Symbol: any function, variable, type or namespace |
+| Ctrl+Shift+A | Go to Action: any command of the IDE |
 
-All three are one dialog with a tab for each.  Type part of a name and the best matches are listed as
+All four are one dialog with a tab for each.  Type part of a name and the best matches are listed as
 you type, each with where it is, dimmer, after it.  Up, Down, Page Up and Page Down move through them
-while you type; Tab and Shift+Tab change tab (so do the three keys above); Enter or a double click opens
+while you type; Tab and Shift+Tab change tab (so do the four keys above); Enter or a double click opens
 the one selected; Escape closes the dialog.
+
+Under the list is a **preview** of the selected result's code: the file, or the class or symbol where it
+is defined, so you can see it is the one you want before you go.
+
+With **nothing typed**, what you went to last is listed first: on the Files tab the files you have had
+in editors, the one before this one at the top (so Ctrl+Shift+N, Enter goes back to it, as
+[Recent Files](#recent-files) does); on the Classes and Symbols tabs what each took you to before, this
+session.
+
+The **Actions** tab finds a command by its name, as it is in the menus (`recfil` finds Recent Files),
+with its menu and its keys after it: a way to run something you have forgotten the keys or the menu of,
+and to learn its keys.  Enter runs it.  If it can't be run where the caret is, the status line says so.
 
 What you type is matched as IntelliJ IDEA matches it:
 
@@ -20,7 +33,8 @@ What you type is matched as IntelliJ IDEA matches it:
   `TextArea`.  Words start at capitals, digits, and after underscores and dots.
 - A `*` or a space lets the next character be anywhere further on.
 - In Go to File, `/` separates folders: `wl/tf` finds `WindowLib/TextField.h`.
-- A colon and a number at the end opens the file at that line: `TextArea.cpp:120`.
+- A colon and a number at the end opens the file at that line: `TextArea.cpp:120`.  The preview shows
+  that line.
 
 Exact names come first, then names that start with what you typed, then the closest matches.
 
@@ -142,7 +156,7 @@ Tab** is too: it opens the tab you closed last, with its caret where it was.
 
 Ctrl+E lists the files you have had in editors, the open ones first, each most recent first.  The file
 you were in before this one is selected, so Ctrl+E then Enter goes back to it, and again returns.  Type
-to narrow the list, as [Go to File](#go-to-class-file-and-symbol) matches names.  A file that has been
+to narrow the list, as [Go to File](#go-to-class-file-symbol-and-action) matches names.  A file that has been
 closed since opens with its caret where it was.
 
 The recent files are kept with the workspace, in its [`.hcp65user`](solutions.md#files-kept-beside-the-solution)
@@ -367,6 +381,13 @@ Its toolbar, down the left:
 | Pin Tab | Keeps this tab: the next Find Usages makes a new one. |
 | Preview | The preview on or off. |
 | Navigate with Single Click | Open each usage as it is selected, by a click or the arrows. |
+| Autoscroll from Source | As the caret moves in the editor, the usage nearest it in that file is selected here: the last at or before its line, or the first after.  The editor keeps the keys. |
+| Export... | The rows as they are shown, indented, saved as a text file or copied to the clipboard. |
+
+A usage's line is coloured as code where its own text says how (keywords, numbers, strings, comments),
+with the name found bold; what each name is, is only coloured in the preview.  Preview, Navigate with
+Single Click, Autoscroll from Source and Export are on every results tool window: Find Usages, Find,
+Duplicates, Bookmarks and Hierarchy.
 
 Each Find Usages goes into the chosen tab, named for the symbol, unless that tab is pinned (a pinned tab's
 name starts with `* `), in which case a new tab is made.  A tab is closed by its cross.  The groupings and

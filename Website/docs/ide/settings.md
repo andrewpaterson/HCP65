@@ -118,6 +118,7 @@ Workspaces](solutions.md#files-kept-beside-the-solution).
 | Ctrl+N | Go to Class |
 | Ctrl+Shift+N | Go to File |
 | Ctrl+Alt+Shift+N | Go to Symbol |
+| Ctrl+Shift+A | Go to Action |
 | Ctrl+B, Ctrl+click | Go to Source (or the usages, on a declaration) |
 | F12 | Go to Definition |
 | Ctrl+Alt+B | Go to Implementation(s) |
