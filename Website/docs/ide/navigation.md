@@ -19,8 +19,10 @@ is defined, so you can see it is the one you want before you go.
 
 With **nothing typed**, what you went to last is listed first: on the Files tab the files you have had
 in editors, the one before this one at the top (so Ctrl+Shift+N, Enter goes back to it, as
-[Recent Files](#recent-files) does); on the Classes and Symbols tabs what each took you to before, this
-session.
+[Recent Files](#recent-files) does); on the Classes and Symbols tabs what each took you to before; on
+the Actions tab the commands you ran from it, the last one at the top.  The classes and symbols are kept
+with the workspace, in its [`.hcp65user`](solutions.md#files-kept-beside-the-solution) file, and the
+actions with [how you left the IDE](settings.md#where-settings-are-kept).
 
 The **Actions** tab finds a command by its name, as it is in the menus (`recfil` finds Recent Files),
 with its menu and its keys after it: a way to run something you have forgotten the keys or the menu of,
@@ -42,8 +44,8 @@ Exact names come first, then names that start with what you typed, then the clos
 
 | Keys | What they do |
 |---|---|
-| Ctrl+B, Ctrl+click | Go to Source.  On a use: its definition, or its declaration if it has no definition.  On an `#include`: the file it includes.  On a declaration: a chooser of its usages, one of which opens. |
-| F12 | Go to Definition, as Visual Studio's. |
+| Ctrl+B, Ctrl+click | Go to Source.  On a use: its definition, or its declaration if it has no definition.  On a macro's name: its `#define`.  On an `#include`: the file it includes.  On a declaration: a chooser of its usages, one of which opens. |
+| F12 | Go to Definition, as Visual Studio's.  A macro's name goes to its `#define`. |
 | Ctrl+Alt+B | Go to Implementation(s).  From a virtual function: the functions that override it.  From a class: the classes derived from it.  From a function's declaration: its definition. |
 | Ctrl+U | Go to Super Method.  From a member function (named at the caret, or the one the caret is anywhere in): what it overrides in its base classes.  From a class: its base classes. |
 | Ctrl+Shift+B | Go to Type Declaration: the class, enum or typedef that the variable, field, parameter or function at the caret is declared with. |
@@ -88,12 +90,14 @@ The three commands are in the View menu.
 - **The declaration under the pointer.**  Hold Ctrl and point at a name: it is underlined, and a small
   box under it shows the declaration as it is written (`virtual int Area(void) = 0`, `CShape* pcFirst`,
   `PM_Outline = 4`) and, dimmer, where it is: its class if it has one, its file and its line.  A member
-  function's is as its class declares it, defaults and all.  Let Ctrl go, or move off the name, and
-  both go.  A macro's name, a keyword and a number show nothing.
+  function's is as its class declares it, defaults and all.  A macro's name shows its `#define`'s line
+  (`#define BIGGER(a, b) ((a) > (b) ? (a) : (b))`) and where it is.  Let Ctrl go, or move off the name,
+  and both go.  A keyword and a number show nothing.
 - **Quick Definition** opens a chooser at the caret with the code of the symbol's definition beside it
   (its declaration, if it is defined nowhere).  For a virtual function the functions that override it
   are listed too, and for a class the classes derived from it: Up and Down preview each.  Enter goes to
-  the one selected; Escape closes it and leaves the caret where it was.
+  the one selected; Escape closes it and leaves the caret where it was.  On a macro's name it shows the
+  macro's `#define`.
 - **Parameter Info** shows, over the caret's line, the parameters of the function whose call the caret
   is in, with the one the caret's argument is given to brighter than the rest.  If the class has other
   functions of that name, each has a row, the one called first.  It follows the caret from argument to
@@ -162,7 +166,8 @@ Tab** is too: it opens the tab you closed last, with its caret where it was.
 Ctrl+E lists the files you have had in editors, the open ones first, each most recent first.  The file
 you were in before this one is selected, so Ctrl+E then Enter goes back to it, and again returns.  Type
 to narrow the list, as [Go to File](#go-to-class-file-symbol-and-action) matches names.  A file that has been
-closed since opens with its caret where it was.
+closed since opens with its caret where it was.  **Show Edited Only** lists just the files you have
+changed since the IDE was opened, and **Show All** goes back.
 
 The recent files are kept with the workspace, in its [`.hcp65user`](solutions.md#files-kept-beside-the-solution)
 file: they are there the next time you open it.
@@ -178,7 +183,9 @@ place's line, its file and line number, and the code around it beside the list. 
 Hold Ctrl and press Tab: the Switcher lists the open files, most recent first, then the tool windows.
 Still holding Ctrl, Tab (or Down) moves on and Shift+Tab (or Up) moves back, round the ends; let Ctrl
 go and the selected file or tool window is shown.  So a quick Ctrl+Tab goes to the file you were in
-before, and another returns.
+before, and another returns.  Delete (or Backspace) closes the selected file and leaves the Switcher
+open on the next one, so several files can be closed without leaving it; a file with changes asks
+whether to save them first.
 
 ### Edit locations
 

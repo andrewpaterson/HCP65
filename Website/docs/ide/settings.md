@@ -42,7 +42,7 @@ sticky lines** (the first lines of what the top of the view is in, kept over the
 | File | What is in it |
 |---|---|
 | `Keymap.xml` | The keys you have changed. |
-| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author; where Claude is started; the Editor page's ticks and the Structure tree's sorting; Find's Match Case, Words and Regex; Solution Explorer's Always Select Opened File and Open Files with Single Click. |
+| `Settings.xml` | How you left the IDE: Find Usages' groupings, filters, scope and preview; Find in Files' options and scope; Find Duplicates' scope, tick and minimums; the template Author; where Claude is started; the Editor page's ticks and the Structure tree's sorting; Find's Match Case, Words and Regex; Solution Explorer's Always Select Opened File and Open Files with Single Click; the commands Go to Action ran last. |
 | `RecentSolutions.xml` | File, Recent Solutions, and what was open last. |
 | `fileTemplates\` | Your Default scheme's [templates](templates.md#schemes). |
 
