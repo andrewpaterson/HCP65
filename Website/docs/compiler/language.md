@@ -74,9 +74,11 @@ may override one declared `final`: both are errors.  A function that overrides o
 declared `override` (or `final`) gets a warning, as G++'s `-Wsuggest-override` gives, except a
 destructor.  The warning is on unless a build configuration turns it off
 (`WarnMissingOverride="false"`, see [Building](building.md)).  A class declared `final` is no
-base class.  A class with a base, or with a member declared `override` or `final`, is checked
-where it is defined, whether or not anything uses it; only a class nested in another class or in
-a function waits until it is first needed whole.
+base class.  A class written in a source file that has a base, or a member declared `override`
+or `final`, is checked where it is defined, whether or not anything uses it.  A class in a header
+is checked by the first unit that needs it whole (one that makes an object of it, calls a member
+or defines one), not by every unit that includes the header; so is a class nested in another
+class or in a function.  A header's class that a program names and never uses is not checked.
 
 ### BaseLib's `size` and `lsize`
 
