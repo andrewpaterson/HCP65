@@ -450,10 +450,9 @@ void TestLibc65StdlibFragmentation(void)
 // On the W65C816 the heap is by banks (CppCompilerLib/Size16Plan.txt): no
 // block crosses a 64KB bank, a bank goes back when its last block is freed,
 // and what doesn't fit a bank (malloc32's, or malloc's largest) has whole
-// banks of its own, from the top.  The
-// heap is 0008:0000 to 000F:FFFF here: the first bank has the maps and is
-// kept, so seven whole banks can be one allocation once the small blocks
-// are gone.
+// banks of its own, from the top (BaseLib's CBankMallocator).  The heap is
+// 0008:0000 to 000F:FFFF here: once the small blocks are gone all eight
+// banks can be one allocation, the spare bank kept among them.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65StdlibBanks(void)
@@ -503,7 +502,10 @@ void TestLibc65StdlibBanks(void)
 		"	pcLarge = (char*)malloc32(0x70000);\n"
 		"	*p++ = (unsigned long)pcLarge;\n"
 		"	free(pcLarge);\n"
-		"	*p++ = malloc32(0x80000) == NULL;\n"
+		"	pcLarge = (char*)malloc32(0x80000);\n"
+		"	*p++ = (unsigned long)pcLarge;\n"
+		"	free(pcLarge);\n"
+		"	*p++ = malloc32(0x90000) == NULL;\n"
 		"	pc = (char*)malloc(1000);\n"
 		"	memset(pc, 0x5A, 1000);\n"
 		"	pcLarge = (char*)realloc32(pc, 100000);\n"
@@ -527,11 +529,12 @@ void TestLibc65StdlibBanks(void)
 	AssertInt(1, TestLibc65Result(&sRun, 1));
 	AssertInt(1, TestLibc65Result(&sRun, 2));
 	AssertInt(0x90000, TestLibc65Result(&sRun, 3));
-	for (i = 4; i < 9; i++)
+	AssertInt(0x80000, TestLibc65Result(&sRun, 4));
+	for (i = 5; i < 10; i++)
 	{
 		AssertInt(1, TestLibc65Result(&sRun, i));
 	}
-	AssertInt(0x90000, TestLibc65Result(&sRun, 9));
+	AssertInt(0x90000, TestLibc65Result(&sRun, 10));
 
 	TestLibc65End(&sRun);
 }

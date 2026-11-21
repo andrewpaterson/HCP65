@@ -40,13 +40,20 @@ There is no C++ standard library beyond `<new>`.
 `malloc` and `free` are BaseLib's `CTrueMallocator`, a two level segregated fit allocator: they take
 the same time however many blocks there are, and a freed block is joined to the free blocks either
 side.  On the emulators the heap is `0008:0000` to `000F:FFFF`, or above the program from
-`0020:0000` when there is more than 2MB of memory.  A program the HCP65 kernal runs has its heap
-size given by its `UserHeapSize` symbol.
+`0020:0000` when there is more than 2MB of memory.
 
-On the W65C816 the heap is by banks: each 64KB bank is a region of its own, so no block crosses a
-bank.  Small blocks come from the banks at the bottom of the heap, and a bank goes back when its
-last block is freed.  What doesn't fit a bank (from `malloc32`, or `malloc`'s largest sizes) takes
-whole adjacent banks from the top, rounded up to 64KB.  `free` and `realloc` take either kind.
+On the W65C816 the heap is by banks (BaseLib's `CBankMallocator`): each 64KB bank is a region of
+its own, so no block crosses a bank.  Small blocks come from the banks at the bottom of the heap,
+and a bank goes back when its last block is freed, but one empty bank is kept for what comes next.
+What doesn't fit a bank (from `malloc32`, or `malloc`'s largest sizes) takes whole adjacent banks
+from the top, rounded up to 64KB.  `free` and `realloc` take either kind.
+
+A program the HCP65 kernal runs has its heap from `0020:0000` to `00FE:FFFF`, but the maths tables'
+banks at `0040:0000`.  The kernal maps a bank of it into the program when `malloc` first needs it,
+and takes it back when it empties, so a program has only the memory it is using, up to all that is
+free; `malloc` returns NULL when main memory runs out.  Only taking or giving back a bank calls the
+kernal: the other allocations are as fast as anywhere else.  The `UserHeapSize` symbol is how much
+of the heap is mapped before the program starts, if it wants it there from the start.
 
 ## Input and output
 

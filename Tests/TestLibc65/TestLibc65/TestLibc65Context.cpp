@@ -80,7 +80,8 @@ static void TestLibc65Unit816(const char* szDirectory, const char* szUnit, const
 //
 // Compiles szSource and the Libc65 units (file names in CommonLibraries/Libc65, NULL terminated) and links
 // the start up and szSource with the Libc65 units as a library (a unit is linked when something needs it).
-// BaseLib's TrueMallocator.cpp, which malloc uses, is in the library too.
+// BaseLib's TrueMallocator.cpp, which malloc uses, is in the library too, and on the W65C816 its BankMallocator.cpp
+// and Libc65's stdlibW65C816.asm (the heap's kernal call).
 // Loads the program at reset.  On the W65C816 a unit in 65C64 assembly (X.asm) is its W65C816 assembly (XW65C816.asm,
 // and XW65C816_16.asm) when there is some, else left out: their .cpp units have the other functions for it.  The labels in szStubs (space separated, sorted) must be exactly the ones
 // used but defined by no linked unit; the linker makes each a stp so a call to one stops the program.
@@ -131,6 +132,11 @@ bool TestLibc65Begin(STestLibc65Run* psRun, const char** aszUnits, const char* s
 	cBuilder.AddMathTables(szLibc65.Text());
 	TestLibc65FullPath(&szBaseLib, TEST_LIBC65_LIBRARIES _FS_ "BaseLib");
 	cBuilder.AddUnit("BaseLib", szBaseLib.Text(), "TrueMallocator.cpp", true);
+	if (geTestLibc65Target == CPPT_W65C816)
+	{
+		cBuilder.AddUnit("BaseLib", szBaseLib.Text(), "BankMallocator.cpp", true);
+		cBuilder.AddUnit("Libc65", szLibc65.Text(), "stdlibW65C816.asm", true);
+	}
 	szBaseLib.Kill();
 	bResult &= cBuilder.Link();
 	AssertString("", cBuilder.GetErrors());

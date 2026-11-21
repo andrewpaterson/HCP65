@@ -1,6 +1,6 @@
 #include <string.h>
 #include "BaseLib/FatFile.h"
-#include "BaseLib/TrueMallocator.h"
+#include "BaseLib/BankMallocator.h"
 #include "UserLib/HCP65User.h"
 #include "KernalMemory.h"
 #include "KernalProcess.h"
@@ -14,7 +14,7 @@
 
 
 //Libc65's heap: the kernal's, MPU RAM's bank 6.
-extern CTrueMallocator	gcHeap;
+extern CBankMallocator	gcHeap;
 
 
 static uint8	gauiKernalSystemBuffer[KERNAL_SYSTEM_COPY_SIZE];

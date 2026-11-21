@@ -98,6 +98,7 @@
     <ClCompile Include="string.asm" />
     <ClCompile Include="stringW65C816.asm" />
     <ClCompile Include="stringW65C816_16.asm" />
+    <ClCompile Include="stdlibW65C816.asm" />
     <ClCompile Include="MathTbls\MathInvert.asm" />
     <ClCompile Include="MathTbls\MathMult.asm" />
   </ItemGroup>

@@ -6,6 +6,10 @@
 #include <errno.h>
 #include <stdint.h>
 #include "BaseLib/TrueMallocator.h"
+#if defined(__W65C816__)
+#include <new>
+#include "BaseLib/BankMallocator.h"
+#endif // __W65C816__
 
 
 int		errno = 0;
@@ -15,7 +19,8 @@ int		errno = 0;
 //memory when the memory size register (00FF:0300) says there is more than 2MB, or from 0100:0000 (past the devices'
 //page) when there is more than 16MB.
 //BaseLib's CTrueMallocator manages it: malloc and free take the same time however many blocks there are, and freed
-//blocks are joined to the free blocks either side of them.  On the W65C816 it is by banks (below).
+//blocks are joined to the free blocks either side of them.  On the W65C816 it is by banks (below), and under the HCP65
+//kernal its banks are the kernal's.
 #define HEAP_START			0x80000
 #define HEAP_END			0x100000
 #define HIGH_HEAP_START		0x200000
@@ -23,9 +28,6 @@ int		errno = 0;
 #define DEVICES_END			0x1000000
 #define MEMORY_SIZE			(*(volatile uint32_t*)0x00FF0300)
 
-
-CTrueMallocator		gcHeap;
-bool				gbHeap = false;
 
 //The linker's __end: the end of the program.
 extern "C" char		_end;
@@ -35,222 +37,147 @@ extern "C" char		_end;
 extern "C" void __HeapInit(void* pvStart, uint32_t uiBytes) __attribute__((noinline));
 
 
-static void InitHeap(void)
+//Where the heap is, from the memory size register.
+static void HeapRange(uint32_t* puiStart, uint32_t* puiEnd)
 {
 	uint32_t	uiMemorySize;
 	uint32_t	uiStart;
-	uint32_t	uiEnd;
 
 	uiMemorySize = MEMORY_SIZE;
 	if (uiMemorySize > DEVICES_END)
 	{
-		uiStart = DEVICES_END;
-		uiEnd = uiMemorySize;
+		*puiStart = DEVICES_END;
+		*puiEnd = uiMemorySize;
 	}
 	else if (uiMemorySize > HIGH_HEAP_START)
 	{
 		//After the program if it goes past 0020:0000.
 		uiStart = (uint32_t)&_end;
-		uiStart = (uiStart > HIGH_HEAP_START) ? ((uiStart + 15) & ~(uint32_t)15) : HIGH_HEAP_START;
-		uiEnd = (uiMemorySize < DEVICES_START) ? uiMemorySize : DEVICES_START;
+		*puiStart = (uiStart > HIGH_HEAP_START) ? ((uiStart + 15) & ~(uint32_t)15) : HIGH_HEAP_START;
+		*puiEnd = (uiMemorySize < DEVICES_START) ? uiMemorySize : DEVICES_START;
 	}
 	else
 	{
-		uiStart = HEAP_START;
-		uiEnd = HEAP_END;
+		*puiStart = HEAP_START;
+		*puiEnd = HEAP_END;
 	}
-	__HeapInit((void*)uiStart, uiEnd - uiStart);
 }
 
 
 #if defined(__W65C816__)
 //On the W65C816 the heap is by banks (CppCompilerLib/Size16Plan.txt), so no block crosses a 64KB bank: an index
-//register reaches all of one from its start.  gcHeap has a region for each bank of the small heap, taken from the
-//bottom as it fills and given back when nothing is left in it (but the first, which has the maps).  What doesn't fit a
-//bank has whole adjacent banks of its own, taken from the top.  A byte for each bank says which it is, and a count for
-//each of the small heap's banks how many blocks are in it, so free knows what a pointer is and when a bank is empty.
-#define HEAP_BANK_SIZE		0x10000
-#define HEAP_SMALL_MAX		(HEAP_BANK_SIZE - 64)	//The most an empty whole bank holds, less its region's and block's headers.
-#define HEAP_BANK_FREE		0
-#define HEAP_BANK_SMALL		1		//A region of gcHeap.
-#define HEAP_BANK_KEPT		2		//The first region of gcHeap, where the maps are: never given back.
-#define HEAP_BANK_LARGE		3		//The first of a large allocation's banks.
-#define HEAP_BANK_MORE		4		//One of a large allocation's banks after its first.
+//register reaches all of one from its start.  BaseLib's CBankMallocator has it: a CTrueMallocator region for each bank
+//small blocks are in, taken from the bottom and given back when they empty (but one kept spare), and whole banks of
+//their own, from the top, for what doesn't fit a bank.  Under the HCP65 kernal (its heap block at 00FF:0300 has
+//HEAP_MARKER) the heap's banks are mapped into the program as it needs them and unmapped as they empty, with the
+//kernal's system calls; elsewhere all of the heap's memory is there from the start.
+#define HEAP_BANK_SIZE			0x10000
+#define HEAP_SPARE_BANKS		1
 
-//Large allocations are copied with the 32 bit memcpy.
-#define HEAP_COPY(pvDest, pvSource, uiBytes)	memcpy32(pvDest, pvSource, uiBytes)
+//HCP65User.h's SKernalHeapInfo after the memory size, and the system calls that map and unmap the heap's banks (Libc65
+//doesn't use UserLib).  The maths tables' banks are never the heap's.
+#define HEAP_INFO_MARKER		(*(volatile uint32_t*)0x00FF0304)
+#define HEAP_INFO_START			(*(volatile uint32_t*)0x00FF0308)
+#define HEAP_INFO_END			(*(volatile uint32_t*)0x00FF030C)
+#define HEAP_MARKER				0x50414548
+#define HEAP_TABLES_START		0x400000
+#define HEAP_TABLES_SIZE		0x40000
+#define HEAP_CALL_MAP_BANKS		5
+#define HEAP_CALL_UNMAP_BANKS	6
+
+struct SHeapSystemCall
+{
+	uint16_t	uiCall;
+	uint16_t	uiIndex;		//How many banks.
+	uint32_t	uiPath;
+	uint32_t	uiAddress;		//The first bank's.
+	uint32_t	uiLength;
+	uint32_t	uiResult;
+};
+
+//stdlibW65C816.asm: COP 13, the kernal's system call.
+extern "C" uint16_t	__HeapSystemCall(SHeapSystemCall* psCall) noexcept;
+
+
+//The kernal's banks: mapped and unmapped.
+class CHeapKernalBanks : public CBankSource
+{
+public:
+	bool	Acquire(void* pvBank, size uiCount) override;
+	void	Release(void* pvBank, size uiCount) override;
+};
+
+
+static uint16_t HeapBankCall(uint16_t uiCall, void* pvBank, size uiCount)
+{
+	SHeapSystemCall	sCall;
+
+	memset(&sCall, 0, sizeof(SHeapSystemCall));
+	sCall.uiCall = uiCall;
+	sCall.uiIndex = (uint16_t)uiCount;
+	sCall.uiAddress = (uint32_t)pvBank;
+	return __HeapSystemCall(&sCall);
+}
+
+
+bool CHeapKernalBanks::Acquire(void* pvBank, size uiCount)
+{
+	return HeapBankCall(HEAP_CALL_MAP_BANKS, pvBank, uiCount) == 0;
+}
+
+
+void CHeapKernalBanks::Release(void* pvBank, size uiCount)
+{
+	HeapBankCall(HEAP_CALL_UNMAP_BANKS, pvBank, uiCount);
+}
+
+
+CBankMallocator			gcHeap;
+bool					gbHeap = false;
+
+//Made when the heap is (not a global with a constructor: malloc can be called by another global's).
+static uint8_t			gauiHeapKernalBanks[sizeof(CHeapKernalBanks)];
 
 //malloc, calloc, realloc and free share one copy of each (the kernal is in ROM).
 static void*		HeapMalloc(uint32_t uiBytes) __attribute__((noinline));
 static void			HeapFree(void* pv) __attribute__((noinline));
 
-static uint8_t*		gpuiHeapBanks;		//What each bank is.
-static uint16_t*	gpuiHeapBlocks;		//How many of gcHeap's blocks each bank has.
-static uint32_t		guiHeapStart;		//The heap's memory, after the maps.
-static uint32_t		guiHeapEnd;
-static uint16_t		guiHeapFirstBank;	//The bank of the heap's first byte (the maps').
-static uint16_t		guiHeapBanks;
 
-
-//The bank (from the heap's first) pv is in.
-static uint16_t HeapBank(void* pv)
-{
-	return (uint16_t)(((uint32_t)pv >> 16) - guiHeapFirstBank);
-}
-
-
-//Where bank uiBank's memory starts.
-static uint32_t HeapBankAddress(uint16_t uiBank)
-{
-	return (uint32_t)(guiHeapFirstBank + uiBank) << 16;
-}
-
-
-//The part of bank uiBank that is the heap's (all of it but in the first and last).
-static uint32_t HeapBankStart(uint16_t uiBank)
-{
-	uint32_t	uiStart;
-
-	uiStart = HeapBankAddress(uiBank);
-	return (uiStart < guiHeapStart) ? guiHeapStart : uiStart;
-}
-
-
-static uint32_t HeapBankEnd(uint16_t uiBank)
-{
-	uint32_t	uiEnd;
-
-	uiEnd = HeapBankAddress(uiBank) + HEAP_BANK_SIZE;
-	return (uiEnd > guiHeapEnd) ? guiHeapEnd : uiEnd;
-}
-
-
-//Whether bank uiBank is free and all the heap's, as a large allocation's must be.
-static bool HeapIsWholeFree(uint16_t uiBank)
-{
-	return (gpuiHeapBanks[uiBank] == HEAP_BANK_FREE) && (HeapBankAddress(uiBank) >= guiHeapStart) && (HeapBankAddress(uiBank) + HEAP_BANK_SIZE <= guiHeapEnd);
-}
-
-
-//Bank uiBank becomes a region of gcHeap.
-static bool HeapAddBank(uint16_t uiBank, uint8_t uiKind)
-{
-	if (!gcHeap.AddRegion((void*)HeapBankStart(uiBank), HeapBankEnd(uiBank) - HeapBankStart(uiBank)))
-	{
-		return false;
-	}
-	gpuiHeapBanks[uiBank] = uiKind;
-	return true;
-}
-
-
-//A block left bank uiBank: the bank goes back if it was the last.
-static void HeapBlockGone(uint16_t uiBank)
-{
-	gpuiHeapBlocks[uiBank]--;
-	if ((gpuiHeapBlocks[uiBank] == 0) && (gpuiHeapBanks[uiBank] == HEAP_BANK_SMALL) && gcHeap.RemoveRegion((void*)HeapBankStart(uiBank)))
-	{
-		gpuiHeapBanks[uiBank] = HEAP_BANK_FREE;
-	}
-}
-
-
-//uiBytes in one bank: from the small heap's banks, or the lowest free bank given to it.
-static void* HeapMallocSmall(uint32_t uiBytes)
-{
-	void*		pv;
-	uint16_t	uiBank;
-
-	pv = gcHeap.Malloc(uiBytes);
-	for (uiBank = 0; !pv && (uiBank < guiHeapBanks); uiBank++)
-	{
-		if ((gpuiHeapBanks[uiBank] == HEAP_BANK_FREE) && HeapAddBank(uiBank, HEAP_BANK_SMALL))
-		{
-			pv = gcHeap.Malloc(uiBytes);
-			if (!pv && gcHeap.RemoveRegion((void*)HeapBankStart(uiBank)))
-			{
-				//A part bank at the heap's end too small for it.
-				gpuiHeapBanks[uiBank] = HEAP_BANK_FREE;
-			}
-		}
-	}
-	if (pv)
-	{
-		gpuiHeapBlocks[HeapBank(pv)]++;
-	}
-	return pv;
-}
-
-
-//uiBytes in the highest run of whole free banks that holds them.
-static void* HeapMallocLarge(uint32_t uiBytes)
-{
-	uint32_t	uiBanks;
-	uint16_t	uiCount;
-	uint16_t	uiRun;
-	uint16_t	uiBank;
-	uint16_t	i;
-
-	//Without the wrap of uiBytes + 0xFFFF near 4GB.
-	uiBanks = (uiBytes >> 16) + ((uiBytes & (HEAP_BANK_SIZE - 1)) != 0);
-	if (uiBanks > guiHeapBanks)
-	{
-		return NULL;
-	}
-	uiCount = (uint16_t)uiBanks;
-	uiRun = 0;
-	for (uiBank = guiHeapBanks; uiBank > 0; uiBank--)
-	{
-		uiRun = HeapIsWholeFree((uint16_t)(uiBank - 1)) ? uiRun + 1 : 0;
-		if (uiRun == uiCount)
-		{
-			gpuiHeapBanks[uiBank - 1] = HEAP_BANK_LARGE;
-			for (i = 1; i < uiCount; i++)
-			{
-				gpuiHeapBanks[uiBank - 1 + i] = HEAP_BANK_MORE;
-			}
-			return (void*)HeapBankAddress((uint16_t)(uiBank - 1));
-		}
-	}
-	return NULL;
-}
-
-
-//The bytes a large allocation's banks hold.
-static uint32_t HeapLargeBytes(uint16_t uiBank)
-{
-	uint32_t	uiBytes;
-
-	for (uiBytes = HEAP_BANK_SIZE, uiBank++; (uiBank < guiHeapBanks) && (gpuiHeapBanks[uiBank] == HEAP_BANK_MORE); uiBank++)
-	{
-		uiBytes += HEAP_BANK_SIZE;
-	}
-	return uiBytes;
-}
-
-
-//The heap over uiBytes from pvStart (Libc65's start up, and the kernal's for MPU RAM): the maps first, then the
-//first bank's room is the first region.
+//The heap over uiBytes from pvStart, all of it there (Libc65's start up, and the kernal's for MPU RAM).
 extern "C" void __HeapInit(void* pvStart, uint32_t uiBytes)
 {
-	uint32_t	uiStart;
-	uint16_t	i;
-
-	uiStart = (uint32_t)pvStart;
-	guiHeapFirstBank = (uint16_t)(uiStart >> 16);
-	guiHeapBanks = (uint16_t)(((uiStart + uiBytes - 1) >> 16) - guiHeapFirstBank + 1);
-	gpuiHeapBanks = (uint8_t*)uiStart;
-	gpuiHeapBlocks = (uint16_t*)((uiStart + guiHeapBanks + 1) & ~(uint32_t)1);
-	guiHeapStart = ((uint32_t)(gpuiHeapBlocks + guiHeapBanks) + 15) & ~(uint32_t)15;
-	guiHeapEnd = uiStart + uiBytes;
-	for (i = 0; i < guiHeapBanks; i++)
-	{
-		gpuiHeapBanks[i] = HEAP_BANK_FREE;
-		gpuiHeapBlocks[i] = 0;
-	}
-	gcHeap.Init();
+	gcHeap.Init(pvStart, uiBytes, HEAP_BANK_SIZE, NULL, HEAP_SPARE_BANKS, false);
 	gbHeap = true;
-	HeapAddBank(0, HEAP_BANK_KEPT);
+}
+
+
+static void InitHeap(void)
+{
+	CHeapKernalBanks*	pcBanks;
+	uint32_t			uiStart;
+	uint32_t			uiEnd;
+
+	if (HEAP_INFO_MARKER == HEAP_MARKER)
+	{
+		uiStart = HEAP_INFO_START;
+		uiEnd = HEAP_INFO_END;
+		pcBanks = new (gauiHeapKernalBanks) CHeapKernalBanks();
+		gcHeap.Init((void*)uiStart, uiEnd - uiStart, HEAP_BANK_SIZE, pcBanks, HEAP_SPARE_BANKS, false);
+		if ((uiStart < HEAP_TABLES_START + HEAP_TABLES_SIZE) && (uiEnd > HEAP_TABLES_START))
+		{
+			gcHeap.Reserve((void*)HEAP_TABLES_START, HEAP_TABLES_SIZE);
+		}
+		gbHeap = true;
+		return;
+	}
+
+	HeapRange(&uiStart, &uiEnd);
+	//No more banks than CBankMallocator has room for.
+	if ((uiEnd - (uiStart & ~(uint32_t)(HEAP_BANK_SIZE - 1))) > (uint32_t)BANK_MALLOCATOR_MAX_BANKS * HEAP_BANK_SIZE)
+	{
+		uiEnd = (uiStart & ~(uint32_t)(HEAP_BANK_SIZE - 1)) + (uint32_t)BANK_MALLOCATOR_MAX_BANKS * HEAP_BANK_SIZE;
+	}
+	__HeapInit((void*)uiStart, uiEnd - uiStart);
 }
 
 
@@ -260,77 +187,23 @@ static void* HeapMalloc(uint32_t uiBytes)
 	{
 		InitHeap();
 	}
-	return (uiBytes <= HEAP_SMALL_MAX) ? HeapMallocSmall(uiBytes) : HeapMallocLarge(uiBytes);
+	return gcHeap.Malloc(uiBytes);
 }
 
 
 static void HeapFree(void* pv)
 {
-	uint16_t	uiBank;
-
-	if (!pv)
-	{
-		return;
-	}
-	uiBank = HeapBank(pv);
-	if (gpuiHeapBanks[uiBank] == HEAP_BANK_LARGE)
-	{
-		for (gpuiHeapBanks[uiBank++] = HEAP_BANK_FREE; (uiBank < guiHeapBanks) && (gpuiHeapBanks[uiBank] == HEAP_BANK_MORE); uiBank++)
-		{
-			gpuiHeapBanks[uiBank] = HEAP_BANK_FREE;
-		}
-		return;
-	}
 	gcHeap.Free(pv);
-	HeapBlockGone(uiBank);
 }
 
 
-//A small block grows or shrinks where it is or in the small heap if it can; anything else is copied to a new
-//allocation.  A large one that still needs more than a bank and fits its banks stays.
 static void* HeapRealloc(void* pv, uint32_t uiBytes)
 {
-	uint16_t	uiBank;
-	uint32_t	uiOld;
-	void*		pvNew;
-
-	if (!pv)
+	if (!gbHeap)
 	{
-		return HeapMalloc(uiBytes);
+		InitHeap();
 	}
-	uiBank = HeapBank(pv);
-	if (gpuiHeapBanks[uiBank] == HEAP_BANK_LARGE)
-	{
-		uiOld = HeapLargeBytes(uiBank);
-		if ((uiBytes > HEAP_SMALL_MAX) && (uiBytes <= uiOld))
-		{
-			return pv;
-		}
-	}
-	else
-	{
-		uiOld = gcHeap.Size(pv);
-		if (uiBytes <= HEAP_SMALL_MAX)
-		{
-			pvNew = gcHeap.Realloc(pv, uiBytes);
-			if (pvNew && (pvNew != pv))
-			{
-				gpuiHeapBlocks[HeapBank(pvNew)]++;
-				HeapBlockGone(uiBank);
-			}
-			if (pvNew)
-			{
-				return pvNew;
-			}
-		}
-	}
-	pvNew = HeapMalloc(uiBytes);
-	if (pvNew)
-	{
-		HEAP_COPY(pvNew, pv, (uiOld < uiBytes) ? uiOld : uiBytes);
-		HeapFree(pv);
-	}
-	return pvNew;
+	return gcHeap.Realloc(pv, uiBytes);
 }
 
 
@@ -363,12 +236,25 @@ void* realloc32(void* pv, unsigned long ulBytes) noexcept
 	return HeapRealloc(pv, ulBytes);
 }
 
-
 #else
+CTrueMallocator		gcHeap;
+bool				gbHeap = false;
+
+
 extern "C" void __HeapInit(void* pvStart, uint32_t uiBytes)
 {
 	gcHeap.Init(pvStart, uiBytes);
 	gbHeap = true;
+}
+
+
+static void InitHeap(void)
+{
+	uint32_t	uiStart;
+	uint32_t	uiEnd;
+
+	HeapRange(&uiStart, &uiEnd);
+	__HeapInit((void*)uiStart, uiEnd - uiStart);
 }
 
 

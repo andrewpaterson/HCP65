@@ -72,6 +72,9 @@
     <ClCompile Include="stringW65C816_16.asm">
       <Filter>Assembly</Filter>
     </ClCompile>
+    <ClCompile Include="stdlibW65C816.asm">
+      <Filter>Assembly</Filter>
+    </ClCompile>
     <ClCompile Include="MathTbls\MathInvert.asm">
       <Filter>MathTbls</Filter>
     </ClCompile>

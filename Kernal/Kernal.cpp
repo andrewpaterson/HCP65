@@ -1,6 +1,6 @@
 #include <string.h>
 #include "BaseLib/FatFile.h"
-#include "BaseLib/TrueMallocator.h"
+#include "BaseLib/BankMallocator.h"
 #include "KernalDevices.h"
 #include "KernalProcess.h"
 #include "Kernal.h"
@@ -13,7 +13,7 @@
 
 
 //Libc65's heap.
-extern CTrueMallocator	gcHeap;
+extern CBankMallocator	gcHeap;
 
 
 //////////////////////////////////////////////////////////////////////////
