@@ -1,5 +1,6 @@
 #include "UserLib/HCP65User.h"
 #include "UserLib/HCP65VideoBoard.h"
+#include "UserLib/HCP65SFT.h"
 #include "KernalProcess.h"
 #include "KernalConsole.h"
 #include "KernalScreen.h"
@@ -94,28 +95,35 @@ void CKernalScreen::EndGraphics(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Palette uiPalette's colours from the running process's 256 reds, then
-// greens, then blues.
+// Palette uiPalette's colours from the running process's SFT palette
+// record: its uiCount reds, then greens, then blues at its uiFirst on.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalScreen::SetColours(uint16 uiPalette, uint32 uiUserAddress)
 {
-	uint32	uiDone;
-	uint16	uiResult;
+	SSFTPalette	sPalette;
+	uint32		uiColours;
+	uint32		uiAt;
+	uint32		uiDone;
+	uint16		uiResult;
 
-	if (uiPalette >= VIDEO_BOARD_NUM_PALETTES)
+	if ((uiPalette >= VIDEO_BOARD_NUM_PALETTES) || !KernalCopyFromUser((uint8*)&sPalette, uiUserAddress, sizeof(SSFTPalette)) ||
+		(sPalette.uiMagic != SFT_MAGIC) || (sPalette.uiVersion != SFT_VERSION) || (sPalette.uiType != SFT_TYPE_PALETTE) || (sPalette.uiCount == 0) ||
+		((uint32)sPalette.uiFirst + sPalette.uiCount > SFT_PALETTE_COLOURS))
 	{
 		return KERNAL_DEVICE_BAD_ARGUMENT;
 	}
+	uiColours = uiUserAddress + sizeof(SSFTPalette);
+	uiAt = (uint32)uiPalette * 256 + sPalette.uiFirst;
 	uiDone = 0;
-	uiResult = mpcVideo->Write(VIDEO_BOARD_PALETTES, (uint32)uiPalette * 256, uiUserAddress, 256, &uiDone);
+	uiResult = mpcVideo->Write(VIDEO_BOARD_PALETTES, uiAt, uiColours, sPalette.uiCount, &uiDone);
 	if (uiResult == KERNAL_DRIVER_SUCCESS)
 	{
-		uiResult = mpcVideo->Write(VIDEO_BOARD_PALETTES, VIDEO_BOARD_GREEN + (uint32)uiPalette * 256, uiUserAddress + 256, 256, &uiDone);
+		uiResult = mpcVideo->Write(VIDEO_BOARD_PALETTES, VIDEO_BOARD_GREEN + uiAt, uiColours + sPalette.uiCount, sPalette.uiCount, &uiDone);
 	}
 	if (uiResult == KERNAL_DRIVER_SUCCESS)
 	{
-		uiResult = mpcVideo->Write(VIDEO_BOARD_PALETTES, VIDEO_BOARD_BLUE + (uint32)uiPalette * 256, uiUserAddress + 512, 256, &uiDone);
+		uiResult = mpcVideo->Write(VIDEO_BOARD_PALETTES, VIDEO_BOARD_BLUE + uiAt, uiColours + 2 * (uint32)sPalette.uiCount, sPalette.uiCount, &uiDone);
 	}
 	return uiResult;
 }

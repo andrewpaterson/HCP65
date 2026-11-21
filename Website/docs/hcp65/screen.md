@@ -28,7 +28,7 @@ The picture is two frames: one is shown while the other is drawn.
 | `KernalScreenRead(offset, dest, length)` | Pixels back from it. |
 | `KernalScreenFlip()` | Shows the frame that was drawn, at the next vertical blank. |
 | `KernalScreenWaitBlank(ticks)` | Waits for the next vertical blank. |
-| `KernalScreenSetColours(palette, colours)` | A palette's 256 reds, then greens, then blues. |
+| `KernalScreenSetColours(palette, record)` | A palette's colours from an SFT palette record (below): its colours at its indices, the rest left as they were. |
 | `KernalScreenSetPalette(palette)` | The palette each pixel drawn from now on takes. |
 
 A pixel is a byte.  The colour it shows is that entry of its palette, and there are 128 palettes.
@@ -52,7 +52,9 @@ A blit draws an SFT image from the program's memory with its top left at an x an
 off the picture.
 
 SFT is the image format CommonLibraries' SupportLib reads and writes (`SFTReader`, `SFTWriter`);
-`HCP65SFT.h` has it for a program.
+`HCP65SFT.h` has it for a program.  A file is a record: an image, a palette, or a container of
+them.  Every record starts with the same four bytes: the magic number `SF`, the layout's version
+(`SFT_VERSION`, 1) and its type.  A record of another version isn't read, and isn't drawn.
 
 - **Opaque** images are a width and height, then their rows.
 - **Transparent** images are a width and height, then one byte codes: 1 to 127 draws that many
@@ -62,7 +64,14 @@ SFT is the image format CommonLibraries' SupportLib reads and writes (`SFTReader
   they are sprites, pointers and glyphs.  A mixed run is a run with short gaps in it, which a
   blitter draws as one copy that leaves a colour out; the console's font has one for each row of a
   glyph.
-- **Containers** hold many images in one file.  `SFTContainedImage` finds one by its number.
+- **Palettes** are a first index and a count of colours (1 to 256, none past index 255), a hash,
+  then that many reds, greens and blues.  Most palettes are smaller than 256: several small ones
+  can share one of the board's palettes at different indices.  The hash is FNV-1a of the first
+  index, the count and the colours (`SFTPaletteHash`): palettes with the same hash are very likely
+  the same, so images that use them can share one of the board's palettes.
+- **Containers** hold many records in one file.  A palette is the palette of the images after it,
+  up to the next.  `SFTContainedImage` finds an image by its number (palettes aren't counted) and
+  `SFTContainedPalette` its palette.
 
 What the blit takes (`SKernalBlit`):
 
@@ -77,8 +86,9 @@ What the blit takes (`SKernalBlit`):
 The spans are how a sprite's old place is drawn again from a picture: of each of its rows, only from
 its first pixel to its last, one copy a row rather than the sprite's whole rectangle.
 
-An SFT pixel is a colour with red in bits 0 to 2, green in bits 3 to 5 and blue in bits 6 and 7.
-`SFTColours` gives the palette that shows them as they are.
+An SFT pixel is an index into its palette.  An image with no palette before it has pixels that are
+colours, with red in bits 0 to 2, green in bits 3 to 5 and blue in bits 6 and 7: `SFTColours` makes
+the palette record that shows them as they are.
 
 What isn't an image, or is cut short, is `KERNAL_DEVICE_BAD_ARGUMENT`.
 

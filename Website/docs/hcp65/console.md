@@ -42,7 +42,7 @@ sixteen colours on a background of the first eight.
 ### Text on the Video Board
 
 The Video Board's driver draws the text.  Each cell is a character from the font
-`\OS\Fonts\CONSOLE.SFT`: an [SFT container](screen.md#blits) of 256 transparent images of 8 by 16
+`\OS\Fonts\CONSOLE.SFT`: an [SFT container](screen.md#blits) (no palette) of 256 transparent images of 8 by 16
 pixels, in Latin-1 order.  It is made from Terminus Font (SIL Open Font License) by
 `HCP65/Fonts/MakeConsoleFont.py`.
 

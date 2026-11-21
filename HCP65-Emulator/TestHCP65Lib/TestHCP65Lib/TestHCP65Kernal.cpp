@@ -114,6 +114,9 @@
 #define TEST_HCP65_CONSOLE_PAPER	0xFF000000
 #define TEST_HCP65_VIDEO_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VideoCard.img"	//The emulator's Machines/Video.xml boots it.
 #define TEST_HCP65_VIDEO_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "VideoTest" _FS_ "HCP65VideoTest.vcxproj"
+#define TEST_HCP65_VIDEO_RED		0x08000		//The Video Board's palettes in its slot (HCP65Video.h).
+#define TEST_HCP65_VIDEO_GREEN		0x10000
+#define TEST_HCP65_VIDEO_BLUE		0x18000
 #define TEST_HCP65_VIDEO_PROGRAM_PATH	"\\vidtest.exe"
 #define TEST_HCP65_VIDEO_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VideoBoard" _FS_ "HCP65VideoBoard.vcxproj"
 #define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
@@ -2344,6 +2347,21 @@ void TestHCP65KernalVideo(STestKernal* psKernal)
 	AssertInt(800, (int)pcVideo->GetLineLength());
 	AssertInt(525, (int)pcVideo->GetFrameLines());
 
+	//Palette 2 is SFTColours' but for the four colours vidtest.exe's palette record has from $A1: $A0 and $A5 are still
+	//SFTColours' (red D0-D2, green D3-D5, blue D6-D7).
+	AssertInt(0, pcVideo->Read(TEST_HCP65_VIDEO_RED + 2 * 256 + 0xA0));
+	AssertInt(146, pcVideo->Read(TEST_HCP65_VIDEO_GREEN + 2 * 256 + 0xA0));
+	AssertInt(170, pcVideo->Read(TEST_HCP65_VIDEO_BLUE + 2 * 256 + 0xA0));
+	for (x = 0; x < 4; x++)
+	{
+		AssertInt((int)(0x10 + 0x10 * x), pcVideo->Read(TEST_HCP65_VIDEO_RED + 2 * 256 + 0xA1 + x));
+		AssertInt((int)(0x11 + 0x10 * x), pcVideo->Read(TEST_HCP65_VIDEO_GREEN + 2 * 256 + 0xA1 + x));
+		AssertInt((int)(0x12 + 0x10 * x), pcVideo->Read(TEST_HCP65_VIDEO_BLUE + 2 * 256 + 0xA1 + x));
+	}
+	AssertInt(182, pcVideo->Read(TEST_HCP65_VIDEO_RED + 2 * 256 + 0xA5));
+	AssertInt(146, pcVideo->Read(TEST_HCP65_VIDEO_GREEN + 2 * 256 + 0xA5));
+	AssertInt(170, pcVideo->Read(TEST_HCP65_VIDEO_BLUE + 2 * 256 + 0xA5));
+
 	//Two more frames, so that the last is drawn after vidtest.exe's last change, then the picture.
 	cHCP65.Run(2 * 800 * 525 + 1000);
 	puiFrame = (uint32*)malloc(640 * 480 * sizeof(uint32));
@@ -2506,7 +2524,7 @@ struct STestConsole
 //////////////////////////////////////////////////////////////////////////
 //
 // The console's font (an SFT container of 256 transparent images of 8 by
-// 16: UserLib/HCP65SFT.h) as each glyph's 16 rows, a row a byte with its
+// 16: SupportLib/SFTCommon.h) as each glyph's 16 rows, a row a byte with its
 // leftmost pixel bit 7.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -2533,18 +2551,23 @@ static bool TestConsoleReadFont(uint8* puiFont)
 	fclose(pFile);
 	memset(auiFile + uiSize, 0, sizeof(auiFile) - uiSize);
 	memset(puiFont, 0, TEST_HCP65_FONT_SIZE);
-	if ((uiSize < 4) || (auiFile[2] != 0) || (auiFile[3] != 1))
+	if ((uiSize < SFT_CONTAINER_SIZE) || (auiFile[0] != (SFT_MAGIC & 0xFF)) || (auiFile[1] != (SFT_MAGIC >> 8)) || (auiFile[2] != SFT_VERSION) ||
+		(auiFile[3] != SFT_TYPE_CONTAINER) || (auiFile[4] != 0) || (auiFile[5] != 1))
 	{
 		return false;
 	}
 
-	uiPosition = 4;
+	uiPosition = SFT_CONTAINER_SIZE;
 	for (uiGlyph = 0; uiGlyph < 256; uiGlyph++)
 	{
 		uiNext = auiFile[uiPosition] | ((size)auiFile[uiPosition + 1] << 8);
 		x = 0;
 		y = 0;
-		for (uiCode = uiPosition + 8; (uiCode < uiSize) && (auiFile[uiCode] != 0); )
+		if ((auiFile[uiPosition + 2 + 2] != SFT_VERSION) || (auiFile[uiPosition + 2 + 3] != SFT_TYPE_TRANSPARENT))
+		{
+			return false;
+		}
+		for (uiCode = uiPosition + 2 + SFT_IMAGE_SIZE; (uiCode < uiSize) && (auiFile[uiCode] != 0); )
 		{
 			c = auiFile[uiCode++];
 			if (c >= 0xE0)
@@ -2586,7 +2609,7 @@ static bool TestConsoleReadFont(uint8* puiFont)
 				uiCode += c;
 			}
 		}
-		if ((uiGlyph < 255) && ((uiNext == 0) || (uiPosition + uiNext + 8 > uiSize)))
+		if ((uiGlyph < 255) && ((uiNext == 0) || (uiPosition + uiNext + 2 + SFT_IMAGE_SIZE > uiSize)))
 		{
 			return false;
 		}

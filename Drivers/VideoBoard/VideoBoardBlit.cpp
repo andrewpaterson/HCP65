@@ -53,7 +53,8 @@ uint16 CKernalVideoBoard::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 	{
 		return KERNAL_DRIVER_FAILED;
 	}
-	if ((psBlit->uiSize < sizeof(SSFTImage)) || !KernalCopyFromUser((uint8*)&sImage, psBlit->uiImage, sizeof(SSFTImage)))
+	if ((psBlit->uiSize < sizeof(SSFTImage)) || !KernalCopyFromUser((uint8*)&sImage, psBlit->uiImage, sizeof(SSFTImage)) ||
+		(sImage.uiMagic != SFT_MAGIC) || (sImage.uiVersion != SFT_VERSION))
 	{
 		return KERNAL_DRIVER_BAD_ARGUMENT;
 	}

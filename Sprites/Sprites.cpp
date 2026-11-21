@@ -67,7 +67,7 @@ uint8*			gpuiSpritesMaki;
 uint32			guiSpritesMakiSize;
 uint8*			gpuiSpritesFlower;		//In one bank.
 uint32			guiSpritesFlowerSize;
-uint8			gauiSpritesColours[KERNAL_SCREEN_COLOURS_SIZE];
+uint8			gauiSpritesColours[SFT_COLOURS_SIZE];
 uint8			gauiSpritesRow[SPRITES_WIDTH];
 SSpritesRect	gasSpritesDrawn[2];		//Maki in each frame: the one drawn into next is gasSpritesDrawn[guiSpritesBack].
 uint16			guiSpritesBack;
@@ -457,7 +457,7 @@ int main(void)
 	bController = KernalDeviceOpen(LCD_BOARD_MANUFACTURER, LCD_BOARD_NAME, 0, LCD_BOARD_SNES_1, &uiHandle) == KERNAL_DEVICE_SUCCESS;
 
 	//Palette 0 the colours pixels' bits are.  Both frames have the background, and nothing of Maki's yet.
-	SFTColours(&gauiSpritesColours[0], &gauiSpritesColours[256], &gauiSpritesColours[512]);
+	SFTColours(gauiSpritesColours);
 	KernalScreenSetColours(0, gauiSpritesColours);
 	KernalScreenSetPalette(0);
 	for (guiSpritesBack = 0; guiSpritesBack < 2; guiSpritesBack++)

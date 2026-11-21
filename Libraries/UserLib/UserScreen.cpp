@@ -70,9 +70,9 @@ extern "C" uint16 KernalScreenWaitBlank(uint16 uiTicks)
 }
 
 
-extern "C" uint16 KernalScreenSetColours(uint16 uiPalette, const uint8* puiColours)
+extern "C" uint16 KernalScreenSetColours(uint16 uiPalette, const void* pvPalette)
 {
-	return UserScreenCall(KERNAL_SCREEN_CALL_SET_COLOURS, uiPalette, puiColours, 0, 0, NULL);
+	return UserScreenCall(KERNAL_SCREEN_CALL_SET_COLOURS, uiPalette, pvPalette, 0, 0, NULL);
 }
 
 

@@ -174,8 +174,9 @@ void CKernalVideoBoard::ClearTextFrame(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The font that was written is an SFT container whose first 256 images
-// are transparent and 8 by 16, with every run inside its image: gauiVideoGlyphs
+// The font that was written is an SFT container whose first 256 records
+// are transparent images of 8 by 16 (no palette among them: the pixels
+// are colours), with every run inside its image: gauiVideoGlyphs
 // is where each one's runs start.  VideoBoardRender.asm draws them
 // without checking again.
 //
@@ -194,7 +195,8 @@ bool CKernalVideoBoard::ReadFont(void)
 	uint8					c;
 
 	psContainer = (const SSFTContainer*)gpuiVideoFont;
-	if ((muiFontSize < sizeof(SSFTContainer)) || (psContainer->uiType != SFT_TYPE_CONTAINER) || (psContainer->uiCount < VIDEO_TEXT_GLYPHS))
+	if ((muiFontSize < sizeof(SSFTContainer)) || (psContainer->uiMagic != SFT_MAGIC) || (psContainer->uiVersion != SFT_VERSION) ||
+		(psContainer->uiType != SFT_TYPE_CONTAINER) || (psContainer->uiCount < VIDEO_TEXT_GLYPHS))
 	{
 		return false;
 	}
@@ -208,7 +210,8 @@ bool CKernalVideoBoard::ReadFont(void)
 		}
 		uiNext = *((const uint16*)&gpuiVideoFont[uiPosition]);
 		psImage = (const SSFTImage*)&gpuiVideoFont[uiPosition + sizeof(uint16)];
-		if ((psImage->uiType != SFT_TYPE_TRANSPARENT) || (psImage->uiWidth != VIDEO_TEXT_CELL_WIDTH) || (psImage->uiHeight != VIDEO_TEXT_CELL_HEIGHT))
+		if ((psImage->uiMagic != SFT_MAGIC) || (psImage->uiVersion != SFT_VERSION) || (psImage->uiType != SFT_TYPE_TRANSPARENT) ||
+			(psImage->uiWidth != VIDEO_TEXT_CELL_WIDTH) || (psImage->uiHeight != VIDEO_TEXT_CELL_HEIGHT))
 		{
 			return false;
 		}

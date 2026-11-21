@@ -266,14 +266,15 @@ extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);
 //
 //The picture is two frames: one is shown while the other is drawn, and KernalScreenFlip swaps them at the next
 //vertical blank (KernalScreenWaitBlank waits for it).  A pixel is a byte at y x width + x in the frame being drawn
-//(KernalScreenWrite, KernalScreenRead): the colour it shows is its palette's (KernalScreenSetColours gives a palette
-//its 256 reds, then greens, then blues).  A pixel takes the palette set (KernalScreenSetPalette) as it is drawn.
+//(KernalScreenWrite, KernalScreenRead): the colour it shows is its palette's.  KernalScreenSetColours gives a palette
+//the colours of an SFT palette record (HCP65SFT.h's SSFTPalette and its colours) at the indices the record has, leaving
+//the others as they were; KERNAL_DEVICE_BAD_ARGUMENT if it isn't a palette record of this layout (its hash isn't
+//looked at).  A pixel takes the palette set (KernalScreenSetPalette) as it is drawn.
 #define KERNAL_SCREEN_640_480			0			//60Hz.
 #define KERNAL_SCREEN_800_600			1
 #define KERNAL_SCREEN_1024_768			2
 #define KERNAL_SCREEN_NUM_PALETTES		128
 #define KERNAL_SCREEN_NO_PALETTE		0xFF		//KernalScreenSetPalette: pixels keep the palette they have.
-#define KERNAL_SCREEN_COLOURS_SIZE		768
 
 //A blit: an image drawn with its top left at (iX, iY).  The image is an opaque or a transparent SFT image (HCP65SFT.h)
 //in the program's memory, of which no more than uiSize bytes are read.  What is outside the picture isn't drawn, nor
@@ -308,7 +309,7 @@ extern "C" uint16	KernalScreenGetSize(uint16* puiWidth, uint16* puiHeight);
 extern "C" uint16	KernalScreenBlit(const SKernalBlit* psBlit);
 extern "C" uint16	KernalScreenFlip(void);
 extern "C" uint16	KernalScreenWaitBlank(uint16 uiTicks);
-extern "C" uint16	KernalScreenSetColours(uint16 uiPalette, const uint8* puiColours);
+extern "C" uint16	KernalScreenSetColours(uint16 uiPalette, const void* pvPalette);
 extern "C" uint16	KernalScreenSetPalette(uint16 uiPalette);
 extern "C" uint16	KernalScreenWrite(uint32 uiOffset, const void* pvSource, uint32 uiLength);
 extern "C" uint16	KernalScreenRead(uint32 uiOffset, void* pvDest, uint32 uiLength);

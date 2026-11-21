@@ -2,8 +2,8 @@
 """Makes CONSOLE.SFT, the HCP65 console's 8x16 font, and CONSOLE.bmp, a picture of it, from a PC Screen Font (.psf or
 .psf.gz) with a Unicode table.
 
-CONSOLE.SFT is an SFT container (CommonLibraries' SupportLib/SFTCommon.h) of 256 transparent images of 8 by 16, in
-Latin-1 order (image n is the character U+00n): what a blit draws.  A glyph's pixels are $FF, and the rest of it
+CONSOLE.SFT is an SFT container (CommonLibraries' SupportLib/SFTCommon.h, version SFT_VERSION) of 256 transparent
+images of 8 by 16 and no palette, in Latin-1 order (image n is the character U+00n): what a blit draws.  A glyph's pixels are $FF, and the rest of it
 isn't drawn.  Each row of a glyph is one run: a mixed run, whose gaps are transparent pixels, where it has gaps.  The control characters ($00-$1F and $7F to $9F) are blank, as is any character the font hasn't.  The
 console loads it from the SD card's \\OS\\Fonts\\CONSOLE.SFT.
 
@@ -27,8 +27,10 @@ DEFAULT_OUTPUT = "CONSOLE.SFT"
 DEFAULT_BITMAP_OUTPUT = "CONSOLE.bmp"
 BITMAP_GLYPHS_ACROSS = 16
 
-SFT_TYPE_TRANSPARENT = 0xE4FA
-SFT_TYPE_CONTAINER = 0xE4EF
+SFT_MAGIC = 0x4653
+SFT_VERSION = 1
+SFT_TYPE_TRANSPARENT = 2
+SFT_TYPE_CONTAINER = 3
 SFT_RUN_END = 0x00
 SFT_RUN_SKIP = 0x80
 SFT_RUN_ROWS = 0xC0
@@ -97,7 +99,7 @@ def AddSFTCount(abImage, iCode, iCount, iMax):
 def MakeSFTImage(abGlyph):
     """The glyph (a row a byte, its leftmost pixel bit 7) as a transparent SFT image.
 
-    After its type, width and height it is bytes: 1 to 127 is that many pixels, which follow; SFT_RUN_SKIP + (n - 1)
+    After its header (magic, version and type), width and height it is bytes: 1 to 127 is that many pixels, which follow; SFT_RUN_SKIP + (n - 1)
     skips n pixels across; SFT_RUN_ROWS + (n - 1) moves n rows down to the row's left; SFT_RUN_MIXED + (n - 1) is n
     pixels, which follow, of which those that are SFT_TRANSPARENT aren't drawn; SFT_RUN_END ends it.  A row that has
     pixels is reached by moving down from the last that had.
@@ -105,7 +107,7 @@ def MakeSFTImage(abGlyph):
     A row's runs that are no more than MERGE_GAP pixels apart are one mixed run, so that a row is one copy for a
     blitter: with a gap of the glyph's width, every row is.
     """
-    abImage = bytearray(struct.pack("<3H", SFT_TYPE_TRANSPARENT, GLYPH_WIDTH, GLYPH_HEIGHT))
+    abImage = bytearray(struct.pack("<HBBHH", SFT_MAGIC, SFT_VERSION, SFT_TYPE_TRANSPARENT, GLYPH_WIDTH, GLYPH_HEIGHT))
     iRows = 0
     for iRow in range(GLYPH_HEIGHT):
         abPixels = [bool(abGlyph[iRow] & (0x80 >> iColumn)) for iColumn in range(GLYPH_WIDTH)]
@@ -146,10 +148,10 @@ def MakeSFTImage(abGlyph):
 
 
 def MakeSFTContainer(aabImages):
-    """The images as an SFT container: its type and count, then each image after the distance from that word to the
+    """The images as an SFT container: its header and count, then each image after the distance from that word to the
     next image's (0 for the last).  An image doesn't cross a 64KB boundary of the file: it starts at the next instead.
     """
-    abFile = bytearray(struct.pack("<2H", SFT_TYPE_CONTAINER, len(aabImages)))
+    abFile = bytearray(struct.pack("<HBBH", SFT_MAGIC, SFT_VERSION, SFT_TYPE_CONTAINER, len(aabImages)))
     iPrevious = None
     for abImage in aabImages:
         iPosition = len(abFile)

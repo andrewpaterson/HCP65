@@ -19,30 +19,36 @@
 
 
 uint8	gauiVideoTestRow[VIDEO_TEST_WIDTH];
-uint8	gauiVideoTestColours[3 * 256];
+uint8	gauiVideoTestColours[SFT_COLOURS_SIZE];
 
-//A container of two images.  The first is opaque, 4 by 3:
+//A container of two images and a palette between them.  The first image is opaque, 4 by 3:
 //  01 02 03 04
 //  05 06 07 08
 //  09 0A 0B 0C
-//The second is transparent, 4 by 4, with rows without a pixel:
+//The palette is four colours from $A1: reds $10 to $40, greens $11 to $41 and blues $12 to $42.  The second image is
+//transparent, 4 by 4, with rows without a pixel:
 //  .. A1 A2 ..
 //  .. .. .. ..
 //  A3 .. .. A4
 //  .. .. .. ..
-#define VIDEO_TEST_OPAQUE			6		//Where each image is in it.
-#define VIDEO_TEST_OPAQUE_SIZE		18
-#define VIDEO_TEST_TRANSPARENT		26
-#define VIDEO_TEST_TRANSPARENT_SIZE	17
+#define VIDEO_TEST_OPAQUE			8		//Where each record is in it.
+#define VIDEO_TEST_OPAQUE_SIZE		20
+#define VIDEO_TEST_PALETTE			30
+#define VIDEO_TEST_PALETTE_HASH		0x32DE3A94
+#define VIDEO_TEST_TRANSPARENT		56
+#define VIDEO_TEST_TRANSPARENT_SIZE	19
 
 static const uint8	gauiVideoTestImages[] =
 {
-	0xEF, 0xE4, 2, 0,
-	20, 0,
-	0x57, 0xE4, 4, 0, 3, 0,
+	0x53, 0x46, SFT_VERSION, SFT_TYPE_CONTAINER, 3, 0,
+	22, 0,
+	0x53, 0x46, SFT_VERSION, SFT_TYPE_OPAQUE, 4, 0, 3, 0,
 	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
+	26, 0,
+	0x53, 0x46, SFT_VERSION, SFT_TYPE_PALETTE, 0xA1, 0, 4, 0, 0x94, 0x3A, 0xDE, 0x32,
+	0x10, 0x20, 0x30, 0x40, 0x11, 0x21, 0x31, 0x41, 0x12, 0x22, 0x32, 0x42,
 	0, 0,
-	0xFA, 0xE4, 4, 0, 4, 0,
+	0x53, 0x46, SFT_VERSION, SFT_TYPE_TRANSPARENT, 4, 0, 4, 0,
 	0x80, 2, 0xA1, 0xA2,			//Skip 1, then two pixels.
 	0xC1,						//Down two rows.
 	1, 0xA3,
@@ -52,17 +58,28 @@ static const uint8	gauiVideoTestImages[] =
 
 static const uint8	gauiVideoTestWide[] =		//A transparent image whose run goes past its right.
 {
-	0xFA, 0xE4, 2, 0, 1, 0,
+	0x53, 0x46, SFT_VERSION, SFT_TYPE_TRANSPARENT, 2, 0, 1, 0,
 	0x80, 2, 0xB1, 0xB2,
 	0,
 };
 
 static const uint8	gauiVideoTestTall[] =		//A transparent image whose run is below its last row.
 {
-	0xFA, 0xE4, 2, 0, 1, 0,
+	0x53, 0x46, SFT_VERSION, SFT_TYPE_TRANSPARENT, 2, 0, 1, 0,
 	0xC0, 1, 0xB1,
 	0,
 };
+
+static const uint8	gauiVideoTestOldImage[] =	//The layout before SFT_VERSION 1: refused.
+{
+	0x57, 0xE4, 1, 0, 1, 0,
+	0x01,
+};
+
+//A palette record with no colours, one past index 255, and one of another version.
+static const uint8	gauiVideoTestNoColours[] = { 0x53, 0x46, SFT_VERSION, SFT_TYPE_PALETTE, 0, 0, 0, 0, 0, 0, 0, 0 };
+static const uint8	gauiVideoTestPastEnd[] = { 0x53, 0x46, SFT_VERSION, SFT_TYPE_PALETTE, 0xFF, 0, 2, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6 };
+static const uint8	gauiVideoTestVersion[] = { 0x53, 0x46, SFT_VERSION + 1, SFT_TYPE_PALETTE, 0, 0, 1, 0, 0, 0, 0, 0, 1, 2, 3 };
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -254,6 +271,8 @@ uint16 VideoTestScreen(void)
 	uint32			uiOpaqueSize;
 	uint32			uiTransparentSize;
 	uint32			uiSize;
+	const SSFTPalette*	psPalette;
+	const uint8*	puiColours;
 	SKernalBlit		sBlit;
 	uint16			uiHandle;
 	uint16			uiWidth;
@@ -274,19 +293,28 @@ uint16 VideoTestScreen(void)
 	//The images are where they should be in their container.
 	puiOpaque = (const uint8*)SFTContainedImage(gauiVideoTestImages, sizeof(gauiVideoTestImages), 0, &uiOpaqueSize);
 	puiTransparent = (const uint8*)SFTContainedImage(gauiVideoTestImages, sizeof(gauiVideoTestImages), 1, &uiTransparentSize);
+	psPalette = SFTContainedPalette(gauiVideoTestImages, sizeof(gauiVideoTestImages), 1);
 	if ((puiOpaque != &gauiVideoTestImages[VIDEO_TEST_OPAQUE]) || (uiOpaqueSize != VIDEO_TEST_OPAQUE_SIZE) ||
 		(puiTransparent != &gauiVideoTestImages[VIDEO_TEST_TRANSPARENT]) || (uiTransparentSize != VIDEO_TEST_TRANSPARENT_SIZE) ||
 		(SFTContainedImage(gauiVideoTestImages, sizeof(gauiVideoTestImages), 2, &uiSize) != NULL) ||
-		(SFTContainedImage(gauiVideoTestWide, sizeof(gauiVideoTestWide), 0, &uiSize) != NULL))
+		(SFTContainedImage(gauiVideoTestWide, sizeof(gauiVideoTestWide), 0, &uiSize) != NULL) ||
+		(SFTContainedPalette(gauiVideoTestImages, sizeof(gauiVideoTestImages), 0) != NULL) ||
+		((const uint8*)psPalette != &gauiVideoTestImages[VIDEO_TEST_PALETTE]) ||
+		(psPalette->uiHash != VIDEO_TEST_PALETTE_HASH) || (SFTPaletteHash(psPalette) != VIDEO_TEST_PALETTE_HASH) ||
+		!SFTIsRecord(puiOpaque, uiOpaqueSize, SFT_TYPE_OPAQUE) || SFTIsRecord(puiOpaque, uiOpaqueSize, SFT_TYPE_TRANSPARENT) ||
+		SFTIsRecord(gauiVideoTestOldImage, sizeof(gauiVideoTestOldImage), SFT_TYPE_OPAQUE))
 	{
 		return 1;
 	}
 
-	//The colours a pixel's bits are: $FF white, $07 red, $38 green, $C0 blue, $49 a dark grey.
-	SFTColours(&gauiVideoTestColours[0], &gauiVideoTestColours[256], &gauiVideoTestColours[512]);
-	if ((gauiVideoTestColours[0xFF] != 0xFF) || (gauiVideoTestColours[0x07] != 0xFF) || (gauiVideoTestColours[0x38] != 0) || (gauiVideoTestColours[0x49] != 0x24) ||
-		(gauiVideoTestColours[256 + 0x38] != 0xFF) || (gauiVideoTestColours[256 + 0x07] != 0) || (gauiVideoTestColours[256 + 0x49] != 0x24) ||
-		(gauiVideoTestColours[512 + 0xC0] != 0xFF) || (gauiVideoTestColours[512 + 0x49] != 0x55) || (gauiVideoTestColours[512 + 0x3F] != 0))
+	//The colours a pixel's bits are: $FF white, $07 red, $38 green, $C0 blue, $49 a dark grey.  The palette's hash is
+	//SFT_COLOURS_HASH.
+	SFTColours(gauiVideoTestColours);
+	puiColours = &gauiVideoTestColours[sizeof(SSFTPalette)];
+	if ((puiColours[0xFF] != 0xFF) || (puiColours[0x07] != 0xFF) || (puiColours[0x38] != 0) || (puiColours[0x49] != 0x24) ||
+		(puiColours[256 + 0x38] != 0xFF) || (puiColours[256 + 0x07] != 0) || (puiColours[256 + 0x49] != 0x24) ||
+		(puiColours[512 + 0xC0] != 0xFF) || (puiColours[512 + 0x49] != 0x55) || (puiColours[512 + 0x3F] != 0) ||
+		(SFTPaletteHash((const SSFTPalette*)gauiVideoTestColours) != SFT_COLOURS_HASH))
 	{
 		return 14;
 	}
@@ -398,6 +426,7 @@ uint16 VideoTestScreen(void)
 		(VideoTestBlitAt(puiTransparent, 6 + 2 + 1, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(gauiVideoTestTall, sizeof(gauiVideoTestTall), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt(gauiVideoTestWide, sizeof(gauiVideoTestWide), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitAt(gauiVideoTestOldImage, sizeof(gauiVideoTestOldImage), 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(VideoTestBlitAt((const void*)0xF00000, 100, 300, 300) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(KernalScreenBlit((const SKernalBlit*)0xF00000) != KERNAL_DEVICE_BAD_ARGUMENT))
 	{
@@ -405,8 +434,14 @@ uint16 VideoTestScreen(void)
 	}
 
 	//A palette's colours, the palette drawn with, and the frames flipped; then the picture is given back.
+	//Palette 2 all SFTColours' but the container's palette's four colours at $A1 (TestHCP65KernalVideo looks).
 	if ((KernalScreenSetColours(1, gauiVideoTestColours) != KERNAL_DEVICE_SUCCESS) ||
 		(KernalScreenSetColours(KERNAL_SCREEN_NUM_PALETTES, gauiVideoTestColours) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenSetColours(2, gauiVideoTestColours) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalScreenSetColours(2, psPalette) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalScreenSetColours(2, gauiVideoTestNoColours) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenSetColours(2, gauiVideoTestPastEnd) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenSetColours(2, gauiVideoTestVersion) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(KernalScreenSetPalette(1) != KERNAL_DEVICE_SUCCESS) ||
 		(KernalScreenSetPalette(KERNAL_SCREEN_NUM_PALETTES) != KERNAL_DEVICE_BAD_ARGUMENT) ||
 		(KernalScreenSetPalette(KERNAL_SCREEN_NO_PALETTE) != KERNAL_DEVICE_SUCCESS) ||

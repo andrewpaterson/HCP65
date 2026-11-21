@@ -24,7 +24,8 @@
 //////////////////////////////////////////////////////////////////////////
 //
 // CONSOLE.SFT (which Fonts/MakeConsoleFont.py writes without SupportLib)
-// is an SFT container as SupportLib reads one: 256 transparent images of
+// is an SFT container as SupportLib reads one (this layout, SFT_VERSION,
+// and no palette): 256 transparent images of
 // 8 by 16 whose pixels are white ($FF), each the glyph CONSOLE.bmp (the
 // same font as a picture) has.  The control characters and the space are
 // blank, and H is Terminus's.
@@ -66,7 +67,7 @@ void TestHCP65FontSFT(void)
 	cFile.Init(DiskFile(TEST_HCP65_FONT_SFT));
 	AssertTrue(cFile.Open(EFM_Read));
 	AssertTrue(sContainer.Read(&cFile));
-	AssertInt(SFT_TYPE_CONTAINER, sContainer.uiType);
+	AssertTrue(sContainer.IsValid());
 	AssertInt(TEST_FONT_GLYPHS, sContainer.uiCount);
 
 	uiWrong = 0;
