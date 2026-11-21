@@ -18,6 +18,9 @@
     <ClCompile Include="..\Libraries\UserLib\UserDevices.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserFiles.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm">
       <Filter>Source</Filter>
     </ClCompile>

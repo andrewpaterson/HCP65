@@ -4,7 +4,7 @@
 
 
 //The system calls (COP 13: HCP65User.h's SKernalSystemCall): the SD card's directories and files beyond reading them,
-//and the kernal's memory.
+//the kernal's memory, and mapping the heap's banks.
 uint16	KernalCallSystem(uint32 uiAddress);
 
 

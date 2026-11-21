@@ -10,6 +10,9 @@
 #define BOOT_NO_TABLES	200		//The exit code when the maths tables couldn't be loaded, plus why.
 #define BOOT_DEVICES	300		//The exit code when a device call didn't do what it should, plus which.
 #define BOOT_MAX_BOARDS	20		//More boards than there are device sockets.
+#define BOOT_MEMORY		400		//The exit code when a heap bank call didn't do what it should, plus which.
+#define BOOT_BANKS		0x300000	//Where it maps banks of its heap.
+#define BOOT_MORE_BANKS	0x500000	//Where it maps the rest of main memory's free banks.
 
 
 //In globals so the compiler can't work the answers out itself.
@@ -135,6 +138,107 @@ uint16 BootCheckDevices(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The free banks of main memory, or 0 if the memory call failed.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 BootFreeBanks(void)
+{
+	SKernalMemoryInfo	sInfo;
+
+	if (KernalMemoryInfo(&sInfo) != KERNAL_RESULT_SUCCESS)
+	{
+		return 0;
+	}
+	return sInfo.uiFreeBanks;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Checks the heap's block and the map and unmap banks calls: banks are
+// mapped and given back, all or none, never main memory's last free one,
+// and only the heap's.  0 if they do what they should, or which check
+// failed.  It gives back all it mapped.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 BootCheckMemory(void)
+{
+	SKernalHeapInfo*	psHeap;
+	volatile uint8*		puiBank;
+	uint16				uiFree;
+
+	psHeap = (SKernalHeapInfo*)KERNAL_HEAP_INFO_ADDRESS;
+	if ((psHeap->uiMarker != KERNAL_HEAP_MARKER) || (psHeap->uiHeapStart != KERNAL_HEAP_START) || (psHeap->uiHeapEnd != KERNAL_HEAP_END))
+	{
+		return 1;
+	}
+	uiFree = BootFreeBanks();
+	if (uiFree < 4)
+	{
+		return 2;
+	}
+
+	//Two banks, which hold what is written to them.
+	if ((KernalMapBanks((void*)BOOT_BANKS, 2) != KERNAL_RESULT_SUCCESS) || (BootFreeBanks() != uiFree - 2))
+	{
+		return 3;
+	}
+	puiBank = (volatile uint8*)BOOT_BANKS;
+	puiBank[0] = 0x5A;
+	puiBank[0x1FFFF] = 0xA5;
+	if ((puiBank[0] != 0x5A) || (puiBank[0x1FFFF] != 0xA5))
+	{
+		return 4;
+	}
+
+	//Banks it has are left as they are: one more.
+	if ((KernalMapBanks((void*)(BOOT_BANKS + KERNAL_HEAP_BANK_SIZE), 2) != KERNAL_RESULT_SUCCESS) || (BootFreeBanks() != uiFree - 3) || (puiBank[0x1FFFF] != 0xA5))
+	{
+		return 5;
+	}
+
+	//Not the heap's: the tables', part way into a bank, below or past the heap, or no banks.
+	if ((KernalMapBanks((void*)KERNAL_MATH_INVERT_ADDRESS, 1) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(KernalMapBanks((void*)(KERNAL_MATH_MULT_ADDRESS - KERNAL_HEAP_BANK_SIZE), 2) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(KernalMapBanks((void*)(BOOT_BANKS + 0x100), 1) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(KernalMapBanks((void*)(KERNAL_HEAP_START - KERNAL_HEAP_BANK_SIZE), 1) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(KernalMapBanks((void*)(KERNAL_HEAP_END - KERNAL_HEAP_BANK_SIZE), 2) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(KernalMapBanks((void*)BOOT_MORE_BANKS, 0) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(KernalUnmapBanks((void*)KERNAL_MATH_MULT_ADDRESS, 1) != KERNAL_RESULT_BAD_ADDRESS) ||
+		(BootFreeBanks() != uiFree - 3))
+	{
+		return 6;
+	}
+
+	//All of the rest would take the last free bank, so none are mapped; all but it are.
+	if ((KernalMapBanks((void*)BOOT_MORE_BANKS, uiFree - 3) != KERNAL_RESULT_NO_MEMORY) || (BootFreeBanks() != uiFree - 3))
+	{
+		return 7;
+	}
+	if ((KernalMapBanks((void*)BOOT_MORE_BANKS, uiFree - 4) != KERNAL_RESULT_SUCCESS) || (BootFreeBanks() != 1))
+	{
+		return 8;
+	}
+	if ((KernalMapBanks((void*)(BOOT_MORE_BANKS + (uint32)(uiFree - 4) * KERNAL_HEAP_BANK_SIZE), 1) != KERNAL_RESULT_NO_MEMORY) || (BootFreeBanks() != 1))
+	{
+		return 9;
+	}
+
+	//Given back, those it hasn't too.
+	if ((KernalUnmapBanks((void*)BOOT_MORE_BANKS, uiFree - 3) != KERNAL_RESULT_SUCCESS) || (BootFreeBanks() != uiFree - 3))
+	{
+		return 10;
+	}
+	if ((KernalUnmapBanks((void*)BOOT_BANKS, 3) != KERNAL_RESULT_SUCCESS) || (BootFreeBanks() != uiFree))
+	{
+		return 11;
+	}
+	return 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The child, while the parent has the first sound board's left unit:
 // neither of its units can be opened (KERNAL_DEVICE_IN_USE), as the
 // parent has the whole board, but, if bSecondBoard, the second sound
@@ -171,7 +275,7 @@ uint16 BootChild(bool bSecondBoard)
 // memory (MULT, and INVERT's upper half; it is built without them,
 // MathTables="false", so it can),
 // multiplies and divides and gives the kernal a value, checks the device
-// calls (BootCheckDevices), then runs modplay.exe (built with the tables)
+// calls (BootCheckDevices) and the heap's banks (BootCheckMemory), then runs modplay.exe (built with the tables)
 // with its own argument and exits with modplay's exit code (or 100 and
 // why it couldn't run).  Run with BOOT_CHILD or BOOT_CHILD_TWO it is
 // BootChild.
@@ -209,6 +313,12 @@ int main(void)
 	if (uiResult != 0)
 	{
 		return BOOT_DEVICES + uiResult;
+	}
+
+	uiResult = BootCheckMemory();
+	if (uiResult != 0)
+	{
+		return BOOT_MEMORY + uiResult;
 	}
 
 	uiExitCode = 0;

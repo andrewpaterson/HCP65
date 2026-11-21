@@ -88,19 +88,50 @@ struct SKernalMemoryInfo
 
 extern "C" uint16	KernalMemoryInfo(SKernalMemoryInfo* psInfo);
 
+//The program's heap: banks of main memory the kernal maps into it as it asks for them, from KERNAL_HEAP_START up to
+//KERNAL_HEAP_END but the maths tables' (KERNAL_MATH_MULT_ADDRESS to KERNAL_MATH_INVERT_ADDRESS +
+//KERNAL_MATH_INVERT_SIZE).  The kernal says so in the block at KERNAL_HEAP_INFO_ADDRESS, which Libc65 reads; the
+//banks of the program's UserHeapSize are already mapped when it starts.
+#define KERNAL_HEAP_INFO_ADDRESS	0xFF0300
+#define KERNAL_HEAP_MARKER			0x50414548		//"HEAP": the heap's banks are mapped as the program asks for them.
+#define KERNAL_HEAP_START			0x200000
+#define KERNAL_HEAP_END				0xFF0000		//Bank $FF is the program's, where this block is.
+#define KERNAL_HEAP_BANK_SIZE		0x10000
+
+struct SKernalHeapInfo
+{
+	uint32	uiMemorySize;	//+0   The end of the banks mapped at load (KERNAL_HEAP_START + UserHeapSize), or 0.
+	uint32	uiMarker;		//+4   KERNAL_HEAP_MARKER.
+	uint32	uiHeapStart;	//+8   The first byte of the heap.
+	uint32	uiHeapEnd;		//+12  One past its last.
+};
+
+//Maps uiBanks banks of the heap from the one at pvBank (the first byte of a bank) into the program, or none of them:
+//KERNAL_RESULT_NO_MEMORY if that would take main memory's last free bank (the kernal keeps one for itself), and
+//KERNAL_RESULT_BAD_ADDRESS if they aren't all the heap's.  Banks the program already has are left as they are.  What
+//was in a bank before isn't cleared.
+extern "C" uint16	KernalMapBanks(void* pvBank, uint16 uiBanks);
+
+//Gives uiBanks banks of the heap from the one at pvBank back to the kernal (those the program has).
+//KERNAL_RESULT_BAD_ADDRESS if they aren't all the heap's.
+extern "C" uint16	KernalUnmapBanks(void* pvBank, uint16 uiBanks);
+
 //How the system calls reach the kernal: one block, which the kernal reads and writes in the program's memory.
 #define KERNAL_SYSTEM_CALL_DIRECTORY		0
 #define KERNAL_SYSTEM_CALL_FILE_WRITE		1
 #define KERNAL_SYSTEM_CALL_FILE_DELETE		2
 #define KERNAL_SYSTEM_CALL_MAKE_DIRECTORY	3
 #define KERNAL_SYSTEM_CALL_MEMORY			4
+#define KERNAL_SYSTEM_CALL_MAP_BANKS		5
+#define KERNAL_SYSTEM_CALL_UNMAP_BANKS		6
 
 struct SKernalSystemCall
 {
 	uint16	uiCall;			//+0   KERNAL_SYSTEM_CALL_*.
-	uint16	uiIndex;		//+2   Directory: the entry.
+	uint16	uiIndex;		//+2   Directory: the entry.  Map and unmap banks: how many.
 	uint32	uiPath;			//+4   The path (in the program's memory), or 0.
-	uint32	uiAddress;		//+8   Directory and Memory: where the answer goes.  File write: the bytes.
+	uint32	uiAddress;		//+8   Directory and Memory: where the answer goes.  File write: the bytes.  Map and unmap
+							//     banks: the first bank's.
 	uint32	uiLength;		//+12  File write: how many.
 	uint32	uiResult;		//+16
 };

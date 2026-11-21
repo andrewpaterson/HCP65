@@ -83,3 +83,33 @@ extern "C" uint16 KernalMemoryInfo(SKernalMemoryInfo* psInfo)
 	sCall.uiAddress = (uint32)psInfo;
 	return KernalSystemCall(&sCall);
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+extern "C" uint16 KernalMapBanks(void* pvBank, uint16 uiBanks)
+{
+	SKernalSystemCall	sCall;
+
+	UserSystemCall(&sCall, KERNAL_SYSTEM_CALL_MAP_BANKS, NULL);
+	sCall.uiIndex = uiBanks;
+	sCall.uiAddress = (uint32)pvBank;
+	return KernalSystemCall(&sCall);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+extern "C" uint16 KernalUnmapBanks(void* pvBank, uint16 uiBanks)
+{
+	SKernalSystemCall	sCall;
+
+	UserSystemCall(&sCall, KERNAL_SYSTEM_CALL_UNMAP_BANKS, NULL);
+	sCall.uiIndex = uiBanks;
+	sCall.uiAddress = (uint32)pvBank;
+	return KernalSystemCall(&sCall);
+}

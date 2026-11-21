@@ -7,7 +7,7 @@
 #define KERNAL_LAST_PROCESS_ID		0xFC
 #define KERNAL_REMAP_TABLE			0x070000	//MPU RAM: a 256 byte page of physical banks per process ID.
 #define KERNAL_USER_STACK_TOP		0xEFFF		//In the process's bank 0.
-#define KERNAL_USER_MEMORY_SIZE		0xFF0300	//Where Libc65 reads the memory size (a process address).
+#define KERNAL_USER_MEMORY_SIZE		0xFF0300	//Where Libc65 reads the memory size, HCP65User.h's SKernalHeapInfo (a process address).
 #define KERNAL_USER_HIGH_MEMORY		0x200000	//A program's heap (its UserHeapSize) starts here.
 #define KERNAL_VECTORS				0x00FFE0	//The vectors, $FFE0 to $FFFF of bank 0: the kernal's, and a copy in every process's.
 #define KERNAL_VECTORS_SIZE			0x20
@@ -57,6 +57,8 @@ extern "C" void		KernalCopCall(void);		//Called by Start.asm's COP handler.
 
 uint16	KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode);
 void	KernalCountProcessBanks(uint16* puiProcessBanks, uint16* puiFreeBanks);
+uint16	KernalMapHeapBanks(uint32 uiAddress, uint16 uiBanks);
+uint16	KernalUnmapHeapBanks(uint32 uiAddress, uint16 uiBanks);
 
 //The running process's memory, for drivers: a process address's physical address and how much of its bank is left,
 //and copies to and from it (false if the process hasn't all of the banks).  While KernalSetKernalCopy(true) they take

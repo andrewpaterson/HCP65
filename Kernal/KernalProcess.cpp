@@ -16,6 +16,7 @@
 #include "KernalStartUp.h"
 #include "KernalSystemCalls.h"
 #include "KernalScreen.h"
+#include "UserLib/HCP65User.h"
 
 
 #define KERNAL_PROCESS_ENTRY_SYMBOL		"UserStart"
@@ -253,14 +254,16 @@ bool KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Gives the process's bank uiBank a cleared physical bank, if it hasn't
-// one.  False if there are none left.
+// Gives the process's bank uiBank a physical bank (not cleared), if it
+// hasn't one.  False if there are none left: the last free bank is never
+// given, the kernal keeps it for its main memory heap.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 {
 	uint8*	puiPage;
 	uint16	uiPhysical;
+	uint16	uiOther;
 
 	puiPage = KernalRemapPage(uiProcess);
 	if (puiPage[uiBank] != 0)
@@ -269,15 +272,118 @@ static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 	}
 	for (uiPhysical = 0; uiPhysical < KERNAL_NUM_BANKS; uiPhysical++)
 	{
-		if ((gauiKernalBanks[uiPhysical] == KERNAL_BANK_PROCESS) && (gauiKernalBankOwners[uiPhysical] == 0))
+		if (KernalIsBankFree(uiPhysical))
 		{
-			gauiKernalBankOwners[uiPhysical] = uiProcess;
-			puiPage[uiBank] = (uint8)uiPhysical;
-			KernalDebugBank((uint8)uiPhysical);
-			return true;
+			for (uiOther = uiPhysical + 1; uiOther < KERNAL_NUM_BANKS; uiOther++)
+			{
+				if (KernalIsBankFree(uiOther))
+				{
+					gauiKernalBankOwners[uiPhysical] = uiProcess;
+					puiPage[uiBank] = (uint8)uiPhysical;
+					KernalDebugBank((uint8)uiPhysical);
+					return true;
+				}
+			}
+			return false;
 		}
 	}
 	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the uiBanks banks from uiAddress's (the first byte of a bank)
+// are all the heap's (HCP65User.h's KERNAL_HEAP_START to KERNAL_HEAP_END
+// but the maths tables').
+//
+//////////////////////////////////////////////////////////////////////////
+static bool KernalIsHeapBanks(uint32 uiAddress, uint16 uiBanks)
+{
+	uint32	uiBank;
+	uint32	uiLast;
+
+	if ((uiBanks == 0) || ((uiAddress & (KERNAL_HEAP_BANK_SIZE - 1)) != 0) || (uiAddress < KERNAL_HEAP_START))
+	{
+		return false;
+	}
+	uiBank = uiAddress >> 16;
+	uiLast = uiBank + uiBanks - 1;
+	if (uiLast >= (KERNAL_HEAP_END >> 16))
+	{
+		return false;
+	}
+	return (uiLast < KERNAL_TABLES_USER_BANK) || (uiBank >= KERNAL_TABLES_USER_BANK + KERNAL_NUM_TABLE_BANKS);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The map banks call: the running process's uiBanks banks of its heap
+// from uiAddress's, all or none (those it has already stay).
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 KernalMapHeapBanks(uint32 uiAddress, uint16 uiBanks)
+{
+	uint8*	puiPage;
+	uint16	uiProcessBanks;
+	uint16	uiFreeBanks;
+	uint16	uiNeeded;
+	uint16	i;
+
+	if (!KernalIsHeapBanks(uiAddress, uiBanks))
+	{
+		return KERNAL_PROCESS_BAD_ADDRESS;
+	}
+	puiPage = KernalRemapPage(guiKernalProcess);
+	uiNeeded = 0;
+	for (i = 0; i < uiBanks; i++)
+	{
+		if (puiPage[(uiAddress >> 16) + i] == 0)
+		{
+			uiNeeded++;
+		}
+	}
+	KernalCountProcessBanks(&uiProcessBanks, &uiFreeBanks);
+	if (uiNeeded >= uiFreeBanks)
+	{
+		return KERNAL_PROCESS_NO_MEMORY;
+	}
+	for (i = 0; i < uiBanks; i++)
+	{
+		KernalMapBank(guiKernalProcess, (uint8)((uiAddress >> 16) + i));
+	}
+	return KERNAL_PROCESS_NONE;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The unmap banks call: the running process's uiBanks banks of its heap
+// from uiAddress's given back (those it has).
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 KernalUnmapHeapBanks(uint32 uiAddress, uint16 uiBanks)
+{
+	uint8*	puiPage;
+	uint8	uiBank;
+	uint16	i;
+
+	if (!KernalIsHeapBanks(uiAddress, uiBanks))
+	{
+		return KERNAL_PROCESS_BAD_ADDRESS;
+	}
+	puiPage = KernalRemapPage(guiKernalProcess);
+	for (i = 0; i < uiBanks; i++)
+	{
+		uiBank = (uint8)((uiAddress >> 16) + i);
+		if ((puiPage[uiBank] != 0) && (gauiKernalBankOwners[puiPage[uiBank]] == guiKernalProcess))
+		{
+			gauiKernalBankOwners[puiPage[uiBank]] = 0;
+			puiPage[uiBank] = 0;
+		}
+	}
+	return KERNAL_PROCESS_NONE;
 }
 
 
@@ -461,6 +567,7 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 {
 	SAsm65Section*		psSection;
 	SAsm65ObjectSymbol*	psSymbol;
+	SKernalHeapInfo*	psHeap;
 	uint8*				puiPage;
 	uint8*				puiStack;
 	uint32				uiEntry;
@@ -557,7 +664,12 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 		return KERNAL_PROCESS_BAD_FILE;
 	}
 
-	*(uint32*)KernalUserAddress(KERNAL_USER_MEMORY_SIZE) = uiMemorySize;
+	//Where Libc65's heap is, and that it can map more of it (HCP65User.h).
+	psHeap = (SKernalHeapInfo*)KernalUserAddress(KERNAL_HEAP_INFO_ADDRESS);
+	psHeap->uiMemorySize = uiMemorySize;
+	psHeap->uiMarker = KERNAL_HEAP_MARKER;
+	psHeap->uiHeapStart = KERNAL_HEAP_START;
+	psHeap->uiHeapEnd = KERNAL_HEAP_END;
 
 	//The kernal's vectors in the process's bank 0 too.  An interrupt's vector pull is what puts the board in kernel
 	//mode, and the rest of the processor board sees that from the cycle after the first one of it: the first vector

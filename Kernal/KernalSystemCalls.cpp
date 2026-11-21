@@ -164,6 +164,12 @@ uint16 KernalCallSystem(uint32 uiAddress)
 
 	case KERNAL_SYSTEM_CALL_MEMORY:
 		return KernalMemoryCall(sCall.uiAddress);
+
+	case KERNAL_SYSTEM_CALL_MAP_BANKS:
+		return KernalMapHeapBanks(sCall.uiAddress, sCall.uiIndex);
+
+	case KERNAL_SYSTEM_CALL_UNMAP_BANKS:
+		return KernalUnmapHeapBanks(sCall.uiAddress, sCall.uiIndex);
 	}
 	return KERNAL_RESULT_NOT_FOUND;
 }
