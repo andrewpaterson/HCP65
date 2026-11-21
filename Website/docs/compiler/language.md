@@ -103,7 +103,7 @@ both.  A host build checks the W65C816's size model with `g++ -m32 -DBASELIB_SIZ
 
 | Area | Supported |
 |---|---|
-| Statements | Everything in C: `if`, `while`, `do`, `for`, `switch`, `break`, `continue`, `return`, `goto`.  Declarations in conditions (`if (int x = f())`). |
+| Statements | Everything in C: `if`, `while`, `do`, `for`, `switch`, `break`, `continue`, `return`, `goto`.  Declarations in conditions (`if (int x = f())`, an object too, made again each time round a loop).  A `switch` over an object, converted by its one conversion function to an integer.  `asm("...")`: its text is assembled as a routine of its own, which the statement calls (it takes no operands). |
 | Functions | Overloading, default arguments (a template instance's are worked out with its template arguments), recursion, variadic functions (`stdarg.h`), pointers to functions.  A function, or a member function, declared by the name of its type (`typedef int Binary(int, int); Binary Add;`). |
 | Classes | Structs, classes and unions, named or not, local and anonymous; multiple inheritance with several polymorphic bases; virtual functions, pure virtuals, virtual destructors; `override` and `final`; constructors, destructors, member initialisers, default member initialisers, delegating constructors; `= default` (in the class or after it) and `= delete`; `const` and `volatile` member functions, which overload; static members; friends; nested classes; virtual base classes; a class's own `operator new` and `operator delete`. |
 | Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one.  `c ? x : y` of two bit-fields can be assigned to: it is the one picked. |
@@ -154,7 +154,6 @@ compiler's own file and line, which says which construct it was.
 | A member template whose parameters are its class's pack and then its own | `template<class... B> static int Mix(A... a, B... b)` in `template<class... A> struct Pair`: the call isn't matched. |
 | A partial specialisation, outside the class, of a class template's member variable template | The template itself, defined in the class or outside it, is each instance's own. |
 | A union's inactive member in a constant | Reading the member that wasn't the last given a value is refused only where the two differ in size. |
-| `switch (C c = value)` with `C` a class | A switch's condition may declare a variable of an integer or enum type; one of a class converted to an integer isn't compiled yet. |
 | A local's alignment on the W65C816 | A local is placed as `alignas` asks, on both processors, but a W65C816 frame can start at any byte, so a local without `alignas` isn't always at a multiple of its type's `alignof`. |
 | The C++ standard library | Libc65 has the C library and `<new>`, `<exception>` and `<typeinfo>` only. |
 
@@ -164,9 +163,11 @@ A member's name that two base classes each declare is ambiguous wherever it is u
 function template, a definition outside the class of a template's member, and an explicit
 specialisation can add none.
 
-What a declaration alone shows to be wrong is refused wherever it is written; the checks that
-need a class laid out, or a function declared to the compiler, are made where it is first used,
-so a class or a function nothing uses isn't checked in full.
+What a declaration alone shows to be wrong is refused wherever it is written.  The classes
+defined in the unit's own `.cpp` file are laid out, and the functions defined there that nothing
+calls are checked as if they were written, so what is wrong in them is refused too.  In a header
+the checks that need a class laid out, or a function's body, are made where it is first used, so
+a library's unused inline functions cost nothing.
 
 Overload resolution is a simplified form of the standard's ranking: exact match, then promotion,
 then conversion, then a user defined conversion.  It gives the standard's answer for the code it
