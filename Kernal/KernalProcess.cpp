@@ -254,38 +254,28 @@ bool KernalUserString(uint32 uiAddress, char* szDest, uint16 uiMax)
 //
 // Gives the process's bank uiBank a physical bank (not cleared), if it
 // hasn't one.  False if there are none left: the last free bank is never
-// given, the kernal keeps it for its main memory heap.
+// given, the kernal keeps it for its main memory heap.  The lowest free
+// bank is given.
 //
 //////////////////////////////////////////////////////////////////////////
 static bool KernalMapBank(uint8 uiProcess, uint8 uiBank)
 {
 	uint8*	puiPage;
 	uint16	uiPhysical;
-	uint16	uiOther;
 
 	puiPage = KernalRemapPage(uiProcess);
 	if (puiPage[uiBank] != 0)
 	{
 		return true;
 	}
-	for (uiPhysical = 0; uiPhysical < KERNAL_NUM_BANKS; uiPhysical++)
+	if ((guiKernalFreeBanks < 2) || !KernalFindFreeBank(&uiPhysical))
 	{
-		if (KernalIsBankFree(uiPhysical))
-		{
-			for (uiOther = uiPhysical + 1; uiOther < KERNAL_NUM_BANKS; uiOther++)
-			{
-				if (KernalIsBankFree(uiOther))
-				{
-					gauiKernalBankOwners[uiPhysical] = uiProcess;
-					puiPage[uiBank] = (uint8)uiPhysical;
-					KernalDebugBank((uint8)uiPhysical);
-					return true;
-				}
-			}
-			return false;
-		}
+		return false;
 	}
-	return false;
+	KernalSetBankOwner(uiPhysical, uiProcess);
+	puiPage[uiBank] = (uint8)uiPhysical;
+	KernalDebugBank((uint8)uiPhysical);
+	return true;
 }
 
 
@@ -363,24 +353,11 @@ uint16 KernalMapHeapBanks(uint32 uiAddress, uint16 uiBanks)
 //////////////////////////////////////////////////////////////////////////
 uint16 KernalUnmapHeapBanks(uint32 uiAddress, uint16 uiBanks)
 {
-	uint8*	puiPage;
-	uint8	uiBank;
-	uint16	i;
-
 	if (!KernalIsHeapBanks(uiAddress, uiBanks))
 	{
 		return KERNAL_PROCESS_BAD_ADDRESS;
 	}
-	puiPage = KernalRemapPage(guiKernalProcess);
-	for (i = 0; i < uiBanks; i++)
-	{
-		uiBank = (uint8)((uiAddress >> 16) + i);
-		if ((puiPage[uiBank] != 0) && (gauiKernalBankOwners[puiPage[uiBank]] == guiKernalProcess))
-		{
-			gauiKernalBankOwners[puiPage[uiBank]] = 0;
-			puiPage[uiBank] = 0;
-		}
-	}
+	KernalGiveBackBanks(KernalRemapPage(guiKernalProcess), (uint16)(uiAddress >> 16), uiBanks, guiKernalProcess);
 	return KERNAL_PROCESS_NONE;
 }
 
@@ -393,21 +370,8 @@ uint16 KernalUnmapHeapBanks(uint32 uiAddress, uint16 uiBanks)
 //////////////////////////////////////////////////////////////////////////
 void KernalCountProcessBanks(uint16* puiProcessBanks, uint16* puiFreeBanks)
 {
-	uint16	uiPhysical;
-
-	*puiProcessBanks = 0;
-	*puiFreeBanks = 0;
-	for (uiPhysical = 0; uiPhysical < KERNAL_NUM_BANKS; uiPhysical++)
-	{
-		if (gauiKernalBanks[uiPhysical] == KERNAL_BANK_PROCESS)
-		{
-			(*puiProcessBanks)++;
-			if (gauiKernalBankOwners[uiPhysical] == 0)
-			{
-				(*puiFreeBanks)++;
-			}
-		}
-	}
+	*puiProcessBanks = guiKernalProcessBanks;
+	*puiFreeBanks = guiKernalFreeBanks;
 }
 
 
@@ -424,7 +388,7 @@ static void KernalFreeProcess(uint8 uiProcess)
 	{
 		if (gauiKernalBankOwners[uiPhysical] == uiProcess)
 		{
-			gauiKernalBankOwners[uiPhysical] = 0;
+			KernalSetBankOwner(uiPhysical, 0);
 		}
 	}
 	memset(KernalRemapPage(uiProcess), 0, 256);

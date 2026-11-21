@@ -41,12 +41,18 @@
 extern uint8	gauiKernalBanks[KERNAL_NUM_BANKS];
 extern uint8	gauiKernalBankOwners[KERNAL_NUM_BANKS];	//The process ID a physical bank is given to, 0 if none.
 extern uint8	gauiKernalTableBanks[KERNAL_NUM_TABLE_BANKS];
+extern uint16	guiKernalProcessBanks;		//The banks that are KERNAL_BANK_PROCESS,
+extern uint16	guiKernalFreeBanks;			//and those of them no process has (kept by KernalSetBankUse and Owner).
 
 
 extern "C" void	KernalInitHeap(void);
 bool			KernalInitMainMemory(void);
 uint16			KernalNumMainBanks(void);
 bool			KernalIsBankFree(uint16 uiPhysical);
+void			KernalSetBankUse(uint16 uiPhysical, uint8 uiUse);
+void			KernalSetBankOwner(uint16 uiPhysical, uint8 uiProcess);
+bool			KernalFindFreeBank(uint16* puiPhysical);
+void			KernalGiveBackBanks(uint8* puiPage, uint16 uiFirst, uint16 uiBanks, uint8 uiProcess);
 void*			KernalMainMalloc(uint32 uiBytes, bool bOneBank);
 void			KernalMainFree(void* pv);
 uint32			KernalMainHeapPeak(void);

@@ -20,6 +20,9 @@ extern "C" void		__HeapInit(void* pvStart, uint32 uiBytes);
 uint8					gauiKernalBanks[KERNAL_NUM_BANKS];
 uint8					gauiKernalBankOwners[KERNAL_NUM_BANKS];
 uint8					gauiKernalTableBanks[KERNAL_NUM_TABLE_BANKS];
+uint16					guiKernalProcessBanks;
+uint16					guiKernalFreeBanks;
+static uint16			guiKernalLowestFree;	//No bank below it is free (it may not be).
 //The main memory heap's banks are the ones no process has: it takes them highest first.
 class CKernalMainBanks : public CBankSource
 {
@@ -61,7 +64,7 @@ static void KernalAddChip(uint8 uiWindow, uint8 uiChip)
 	uiBank = (uint16)(((uint16)uiWindow << 6) + ((uint16)uiChip << 5));
 	for (i = 0; i < 32; i++)
 	{
-		gauiKernalBanks[uiBank + i] = KERNAL_BANK_PROCESS;
+		KernalSetBankUse((uint16)(uiBank + i), KERNAL_BANK_PROCESS);
 	}
 }
 
@@ -79,6 +82,139 @@ bool KernalIsBankFree(uint16 uiPhysical)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The physical bank is about to change (bAdd false) or has changed (true):
+// the counts of process banks and free banks, and the lowest free bank,
+// follow it.
+//
+//////////////////////////////////////////////////////////////////////////
+static void KernalCountBank(uint16 uiPhysical, bool bAdd)
+{
+	if (gauiKernalBanks[uiPhysical] != KERNAL_BANK_PROCESS)
+	{
+		return;
+	}
+	if (bAdd)
+	{
+		guiKernalProcessBanks++;
+		if (gauiKernalBankOwners[uiPhysical] == 0)
+		{
+			guiKernalFreeBanks++;
+			if (uiPhysical < guiKernalLowestFree)
+			{
+				guiKernalLowestFree = uiPhysical;
+			}
+		}
+	}
+	else
+	{
+		guiKernalProcessBanks--;
+		if (gauiKernalBankOwners[uiPhysical] == 0)
+		{
+			guiKernalFreeBanks--;
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What the physical bank is (KERNAL_BANK_PROCESS and the others).
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalSetBankUse(uint16 uiPhysical, uint8 uiUse)
+{
+	KernalCountBank(uiPhysical, false);
+	gauiKernalBanks[uiPhysical] = uiUse;
+	KernalCountBank(uiPhysical, true);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The process the physical bank is given to, 0 if none.  Only the free
+// count can change (unmapping is a bank at a time, so this is short).
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalSetBankOwner(uint16 uiPhysical, uint8 uiProcess)
+{
+	if (gauiKernalBanks[uiPhysical] == KERNAL_BANK_PROCESS)
+	{
+		if (gauiKernalBankOwners[uiPhysical] == 0)
+		{
+			guiKernalFreeBanks--;
+		}
+		if (uiProcess == 0)
+		{
+			guiKernalFreeBanks++;
+			if (uiPhysical < guiKernalLowestFree)
+			{
+				guiKernalLowestFree = uiPhysical;
+			}
+		}
+	}
+	gauiKernalBankOwners[uiPhysical] = uiProcess;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The uiBanks banks from uiFirst of the remap page puiPage that uiProcess
+// has are given back and unmapped (one loop, not KernalSetBankOwner per
+// bank: a process's bank is always KERNAL_BANK_PROCESS).
+//
+//////////////////////////////////////////////////////////////////////////
+void KernalGiveBackBanks(uint8* puiPage, uint16 uiFirst, uint16 uiBanks, uint8 uiProcess)
+{
+	uint8*	puiEntry;
+	uint8	uiPhysical;
+	uint16	i;
+
+	puiEntry = &puiPage[uiFirst];
+	for (i = 0; i < uiBanks; i++)
+	{
+		uiPhysical = puiEntry[i];
+		if ((uiPhysical != 0) && (gauiKernalBankOwners[uiPhysical] == uiProcess))
+		{
+			gauiKernalBankOwners[uiPhysical] = 0;
+			puiEntry[i] = 0;
+			guiKernalFreeBanks++;
+			if (uiPhysical < guiKernalLowestFree)
+			{
+				guiKernalLowestFree = uiPhysical;
+			}
+		}
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The lowest free bank.  False if there is none.
+//
+//////////////////////////////////////////////////////////////////////////
+bool KernalFindFreeBank(uint16* puiPhysical)
+{
+	uint16	uiBank;
+
+	if (guiKernalFreeBanks == 0)
+	{
+		return false;
+	}
+	for (uiBank = guiKernalLowestFree; uiBank < KERNAL_NUM_BANKS; uiBank++)
+	{
+		if (KernalIsBankFree(uiBank))
+		{
+			guiKernalLowestFree = uiBank;
+			*puiPhysical = uiBank;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The next process bank kernel mode reaches, taken for uiUse.  False if
 // there is none.
 //
@@ -91,7 +227,7 @@ static bool KernalTakeBank(uint8 uiUse, uint8* puiBank)
 	{
 		if (KernalIsBankFree(uiBank))
 		{
-			gauiKernalBanks[uiBank] = uiUse;
+			KernalSetBankUse(uiBank, uiUse);
 			*puiBank = (uint8)uiBank;
 			return true;
 		}
@@ -119,10 +255,10 @@ bool CKernalMainBanks::Acquire(void* pvBank, size uiCount)
 			return false;
 		}
 	}
-	gauiKernalBanks[uiBank] = KERNAL_BANK_HEAP;
+	KernalSetBankUse(uiBank, KERNAL_BANK_HEAP);
 	for (i = 1; i < uiCount; i++)
 	{
-		gauiKernalBanks[uiBank + i] = KERNAL_BANK_HEAP_MORE;
+		KernalSetBankUse((uint16)(uiBank + i), KERNAL_BANK_HEAP_MORE);
 	}
 	return true;
 }
@@ -141,7 +277,7 @@ void CKernalMainBanks::Release(void* pvBank, size uiCount)
 	uiBank = (uint16)((uint32)pvBank >> 16);
 	for (i = 0; i < uiCount; i++)
 	{
-		gauiKernalBanks[uiBank + i] = KERNAL_BANK_PROCESS;
+		KernalSetBankUse((uint16)(uiBank + i), KERNAL_BANK_PROCESS);
 	}
 }
 
@@ -204,6 +340,10 @@ bool KernalInitMainMemory(void)
 	uint16	i;
 
 	memset(gauiKernalBanks, KERNAL_BANK_ABSENT, sizeof(gauiKernalBanks));
+	memset(gauiKernalBankOwners, 0, sizeof(gauiKernalBankOwners));
+	guiKernalProcessBanks = 0;
+	guiKernalFreeBanks = 0;
+	guiKernalLowestFree = KERNAL_NUM_BANKS;
 	auiRegisters[0] = 0;
 	auiRegisters[1] = 0;
 	uiWindows = 0;
@@ -213,7 +353,7 @@ bool KernalInitMainMemory(void)
 	((volatile uint8*)KERNAL_MEMORY_CHANNEL)[1] = auiRegisters[1];
 
 	//A remap page's 0 is a bank not mapped: physical bank 0 can't be given.
-	gauiKernalBanks[0] = KERNAL_BANK_ABSENT;
+	KernalSetBankUse(0, KERNAL_BANK_ABSENT);
 
 	for (i = 0; i < KERNAL_NUM_TABLE_BANKS; i++)
 	{
