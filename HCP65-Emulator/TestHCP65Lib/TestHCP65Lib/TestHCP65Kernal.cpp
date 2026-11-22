@@ -1290,20 +1290,24 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	AssertInt(1, cHCP65.GetInterruptDepth());
 
 	//The kernal told the debug port of each process, in order: boottest.exe ($FF) started, boottest.exe again as the child that
-	//checks it can't open the sound board ($FE) started and ended, modplay.exe ($FE) started and ended, then boottest.exe
-	//ended with modplay.exe's exit code.  Each start stopped a Run, which went on in the next.
+	//checks it can't open the sound board ($FE) started and ended, then as the children whose stack grows too far and
+	//that writes through NULL (each $FE, ended by the kernal with exit code 0), modplay.exe ($FE) started and ended, then
+	//boottest.exe ended with modplay.exe's exit code.  Each start stopped a Run, which went on in the next.
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFF, sProcess.uiProcess);
 	AssertString(TEST_HCP65_BOOT_PROGRAM_PATH, sProcess.szName);
-	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
-	AssertInt(DPE_Started, eEvent);
-	AssertInt(0xFE, sProcess.uiProcess);
-	AssertString(TEST_HCP65_BOOT_PROGRAM_PATH, sProcess.szName);
-	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
-	AssertInt(DPE_Ended, eEvent);
-	AssertInt(0xFE, sProcess.uiProcess);
-	AssertInt(0, sProcess.iExitCode);
+	for (i = 0; i < 3; i++)
+	{
+		AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
+		AssertInt(DPE_Started, eEvent);
+		AssertInt(0xFE, sProcess.uiProcess);
+		AssertString(TEST_HCP65_BOOT_PROGRAM_PATH, sProcess.szName);
+		AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
+		AssertInt(DPE_Ended, eEvent);
+		AssertInt(0xFE, sProcess.uiProcess);
+		AssertInt(0, sProcess.iExitCode);
+	}
 	AssertTrue(pcPort->TakeEvent(&eEvent, &sProcess));
 	AssertInt(DPE_Started, eEvent);
 	AssertInt(0xFE, sProcess.uiProcess);

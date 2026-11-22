@@ -114,6 +114,43 @@ static uint8* KernalUserAddress(uint32 uiAddress)
 }
 
 
+//What the canaries are (KERNAL_USER_NULL_CANARY, KERNAL_USER_STACK_CANARY): the same as two words, low byte first,
+//which is how KernalCheckCanaries compares them.
+static const uint8	gauiKernalCanary[KERNAL_CANARY_SIZE] = { 0xA5, 0x5A, 0xC3, 0x3C, 0x96, 0x69, 0x0F, 0xF0 };
+#define KERNAL_CANARY_LOW			0x3CC35AA5
+#define KERNAL_CANARY_HIGH			0xF00F6996
+
+//The running process's bank 0 where it really is (its NULL canary's first byte), set as it starts and put back when a
+//process it ran ends: a process's bank 0 doesn't move while it runs.
+static uint32*		gpuiKernalCanaries = NULL;
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the running process's canaries are as the loader wrote them:
+// KERNAL_PROCESS_NONE if they are, KERNAL_PROCESS_NULL_WRITE if the one at
+// the bottom of its bank 0 isn't, else KERNAL_PROCESS_STACK_OVERFLOW if
+// the one at the bottom of its stack isn't.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 KernalCheckCanaries(void)
+{
+	uint32*	puiBank;
+
+	puiBank = gpuiKernalCanaries;
+	if ((puiBank[0] != KERNAL_CANARY_LOW) || (puiBank[1] != KERNAL_CANARY_HIGH))
+	{
+		return KERNAL_PROCESS_NULL_WRITE;
+	}
+	puiBank = (uint32*)((uint8*)puiBank + KERNAL_USER_STACK_CANARY);
+	if ((puiBank[0] != KERNAL_CANARY_LOW) || (puiBank[1] != KERNAL_CANARY_HIGH))
+	{
+		return KERNAL_PROCESS_STACK_OVERFLOW;
+	}
+	return KERNAL_PROCESS_NONE;
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies between kernal memory and the running process's.  False if the
@@ -605,7 +642,9 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 	//mode, and the rest of the processor board sees that from the cycle after the first one of it: the first vector
 	//byte comes from the process's bank 0 (Website docs/hcp65/memory-map.md).  A program that overwrites them breaks
 	//only itself.
-	if (!KernalCopyToUser(KERNAL_VECTORS, (const uint8*)KERNAL_VECTORS, KERNAL_VECTORS_SIZE))
+	if (!KernalCopyToUser(KERNAL_VECTORS, (const uint8*)KERNAL_VECTORS, KERNAL_VECTORS_SIZE) ||
+		!KernalCopyToUser(KERNAL_USER_NULL_CANARY, gauiKernalCanary, KERNAL_CANARY_SIZE) ||
+		!KernalCopyToUser(KERNAL_USER_STACK_CANARY, gauiKernalCanary, KERNAL_CANARY_SIZE))
 	{
 		return KERNAL_PROCESS_NO_MEMORY;
 	}
@@ -627,12 +666,15 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 // (during the other's execute call) gets the next ID down and its own
 // banks, and the other carries on once it exits.  The emulator is told
 // of it starting and ending.  Returns KERNAL_PROCESS_EXITED with its exit
-// code, or why it couldn't run.
+// code, KERNAL_PROCESS_STACK_OVERFLOW or KERNAL_PROCESS_NULL_WRITE if a
+// kernal call found a canary changed (the exit code 0), or why it
+// couldn't run.
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExitCode)
 {
 	SKernalCall		sCaller;
+	uint32*			puiCallerCanaries;
 	uint8			uiCaller;
 	uint8			uiProcess;
 	uint16			uiResult;
@@ -663,8 +705,12 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 
 	KernalDebugProcessStarted(uiProcess, szPath);
 	KernalWriteRegister(8, uiProcess);
+	puiCallerCanaries = gpuiKernalCanaries;
+	gpuiKernalCanaries = (uint32*)KernalUserAddress(KERNAL_USER_NULL_CANARY);
 	KernalEnterUser();
+	gpuiKernalCanaries = puiCallerCanaries;
 	*puiExitCode = gsKernalCall.uiExitCode;
+	uiResult = gsKernalCall.uiExit;
 	KernalDebugProcessEnded(uiProcess, *puiExitCode);
 
 	gcKernalScreen.ProcessEnded(uiProcess);
@@ -677,7 +723,7 @@ uint16 KernalRunExecutable(const char* szPath, uint16 uiArgument, uint16* puiExi
 	{
 		KernalWriteRegister(8, uiCaller);
 	}
-	return KERNAL_PROCESS_EXITED;
+	return uiResult;
 }
 
 
@@ -837,11 +883,19 @@ extern "C" void KernalCopCall(void)
 	uiCall = *KernalUserAddress(uiReturn - 1);
 	gpuiKernalArguments = KernalUserAddress(gsKernalCall.uiA);
 
+	//A process that has written over a canary is ended, whatever it called.
+	gsKernalCall.uiExit = KernalCheckCanaries();
+	if (gsKernalCall.uiExit != KERNAL_PROCESS_NONE)
+	{
+		gsKernalCall.uiExitCode = 0;
+		return;
+	}
+
 	switch (uiCall)
 	{
 	case KERNAL_CALL_EXIT:
 		gsKernalCall.uiExitCode = gsKernalCall.uiA;
-		gsKernalCall.uiExit = 1;
+		gsKernalCall.uiExit = KERNAL_PROCESS_EXITED;
 		break;
 
 	case KERNAL_CALL_PUT_VALUE:

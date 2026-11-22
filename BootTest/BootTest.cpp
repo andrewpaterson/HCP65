@@ -13,12 +13,17 @@
 #define BOOT_MEMORY		400		//The exit code when a heap bank call didn't do what it should, plus which.
 #define BOOT_BANKS		0x300000	//Where it maps banks of its heap.
 #define BOOT_MORE_BANKS	0x500000	//Where it maps the rest of main memory's free banks.
+#define BOOT_STACK		0xB0C3	//The argument it runs itself with as a child whose stack grows too far (BootOverflow).
+#define BOOT_NULL		0xB0C4	//The argument of a child that writes through a NULL pointer.
+#define BOOT_CANARIES	500		//The exit code when such a child wasn't ended as it should be, plus which.
+#define BOOT_FRAME		512		//The bytes of stack each of BootOverflow's calls takes.
 
 
 //In globals so the compiler can't work the answers out itself.
 uint16	guiA = 300;
 uint16	guiB = 200;
 uint32	guiProduct;
+uint8*	gpuiNull = NULL;
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -271,14 +276,57 @@ uint16 BootChild(bool bSecondBoard)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Calls itself, each time with BOOT_FRAME more of the stack written to,
+// and makes a kernal call each time: the kernal ends the process at the
+// first call after the stack has gone over its canary.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 BootOverflow(uint16 uiDepth)
+{
+	uint8	auiFrame[BOOT_FRAME];
+
+	memset(auiFrame, (uint8)uiDepth, BOOT_FRAME);
+	KernalGetArgument();
+	return (uint16)(BootOverflow((uint16)(uiDepth + 1)) + auiFrame[uiDepth & (BOOT_FRAME - 1)]);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Children that the kernal ends at their next kernal call: one whose
+// stack grows past its room, one that writes through a NULL pointer.  0
+// if they were, or which wasn't.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 BootCheckCanaries(void)
+{
+	uint16	uiExitCode;
+
+	uiExitCode = 1;
+	if ((KernalExecute(BOOT_SELF, BOOT_STACK, &uiExitCode) != KERNAL_RESULT_STACK_OVERFLOW) || (uiExitCode != 0))
+	{
+		return 1;
+	}
+	uiExitCode = 1;
+	if ((KernalExecute(BOOT_SELF, BOOT_NULL, &uiExitCode) != KERNAL_RESULT_NULL_WRITE) || (uiExitCode != 0))
+	{
+		return 2;
+	}
+	return 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The boot test's start up program: loads the maths tables from the SD card into main
 // memory (MULT, and INVERT's upper half; it is built without them,
 // MathTables="false", so it can),
 // multiplies and divides and gives the kernal a value, checks the device
-// calls (BootCheckDevices) and the heap's banks (BootCheckMemory), then runs modplay.exe (built with the tables)
+// calls (BootCheckDevices), the heap's banks (BootCheckMemory) and the canaries (BootCheckCanaries), then runs modplay.exe (built with the tables)
 // with its own argument and exits with modplay's exit code (or 100 and
 // why it couldn't run).  Run with BOOT_CHILD or BOOT_CHILD_TWO it is
-// BootChild.
+// BootChild; with BOOT_STACK, BootOverflow; with BOOT_NULL it writes
+// through a NULL pointer and makes a kernal call.
 //
 //////////////////////////////////////////////////////////////////////////
 int main(void)
@@ -293,6 +341,16 @@ int main(void)
 	if (KernalGetArgument() == BOOT_CHILD_TWO)
 	{
 		return BootChild(true);
+	}
+	if (KernalGetArgument() == BOOT_STACK)
+	{
+		return BootOverflow(0);
+	}
+	if (KernalGetArgument() == BOOT_NULL)
+	{
+		gpuiNull[3] = 0x42;
+		KernalGetArgument();
+		return 1;
 	}
 
 	uiResult = KernalFileLoad(KERNAL_MATH_MULT_PATH, (void*)KERNAL_MATH_MULT_ADDRESS, KERNAL_MATH_MULT_SIZE);
@@ -319,6 +377,12 @@ int main(void)
 	if (uiResult != 0)
 	{
 		return BOOT_MEMORY + uiResult;
+	}
+
+	uiResult = BootCheckCanaries();
+	if (uiResult != 0)
+	{
+		return BOOT_CANARIES + uiResult;
 	}
 
 	uiExitCode = 0;

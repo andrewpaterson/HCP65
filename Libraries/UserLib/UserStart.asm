@@ -2,14 +2,16 @@
 ;
 ; The kernal maps the process's banks, puts the program's sections in them and RTIs to UserStart in user mode, with
 ; S at the top of the process's bank 0, 8 bit registers and interrupts off.  UserStart goes 16 bit, sets the stack and
-; the direct page, clears bss, calls the init table's routines (each global's R_Initialise, in link order) and main
+; the direct page (at USER_DIRECT_PAGE: the bank's first bytes are the kernal's NULL canary, and $000200 its stack
+; canary, which the stack must stay above: Kernal/KernalProcess.h), clears bss, calls the init table's routines (each global's R_Initialise, in link order) and main
 ; (std::terminate if an exception leaves it, in a program built with exceptions), then
 ; runs the exit lists (Libc65's __RunAtExit when stdlib.cpp is linked, else the compiler's R_RunExitLists: the atexit
 ; functions and the destructors of what was made at start up and of static locals, last first) and the fini table's
 ; routines last first, and exits with main's result (COP 0).  Code and data are linked from bank 1; bank 0 is the stack
 ; and direct page.
 
-USER_STACK_TOP	= 0xEFFF
+USER_STACK_TOP		= 0xEFFF
+USER_DIRECT_PAGE	= 0x0100
 
 
 		.section text, keep
@@ -19,7 +21,7 @@ UserStart:
 		rep (m, x)
 		lda USER_STACK_TOP
 		tcs
-		lda 0
+		lda USER_DIRECT_PAGE
 		tcd
 		phk
 		plb

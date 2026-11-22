@@ -93,3 +93,24 @@ below them, at `$EFFF`.
 A program can overwrite its own copy of the vectors, since its bank 0 is its own memory.  That only
 breaks the program that does it: the next interrupt it takes goes wrong, and no other process is
 affected.
+
+### A process's bank 0
+
+| Address | What |
+|---|---|
+| `$0000`–`$0007` | The NULL canary |
+| `$0100`–`$01FF` | The direct page the program starts with |
+| `$0200`–`$0207` | The stack canary |
+| `$0208`–`$EFFF` | The stack, from `$EFFF` down |
+| `$FFE0`–`$FFFF` | The copy of the kernel's vectors |
+
+The kernel writes the two canaries, eight bytes of a pattern, when it loads the program, and looks
+at them at each kernel call the program makes.  A NULL pointer's reads and writes land at the bottom
+of the bank, so a write through one changes the first; a stack that grows past its room writes over
+the second before anything else.  Either way the kernel ends the program at its next call, and
+`KernalExecute` returns `KERNAL_RESULT_NULL_WRITE` or `KERNAL_RESULT_STACK_OVERFLOW` (with an exit
+code of 0) instead of `KERNAL_RESULT_EXITED`.  It doesn't say which instruction did it, only that it
+happened since the program's last call; and a write past a canary that misses its eight bytes, or a
+NULL pointer's read, isn't noticed.  The direct page starts above the NULL canary so that nothing a
+program does on purpose touches it.  The check costs about 200 cycles of each call, which takes
+about 2,900 without it.

@@ -12,6 +12,14 @@
 #define KERNAL_VECTORS				0x00FFE0	//The vectors, $FFE0 to $FFFF of bank 0: the kernal's, and a copy in every process's.
 #define KERNAL_VECTORS_SIZE			0x20
 
+//Canaries in the process's bank 0, which the loader writes and each kernal call looks at (KernalCheckCanaries): one at
+//the bottom of the bank, where a NULL pointer's reads and writes land (UserStart puts the direct page above it), and one
+//at the bottom of the stack's room, which a stack that grows too far writes over first.
+#define KERNAL_USER_NULL_CANARY		0x000000
+#define KERNAL_USER_DIRECT_PAGE		0x000100	//UserLib/UserStart.asm's USER_DIRECT_PAGE.
+#define KERNAL_USER_STACK_CANARY	0x000200
+#define KERNAL_CANARY_SIZE			8
+
 //COP n: A is the address of the call's arguments on the process's stack (UserCalls.asm and HCP65User.h).
 #define KERNAL_CALL_EXIT			0			//A is the exit code.  Doesn't return.
 #define KERNAL_CALL_PUT_VALUE		1
@@ -33,6 +41,8 @@
 #define KERNAL_PROCESS_EXITED			5
 #define KERNAL_PROCESS_NO_PROCESS		6
 #define KERNAL_PROCESS_BAD_ADDRESS		7
+#define KERNAL_PROCESS_STACK_OVERFLOW	9
+#define KERNAL_PROCESS_NULL_WRITE		10
 
 
 //The user registers a COP saved and what the kernal call asks for; Start.asm uses its layout (all 16 bit words).
@@ -45,7 +55,8 @@ struct SKernalCall
 	uint16	uiUserD;		//+8
 	uint16	uiUserDBR;		//+10
 	uint16	uiKernalS;		//+12  The kernal's stack while the process runs (KernalEnterUser saves it); its calls run below it.
-	uint16	uiExit;			//+14  Set by the exit call: COP returns to whoever ran the process.
+	uint16	uiExit;			//+14  Set by the exit call (KERNAL_PROCESS_EXITED) or a changed canary (KERNAL_PROCESS_STACK_OVERFLOW,
+							//     KERNAL_PROCESS_NULL_WRITE): COP returns to whoever ran the process.
 	uint16	uiExitCode;		//+16
 };
 

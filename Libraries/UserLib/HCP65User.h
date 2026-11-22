@@ -16,6 +16,10 @@
 #define KERNAL_RESULT_BAD_ADDRESS	7		//An executable with code or data where its stack or heap is (below bank 1, or
 										//from $200000).  Or memory a call was given that the program hasn't.
 #define KERNAL_RESULT_END			8		//KernalDirectoryEntry: there are no more entries.
+#define KERNAL_RESULT_STACK_OVERFLOW	9	//KernalExecute: the program's stack grew past its room (over the canary at
+										//$000200 of its bank 0), found at its next kernal call, which ended it.
+#define KERNAL_RESULT_NULL_WRITE	10		//KernalExecute: the program wrote through a NULL pointer (over the canary at
+										//$000000), found at its next kernal call, which ended it.
 
 #define KERNAL_FILE_NOT_FOUND		0xFFFFFFFF
 
