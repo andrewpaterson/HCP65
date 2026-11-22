@@ -117,7 +117,7 @@
 #define TEST_HCP65_VIDEO_IMAGES_X	300			//VideoTest.cpp's VIDEO_TEST_IMAGES_X and _Y.
 #define TEST_HCP65_VIDEO_IMAGES_Y	150
 #define TEST_KERNAL_SCREEN_MAX_IMAGES	64		//UserLib/HCP65User.h's KERNAL_SCREEN_MAX_IMAGES.
-#define TEST_KERNAL_SCREEN_IMAGE_SIZE	16		//Kernal/KernalDriver.h's SKernalImage on the W65C816 (14 bytes, kept to its uint32's 4).
+#define TEST_KERNAL_SCREEN_IMAGE_SIZE	14		//Kernal/KernalDriver.h's SKernalImage on the W65C816 (no padding: it pads to 2 at most).
 #define TEST_HCP65_VIDEO_RED		0x08000		//The Video Board's palettes in its slot (HCP65Video.h).
 #define TEST_HCP65_VIDEO_GREEN		0x10000
 #define TEST_HCP65_VIDEO_BLUE		0x18000
