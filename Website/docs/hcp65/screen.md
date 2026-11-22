@@ -75,6 +75,20 @@ them.  Every record starts with the same four bytes: the magic number `SF`, the 
   up to the next.  `SFTContainedImage` finds an image by its number (palettes aren't counted) and
   `SFTContainedPalette` its palette.
 
+`PNGToSFT` (CommonLibraries' `Tools/PNGToSFT`) makes a container from pictures on the computer
+the HCP65 is programmed from (PNG, BMP and the others SupportLib reads): one palette for all of
+them, then each picture as an image.  The palette is the pictures' own colours if there are few
+enough, else as many as `--colours` allows (256, or 255 when a picture has transparent pixels),
+chosen by median cut: the colours are split at the middle of the channel they spread over most
+until there are enough, each palette colour the mean of its share, and each pixel is the nearest.
+There is no dithering.  A pixel less than half opaque is transparent, which is index 0, so the
+colours are from index 1 then; `--merge` is the widest gap a transparent image's runs are joined
+across.
+
+```text
+PNGToSFT --merge 8 MAKI.SFT MakiStand.png MakiWalk.png
+```
+
 What the blit takes (`SKernalBlit`):
 
 | Field | What |
