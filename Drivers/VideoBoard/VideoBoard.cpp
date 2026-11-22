@@ -27,6 +27,10 @@ uint16 CKernalVideoBoard::Init(SKernalDevice* psDevice, uint16 uiSlot)
 	mbSeparateUnits = false;
 	muiMode = 0xFF;
 	muiFontSize = 0;
+	mpuiOffsetsBoard = NULL;
+	muiOffsetsSource = 0;
+	muiOffsetsDrawn = 0;
+	mbOffsetsMirror = false;
 	gpuiVideoFont = (uint8*)KernalMainMalloc(VIDEO_FONT_SIZE, KERNAL_MAIN_ONE_BANK);
 	gpuiVideoClear = (uint8*)KernalMainMalloc(VIDEO_CLEAR_SIZE, KERNAL_MAIN_ONE_BANK);
 	if (gpuiVideoClear)

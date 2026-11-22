@@ -150,6 +150,12 @@ protected:
 	uint8			mauiRowClears[VIDEO_TEXT_MAX_ROWS];
 	uint16			muiFontSize;	//The bytes of the font written.
 
+	//The offsets in the Graphics Board (WriteOffsets): a row of muiOffsetsDrawn from one of muiOffsetsSource.
+	volatile uint8*	mpuiOffsetsBoard;	//The board's registers they were written to, NULL if none.
+	uint16			muiOffsetsSource;
+	uint16			muiOffsetsDrawn;
+	bool			mbOffsetsMirror;
+
 public:
 	uint16	Init(SKernalDevice* psDevice, uint16 uiSlot) override;
 	void	Kill(void) override;
@@ -189,6 +195,9 @@ protected:
 	uint16	BlitTransparentWhole(const SKernalBlit* psBlit, const uint8* puiImage, uint16 uiWidth, uint16 uiHeight);
 	uint16	BlitOpaqueSpans(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, int32 iRight, int32 iY, uint16 uiRow, uint32 uiSource, uint8* puiDest, uint16* puiSpans, int32 iBottom);
 	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength, uint16 uiTransparent);
+	uint16	BlitScaled(const SKernalBlit* psBlit, const SKernalImage* psImage, const int32* paiClip);
+	bool	BlitScaledRow(const SKernalImage* psImage, uint32 uiRowOffset, uint8* puiBank, uint32 uiBankBytes, uint8* puiDest, uint16 uiFirst, uint16 uiCount, uint16 uiDrawn, bool bMirror, uint16 uiTransparent);
+	void	WriteOffsets(uint16 uiSource, uint16 uiDrawn, bool bMirror);
 
 	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);
 	uint16	ScrollText(uint32 uiLines);

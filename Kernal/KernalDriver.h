@@ -13,6 +13,7 @@
 #define KERNAL_DRIVER_BAD_ARGUMENT		5
 #define KERNAL_DRIVER_FAILED			6
 #define KERNAL_DRIVER_TIMEOUT			7
+#define KERNAL_DRIVER_NOT_FOUND			8		//A board it needs isn't there (a scaled blit's Graphics Board).
 
 struct SKernalBlit;
 
@@ -114,8 +115,18 @@ void			KernalMainCopy(uint8* puiDest, const uint8* puiSource, uint16 uiCount, ui
 extern "C" volatile uint8*	gpuiKernalBlitter;
 
 //The Graphics Board's registers while its driver is loaded, NULL when it isn't: its driver sets it.  Its offsets are
-//device RAM in the same slot (Drivers/GraphicsBoard/GraphicsBoard.h has where).
+//device RAM in the same slot, from the registers: each count's low byte at KERNAL_GRAPHICS_OFFSETS_LOW, its high byte at
+//KERNAL_GRAPHICS_OFFSETS_HIGH, written only while no copy is under way.
 extern "C" volatile uint8*	gpuiKernalGraphics;
+#define KERNAL_GRAPHICS_OFFSETS_LOW		0x07C00		//$08000 in the slot.
+#define KERNAL_GRAPHICS_OFFSETS_HIGH	0x0FC00		//$10000 in the slot.
+#define KERNAL_GRAPHICS_COUNTS			0x8000		//The count is 15 bits: the offsets there are.
+
+//A Graphics Board copy in main memory (kernel mode's addresses): uiCount bytes to puiDest, each from puiSource plus the
+//offset of its count, the counts from uiStart (wrapping at KERNAL_GRAPHICS_COUNTS), without those that are
+//uiTransparent unless it is KERNAL_COPY_OPAQUE.  gpuiKernalGraphics mustn't be NULL; the offsets are the caller's to
+//write.  It can't be called through a pointer (KernalCopy.asm).
+void			KernalMainScaledCopy(uint8* puiDest, const uint8* puiSource, uint16 uiStart, uint16 uiCount, uint16 uiTransparent);
 
 uint16			KernalStartDriver(CKernalDriver* pcDriver, uint16 uiSlot);
 CKernalDriver*	KernalGetDriver(uint16 uiSlot);

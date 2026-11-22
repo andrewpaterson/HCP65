@@ -178,3 +178,111 @@ CopyDone:
 		tcs
 		pld
 		rtl
+
+
+; void KernalMainScaledCopy(uint8* puiDest, const uint8* puiSource, uint16 uiStart, uint16 uiCount, uint16 uiTransparent):
+; the Graphics Board's copy of uiCount bytes, each from the source plus the offset of its count, the counts from uiStart.
+; The destination is in A and X, the start in Y, and the source, the count and the transparent colour above the return
+; address.  As CopyBoard, but that the count's start is written too (the Blitter Board's stays 0), and its stop is the
+; start plus the count, wrapping at 32768.
+S_BOARD			= 1			; gpuiKernalGraphics.
+S_STOP			= 5			; The start (Y), then the stop once the start is written.
+S_DEST			= 7
+S_PUSHED		= 10
+S_SOURCE		= 16
+S_COUNT			= 20
+S_TRANSPARENT	= 22
+GRAPHICS_COUNT_MASK	= 0x7FFF
+
+		.global _KernalMainScaledCopy__FPhPKhjjj.axssy
+_KernalMainScaledCopy__FPhPKhjjj.axssy:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		phy
+		lda [_gpuiKernalGraphics + 2]:24
+		pha
+		lda [_gpuiKernalGraphics]:24
+		pha
+		tsc
+		tcd
+		lda [D + S_COUNT]
+		beq ScaledDone
+		sep m
+		ldy BLITTER_COUNT
+		lda [D + S_STOP]
+		sta [[D + S_BOARD]:24 + Y]
+		iny
+		lda [D + S_STOP + 1]
+		sta [[D + S_BOARD]:24 + Y]
+		rep m
+		lda [D + S_STOP]
+		clc
+		adc [D + S_COUNT]
+		and GRAPHICS_COUNT_MASK
+		sta [D + S_STOP]
+		sep m
+		ldy BLITTER_COUNT_STOP
+		lda [D + S_STOP]
+		sta [[D + S_BOARD]:24 + Y]
+		iny
+		lda [D + S_STOP + 1]
+		sta [[D + S_BOARD]:24 + Y]
+		lda [D + S_TRANSPARENT + 1]
+		bne ScaledOpaque
+		ldy BLITTER_TRANSPARENT_COLOUR
+		lda [D + S_TRANSPARENT]
+		sta [[D + S_BOARD]:24 + Y]
+		lda BLITTER_TRANSPARENT
+		bra ScaledFlags
+ScaledOpaque:
+		.width A, 8
+		lda BLITTER_OPAQUE
+ScaledFlags:
+		.width A, 8
+		ldy BLITTER_FLAGS
+		sta [[D + S_BOARD]:24 + Y]
+		ldy BLITTER_SOURCE
+		lda [D + S_SOURCE]
+		sta [[D + S_BOARD]:24 + Y]
+		iny
+		lda [D + S_SOURCE + 1]
+		sta [[D + S_BOARD]:24 + Y]
+		iny
+		lda [D + S_SOURCE + 2]
+		sta [[D + S_BOARD]:24 + Y]
+		ldy BLITTER_DEST
+		lda [D + S_DEST]
+		sta [[D + S_BOARD]:24 + Y]
+		iny
+		lda [D + S_DEST + 1]
+		sta [[D + S_BOARD]:24 + Y]
+		iny
+		lda [D + S_DEST + 2]
+		sta [[D + S_BOARD]:24 + Y]
+		lda 1
+		sta [_gbKernalMainBusBusy]:24
+		ldy BLITTER_START
+		sta [[D + S_BOARD]:24 + Y]
+ScaledWait:
+		.width A, 8
+		ldy BLITTER_COUNT
+		lda [[D + S_BOARD]:24 + Y]
+		cmp [D + S_STOP]
+		bne ScaledWait
+		iny
+		lda [[D + S_BOARD]:24 + Y]
+		cmp [D + S_STOP + 1]
+		bne ScaledWait
+		lda 0
+		sta [_gbKernalMainBusBusy]:24
+		rep m
+ScaledDone:
+		.width (A, X), 16
+		tdc
+		clc
+		adc S_PUSHED
+		tcs
+		pld
+		rtl

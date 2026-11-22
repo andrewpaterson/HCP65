@@ -18,10 +18,8 @@
 #define GRAPHICS_FLAG_ENABLE		0x40
 #define GRAPHICS_FLAG_INTERRUPT		0x80
 
-//The offsets, from the registers: each count's low byte in one device RAM and its high byte in the other.
-#define GRAPHICS_OFFSETS_LOW		0x07C00		//$08000 in the slot.
-#define GRAPHICS_OFFSETS_HIGH		0x0FC00		//$10000 in the slot.
-#define GRAPHICS_OFFSETS			0x8000
+//The offsets, from the registers: KernalDriver.h's KERNAL_GRAPHICS_OFFSETS_LOW and _HIGH, which the Video Board's
+//driver writes for its scaled blits.
 
 #define GRAPHICS_BOARD_MAX_BOARDS	1		//Graphics boards it drives: the first is the kernal's.
 

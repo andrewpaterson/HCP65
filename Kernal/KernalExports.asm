@@ -162,6 +162,8 @@ _gauiKernalExports:
 		.long _gpuiKernalGraphics
 		.long Export_KernalMainCopy__FPhPKhjj_axssy
 		.long _KernalMainCopy__FPhPKhjj.axssy
+		.long Export_KernalMainScaledCopy__FPhPKhjjj_axssy
+		.long _KernalMainScaledCopy__FPhPKhjjj.axssy
 KernalExportsEnd:
 
 		; The assembler counts them: eight bytes each.
@@ -312,3 +314,5 @@ Export_gpuiKernalGraphics:
 		.byte "_gpuiKernalGraphics", 0
 Export_KernalMainCopy__FPhPKhjj_axssy:
 		.byte "_KernalMainCopy__FPhPKhjj.axssy", 0
+Export_KernalMainScaledCopy__FPhPKhjjj_axssy:
+		.byte "_KernalMainScaledCopy__FPhPKhjjj.axssy", 0

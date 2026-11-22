@@ -327,6 +327,10 @@ uint16 CKernalScreen::Call(uint32 uiAddress)
 		{
 			return BlitImage(&sBlit);
 		}
+		if (sBlit.uiFlags & (KERNAL_BLIT_SCALED | KERNAL_BLIT_MIRROR_X | KERNAL_BLIT_MIRROR_Y))
+		{
+			return KERNAL_DEVICE_BAD_ARGUMENT;
+		}
 		return mpcVideo->Blit(VIDEO_BOARD_PIXELS, &sBlit);
 
 	case KERNAL_SCREEN_CALL_FLIP:

@@ -16,6 +16,7 @@
 
 
 #define VIDEO_TEST_GROUND		0x77	//What is under the blits.
+#define VIDEO_TEST_GRAPHICS		1		//The argument when there is a Graphics Board: only the screen's calls are tested.
 #define VIDEO_TEST_IMAGES_X		300		//Where the images whose palettes TestHCP65KernalVideo reads are drawn.
 #define VIDEO_TEST_IMAGES_Y		150
 
@@ -461,14 +462,227 @@ uint16 VideoTestImages(const uint8* puiOpaque, uint32 uiOpaqueSize, const uint8*
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The image pixel drawn at uiDrawn of uiDrawnSize from uiSize: the nearest,
+// ((2d + 1) x s) / 2n, counted from the end if bMirror.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 VideoTestNearest(uint16 uiDrawn, uint16 uiSize, uint16 uiDrawnSize, bool bMirror)
+{
+	uint16	uiAt;
+
+	uiAt = (uint16)(((2 * (uint32)uiDrawn + 1) * uiSize) / (2 * (uint32)uiDrawnSize));
+	return bMirror ? (uint16)(uiSize - 1 - uiAt) : uiAt;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The image (uiImage, whose uiWidth by uiHeight pixels are puiPixels)
+// blitted to (x, y) at uiDrawnWidth by uiDrawnHeight with uiFlags
+// (KERNAL_BLIT_SCALED and the mirrors), clipped to the rectangle if bClip,
+// onto the ground; then every pixel of its rectangle and a pixel around it
+// is what it should be: the ground, or the image's nearest pixel where it
+// is drawn (and, if bTransparent, isn't 0).
+//
+//////////////////////////////////////////////////////////////////////////
+bool VideoTestScaledBlit(uint16 uiImage, const uint8* puiPixels, uint16 uiWidth, uint16 uiHeight, bool bTransparent, int16 x, int16 y, uint16 uiDrawnWidth, uint16 uiDrawnHeight, uint16 uiFlags, bool bClip, int16 iClipLeft, int16 iClipTop, int16 iClipRight, int16 iClipBottom)
+{
+	static uint8	auiExpected[VIDEO_TEST_WIDTH];
+	SKernalBlit		sBlit;
+	uint16			uiLength;
+	uint16			uiPixel;
+	int16			iX;
+	int16			iY;
+	uint16			i;
+
+	uiLength = (uint16)(uiDrawnWidth + 2);
+	for (iY = (int16)(y - 1); iY <= y + (int16)uiDrawnHeight; iY++)
+	{
+		if (!VideoTestGround((uint16)(x - 1), (uint16)iY, uiLength))
+		{
+			return false;
+		}
+	}
+
+	memset(&sBlit, 0, sizeof(SKernalBlit));
+	sBlit.uiImage = uiImage;
+	sBlit.iX = x;
+	sBlit.iY = y;
+	sBlit.uiFlags = (uint16)(KERNAL_BLIT_IMAGE | uiFlags | (bClip ? KERNAL_BLIT_CLIP : 0));
+	sBlit.iClipLeft = iClipLeft;
+	sBlit.iClipTop = iClipTop;
+	sBlit.iClipRight = iClipRight;
+	sBlit.iClipBottom = iClipBottom;
+	sBlit.uiWidth = uiDrawnWidth;
+	sBlit.uiHeight = uiDrawnHeight;
+	if (KernalScreenBlit(&sBlit) != KERNAL_DEVICE_SUCCESS)
+	{
+		return false;
+	}
+
+	for (iY = (int16)(y - 1); iY <= y + (int16)uiDrawnHeight; iY++)
+	{
+		for (i = 0; i < uiLength; i++)
+		{
+			iX = (int16)(x - 1 + i);
+			auiExpected[i] = VIDEO_TEST_GROUND;
+			if ((iX < x) || (iX >= x + (int16)uiDrawnWidth) || (iY < y) || (iY >= y + (int16)uiDrawnHeight))
+			{
+				continue;
+			}
+			if (bClip && ((iX < iClipLeft) || (iX >= iClipRight) || (iY < iClipTop) || (iY >= iClipBottom)))
+			{
+				continue;
+			}
+			uiPixel = puiPixels[(uint32)VideoTestNearest((uint16)(iY - y), uiHeight, uiDrawnHeight, (uiFlags & KERNAL_BLIT_MIRROR_Y) != 0) * uiWidth +
+								VideoTestNearest((uint16)(iX - x), uiWidth, uiDrawnWidth, (uiFlags & KERNAL_BLIT_MIRROR_X) != 0)];
+			if (!bTransparent || (uiPixel != 0))
+			{
+				auiExpected[i] = (uint8)uiPixel;
+			}
+		}
+		if (!VideoTestPixels((uint16)(x - 1), (uint16)iY, auiExpected, uiLength))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Scaled and mirrored blits of images (by the Graphics Board): with
+// bGraphics, at 1:1, twice, half, odd sizes and mirrored, transparent,
+// clipped, and with rows across two banks that aren't next to each other
+// in main memory; refused with an SFT and a size of 0.  Without it,
+// refused (KERNAL_DEVICE_NOT_FOUND).
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 VideoTestScaled(const uint8* puiOpaque, uint32 uiOpaqueSize, const uint8* puiTransparent, uint32 uiTransparentSize, bool bGraphics)
+{
+	static uint8	auiOpaquePixels[4 * 3];
+	static uint8	auiTransparentPixels[4 * 4];
+	SKernalBlit		sBlit;
+	uint16			uiOpaqueImage;
+	uint16			uiTransparentImage;
+	uint16			uiCrossImage;
+	uint8*			puiCross;
+	uint16			i;
+
+	if (!SFTImageUnpack(puiOpaque, uiOpaqueSize, auiOpaquePixels) ||
+		!SFTImageUnpack(puiTransparent, uiTransparentSize, auiTransparentPixels) ||
+		(SFTImageMake(puiOpaque, uiOpaqueSize, KERNAL_SCREEN_NO_PALETTE, &uiOpaqueImage) != KERNAL_DEVICE_SUCCESS) ||
+		(SFTImageMake(puiTransparent, uiTransparentSize, KERNAL_SCREEN_NO_PALETTE, &uiTransparentImage) != KERNAL_DEVICE_SUCCESS))
+	{
+		return 1;
+	}
+
+	if (!bGraphics)
+	{
+		memset(&sBlit, 0, sizeof(SKernalBlit));
+		sBlit.uiImage = uiOpaqueImage;
+		sBlit.iX = 400;
+		sBlit.iY = 200;
+		sBlit.uiWidth = 8;
+		sBlit.uiHeight = 6;
+		sBlit.uiFlags = KERNAL_BLIT_IMAGE | KERNAL_BLIT_SCALED;
+		if (KernalScreenBlit(&sBlit) != KERNAL_DEVICE_NOT_FOUND)
+		{
+			return 2;
+		}
+		sBlit.uiFlags = KERNAL_BLIT_IMAGE | KERNAL_BLIT_MIRROR_X;
+		if (KernalScreenBlit(&sBlit) != KERNAL_DEVICE_NOT_FOUND)
+		{
+			return 3;
+		}
+	}
+	else
+	{
+		if (!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 400, 200, 4, 3, KERNAL_BLIT_SCALED, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 410, 200, 8, 6, KERNAL_BLIT_SCALED, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 425, 200, 2, 2, KERNAL_BLIT_SCALED, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 430, 200, 7, 5, KERNAL_BLIT_SCALED, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 445, 200, 4, 3, KERNAL_BLIT_MIRROR_X, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 455, 200, 6, 4, KERNAL_BLIT_SCALED | KERNAL_BLIT_MIRROR_X | KERNAL_BLIT_MIRROR_Y, false, 0, 0, 0, 0))
+		{
+			return 4;
+		}
+		if (!VideoTestScaledBlit(uiTransparentImage, auiTransparentPixels, 4, 4, true, 470, 200, 8, 8, KERNAL_BLIT_SCALED, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiTransparentImage, auiTransparentPixels, 4, 4, true, 485, 200, 5, 3, KERNAL_BLIT_SCALED | KERNAL_BLIT_MIRROR_Y, false, 0, 0, 0, 0))
+		{
+			return 5;
+		}
+		if (!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 500, 200, 8, 6, KERNAL_BLIT_SCALED, true, 502, 201, 506, 205) ||
+			!VideoTestScaledBlit(uiOpaqueImage, auiOpaquePixels, 4, 3, false, 515, 200, 9, 6, KERNAL_BLIT_SCALED | KERNAL_BLIT_MIRROR_X, true, 510, 199, 519, 203))
+		{
+			return 6;
+		}
+
+		//Rows across banks: $C0 and $C1 aren't next to each other in main memory ($C2 was mapped between them), and the
+		//image's rows start two bytes before $C1.
+		if ((KernalMapBanks((void*)0xC00000, 1) != KERNAL_RESULT_SUCCESS) ||
+			(KernalMapBanks((void*)0xC20000, 1) != KERNAL_RESULT_SUCCESS) ||
+			(KernalMapBanks((void*)0xC10000, 1) != KERNAL_RESULT_SUCCESS))
+		{
+			return 7;
+		}
+		puiCross = (uint8*)0xC0FFFE;
+		for (i = 0; i < 8; i++)
+		{
+			puiCross[i] = (uint8)(0xD1 + i);
+		}
+		if ((KernalScreenAddImage(puiCross, 4, 2, 0, KERNAL_SCREEN_NO_PALETTE, &uiCrossImage) != KERNAL_DEVICE_SUCCESS) ||
+			!VideoTestScaledBlit(uiCrossImage, puiCross, 4, 2, false, 400, 220, 8, 4, KERNAL_BLIT_SCALED, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiCrossImage, puiCross, 4, 2, false, 415, 220, 7, 3, KERNAL_BLIT_SCALED | KERNAL_BLIT_MIRROR_X, false, 0, 0, 0, 0) ||
+			!VideoTestScaledBlit(uiCrossImage, puiCross, 4, 2, false, 430, 220, 8, 4, KERNAL_BLIT_SCALED, true, 431, 221, 435, 223) ||
+			(KernalScreenRemoveImage(uiCrossImage, NULL) != KERNAL_DEVICE_SUCCESS) ||
+			(KernalUnmapBanks((void*)0xC00000, 3) != KERNAL_RESULT_SUCCESS))
+		{
+			return 8;
+		}
+
+		//Refused: a size of 0, and an SFT.
+		memset(&sBlit, 0, sizeof(SKernalBlit));
+		sBlit.uiImage = uiOpaqueImage;
+		sBlit.iX = 400;
+		sBlit.iY = 240;
+		sBlit.uiWidth = 0;
+		sBlit.uiHeight = 6;
+		sBlit.uiFlags = KERNAL_BLIT_IMAGE | KERNAL_BLIT_SCALED;
+		if (KernalScreenBlit(&sBlit) != KERNAL_DEVICE_BAD_ARGUMENT)
+		{
+			return 9;
+		}
+		sBlit.uiImage = (uint32)puiOpaque;
+		sBlit.uiSize = uiOpaqueSize;
+		sBlit.uiWidth = 8;
+		sBlit.uiFlags = KERNAL_BLIT_SCALED;
+		if (KernalScreenBlit(&sBlit) != KERNAL_DEVICE_BAD_ARGUMENT)
+		{
+			return 10;
+		}
+	}
+
+	if ((SFTImageFree(uiOpaqueImage) != KERNAL_DEVICE_SUCCESS) || (SFTImageFree(uiTransparentImage) != KERNAL_DEVICE_SUCCESS))
+	{
+		return 11;
+	}
+	return 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The screen's calls.  The picture is this program's from when it sets a
 // mode until it sets text: the kernal has the Video Board meanwhile, and
 // lets it go after (the console isn't on it).  Blits: an opaque and a
 // transparent image, whole, off each edge of the picture and through a
-// clip rectangle; and what isn't an image.
+// clip rectangle; and what isn't an image.  Then images, and scaled blits
+// (which need a Graphics Board: bGraphics says whether there is one).
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 VideoTestScreen(void)
+uint16 VideoTestScreen(bool bGraphics)
 {
 	static const uint8	auiOpaque0[] = { 0x77, 0x01, 0x02, 0x03, 0x04, 0x77 };
 	static const uint8	auiOpaque1[] = { 0x77, 0x05, 0x06, 0x07, 0x08, 0x77 };
@@ -656,6 +870,11 @@ uint16 VideoTestScreen(void)
 	{
 		return 20 + uiResult;
 	}
+	uiResult = VideoTestScaled(puiOpaque, uiOpaqueSize, puiTransparent, uiTransparentSize, bGraphics);
+	if (uiResult != 0)
+	{
+		return 40 + uiResult;
+	}
 
 	//A palette's colours, the palette drawn with, and the frames flipped; then the picture is given back.
 	//Palette 2 all SFTColours' but the container's palette's four colours at $A1 (TestHCP65KernalVideo looks).
@@ -784,7 +1003,8 @@ uint16 VideoTestRows(uint16 uiPixels, uint16 uiRows)
 //////////////////////////////////////////////////////////////////////////
 //
 // The Video Board driver's test (TestHCP65KernalVideo's card starts it:
-// \OS\STARTUP.TXT names it).  Exits 0 if everything did what it should, otherwise 100
+// \OS\STARTUP.TXT names it; TestHCP65KernalBlitter runs it from the
+// shell with VIDEO_TEST_GRAPHICS).  Exits 0 if everything did what it should, otherwise 100
 // times the step that failed plus which check in it.  It leaves the
 // picture shown.
 //
@@ -797,7 +1017,14 @@ int main(void)
 	uint16	uiRows;
 	uint16	uiResult;
 
-	uiResult = VideoTestScreen();
+	//With VIDEO_TEST_GRAPHICS (from the shell, on a computer with a Graphics Board and the console on the Video Board)
+	//only the screen's calls.
+	if (KernalGetArgument() == VIDEO_TEST_GRAPHICS)
+	{
+		uiResult = VideoTestScreen(true);
+		return (uiResult != 0) ? 500 + uiResult : 0;
+	}
+	uiResult = VideoTestScreen(false);
 	if (uiResult != 0)
 	{
 		return 500 + uiResult;

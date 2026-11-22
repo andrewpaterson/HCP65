@@ -76,7 +76,8 @@ uint16 CKernalVideoBoard::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 //////////////////////////////////////////////////////////////////////////
 //
 // An image the kernal has a handle to: its rows as an opaque SFT image's
-// are drawn, a transparent one's without its 0s (and without spans).
+// are drawn, a transparent one's without its 0s (and without spans);
+// scaled or mirrored, by the Graphics Board (BlitScaled).
 //
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::BlitImage(uint16 uiUnit, const SKernalBlit* psBlit, const SKernalImage* psImage)
@@ -88,6 +89,10 @@ uint16 CKernalVideoBoard::BlitImage(uint16 uiUnit, const SKernalBlit* psBlit, co
 	if (uiResult != KERNAL_DRIVER_SUCCESS)
 	{
 		return uiResult;
+	}
+	if (psBlit->uiFlags & (KERNAL_BLIT_SCALED | KERNAL_BLIT_MIRROR_X | KERNAL_BLIT_MIRROR_Y))
+	{
+		return BlitScaled(psBlit, psImage, aiClip);
 	}
 	return BlitFlat(psBlit, psImage->uiPixels, psImage->uiWidth, psImage->uiHeight, aiClip,
 					(psImage->uiFlags & KERNAL_IMAGE_TRANSPARENT) ? SFT_PIXEL_TRANSPARENT : KERNAL_COPY_OPAQUE);
@@ -577,4 +582,231 @@ bool CKernalVideoBoard::BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 
 		uiLength -= uiInBank;
 	}
 	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// An image drawn at the blit's size (KERNAL_BLIT_SCALED, else its own)
+// and mirrored as its flags say, by the Graphics Board: each drawn row
+// that is inside the clip rectangle is one copy (two where its image row
+// crosses from one of the process's banks to the next), its pixels read
+// through the board's offsets from the image row nearest it.  Each drawn
+// pixel is the image's nearest: pixel d of n drawn from s is
+// ((2d + 1) x s) / 2n.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalVideoBoard::BlitScaled(const SKernalBlit* psBlit, const SKernalImage* psImage, const int32* paiClip)
+{
+	uint8*	puiDest;
+	uint8*	puiBank;
+	uint32	uiBankBytes;
+	uint32	uiRowOffset;
+	uint32	uiLastRowOffset;
+	uint32	uiDenominator;
+	uint32	uiRemainder;
+	uint32	uiStep;
+	int32	iLeft;
+	int32	iRight;
+	int32	iTop;
+	int32	iBottom;
+	uint16	uiWidth;
+	uint16	uiHeight;
+	uint16	uiRow;
+	uint16	uiFirst;
+	uint16	uiCount;
+	uint16	uiTransparent;
+	int32	iY;
+
+	if (!gpuiKernalGraphics)
+	{
+		return KERNAL_DRIVER_NOT_FOUND;
+	}
+	uiWidth = (psBlit->uiFlags & KERNAL_BLIT_SCALED) ? psBlit->uiWidth : psImage->uiWidth;
+	uiHeight = (psBlit->uiFlags & KERNAL_BLIT_SCALED) ? psBlit->uiHeight : psImage->uiHeight;
+	if ((uiWidth == 0) || (uiHeight == 0) || (uiWidth >= KERNAL_GRAPHICS_COUNTS) || (uiHeight >= KERNAL_GRAPHICS_COUNTS))
+	{
+		return KERNAL_DRIVER_BAD_ARGUMENT;
+	}
+	iLeft = (psBlit->iX > paiClip[VIDEO_CLIP_LEFT]) ? psBlit->iX : paiClip[VIDEO_CLIP_LEFT];
+	iRight = ((int32)psBlit->iX + uiWidth < paiClip[VIDEO_CLIP_RIGHT]) ? (int32)psBlit->iX + uiWidth : paiClip[VIDEO_CLIP_RIGHT];
+	iTop = (psBlit->iY > paiClip[VIDEO_CLIP_TOP]) ? psBlit->iY : paiClip[VIDEO_CLIP_TOP];
+	iBottom = ((int32)psBlit->iY + uiHeight < paiClip[VIDEO_CLIP_BOTTOM]) ? (int32)psBlit->iY + uiHeight : paiClip[VIDEO_CLIP_BOTTOM];
+	if ((iLeft >= iRight) || (iTop >= iBottom))
+	{
+		return KERNAL_DRIVER_SUCCESS;
+	}
+
+	WriteOffsets(psImage->uiWidth, uiWidth, (psBlit->uiFlags & KERNAL_BLIT_MIRROR_X) != 0);
+	uiTransparent = (psImage->uiFlags & KERNAL_IMAGE_TRANSPARENT) ? SFT_PIXEL_TRANSPARENT : KERNAL_COPY_OPAQUE;
+	uiFirst = (uint16)(iLeft - psBlit->iX);
+	uiCount = (uint16)(iRight - iLeft);
+
+	//The first drawn row's image row, then each next one's by adding 2 x the image's height to the numerator, its
+	//offset in the image stepping with it.  The image's first bank is found once: a row that is all in it is read
+	//from there, and only another is found again.
+	uiDenominator = 2 * (uint32)uiHeight;
+	uiStep = 2 * (uint32)psImage->uiHeight;
+	uiRemainder = (2 * (uint32)(iTop - psBlit->iY) + 1) * psImage->uiHeight;
+	uiRow = (uint16)(uiRemainder / uiDenominator);
+	uiRemainder -= (uint32)uiRow * uiDenominator;
+	uiRowOffset = (uint32)uiRow * psImage->uiWidth;
+	uiLastRowOffset = (uint32)(psImage->uiHeight - 1) * psImage->uiWidth;
+	puiBank = KernalUserPointer(psImage->uiPixels, &uiBankBytes);
+	puiDest = (uint8*)(muiWindow + (uint32)iTop * muiWidth + (uint32)iLeft);
+	for (iY = iTop; iY < iBottom; iY++)
+	{
+		if (!BlitScaledRow(psImage, (psBlit->uiFlags & KERNAL_BLIT_MIRROR_Y) ? uiLastRowOffset - uiRowOffset : uiRowOffset, puiBank, uiBankBytes, puiDest, uiFirst, uiCount, uiWidth, (psBlit->uiFlags & KERNAL_BLIT_MIRROR_X) != 0, uiTransparent))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		puiDest += muiWidth;
+		uiRemainder += uiStep;
+		while (uiRemainder >= uiDenominator)
+		{
+			uiRemainder -= uiDenominator;
+			uiRowOffset += psImage->uiWidth;
+		}
+	}
+	return KERNAL_DRIVER_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The offset of drawn pixel uiDrawnX, of uiDrawn drawn from an image row
+// of uiSource: the image pixel nearest it, counted from the row's right
+// if bMirror.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 VideoScaledOffset(uint16 uiDrawnX, uint16 uiSource, uint16 uiDrawn, bool bMirror)
+{
+	uint16	uiX;
+
+	uiX = (uint16)(((2 * (uint32)uiDrawnX + 1) * uiSource) / (2 * (uint32)uiDrawn));
+	return bMirror ? (uint16)(uiSource - 1 - uiX) : uiX;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Drawn pixels uiFirst to uiFirst + uiCount - 1 of a row of uiDrawn, at
+// puiDest, from the image's row at uiRowOffset through the offsets: from
+// puiBank (the image's first byte where it really is, with uiBankBytes of
+// its bank from there) if the row is all in that bank.  A row that
+// crosses into the process's next bank (which needn't be next to it in
+// main memory) is two copies: the pixels whose offsets are in the first
+// bank, and those in the next, whose source is put so that it plus their
+// offsets is there.  False if the process hasn't the row's memory.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CKernalVideoBoard::BlitScaledRow(const SKernalImage* psImage, uint32 uiRowOffset, uint8* puiBank, uint32 uiBankBytes, uint8* puiDest, uint16 uiFirst, uint16 uiCount, uint16 uiDrawn, bool bMirror, uint16 uiTransparent)
+{
+	uint8*	puiSource;
+	uint8*	puiNext;
+	uint32	uiAddress;
+	uint32	uiInBank;
+	uint16	uiLow;
+	uint16	uiHigh;
+	uint16	uiMiddle;
+	uint16	uiSplit;
+	bool	bFirstNext;
+
+	if (puiBank && (uiRowOffset + psImage->uiWidth <= uiBankBytes))
+	{
+		KernalMainScaledCopy(puiDest, puiBank + uiRowOffset, uiFirst, uiCount, uiTransparent);
+		return true;
+	}
+	uiAddress = psImage->uiPixels + uiRowOffset;
+	puiSource = KernalUserPointer(uiAddress, &uiInBank);
+	if (!puiSource)
+	{
+		return false;
+	}
+	if (uiInBank >= psImage->uiWidth)
+	{
+		KernalMainScaledCopy(puiDest, puiSource, uiFirst, uiCount, uiTransparent);
+		return true;
+	}
+
+	puiNext = KernalUserPointer(uiAddress + uiInBank, NULL);
+	if (!puiNext)
+	{
+		return false;
+	}
+	puiNext -= uiInBank;
+
+	//The offsets go one way across the row, so the pixels whose offsets are in the next bank are all at one end: the
+	//first pixel that isn't in the same bank as uiFirst's.
+	bFirstNext = VideoScaledOffset(uiFirst, psImage->uiWidth, uiDrawn, bMirror) >= uiInBank;
+	uiLow = uiFirst;
+	uiHigh = (uint16)(uiFirst + uiCount);
+	while (uiLow < uiHigh)
+	{
+		uiMiddle = (uint16)(uiLow + (uiHigh - uiLow) / 2);
+		if ((VideoScaledOffset(uiMiddle, psImage->uiWidth, uiDrawn, bMirror) >= uiInBank) == bFirstNext)
+		{
+			uiLow = (uint16)(uiMiddle + 1);
+		}
+		else
+		{
+			uiHigh = uiMiddle;
+		}
+	}
+	uiSplit = uiLow;
+	KernalMainScaledCopy(puiDest, bFirstNext ? puiNext : puiSource, uiFirst, (uint16)(uiSplit - uiFirst), uiTransparent);
+	KernalMainScaledCopy(puiDest + (uiSplit - uiFirst), bFirstNext ? puiSource : puiNext, uiSplit, (uint16)(uiFirst + uiCount - uiSplit), uiTransparent);
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The Graphics Board's offsets for a row of uiDrawn drawn from one of
+// uiSource (VideoScaledOffset's, stepped without dividing), unless they
+// are already in it.
+//
+//////////////////////////////////////////////////////////////////////////
+void CKernalVideoBoard::WriteOffsets(uint16 uiSource, uint16 uiDrawn, bool bMirror)
+{
+	volatile uint8*	puiLow;
+	volatile uint8*	puiHigh;
+	uint32			uiDenominator;
+	uint32			uiStep;
+	uint32			uiRemainder;
+	uint16			uiX;
+	uint16			uiOffset;
+	uint16			i;
+
+	if ((mpuiOffsetsBoard == gpuiKernalGraphics) && (muiOffsetsSource == uiSource) && (muiOffsetsDrawn == uiDrawn) && (mbOffsetsMirror == bMirror))
+	{
+		return;
+	}
+	puiLow = gpuiKernalGraphics + KERNAL_GRAPHICS_OFFSETS_LOW;
+	puiHigh = gpuiKernalGraphics + KERNAL_GRAPHICS_OFFSETS_HIGH;
+	uiDenominator = 2 * (uint32)uiDrawn;
+	uiStep = 2 * (uint32)uiSource;
+	uiRemainder = uiSource;
+	uiX = 0;
+	while (uiRemainder >= uiDenominator)
+	{
+		uiRemainder -= uiDenominator;
+		uiX++;
+	}
+	for (i = 0; i < uiDrawn; i++)
+	{
+		uiOffset = bMirror ? (uint16)(uiSource - 1 - uiX) : uiX;
+		puiLow[i] = (uint8)uiOffset;
+		puiHigh[i] = (uint8)(uiOffset >> 8);
+		uiRemainder += uiStep;
+		while (uiRemainder >= uiDenominator)
+		{
+			uiRemainder -= uiDenominator;
+			uiX++;
+		}
+	}
+	mpuiOffsetsBoard = gpuiKernalGraphics;
+	muiOffsetsSource = uiSource;
+	muiOffsetsDrawn = uiDrawn;
+	mbOffsetsMirror = bMirror;
 }

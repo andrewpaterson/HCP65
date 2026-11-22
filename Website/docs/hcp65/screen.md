@@ -138,6 +138,27 @@ go when it ends.  A handle that has been taken back, or is another program's, is
 `KERNAL_DEVICE_BAD_HANDLE`: each handle is the entry's number and a count of the times it has been
 used, so an old handle doesn't reach a newer image.
 
+## Scaled and mirrored blits
+
+An image can be drawn at another size: `KERNAL_BLIT_SCALED` in the blit's flags, and the size in
+`uiWidth` and `uiHeight` (1 to 32767 each).  Each pixel drawn is the image's nearest one: pixel *d*
+of *n* drawn from *s* is (2*d* + 1) × *s* / 2*n*, rounded down, across and down.  So twice the size
+draws each pixel twice, half the size every other one.  `KERNAL_BLIT_MIRROR_X` draws the image right
+to left and `KERNAL_BLIT_MIRROR_Y` bottom to top, scaled or not.  Clipping is as for any blit;
+spans aren't used.  A transparent image's 0s aren't drawn.
+
+They are the [Graphics Board](#the-graphics-board)'s: without one (or its driver) the blit is
+`KERNAL_DEVICE_NOT_FOUND`.  Each drawn row inside the clip rectangle is one copy, from the image row
+nearest it, through the board's offsets for the drawn width.  The driver writes the offsets only
+when the image's width, the drawn width or the mirroring changes, so a sprite drawn many times at
+one size costs the table once.  A row of the image that crosses from one of the program's banks to
+the next is two copies.  An SFT can't be scaled (`KERNAL_DEVICE_BAD_ARGUMENT`): make it an
+[image](#images) first.
+
+On the emulator a scaled blit costs about 9,000 processor cycles, the kernel call itself included,
+and about 1,000 more for each row drawn, plus the board's two cycles for each pixel (the processor
+waits for it).  A row that crosses a bank costs about 3,000.
+
 ## The Blitter Board
 
 The board copies bytes from one place in main memory to another, as the main bus's master: a read
@@ -182,6 +203,7 @@ The offsets are 16 bits and unsigned, so a byte is read from at most 65535 past 
 They are device RAM: the low byte of the offset for count *n* is at `$08000` + *n* in the board's
 slot and its high byte at `$10000` + *n*.  The processor has them while no copy is under way.
 
-The board's driver, `GRAPHICS.DRV`, enables it for the kernel.  Nothing draws with it yet.
+The board's driver, `GRAPHICS.DRV`, enables it for the kernel, and the Video Board's driver draws
+[scaled and mirrored blits](#scaled-and-mirrored-blits) with it.
 
 As the Blitter Board's, the emulator's Graphics Board is the board as it is meant to work.

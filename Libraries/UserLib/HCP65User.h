@@ -296,9 +296,17 @@ extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);
 //as the image's flags say, each pixel with the image's palette unless that is KERNAL_SCREEN_NO_PALETTE.  Clipping and
 //spans are as for an SFT image.  KERNAL_DEVICE_BAD_HANDLE for a handle that isn't the program's;
 //KERNAL_DEVICE_BAD_ARGUMENT for an image whose memory the program no longer has (what came before has been drawn).
+//
+//An image can be drawn scaled with KERNAL_BLIT_SCALED: at uiWidth by uiHeight (1 to 32767 each), each pixel drawn the
+//image's nearest to it, by the Graphics Board.  KERNAL_BLIT_MIRROR_X draws it right to left and KERNAL_BLIT_MIRROR_Y
+//bottom to top, scaled or not.  Spans aren't used.  KERNAL_DEVICE_NOT_FOUND without a Graphics Board (its driver,
+//\OS\Drivers\GRAPHICS.DRV); KERNAL_DEVICE_BAD_ARGUMENT for these with an SFT, or a size of 0.
 #define KERNAL_BLIT_CLIP				0x0001
 #define KERNAL_BLIT_SPANS				0x0002
 #define KERNAL_BLIT_IMAGE				0x0004
+#define KERNAL_BLIT_SCALED				0x0008
+#define KERNAL_BLIT_MIRROR_X			0x0010
+#define KERNAL_BLIT_MIRROR_Y			0x0020
 
 struct SKernalBlit
 {
@@ -312,6 +320,8 @@ struct SKernalBlit
 	int16	iClipRight;		//+18
 	int16	iClipBottom;	//+20
 	uint32	uiSpans;		//+22  KERNAL_BLIT_SPANS: each row's span, two words a row.
+	uint16	uiWidth;		//+26  KERNAL_BLIT_SCALED: the size it is drawn at.
+	uint16	uiHeight;		//+28
 };
 
 extern "C" uint16	KernalScreenSetMode(uint16 uiMode);

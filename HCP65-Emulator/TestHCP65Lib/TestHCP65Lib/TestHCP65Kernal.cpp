@@ -122,6 +122,7 @@
 #define TEST_HCP65_VIDEO_GREEN		0x10000
 #define TEST_HCP65_VIDEO_BLUE		0x18000
 #define TEST_HCP65_VIDEO_PROGRAM_PATH	"\\vidtest.exe"
+#define TEST_HCP65_VIDTEST_PATH		"\\VIDTEST.EXE"		//On the system card, for the Blitter test's shell.
 #define TEST_HCP65_VIDEO_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VideoBoard" _FS_ "HCP65VideoBoard.vcxproj"
 #define TEST_HCP65_VIDEO_DRIVER_PATH	"\\OS\\Drivers\\VIDEO.DRV"
 #define TEST_HCP65_BLITTER_DRIVER	".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "BlitterBoard" _FS_ "HCP65BlitterBoard.vcxproj"
@@ -3211,7 +3212,8 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 //
 // The console's machine with a Blitter Board and a Graphics Board too
 // (Machines/Blitter.xml).  The Graphics Board's driver is loaded from
-// \OS\Drivers\GRAPHICS.DRV and enables it; nothing draws with it yet.  The
+// \OS\Drivers\GRAPHICS.DRV and enables it; vidtest.exe's scaled blits
+// (run from the shell) are its copies.  The
 // Blitter Board's is loaded from \OS\Drivers\BLITTER.DRV, and the copies that
 // are long enough are the board's, not the processor's: the screen's and
 // a row's clearing, and sprites' tiles.  The text and the picture are the
@@ -3229,10 +3231,13 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	CChars				szScreen;
 	uint8*				puiStage;
 	uint64				uiText;
+	uint64				uiScaled;
 	int					i;
+	bool				bResult;
 
 	AssertTrue(TestConsoleReadFont(sConsole.auiFont));
-	if (!TestKernalPutSystemFiles())
+	if (!TestKernalPutSystemFiles() ||
+		!TestKernalPutExe(TEST_HCP65_SYSTEM_CARD_IMAGE, TEST_HCP65_VIDTEST_PATH, TEST_HCP65_VIDEO_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false))
 	{
 		return;
 	}
@@ -3294,6 +3299,32 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
 
 	AssertFalse(sConsole.cHCP65.IsStopped());
+
+	//vidtest.exe with VIDEO_TEST_GRAPHICS: the screen's calls, images, and scaled and mirrored blits, which the Graphics
+	//Board draws.  When it gives the picture back the console's text starts again from a clear screen, and the shell's
+	//prompt is on it with nothing before it: it exited 0, or the shell would have said so.
+	uiScaled = pcGraphics->NumBytesCopied();
+	TestConsoleType(&sConsole, "vidtest 1\r");
+	bResult = false;
+	for (i = 0; (i < TEST_HCP65_SHELL_MAX_RUNS) && !bResult; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+		bResult = (pcGraphics->NumBytesCopied() > uiScaled + 100) && TestConsoleScreen(&sConsole, &szScreen) && (strstr(szScreen.Text(), "vidtest 1") == NULL) && (strstr(szScreen.Text(), "/ $") != NULL);
+	}
+	AssertTrue(bResult);
+	for (i = 0; i < 50; i++)
+	{
+		sConsole.cHCP65.Run(TEST_UART_RUN_CYCLES);
+	}
+	AssertTrue(TestConsoleScreen(&sConsole, &szScreen));
+	if (strncmp(szScreen.Text(), "/ $\n", 4) != 0)
+	{
+		printf("%s\n", szScreen.Text());
+		fflush(stdout);
+	}
+	AssertTrue(strncmp(szScreen.Text(), "/ $\n", 4) == 0);
+	AssertFalse(pcGraphics->IsCopying());
+	AssertFalse(sConsole.cHCP65.IsContention());
 	szScreen.Kill();
 	sConsole.cKeyboard.Kill();
 	free(sConsole.puiFrame);
