@@ -35,7 +35,8 @@ The picture is two frames: one is shown while the other is drawn.
 
 A pixel is a byte.  The colour it shows is that entry of its palette, and there are 128 palettes.
 
-The screen calls are one kernel call (COP 14) with a block of arguments.
+The screen calls are one kernel call (COP 14) with a block of arguments ([Kernel Calls](kernel-calls.md)).
+[Sprites](sprites.md) is how to draw a moving picture with them.
 
 `sprites` in the shell (`HCP65/Sprites`) draws with them: a stage (`\SPRITES\STAGE.SFT`, an opaque
 640 by 400, made an [image](#images)) and Maki standing on it (`\SPRITES\MAKI.SFT`, a container of

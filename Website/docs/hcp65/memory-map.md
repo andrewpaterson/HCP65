@@ -130,7 +130,7 @@ A program's banks, as it sees them:
 The heap block (`SKernalHeapInfo` in `HCP65User.h`) says where the heap is: the end of what was
 mapped before the program started (its `UserHeapSize`), the `HEAP` marker, and the heap's first
 byte and the byte past its last.  Libc65's `malloc` reads it and maps and unmaps the heap's banks
-itself ([Libc65](../compiler/libc65.md)), so a program rarely calls these:
+itself ([Memory Management](memory.md#the-heap)), so a program rarely calls these:
 
 | Call | What it does |
 |---|---|

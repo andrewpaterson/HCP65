@@ -60,11 +60,14 @@ nav:
   - HCP65 Modern Home Computer:
       - hcp65/index.md
       - Memory Map: hcp65/memory-map.md
+      - Memory Management: hcp65/memory.md
+      - Kernel Calls: hcp65/kernel-calls.md
       - On-board Registers: hcp65/registers.md
       - Devices and Main Memory: hcp65/devices.md
       - Starting Up: hcp65/boot.md
       - The Console and the Shell: hcp65/console.md
       - The Screen: hcp65/screen.md
+      - Sprites: hcp65/sprites.md
       - Drivers and Runtime:
           - hcp65/runtime/index.md
           - W65C816 Runtime: hcp65/runtime/w65c816.md
