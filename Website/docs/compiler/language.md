@@ -50,7 +50,9 @@ on a member, and on a member's or a base's class).
 
 On the 65C64 each member is aligned to its size (8 bytes for `long long` and `double`, 4 for a
 pointer), as MSVC aligns it, because BaseLib reads and writes classes as raw bytes and expects
-the layout a PC gives them.
+the layout a PC gives them.  An object on its own is promised 4 bytes at most, which is what a
+65C64 frame's places are multiples of: `alignof(double)` and `alignof(long long)` are 4, and so
+is `alignof` of a class that holds one, though the class still has it at a multiple of 8.
 
 The W65C816 has an 8 bit data bus, so a 16 or 32 bit value costs the same to read at an odd
 address as at an even one, and nothing there is aligned past a byte unless `alignas` asks it:
@@ -180,7 +182,6 @@ compiler's own file and line, which says which construct it was.
 | A member template whose parameters are its class's pack and then its own | `template<class... B> static int Mix(A... a, B... b)` in `template<class... A> struct Pair`: the call isn't matched. |
 | A partial specialisation, outside the class, of a class template's member variable template | The template itself, defined in the class or outside it, is each instance's own. |
 | A union's inactive member in a constant | Reading the member that wasn't the last given a value is refused only where the two differ in size. |
-| An 8 byte local's alignment on the 65C64 | A local is placed as `alignas` asks, but a 65C64 frame's places are multiples of 4, so a `double` or `long long` local without `alignas` isn't always at a multiple of 8, which `alignof` says it is. |
 | The C++ standard library | Libc65 has the C library and `<new>`, `<exception>` and `<typeinfo>` only. |
 
 A member's name that two base classes each declare is ambiguous wherever it is used

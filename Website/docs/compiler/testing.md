@@ -53,6 +53,7 @@ variables:
 |---|---|
 | `TEST_PROJECT65_ONLY=<tests>` | Run only these tests' programs. |
 | `TEST_PROJECT65_LISTINGS=<dir>` | Write each unit's listing. |
+| `TEST_PROJECT65_LAYOUTS=<file>` | Write each class's layout, a line a class (see [Class layouts](building.md#class-layouts)). |
 | `TEST_PROJECT65_CYCLES=1` | Print each program's cycles and size. |
 | `TEST_PROJECT65_COMPILE_STATS=1` | Time the compile by phase and print its counts. |
 | `TEST_PROJECT65_PROFILE`, `TEST_PROJECT65_PROFILE_REPORT=<file>` | Profile the programs and write a report: the cycles in each function and line, and in the calls made from each line. |

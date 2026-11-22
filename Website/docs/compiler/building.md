@@ -136,11 +136,33 @@ Options for both ways of building:
 |---|---|
 | `-libc65 <directory>` | Libc65.  Default: the first `HCP65/Libraries/Libc65` found going up from the tool or the file. |
 | `-quiet` | Leave out the progress lines. |
+| `-layouts <file>` | Write each class as the build lays it out to the file (see [Class layouts](#class-layouts)). |
 | `@<file>` | Read arguments from a file, one a line.  Lines starting with `#` are comments, and a file can name other `@` files. |
 | `-help` | List the options. |
 
 Numbers are decimal, `0x` or `$` hexadecimal.  The exit code is 0 when the build succeeded, 1
 when it failed and 2 for a bad command line or file.
+
+### Class layouts
+
+`-layouts <file>` writes a line for each class the build's sources lay out: its name, where it's
+defined, its size, its alignment, the most `alignas` asks of it, then where each base, the vtable
+pointer and each field is.  A bit-field has its first bit after a dot.
+
+```text
+hcp65build -program Shapes Shapes.cpp -layouts Shapes.txt
+```
+
+```text
+SInner Shapes.cpp(1) size 6 align 2 alignas 0 c@0 l@2
+SOuter Shapes.cpp(2) size 16 align 2 alignas 0 base SInner@0 d@6 s@14
+```
+
+The lines are in order and each class is there once, so two files compare with any diff tool:
+the same sources built for the 65C64 (`SInner` is 8 bytes there, with `l` at 4), or before and
+after a class or the compiler changed.  A class no code needs whole isn't laid out and isn't
+listed.  A build with no classes writes no file, and one of several solutions writes the last
+solution's.
 
 ### An example
 
@@ -209,6 +231,7 @@ cBuilder.Kill();
 | `AddLibc65`, `AddRuntime`, `AddMathTables` | Libc65's units, the W65C816 runtime, and the maths tables, as libraries. |
 | `SetNoFloats`, `SetMathTables`, `SetLimit`, `SetStubMissing`, `SetRemoveUnused` | As the options above. |
 | `SetListingDirectory`, `SetLineTable` | Listings, and the line table a debugger reads. |
+| `SetLayoutsFile` | The file each class's layout is written to (see [Class layouts](#class-layouts)). |
 | `SetJobs`, `SetHeaderCache`, `SetLazyHeaders` | Compile units on several threads; share preprocessed headers between units; parse only the header code a unit uses. |
 | `SetFrameProfile` | A measured profile for the W65C816's aligned frames (see [W65C816 Code](w65c816.md#frames)). |
 | `GetStatistics` | What the compile counted and timed. |
