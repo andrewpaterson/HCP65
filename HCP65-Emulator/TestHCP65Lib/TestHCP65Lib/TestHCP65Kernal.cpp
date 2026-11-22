@@ -1986,7 +1986,8 @@ static Ptr<CImage> TestSpritesScale(Ptr<CImage> pSource, uint32 uiLeft, uint32 u
 //////////////////////////////////////////////////////////////////////////
 static bool TestKernalMakeSprites(void)
 {
-	CArrayImageCel	acCels;
+	CArrayImage		acFrames;
+	CSFTQuantised	cQuantised;
 	Ptr<CImage>		pStand;
 	Ptr<CImage>		pWalk;
 	Ptr<CImage>		pStage;
@@ -2016,19 +2017,24 @@ static bool TestKernalMakeSprites(void)
 	}
 	if (bResult)
 	{
-		acCels.Init();
+		acFrames.Init();
 		uiFrameWidth = pWalk->GetWidth() / TEST_HCP65_MAKI_WALK_FRAMES;
 		for (iSide = 0; iSide < 2; iSide++)
 		{
 			bMirror = iSide == 1;
-			acCels.Add(OMalloc<CImageCel>(TestSpritesScale(pStand, 0, pStand->GetWidth(), bMirror)));
+			acFrames.Add(TestSpritesScale(pStand, 0, pStand->GetWidth(), bMirror));
 			for (i = 0; i < TEST_HCP65_MAKI_WALK_FRAMES; i++)
 			{
-				acCels.Add(OMalloc<CImageCel>(TestSpritesScale(pWalk, i * uiFrameWidth, uiFrameWidth, bMirror)));
+				acFrames.Add(TestSpritesScale(pWalk, i * uiFrameWidth, uiFrameWidth, bMirror));
 			}
 		}
-		bResult = SaveSFTCelArray(&acCels, (char*)TEST_HCP65_MAKI_FILE);
-		acCels.Kill();
+		bResult = QuantiseSFT(&acFrames, 255, &cQuantised);
+		if (bResult)
+		{
+			bResult = SaveSFTQuantised(&cQuantised, (char*)TEST_HCP65_MAKI_FILE);
+			cQuantised.Kill();
+		}
+		acFrames.Kill();
 	}
 	pStage = NULL;
 	pStand = NULL;
@@ -2870,6 +2876,10 @@ static void TestConsoleType(STestConsole* psConsole, const char* szText)
 #define TEST_SPRITES_MAKI_ROW		(TEST_SPRITES_MAKI_Y + 60)	//and a row through her.
 #define TEST_SPRITES_FLOWER_X		554			//The flower in front of her: its top left.
 #define TEST_SPRITES_FLOWER_Y		346
+#define TEST_SPRITES_SMALL_X		500			//Maki small (with a Graphics Board): the right facing one's top left,
+#define TEST_SPRITES_SMALL_Y		2
+#define TEST_SPRITES_SMALL_WIDTH	17			//its size; the left facing one is 4 to its right.
+#define TEST_SPRITES_SMALL_HEIGHT	36
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -3056,12 +3066,15 @@ static int TestSpritesFlowerShown(const uint32* puiFrame, const uint8* puiStage,
 // it.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestConsoleSprites(STestConsole* psConsole, const uint8* puiStage)
+static void TestConsoleSprites(STestConsole* psConsole, const uint8* puiStage, bool bGraphics)
 {
 	int		iLeft;
 	int		iRight;
 	bool	bShown;
 	int		i;
+	int		x;
+	int		y;
+	int		iSmall;
 
 	TestConsoleType(psConsole, "sprites\r");
 	bShown = false;
@@ -3082,6 +3095,27 @@ static void TestConsoleSprites(STestConsole* psConsole, const uint8* puiStage)
 	AssertTrue(iLeft >= TEST_SPRITES_MAKI_START_X);
 	AssertTrue(iRight < TEST_SPRITES_MAKI_START_X + TEST_SPRITES_MAKI_WIDTH);
 	AssertTrue(iRight - iLeft > 10);
+
+	//Maki small above the stage, facing right and (mirrored) left: scaled blits, which only a Graphics Board draws.
+	iSmall = 0;
+	for (y = TEST_SPRITES_SMALL_Y; y < TEST_SPRITES_SMALL_Y + TEST_SPRITES_SMALL_HEIGHT; y++)
+	{
+		for (x = TEST_SPRITES_SMALL_X; x < TEST_SPRITES_SMALL_X + 2 * TEST_SPRITES_SMALL_WIDTH + 4; x++)
+		{
+			if (psConsole->puiFrame[y * 640 + x] != 0xFF000000)
+			{
+				iSmall++;
+			}
+		}
+	}
+	if (bGraphics)
+	{
+		AssertTrue(iSmall > 100);
+	}
+	else
+	{
+		AssertInt(0, iSmall);
+	}
 
 	TestConsoleType(psConsole, " ");
 	for (i = 0; i < 20; i++)
@@ -3178,7 +3212,7 @@ void TestHCP65KernalConsole(STestKernal* psKernal)
 
 	puiStage = TestSpritesReadStage();
 	AssertTrue(puiStage != NULL);
-	TestConsoleSprites(&sConsole, puiStage);
+	TestConsoleSprites(&sConsole, puiStage, false);
 	free(puiStage);
 	TestConsoleType(&sConsole, "\x1B");
 	AssertTrue(TestConsoleRunUntil(&sConsole, "/ $\n", &szScreen));
@@ -3290,7 +3324,7 @@ void TestHCP65KernalBlitter(STestKernal* psKernal)
 	//sprites' picture, drawn by the board: the stage is 640 by 400.
 	puiStage = TestSpritesReadStage();
 	AssertTrue(puiStage != NULL);
-	TestConsoleSprites(&sConsole, puiStage);
+	TestConsoleSprites(&sConsole, puiStage, true);
 	free(puiStage);
 	AssertTrue(pcBlitter->NumBytesCopied() > uiText + 640 * 400);
 	AssertFalse(pcBlitter->IsCopying());
@@ -3493,7 +3527,7 @@ void TestHCP65KernalLCD(STestKernal* psKernal)
 	//she steps about every third: 0.6s of a direction is about 25 pixels.
 	puiStage = TestSpritesReadStage();
 	AssertTrue(puiStage != NULL);
-	TestConsoleSprites(&sConsole, puiStage);
+	TestConsoleSprites(&sConsole, puiStage, false);
 	AssertTrue(TestSpritesFrame(&sConsole, puiStage, &iStart, &iRight));
 	pcLCD->SetButtons(0, HCP65_SNES_RIGHT);
 	for (i = 0; i < 60; i++)

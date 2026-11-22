@@ -24,6 +24,9 @@
     <ClCompile Include="..\Libraries\UserLib\UserSFT.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="..\Libraries\UserLib\UserSFTImage.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="..\Libraries\UserLib\UserMathTables.asm">
       <Filter>Source</Filter>
     </ClCompile>

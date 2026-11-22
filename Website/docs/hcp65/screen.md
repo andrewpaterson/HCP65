@@ -38,8 +38,11 @@ A pixel is a byte.  The colour it shows is that entry of its palette, and there 
 The screen calls are one kernel call (COP 14) with a block of arguments.
 
 `sprites` in the shell (`HCP65/Sprites`) draws with them: a stage (`\SPRITES\STAGE.SFT`, an opaque
-640 by 400) and Maki standing on it (`\SPRITES\MAKI.SFT`, a container of transparent frames:
-standing and six walking, each way), with letters blitted from the console's font.  The first SNES
+640 by 400, made an [image](#images)) and Maki standing on it (`\SPRITES\MAKI.SFT`, a container of
+her palette, which goes in palette 1, and her transparent frames: standing and six walking, each
+way), with letters blitted from the console's font.  With a Graphics Board it draws her small
+above the stage too, facing each way: [scaled and mirrored blits](#scaled-and-mirrored-blits) of an
+image of her first frame.  The first SNES
 controller of an LCD and SNES Board walks her left and right.  Each frame it draws the stage again
 only where she was in the frame being drawn: of each of her rows, from her first pixel to her last
 (a blit with `KERNAL_BLIT_SPANS`, below).  Then it draws her and flips the frames at the vertical
@@ -151,6 +154,13 @@ There are `KERNAL_SCREEN_MAX_IMAGES` (64) handles for all the programs together;
 go when it ends.  A handle that has been taken back, or is another program's, is
 `KERNAL_DEVICE_BAD_HANDLE`: each handle is the entry's number and a count of the times it has been
 used, so an old handle doesn't reach a newer image.
+
+Without a Blitter Board a transparent image is slower than the same picture as an SFT: each of its
+rows is a copy that looks at every byte, where the SFT's runs copy only what is drawn.  On the
+emulator Maki's 84 by 182 frame takes about 455,000 cycles as an image and 144,000 as an SFT, so
+`sprites` draws her frames as SFTs.  With a Blitter Board a row of an image is one of the board's
+copies, where an SFT's row is one for each of its runs.  An opaque picture costs the same either
+way.
 
 ## Scaled and mirrored blits
 
