@@ -221,7 +221,8 @@ struct STestCopTimes
 };
 
 
-//The kernal's SKernalStatus as it is laid out in MPU RAM (16 bit words, 32 bit longs, little endian).
+//The kernal's SKernalStatus (Kernal/Kernal.h), read from MPU RAM by TestKernalReadStatus: the same members in the same
+//order.  uiMainBanks, the last, is checked after a boot, so a member added to one and not the other is noticed.
 struct STestKernalStatus
 {
 	uint16	uiState;
@@ -370,6 +371,38 @@ static CHCP65Device* TestKernalBoard(CTestMainboard* pcMainboard, int iSocket, c
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The 16 bit value at *ppuiMemory, which is moved past it.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint16 TestKernalRead16(uint8** ppuiMemory)
+{
+	uint8*	puiMemory;
+
+	puiMemory = *ppuiMemory;
+	*ppuiMemory += 2;
+	return (uint16)(puiMemory[0] | (puiMemory[1] << 8));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The 32 bit value at *ppuiMemory, which is moved past it.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint32 TestKernalRead32(uint8** ppuiMemory)
+{
+	uint32	uiLow;
+
+	uiLow = TestKernalRead16(ppuiMemory);
+	return uiLow | ((uint32)TestKernalRead16(ppuiMemory) << 16);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The kernal's status as the W65C816 compiler lays SKernalStatus out: its
+// members one after the other, none padded (each is 2 or 4 bytes, and a
+// member is aligned to 2 bytes at most).
 //
 //////////////////////////////////////////////////////////////////////////
 static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalStatus* psStatus)
@@ -377,27 +410,27 @@ static void TestKernalReadStatus(uint8* puiRAM, uint32 uiAddress, STestKernalSta
 	uint8*	p;
 
 	p = &puiRAM[uiAddress];
-	psStatus->uiState = (uint16)(p[0] | (p[1] << 8));
-	psStatus->uiSDError = (uint16)(p[2] | (p[3] << 8));
-	psStatus->uiFatCode = (uint16)(p[4] | (p[5] << 8));
-	psStatus->uiFileSystem = (uint16)(p[6] | (p[7] << 8));
-	psStatus->uiNumSectors = (uint32)p[8] | ((uint32)p[9] << 8) | ((uint32)p[10] << 16) | ((uint32)p[11] << 24);
-	psStatus->uiNumClusters = (uint32)p[12] | ((uint32)p[13] << 8) | ((uint32)p[14] << 16) | ((uint32)p[15] << 24);
-	psStatus->uiFreeClusters = (uint32)p[16] | ((uint32)p[17] << 8) | ((uint32)p[18] << 16) | ((uint32)p[19] << 24);
-	psStatus->uiBootResult = (uint16)(p[20] | (p[21] << 8));
-	psStatus->uiExitCode = (uint16)(p[22] | (p[23] << 8));
-	psStatus->uiUserValue = (uint16)(p[24] | (p[25] << 8));
-	psStatus->uiBootArgument = (uint16)(p[26] | (p[27] << 8));
-	psStatus->uiSDCards = (uint16)(p[28] | (p[29] << 8));
-	psStatus->uiSDSocket = (uint16)(p[30] | (p[31] << 8));
-	psStatus->uiStrayInterrupts = (uint32)p[32] | ((uint32)p[33] << 8) | ((uint32)p[34] << 16) | ((uint32)p[35] << 24);
-	psStatus->uiDevices = (uint32)p[36] | ((uint32)p[37] << 8) | ((uint32)p[38] << 16) | ((uint32)p[39] << 24);
-	psStatus->uiBadDevices = (uint32)p[40] | ((uint32)p[41] << 8) | ((uint32)p[42] << 16) | ((uint32)p[43] << 24);
-	psStatus->uiLoadedDrivers = (uint32)p[44] | ((uint32)p[45] << 8) | ((uint32)p[46] << 16) | ((uint32)p[47] << 24);
-	psStatus->uiDriverError = (uint16)(p[48] | (p[49] << 8));
-	psStatus->uiHeapPeak = (uint32)p[52] | ((uint32)p[53] << 8) | ((uint32)p[54] << 16) | ((uint32)p[55] << 24);  //uint32s are 4 byte aligned.
-	psStatus->uiMainHeapPeak = (uint32)p[56] | ((uint32)p[57] << 8) | ((uint32)p[58] << 16) | ((uint32)p[59] << 24);
-	psStatus->uiMainBanks = (uint16)(p[60] | (p[61] << 8));
+	psStatus->uiState = TestKernalRead16(&p);
+	psStatus->uiSDError = TestKernalRead16(&p);
+	psStatus->uiFatCode = TestKernalRead16(&p);
+	psStatus->uiFileSystem = TestKernalRead16(&p);
+	psStatus->uiNumSectors = TestKernalRead32(&p);
+	psStatus->uiNumClusters = TestKernalRead32(&p);
+	psStatus->uiFreeClusters = TestKernalRead32(&p);
+	psStatus->uiBootResult = TestKernalRead16(&p);
+	psStatus->uiExitCode = TestKernalRead16(&p);
+	psStatus->uiUserValue = TestKernalRead16(&p);
+	psStatus->uiBootArgument = TestKernalRead16(&p);
+	psStatus->uiSDCards = TestKernalRead16(&p);
+	psStatus->uiSDSocket = TestKernalRead16(&p);
+	psStatus->uiStrayInterrupts = TestKernalRead32(&p);
+	psStatus->uiDevices = TestKernalRead32(&p);
+	psStatus->uiBadDevices = TestKernalRead32(&p);
+	psStatus->uiLoadedDrivers = TestKernalRead32(&p);
+	psStatus->uiDriverError = TestKernalRead16(&p);
+	psStatus->uiHeapPeak = TestKernalRead32(&p);
+	psStatus->uiMainHeapPeak = TestKernalRead32(&p);
+	psStatus->uiMainBanks = TestKernalRead16(&p);
 }
 
 

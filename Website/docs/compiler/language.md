@@ -16,7 +16,7 @@ The preprocessor defines `__cplusplus` as `201402L`.
 | `short` | 2 bytes | 2 bytes | |
 | `int`, `unsigned` | **2 bytes** | 4 bytes | On the W65C816 `int` and `short` are the same size. |
 | `long` | 4 bytes | 4 bytes | As on Windows. |
-| `long long` | 8 bytes | 8 bytes | 8 byte aligned in classes, as MSVC. |
+| `long long` | 8 bytes | 8 bytes | 8 byte aligned in classes on the 65C64, as MSVC (see [Alignment and layout](#alignment-and-layout)). |
 | `float` | 4 bytes | 4 bytes | IEEE 754 single, in software. |
 | `double`, `long double` | 8 bytes | 8 bytes | IEEE 754 double, in software.  `long double` is a double but its own type for overloads. |
 | `bool` | 1 byte | 1 byte | |
@@ -42,9 +42,33 @@ An enum's underlying type follows the standard: `int`, then `unsigned int`, `lon
 `unsigned long` and `long long` as its values need, so on the W65C816 an enum with a value of
 `0xFFFFFFFF` is 32 bits, and promotes to its underlying type: it is compared in 32 bits.
 
-Classes are laid out the way MSVC lays them out (bases, then the vtable pointer, then the fields
-each aligned to its size), because BaseLib reads and writes classes as raw bytes and expects the
-same layout everywhere.  `#pragma pack` is followed.
+### Alignment and layout
+
+Classes are laid out in the order MSVC lays them out: the bases, then the vtable pointer, then
+the fields.  `#pragma pack` is followed, and `alignas` is kept whatever the pack is (on a class,
+on a member, and on a member's or a base's class).
+
+On the 65C64 each member is aligned to its size (8 bytes for `long long` and `double`, 4 for a
+pointer), as MSVC aligns it, because BaseLib reads and writes classes as raw bytes and expects
+the layout a PC gives them.
+
+The W65C816 has an 8 bit data bus, so a 16 or 32 bit value costs the same to read at an odd
+address as at an even one, and nothing there is aligned past a byte unless `alignas` asks it:
+
+- `alignof` is 1 for every type, `long`, `double`, pointers and classes too.  `alignas` still
+  asks for more and gets it; `alignas(long)` is `alignof(long)`, which is 1.
+- Globals, statics and locals are placed at any byte.
+- In a class a member of 2 bytes or more (or a member class that holds one) is at an even
+  offset, a `char` sized one anywhere, and a class with such a member is a whole number of 2
+  bytes: `struct { char c; long l; }` is 6 bytes with `l` at 2 (8 bytes with `l` at 4 on the
+  65C64).  The byte of padding after a `char` lets the pair be written as one 16 bit value.
+  This is `#pragma pack(2)` for every class: `#pragma pack(1)` still packs to 1, and
+  `#pragma pack(4)` or `(8)` change nothing.
+
+So a class's size and its members' offsets are not the same on the two processors, or on a PC:
+bytes shared with a program built by another compiler (a file's header, a device's registers, a
+structure the emulator reads) should be made of members that need no padding anywhere, 4 byte
+members at multiples of 4 and 2 byte ones at multiples of 2.
 
 ### A 16 bit `int`
 
@@ -108,7 +132,7 @@ both.  A host build checks the W65C816's size model with `g++ -m32 -DBASELIB_SIZ
 | Statements | Everything in C: `if`, `while`, `do`, `for`, `switch`, `break`, `continue`, `return`, `goto`.  Declarations in conditions (`if (int x = f())`, an object too, made again each time round a loop).  A `switch` over an object, converted by its one conversion function to an integer.  `asm("...")`: its text is assembled as a routine of its own, which the statement calls (it takes no operands). |
 | Functions | Overloading, default arguments (a template instance's are worked out with its template arguments), recursion, variadic functions (`stdarg.h`), pointers to functions.  A function, or a member function, declared by the name of its type (`typedef int Binary(int, int); Binary Add;`). |
 | Classes | Structs, classes and unions, named or not, local and anonymous; multiple inheritance with several polymorphic bases; virtual functions, pure virtuals, virtual destructors; `override` and `final`; constructors, destructors, member initialisers, default member initialisers, delegating constructors; `= default` (in the class or after it) and `= delete`; `const` and `volatile` member functions, which overload; static members; friends; nested classes; virtual base classes; a class's own `operator new` and `operator delete`. |
-| Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one.  `c ? x : y` of two bit-fields can be assigned to: it is the one picked. |
+| Bit-fields | Laid out as MSVC lays them out: a bit-field shares a unit the size of its type, from the unit's lowest bit, and a new unit starts when the type's size changes, the bits run out, or after a zero width bit-field.  A unit is placed as a member of its type is (at an even offset at most on the W65C816).  Signed ones are sign extended when read; unnamed ones (`int : 3;`) are padding.  A bit-field has no address, but a `const` reference can bind to a copy of one.  `c ? x : y` of two bit-fields can be assigned to: it is the one picked. |
 | Objects by value | Passed and returned by value; temporaries destroyed at the end of their full expression; results made in place (as C++17 requires). |
 | Operators | Member and free operator functions, which compete for an operator as the standard says, and free ones for enums too; conversion functions; `operator->`, chained through the objects it returns; an object called through the pointer to a function it converts to; pointers to members (`.*` and `->*`).  A built-in operator on an object that no operator function takes is done on what the object's conversion function gives (`count + 1` for a class with `operator int`), when the class has one that fits. |
 | Templates | Class, function and member templates; explicit and partial specialisation; non-type and default arguments; deduction from `T`, `T*`, `T&` and `X<..., T, N, ...>`; explicit instantiation (of a member function too); deduction through an alias template and of a template template parameter (`Get(C<T>&)`), from function and member pointer types (`R (*)(A)`, `M C::*`), from a braced list for `std::initializer_list<T>`, and of packs from a template's argument list (`F(Types<T...>, Ints<I...>)`); a function template's address, its arguments deduced from the type wanted; member pointers and `nullptr` as template arguments, and alias templates as template template arguments; names that don't depend on a template parameter found where the template is written, and a dependent base's members only through `this->` or qualified; partial specialisations of variable templates, and on function and member pointer types (`F<R(A...)>`, `F<R (C::*)(A...) const>`) and on types their parameters are only used in (`Has<T, Void<typename T::Type>>`); variadic templates (`sizeof...`, packs expanded in arguments, lists and base classes); template template parameters; alias templates; member class templates, constructor templates and variable templates that are static members; a class template's member classes, member class templates and member variable templates, each instance its own, defined in the class template or outside it (`template<class T> struct Outer<T>::Inner { };`), and their members defined outside too; SFINAE; a function template that is declared, called, and defined after. |
@@ -132,7 +156,7 @@ both.  A host build checks the W65C816's size model with `g++ -m32 -DBASELIB_SIZ
 | `__restrict` | On a global pointer or a pointer parameter: what it points at isn't reached any other way.  Lets loads leave loops. |
 | `__attribute__((used))` | Keeps a global the program never names, so its constructor runs. |
 | `__func__`, `__FUNCTION__`, `__PRETTY_FUNCTION__`, `__FUNCSIG__`, `__FUNCDNAME__` | String literals. |
-| `#pragma pack` | As MSVC. |
+| `#pragma pack` | As MSVC.  On the W65C816 it can only lower a member's alignment, which is 2 at most (see [Alignment and layout](#alignment-and-layout)). |
 
 ### Predefined macros
 
@@ -156,7 +180,7 @@ compiler's own file and line, which says which construct it was.
 | A member template whose parameters are its class's pack and then its own | `template<class... B> static int Mix(A... a, B... b)` in `template<class... A> struct Pair`: the call isn't matched. |
 | A partial specialisation, outside the class, of a class template's member variable template | The template itself, defined in the class or outside it, is each instance's own. |
 | A union's inactive member in a constant | Reading the member that wasn't the last given a value is refused only where the two differ in size. |
-| A local's alignment on the W65C816 | A local is placed as `alignas` asks, on both processors, but a W65C816 frame can start at any byte, so a local without `alignas` isn't always at a multiple of its type's `alignof`. |
+| An 8 byte local's alignment on the 65C64 | A local is placed as `alignas` asks, but a 65C64 frame's places are multiples of 4, so a `double` or `long long` local without `alignas` isn't always at a multiple of 8, which `alignof` says it is. |
 | The C++ standard library | Libc65 has the C library and `<new>`, `<exception>` and `<typeinfo>` only. |
 
 A member's name that two base classes each declare is ambiguous wherever it is used
