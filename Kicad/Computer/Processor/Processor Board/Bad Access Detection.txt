@@ -1,0 +1,150 @@
+Bad Access Detection
+====================
+
+A simple way for the processor board to notice a user program reading or writing a bank it hasn't been given, and to
+tell the kernal so that it can end the program.  Written 2026-11-22 as a proposal: nothing here is on the boards yet.
+The net and part names are the Processor Board's and its daughter boards' as their schematics have them today.
+
+
+The problem
+-----------
+In user mode every access's bank byte is looked up in the remap table in MPU RAM (memory-map.md, "Bank remapping"):
+
+    physical bank = MPU RAM [ $070000 + Process ID x $100 + bank ]
+
+A remap page's 0 means the bank isn't mapped: the kernal never gives a process physical bank 0 (it is marked absent in
+gauiKernalBanks), and clears a page to 0 when a process ends.  So a wild pointer, a stack running off the bottom of its
+bank, or a heap pointer used after its bank was given back, reaches physical bank 0 of main memory.
+
+That is already safe: physical bank 0 is no process's and isn't the kernal's, so a stray write can't damage another
+program or the kernal.  With fewer than four Memory Boards there is no chip there at all (writes are lost, reads are
+whatever the bus floats to); with four it is the fourth board's first bank, which nothing uses.
+
+What is missing is noticing.  The program carries on with garbage and the kernal never knows.
+
+ABORT can't be used for this as well as it is: it is the main bus's contention signal (J5 B6, ~{ABORT}).  ABORT is also
+the hard way to do it, as it has to be asserted within the cycle of the bad access for the processor to abandon the
+instruction cleanly.
+
+
+The idea
+--------
+Watch the remapped bank byte.  When a user mode access that is a real access (not one of the processor's dummy cycles)
+has a remapped bank of 0, set a flag.  The flag pulls IRQ low.  The kernal's interrupt handler sees the flag, clears it,
+and ends the running process ("bad address").
+
+This is imprecise: the instruction that did it finishes, and the processor doesn't stop on it, so the kernal doesn't
+learn its PC.  It learns which process did it, which is what it needs to end it.  Nothing has to be fast, and nothing has
+to interact with ABORT.
+
+Nothing is blocked either: the stray access still goes to physical bank 0, which is harmless (above).
+
+
+Where the signals are (Processor Board)
+---------------------------------------
+  KA16-KA23        The remapped bank byte: the Kernal Mode board's A_{OUT}16-23 (B6 pins 50 to 43), going to the Main
+                   Memory Address board (B7).  IC7 on the Kernal Mode board latches it from D0-D7 while ~{PHI2} is high
+                   (the remap lookup in the first half of the cycle) and holds it through PHI2 high.  In kernel mode
+                   they are the processor's own bank byte (IC8), so they are only looked at in user mode.
+  ~{Kernal Mode} OUT
+                   High in user mode: the Kernal Mode board's IC13 ~Q, latched at the end of each cycle (B6 pin 54, not
+                   connected on the Processor Board today).  With the Kernal Mode board's fault 3 fixed (Kernal Mode
+                   Faults.txt), the bank byte and this signal change on the same edge.
+  VDA, VPA         The W65C816's valid data address and valid program address (B1 pins 59 and 56).  Both low is a
+                   cycle with no real access, whose address can be anything: such a cycle must not set the flag.
+  ~{PHI2}          The inverted clock (B6 pin 5 and others).  Its rising edge is the end of a cycle.
+  ~{Reset}         The board's reset.
+  ~{Register1}     Register 1 at $100001, "Not connected" today: the MPU Address Decode board's IC38 ~Y1 (through RN2)
+                   on B5 pin 13, which the Processor Board leaves unconnected.
+  ~{RD}, ~{WD}     The read and write strobes.
+  ~{IRQ}           The W65C816's IRQ (B1 pin 43), driven by the Device Interrupts board's ~{INT} (B12 pin 39).
+  D0               The data bus' bit 0, for reading the flag.
+
+
+The circuit
+-----------
+All 3.3V 74LVC parts, like the boards around them.  Eight small packages; they would fit on a small daughter board of
+their own (a "Bad Access" board on the Processor Board, as the Hold Count and Board Presence boards are).
+
+1. Unmapped: the remapped bank byte is 0.
+
+       U1  74LVC32 (quad 2-input OR):   KA16+KA17, KA18+KA19, KA20+KA21, KA22+KA23
+       U2  74LVC32 (quad 2-input OR):   gate A = (KA16+KA17)+(KA18+KA19), gate B = (KA20+KA21)+(KA22+KA23)
+       U3  74LVC1G02 (2-input NOR):      Unmapped = NOR(U2A, U2B)        high when all eight bits are 0
+
+2. Bad: a real user mode access to an unmapped bank.
+
+       U2  gate C:                       Valid = VDA + VPA
+       U4  74LVC1G11 (3-input AND):      Bad = Unmapped . Valid . ~{Kernal Mode} OUT
+
+3. The flag: set at the end of a bad cycle, and kept until the kernal clears it.
+
+       U5  74LVC1G74 (D flip-flop, set and clear):
+               CP   = ~{PHI2}            (the end of the cycle, when KA, VDA and VPA are settled)
+               D    = Bad + Flag         (U2 gate D: the flag stays set once it is)
+               ~SD  = 3.3V
+               ~CD  = Clear (below)
+               Q    = Flag
+               ~Q   = ~{Flag}
+
+4. Clearing: writing register 1, or reset.
+
+       U6  74LVC2G32 (dual 2-input OR):  gate A = ~{Register1} + ~{WD}  low only while register 1 is written
+       U7  74LVC2G08 (dual 2-input AND): gate A = Clear = U6A . ~{Reset} low on that write or on reset
+
+5. Reading: register 1's D0 is ~{Flag}, 0 when a bad access has happened (as the Device Interrupt registers' bits are
+   0 for a device interrupting).
+
+       U6  gate B:                       ~{Read Bad Access} = ~{Register1} + ~{RD}
+       U8  74LVC1G125 (3-state buffer):  A = ~{Flag}, ~OE = ~{Read Bad Access}, Y = D0
+
+   The other bits of register 1 aren't driven, as they aren't today.
+
+6. The interrupt: the flag pulls IRQ low as a device's interrupt does.
+
+       U7  gate B:                       ~{IRQ} = ~{INT} . ~{Flag}
+
+   ~{INT} (B12 pin 39) no longer goes straight to the processor's ~{IRQ}: it goes to U7B's other input, and U7B's
+   output is ~{IRQ}.  This is the only net on the Processor Board that changes; the rest is new connections to pins
+   that are free today (B6 pin 54, B5 pin 13).
+
+Timing: KA16-KA23 settle in the first half of the cycle (the remap lookup) and are held through PHI2 high; VDA, VPA and
+~{Kernal Mode} OUT are settled by then too.  U1, U2 and U3 are three levels of gates and U4 one more, about 15ns at
+3.3V, which has all of PHI2 high (20ns at 25MHz) to settle before U5 takes it at ~{PHI2}'s rising edge.  That is
+the margin to check on the real board; if it is short, U5 can take Unmapped instead of Bad and the qualifying can be done
+one cycle later, or the OR tree made shallower with 3-input ORs (74LVC1G332).
+
+The whole of it could instead be one small programmable logic part (a 16V8 or 22V10 style GAL), at the cost of a part
+that has to be programmed and, for most of them, 5V.
+
+
+What the kernal does
+--------------------
+  - The IRQ handler reads register 1 first.  D0 = 0 is a bad access: it writes register 1 (any value) to clear the
+    flag and ends the process whose ID is in the Process ID register with a new result, KERNAL_PROCESS_BAD_ACCESS.
+    Device interrupts are handled as they are now.
+  - The kernal also reads register 1 at each COP (a kernal call) and before it switches the Process ID register to
+    another process.  A user program can run with interrupts off (SEI isn't privileged), which would hold the IRQ off;
+    this way it is still caught at its next kernal call, and a bad access is always put down to the process that made
+    it, not to the one the kernal switches to next.  It is one read of a register: a few cycles of a kernal call that
+    takes about 2900.
+  - The emulator (HCP65Lib/HCP65.cpp) models it: register 1's D0, the flag set by a user mode access through a remap
+    entry of 0 with VDA or VPA, cleared by a write to register 1 and by reset, and ANDed into IRQ.  It is tested in
+    TestHCP65Lib with a program that writes through an unmapped bank and is ended with KERNAL_PROCESS_BAD_ACCESS.
+
+
+Not covered
+-----------
+  - The process's own bank 0: a NULL pointer, or a stack that runs below its end, stays inside bank 0, which is always
+    mapped.  The kernal's canaries catch those: a pattern at the bottom of the stack area and at the bottom of bank 0,
+    checked at each kernal call and when the process ends.
+  - Reads and writes inside a bank the process does have, but that its heap has freed: the hardware can't know.
+  - Kernel mode: the kernal sees physical addresses and is trusted.
+
+
+If the PC is ever wanted
+------------------------
+Bad (step 2) can also go to ABORT, through an OR with the main bus' contention ~{ABORT} so that either asserts it, with
+the flag telling the abort handler which it was.  The processor then abandons the instruction that made the bad access
+and the handler has its address.  That has to meet ABORT's timing (asserted within the bad access' own cycle), which is
+why this note doesn't do it.
