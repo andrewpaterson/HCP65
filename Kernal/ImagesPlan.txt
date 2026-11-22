@@ -22,8 +22,10 @@ KernalScreenSetColours takes a palette record and loads its colours at its indic
 palette as it was.  SFTColours makes the record of the 3-3-2 colours that a pixel with no palette is.
 
 
-Stage A: images, and blits of them
-----------------------------------
+Stage A: images, and blits of them (done)
+-----------------------------------------
+HCP65 c1d6d3b.  The calls are KernalScreenAddImage and KernalScreenRemoveImage, a full table is
+KERNAL_DEVICE_NO_HANDLES and a handle that isn't the program's KERNAL_DEVICE_BAD_HANDLE.
 Where an image is: in the program's own heap (malloc), so its memory is the program's and goes when it ends.  The
 kernal keeps only a handle to it.
 
@@ -63,8 +65,10 @@ compares the frame with what it works out; handles that have gone, another proce
 handles are dropped at the end.
 
 
-Stage A2: stack and NULL canaries
----------------------------------
+Stage A2: stack and NULL canaries (done)
+----------------------------------------
+HCP65 9a4ddb4.  The results are KERNAL_RESULT_STACK_OVERFLOW and KERNAL_RESULT_NULL_WRITE; the check is about 200
+cycles a call.
 Not about images: put here, after stage A, to be done next.  A user program's wild pointers into a bank it doesn't
 have reach physical bank 0, which is no one's, so they do no harm, but nothing notices
 (Kicad/Computer/Processor/Processor Board/Bad Access Detection.txt is a hardware way to).  Two common mistakes stay
@@ -83,8 +87,9 @@ Tests: programs that overflow their stack and write through NULL are ended with 
 runs as before; the cost of a call is measured with TEST_HCP65_TIME_COP before and after.
 
 
-Stage B: scaled blits (Graphics Board)
---------------------------------------
+Stage B: scaled blits (Graphics Board) (done)
+---------------------------------------------
+HCP65 2cb838c.  About 9000 cycles a blit and 1000 a row; the row loop in assembly is what would make it quicker.
 KERNAL_BLIT_SCALED with uiWidth and uiHeight (SKernalBlit +26 and +28): the image drawn at that size.
 
   Across            each drawn row is one copy, the offsets mapping each pixel drawn to the image pixel it is (the
@@ -102,8 +107,9 @@ Tests: 1:1, x2, x1/2 and odd ratios, mirrored, clipped on each side and across a
 pixel.  Measured: the cycles a row and the cost of writing the offsets.
 
 
-Stage Q: palettised images from PNGs (host)
--------------------------------------------
+Stage Q: palettised images from PNGs (host) (done)
+--------------------------------------------------
+CommonLibraries 5b71818a1: SupportLib's QuantiseSFT and SaveSFTQuantised, and Tools/PNGToSFT.
 SupportLib gets a quantiser from a CImage (PNG, BMP and the others) to pixels and a palette: the image's own colours
 when there are few enough, else median cut to the most colours it is given, using as few as the image needs, without
 dithering.  Several images can be made one palette (an animation's frames).  A pixel whose alpha is below half is
