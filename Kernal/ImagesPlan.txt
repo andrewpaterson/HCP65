@@ -63,6 +63,26 @@ compares the frame with what it works out; handles that have gone, another proce
 handles are dropped at the end.
 
 
+Stage A2: stack and NULL canaries
+---------------------------------
+Not about images: put here, after stage A, to be done next.  A user program's wild pointers into a bank it doesn't
+have reach physical bank 0, which is no one's, so they do no harm, but nothing notices
+(Kicad/Computer/Processor/Processor Board/Bad Access Detection.txt is a hardware way to).  Two common mistakes stay
+inside the program's own bank 0, which is always mapped, and software can catch them:
+
+  Stack             a pattern at the bottom of the stack area (its lowest bytes, above which the stack mustn't grow).
+  NULL              the bottom of bank 0 kept unused and filled with a pattern: a NULL pointer's reads and writes land
+                    there.  The direct page and anything else the start up puts at the bottom of bank 0 move up.
+
+The kernal writes both when it loads the program and compares them at each kernal call (COP) and when the program
+ends.  A changed canary ends the program with a new result, KERNAL_PROCESS_STACK_OVERFLOW or KERNAL_PROCESS_NULL_WRITE.
+It costs a few dozen cycles a call against about 2900 for the call itself.  It doesn't say which instruction did it,
+only that it happened since the last call.
+
+Tests: programs that overflow their stack and write through NULL are ended with those results; one that does neither
+runs as before; the cost of a call is measured with TEST_HCP65_TIME_COP before and after.
+
+
 Stage B: scaled blits (Graphics Board)
 --------------------------------------
 KERNAL_BLIT_SCALED with uiWidth and uiHeight (SKernalBlit +26 and +28): the image drawn at that size.
