@@ -286,3 +286,273 @@ ScaledDone:
 		tcs
 		pld
 		rtl
+
+; void KernalMainScaledRows(SKernalScaledRows* psRows): Graphics Board copies of psRows' rows (KernalDriver.h) while
+; they are in the bank its offsets' range is: the board's Flags, transparent colour and count's start and stop once,
+; then for each row its source and destination, Start and the wait; then the next drawn row, whose image row is found
+; by adding the step to the remainder (and the row step to the offset each time it passes the denominator).  The block
+; is copied into the direct page frame, worked on there, and what changes (the destination, the offset, the remainder
+; and the rows) copied back where it stopped.  The pointer is in A and X.
+SR_DEST			= 0			; SKernalScaledRows.
+SR_BASE			= 4
+SR_OFFSET		= 8
+SR_LOW			= 12
+SR_HIGH			= 16
+SR_ROW_STEP		= 20
+SR_REMAINDER	= 24
+SR_STEP			= 28
+SR_DENOMINATOR	= 32
+SR_DEST_STRIDE	= 36
+SR_ROWS			= 38
+SR_START		= 40
+SR_COUNT		= 42
+SR_TRANSPARENT	= 44
+SR_STOP			= 46
+SR_SIZE			= 48
+
+R_BOARD			= 1			; The frame: gpuiKernalGraphics,
+R_BLOCK			= 5			; the block's copy,
+R_SOURCE		= R_BLOCK + SR_SIZE			; a row's source,
+R_ROWS			= R_SOURCE + 4				; the block.
+R_RESERVED		= SR_SIZE + 4
+R_PUSHED		= 4 + R_RESERVED + 4
+
+B_DEST			= R_BLOCK + SR_DEST
+B_BASE			= R_BLOCK + SR_BASE
+B_OFFSET		= R_BLOCK + SR_OFFSET
+B_LOW			= R_BLOCK + SR_LOW
+B_HIGH			= R_BLOCK + SR_HIGH
+B_ROW_STEP		= R_BLOCK + SR_ROW_STEP
+B_REMAINDER		= R_BLOCK + SR_REMAINDER
+B_STEP			= R_BLOCK + SR_STEP
+B_DENOMINATOR	= R_BLOCK + SR_DENOMINATOR
+B_DEST_STRIDE	= R_BLOCK + SR_DEST_STRIDE
+B_ROWS			= R_BLOCK + SR_ROWS
+B_START			= R_BLOCK + SR_START
+B_COUNT			= R_BLOCK + SR_COUNT
+B_TRANSPARENT	= R_BLOCK + SR_TRANSPARENT
+B_STOP			= R_BLOCK + SR_STOP
+
+		.global _KernalMainScaledRows__FPC17SKernalScaledRows.ax
+_KernalMainScaledRows__FPC17SKernalScaledRows.ax:
+		.width (A, X), 16
+		phd
+		phx
+		pha
+		tsc
+		sec
+		sbc R_RESERVED
+		tcs
+		lda [_gpuiKernalGraphics + 2]:24
+		pha
+		lda [_gpuiKernalGraphics]:24
+		pha
+		tsc
+		tcd
+
+		; The block into the frame, a word at a time.
+		ldy SR_SIZE - 2
+RowsCopyIn:
+		.width (A, X), 16
+		lda [[D + R_ROWS]:24 + Y]
+		tyx
+		sta [D + R_BLOCK + X]
+		dey
+		dey
+		bpl RowsCopyIn
+		lda [D + B_ROWS]
+		bne RowsBoard
+		brl RowsDone
+
+		; Once: the count's start and stop (the start plus the count, wrapping at 32768), the transparent colour and
+		; the Flags.
+RowsBoard:
+		.width (A, X), 16
+		lda [D + B_START]
+		clc
+		adc [D + B_COUNT]
+		and GRAPHICS_COUNT_MASK
+		sta [D + B_STOP]
+		sep m
+		ldy BLITTER_COUNT
+		lda [D + B_START]
+		sta [[D + R_BOARD]:24 + Y]
+		iny
+		lda [D + B_START + 1]
+		sta [[D + R_BOARD]:24 + Y]
+		ldy BLITTER_COUNT_STOP
+		lda [D + B_STOP]
+		sta [[D + R_BOARD]:24 + Y]
+		iny
+		lda [D + B_STOP + 1]
+		sta [[D + R_BOARD]:24 + Y]
+		lda [D + B_TRANSPARENT + 1]
+		bne RowsOpaque
+		ldy BLITTER_TRANSPARENT_COLOUR
+		lda [D + B_TRANSPARENT]
+		sta [[D + R_BOARD]:24 + Y]
+		lda BLITTER_TRANSPARENT
+		bra RowsFlags
+RowsOpaque:
+		.width A, 8
+		lda BLITTER_OPAQUE
+RowsFlags:
+		.width A, 8
+		ldy BLITTER_FLAGS
+		sta [[D + R_BOARD]:24 + Y]
+		rep m
+
+		; Each row while there are rows and its offset is from the low to the high.
+RowsNext:
+		.width (A, X), 16
+		lda [D + B_ROWS]
+		bne RowsLow
+		brl RowsDone
+RowsLow:
+		.width (A, X), 16
+		lda [D + B_OFFSET + 2]
+		cmp [D + B_LOW + 2]
+		bcc RowsOut
+		bne RowsHigh
+		lda [D + B_OFFSET]
+		cmp [D + B_LOW]
+		bcc RowsOut
+RowsHigh:
+		.width (A, X), 16
+		lda [D + B_HIGH + 2]
+		cmp [D + B_OFFSET + 2]
+		bcc RowsOut
+		bne RowsCopy
+		lda [D + B_HIGH]
+		cmp [D + B_OFFSET]
+		bcs RowsCopy
+RowsOut:
+		.width (A, X), 16
+		brl RowsDone
+
+		; The row's source (the base plus its offset) and destination, Start, and the wait for the count to reach the
+		; stop.  The board has main memory meanwhile.
+RowsCopy:
+		.width (A, X), 16
+		lda [D + B_BASE]
+		clc
+		adc [D + B_OFFSET]
+		sta [D + R_SOURCE]
+		lda [D + B_BASE + 2]
+		adc [D + B_OFFSET + 2]
+		sta [D + R_SOURCE + 2]
+		sep m
+		ldy BLITTER_SOURCE
+		lda [D + R_SOURCE]
+		sta [[D + R_BOARD]:24 + Y]
+		iny
+		lda [D + R_SOURCE + 1]
+		sta [[D + R_BOARD]:24 + Y]
+		iny
+		lda [D + R_SOURCE + 2]
+		sta [[D + R_BOARD]:24 + Y]
+		ldy BLITTER_DEST
+		lda [D + B_DEST]
+		sta [[D + R_BOARD]:24 + Y]
+		iny
+		lda [D + B_DEST + 1]
+		sta [[D + R_BOARD]:24 + Y]
+		iny
+		lda [D + B_DEST + 2]
+		sta [[D + R_BOARD]:24 + Y]
+		lda 1
+		sta [_gbKernalMainBusBusy]:24
+		ldy BLITTER_START
+		sta [[D + R_BOARD]:24 + Y]
+RowsWait:
+		.width A, 8
+		ldy BLITTER_COUNT
+		lda [[D + R_BOARD]:24 + Y]
+		cmp [D + B_STOP]
+		bne RowsWait
+		iny
+		lda [[D + R_BOARD]:24 + Y]
+		cmp [D + B_STOP + 1]
+		bne RowsWait
+		lda 0
+		sta [_gbKernalMainBusBusy]:24
+		rep m
+
+		; The next drawn row: down the picture a row, one fewer to draw, and the step added to the remainder.
+		lda [D + B_DEST]
+		clc
+		adc [D + B_DEST_STRIDE]
+		sta [D + B_DEST]
+		lda [D + B_DEST + 2]
+		adc 0
+		sta [D + B_DEST + 2]
+		dec [D + B_ROWS]
+		lda [D + B_REMAINDER]
+		clc
+		adc [D + B_STEP]
+		sta [D + B_REMAINDER]
+		lda [D + B_REMAINDER + 2]
+		adc [D + B_STEP + 2]
+		sta [D + B_REMAINDER + 2]
+
+		; While the remainder is the denominator or more: less the denominator, and the offset on a row.
+RowsRemainder:
+		.width (A, X), 16
+		lda [D + B_REMAINDER + 2]
+		cmp [D + B_DENOMINATOR + 2]
+		bcc RowsStepped
+		bne RowsSubtract
+		lda [D + B_REMAINDER]
+		cmp [D + B_DENOMINATOR]
+		bcc RowsStepped
+RowsSubtract:
+		.width (A, X), 16
+		lda [D + B_REMAINDER]
+		sec
+		sbc [D + B_DENOMINATOR]
+		sta [D + B_REMAINDER]
+		lda [D + B_REMAINDER + 2]
+		sbc [D + B_DENOMINATOR + 2]
+		sta [D + B_REMAINDER + 2]
+		lda [D + B_OFFSET]
+		clc
+		adc [D + B_ROW_STEP]
+		sta [D + B_OFFSET]
+		lda [D + B_OFFSET + 2]
+		adc [D + B_ROW_STEP + 2]
+		sta [D + B_OFFSET + 2]
+		bra RowsRemainder
+RowsStepped:
+		.width (A, X), 16
+		brl RowsNext
+
+		; What changed back into the block: the destination, the offset, the remainder and the rows.
+RowsDone:
+		.width (A, X), 16
+		ldy SR_DEST
+		lda [D + B_DEST]
+		sta [[D + R_ROWS]:24 + Y]
+		ldy SR_DEST + 2
+		lda [D + B_DEST + 2]
+		sta [[D + R_ROWS]:24 + Y]
+		ldy SR_OFFSET
+		lda [D + B_OFFSET]
+		sta [[D + R_ROWS]:24 + Y]
+		ldy SR_OFFSET + 2
+		lda [D + B_OFFSET + 2]
+		sta [[D + R_ROWS]:24 + Y]
+		ldy SR_REMAINDER
+		lda [D + B_REMAINDER]
+		sta [[D + R_ROWS]:24 + Y]
+		ldy SR_REMAINDER + 2
+		lda [D + B_REMAINDER + 2]
+		sta [[D + R_ROWS]:24 + Y]
+		ldy SR_ROWS
+		lda [D + B_ROWS]
+		sta [[D + R_ROWS]:24 + Y]
+		tdc
+		clc
+		adc R_PUSHED
+		tcs
+		pld
+		rtl

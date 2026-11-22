@@ -164,6 +164,8 @@ _gauiKernalExports:
 		.long _KernalMainCopy__FPhPKhjj.axssy
 		.long Export_KernalMainScaledCopy__FPhPKhjjj_axssy
 		.long _KernalMainScaledCopy__FPhPKhjjj.axssy
+		.long Export_KernalMainScaledRows__FPC17SKernalScaledRows_ax
+		.long _KernalMainScaledRows__FPC17SKernalScaledRows.ax
 KernalExportsEnd:
 
 		; The assembler counts them: eight bytes each.
@@ -316,3 +318,5 @@ Export_KernalMainCopy__FPhPKhjj_axssy:
 		.byte "_KernalMainCopy__FPhPKhjj.axssy", 0
 Export_KernalMainScaledCopy__FPhPKhjjj_axssy:
 		.byte "_KernalMainScaledCopy__FPhPKhjjj.axssy", 0
+Export_KernalMainScaledRows__FPC17SKernalScaledRows_ax:
+		.byte "_KernalMainScaledRows__FPC17SKernalScaledRows.ax", 0

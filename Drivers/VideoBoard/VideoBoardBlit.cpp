@@ -598,14 +598,11 @@ bool CKernalVideoBoard::BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 
 //////////////////////////////////////////////////////////////////////////
 uint16 CKernalVideoBoard::BlitScaled(const SKernalBlit* psBlit, const SKernalImage* psImage, const int32* paiClip)
 {
-	uint8*	puiDest;
+	SKernalScaledRows	sRows;
 	uint8*	puiBank;
 	uint32	uiBankBytes;
+	uint32	uiInBank;
 	uint32	uiRowOffset;
-	uint32	uiLastRowOffset;
-	uint32	uiDenominator;
-	uint32	uiRemainder;
-	uint32	uiStep;
 	int32	iLeft;
 	int32	iRight;
 	int32	iTop;
@@ -616,7 +613,6 @@ uint16 CKernalVideoBoard::BlitScaled(const SKernalBlit* psBlit, const SKernalIma
 	uint16	uiFirst;
 	uint16	uiCount;
 	uint16	uiTransparent;
-	int32	iY;
 
 	if (!gpuiKernalGraphics)
 	{
@@ -642,30 +638,61 @@ uint16 CKernalVideoBoard::BlitScaled(const SKernalBlit* psBlit, const SKernalIma
 	uiFirst = (uint16)(iLeft - psBlit->iX);
 	uiCount = (uint16)(iRight - iLeft);
 
-	//The first drawn row's image row, then each next one's by adding 2 x the image's height to the numerator, its
-	//offset in the image stepping with it.  The image's first bank is found once: a row that is all in it is read
-	//from there, and only another is found again.
-	uiDenominator = 2 * (uint32)uiHeight;
-	uiStep = 2 * (uint32)psImage->uiHeight;
-	uiRemainder = (2 * (uint32)(iTop - psBlit->iY) + 1) * psImage->uiHeight;
-	uiRow = (uint16)(uiRemainder / uiDenominator);
-	uiRemainder -= (uint32)uiRow * uiDenominator;
-	uiRowOffset = (uint32)uiRow * psImage->uiWidth;
-	uiLastRowOffset = (uint32)(psImage->uiHeight - 1) * psImage->uiWidth;
-	puiBank = KernalUserPointer(psImage->uiPixels, &uiBankBytes);
-	puiDest = (uint8*)(muiWindow + (uint32)iTop * muiWidth + (uint32)iLeft);
-	for (iY = iTop; iY < iBottom; iY++)
+	//The first drawn row's image row (its offset in the image, from the bottom if mirrored), then each next one's by
+	//adding 2 x the image's height to the numerator, the offset stepping a row each time it passes the denominator.
+	sRows.uiDenominator = 2 * (uint32)uiHeight;
+	sRows.uiStep = 2 * (uint32)psImage->uiHeight;
+	sRows.uiRemainder = (2 * (uint32)(iTop - psBlit->iY) + 1) * psImage->uiHeight;
+	uiRow = (uint16)(sRows.uiRemainder / sRows.uiDenominator);
+	sRows.uiRemainder -= (uint32)uiRow * sRows.uiDenominator;
+	if (psBlit->uiFlags & KERNAL_BLIT_MIRROR_Y)
 	{
-		if (!BlitScaledRow(psImage, (psBlit->uiFlags & KERNAL_BLIT_MIRROR_Y) ? uiLastRowOffset - uiRowOffset : uiRowOffset, puiBank, uiBankBytes, puiDest, uiFirst, uiCount, uiWidth, (psBlit->uiFlags & KERNAL_BLIT_MIRROR_X) != 0, uiTransparent))
+		sRows.uiOffset = (uint32)(psImage->uiHeight - 1 - uiRow) * psImage->uiWidth;
+		sRows.iRowStep = -(int32)psImage->uiWidth;
+	}
+	else
+	{
+		sRows.uiOffset = (uint32)uiRow * psImage->uiWidth;
+		sRows.iRowStep = psImage->uiWidth;
+	}
+	sRows.puiDest = (uint8*)(muiWindow + (uint32)iTop * muiWidth + (uint32)iLeft);
+	sRows.uiDestStride = muiWidth;
+	sRows.uiRows = (uint16)(iBottom - iTop);
+	sRows.uiStart = uiFirst;
+	sRows.uiCount = uiCount;
+	sRows.uiTransparent = uiTransparent;
+
+	//The next row's bank is found, and KernalMainScaledRows draws the rows while they are in it; a row that crosses
+	//into the next bank is drawn here, two copies.
+	while (sRows.uiRows > 0)
+	{
+		uiRowOffset = sRows.uiOffset;
+		puiBank = KernalUserPointer(psImage->uiPixels + uiRowOffset, &uiInBank);
+		if (!puiBank)
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
-		puiDest += muiWidth;
-		uiRemainder += uiStep;
-		while (uiRemainder >= uiDenominator)
+		if (uiInBank >= psImage->uiWidth)
 		{
-			uiRemainder -= uiDenominator;
-			uiRowOffset += psImage->uiWidth;
+			//The rows of the image that are all in this bank.
+			uiBankBytes = (psImage->uiPixels + uiRowOffset) & 0xFFFF;
+			sRows.puiBase = puiBank - uiRowOffset;
+			sRows.uiLow = (uiBankBytes > uiRowOffset) ? 0 : uiRowOffset - uiBankBytes;
+			sRows.uiHigh = uiRowOffset + uiInBank - psImage->uiWidth;
+			KernalMainScaledRows(&sRows);
+			continue;
+		}
+		if (!BlitScaledRow(psImage, uiRowOffset, sRows.puiDest, uiFirst, uiCount, uiWidth, (psBlit->uiFlags & KERNAL_BLIT_MIRROR_X) != 0, uiTransparent))
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		sRows.puiDest += muiWidth;
+		sRows.uiRows--;
+		sRows.uiRemainder += sRows.uiStep;
+		while (sRows.uiRemainder >= sRows.uiDenominator)
+		{
+			sRows.uiRemainder -= sRows.uiDenominator;
+			sRows.uiOffset += (uint32)sRows.iRowStep;
 		}
 	}
 	return KERNAL_DRIVER_SUCCESS;
@@ -691,16 +718,15 @@ static uint16 VideoScaledOffset(uint16 uiDrawnX, uint16 uiSource, uint16 uiDrawn
 //////////////////////////////////////////////////////////////////////////
 //
 // Drawn pixels uiFirst to uiFirst + uiCount - 1 of a row of uiDrawn, at
-// puiDest, from the image's row at uiRowOffset through the offsets: from
-// puiBank (the image's first byte where it really is, with uiBankBytes of
-// its bank from there) if the row is all in that bank.  A row that
+// puiDest, from the image's row at uiRowOffset through the offsets (the
+// rows that are all in one bank are KernalMainScaledRows').  A row that
 // crosses into the process's next bank (which needn't be next to it in
 // main memory) is two copies: the pixels whose offsets are in the first
 // bank, and those in the next, whose source is put so that it plus their
 // offsets is there.  False if the process hasn't the row's memory.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CKernalVideoBoard::BlitScaledRow(const SKernalImage* psImage, uint32 uiRowOffset, uint8* puiBank, uint32 uiBankBytes, uint8* puiDest, uint16 uiFirst, uint16 uiCount, uint16 uiDrawn, bool bMirror, uint16 uiTransparent)
+bool CKernalVideoBoard::BlitScaledRow(const SKernalImage* psImage, uint32 uiRowOffset, uint8* puiDest, uint16 uiFirst, uint16 uiCount, uint16 uiDrawn, bool bMirror, uint16 uiTransparent)
 {
 	uint8*	puiSource;
 	uint8*	puiNext;
@@ -712,11 +738,6 @@ bool CKernalVideoBoard::BlitScaledRow(const SKernalImage* psImage, uint32 uiRowO
 	uint16	uiSplit;
 	bool	bFirstNext;
 
-	if (puiBank && (uiRowOffset + psImage->uiWidth <= uiBankBytes))
-	{
-		KernalMainScaledCopy(puiDest, puiBank + uiRowOffset, uiFirst, uiCount, uiTransparent);
-		return true;
-	}
 	uiAddress = psImage->uiPixels + uiRowOffset;
 	puiSource = KernalUserPointer(uiAddress, &uiInBank);
 	if (!puiSource)

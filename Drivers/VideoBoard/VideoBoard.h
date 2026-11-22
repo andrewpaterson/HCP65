@@ -196,7 +196,7 @@ protected:
 	uint16	BlitOpaqueSpans(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, int32 iRight, int32 iY, uint16 uiRow, uint32 uiSource, uint8* puiDest, uint16* puiSpans, int32 iBottom);
 	bool	BlitPixels(uint32 uiPixel, uint32 uiUserAddress, uint32 uiLength, uint16 uiTransparent);
 	uint16	BlitScaled(const SKernalBlit* psBlit, const SKernalImage* psImage, const int32* paiClip);
-	bool	BlitScaledRow(const SKernalImage* psImage, uint32 uiRowOffset, uint8* puiBank, uint32 uiBankBytes, uint8* puiDest, uint16 uiFirst, uint16 uiCount, uint16 uiDrawn, bool bMirror, uint16 uiTransparent);
+	bool	BlitScaledRow(const SKernalImage* psImage, uint32 uiRowOffset, uint8* puiDest, uint16 uiFirst, uint16 uiCount, uint16 uiDrawn, bool bMirror, uint16 uiTransparent);
 	void	WriteOffsets(uint16 uiSource, uint16 uiDrawn, bool bMirror);
 
 	uint16	WriteText(uint32 uiCell, uint32 uiUserAddress, uint32 uiLength, uint32* puiDone);

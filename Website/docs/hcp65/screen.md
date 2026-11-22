@@ -179,9 +179,10 @@ one size costs the table once.  A row of the image that crosses from one of the 
 the next is two copies.  An SFT can't be scaled (`KERNAL_DEVICE_BAD_ARGUMENT`): make it an
 [image](#images) first.
 
-On the emulator a scaled blit costs about 9,000 processor cycles, the kernel call itself included,
-and about 1,000 more for each row drawn, plus the board's two cycles for each pixel (the processor
-waits for it).  A row that crosses a bank costs about 3,000.
+On the emulator a scaled blit costs about 10,000 processor cycles, the kernel call itself
+included, and about 550 more for each row drawn, plus the board's two cycles for each pixel (the
+processor waits for it): the rows in each bank of the image are drawn by one assembly loop, which
+sets only each row's source and destination.  A row that crosses a bank costs about 3,000.
 
 ## The Blitter Board
 

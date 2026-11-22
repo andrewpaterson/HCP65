@@ -128,6 +128,33 @@ extern "C" volatile uint8*	gpuiKernalGraphics;
 //write.  It can't be called through a pointer (KernalCopy.asm).
 void			KernalMainScaledCopy(uint8* puiDest, const uint8* puiSource, uint16 uiStart, uint16 uiCount, uint16 uiTransparent);
 
+//Rows of a scaled blit, each a KernalMainScaledCopy of uiCount bytes from count uiStart to puiDest, which then moves on
+//uiDestStride, while there are uiRows and the row's uiOffset is from uiLow to uiHigh: its source is puiBase plus
+//uiOffset.  Each row adds uiStep to uiRemainder, and while that is uiDenominator or more it loses uiDenominator and
+//uiOffset gains iRowStep.  KernalMainScaledRows leaves the block where it stopped: uiRows is 0, or the row at uiOffset
+//isn't in the range (another bank's, for the caller to find).  uiStop is its own.  Every member is a whole number of
+//words, so the assembly's offsets are the compiler's (KernalCopy.asm).
+struct SKernalScaledRows
+{
+	uint8*	puiDest;		//+0
+	uint8*	puiBase;		//+4
+	uint32	uiOffset;		//+8
+	uint32	uiLow;			//+12
+	uint32	uiHigh;			//+16
+	int32	iRowStep;		//+20
+	uint32	uiRemainder;	//+24
+	uint32	uiStep;			//+28
+	uint32	uiDenominator;	//+32
+	uint16	uiDestStride;	//+36
+	uint16	uiRows;			//+38
+	uint16	uiStart;		//+40
+	uint16	uiCount;		//+42
+	uint16	uiTransparent;	//+44
+	uint16	uiStop;			//+46
+};
+
+void			KernalMainScaledRows(SKernalScaledRows* psRows);
+
 uint16			KernalStartDriver(CKernalDriver* pcDriver, uint16 uiSlot);
 CKernalDriver*	KernalGetDriver(uint16 uiSlot);
 CKernalDriver*	KernalFindDriver(const char* szManufacturer, const char* szName, uint16 uiIndex);

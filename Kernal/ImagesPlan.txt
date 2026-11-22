@@ -89,7 +89,8 @@ runs as before; the cost of a call is measured with TEST_HCP65_TIME_COP before a
 
 Stage B: scaled blits (Graphics Board) (done)
 ---------------------------------------------
-HCP65 2cb838c.  About 9000 cycles a blit and 1000 a row; the row loop in assembly is what would make it quicker.
+HCP65 2cb838c.  About 9000 cycles a blit and 1000 a row; with the row loop in assembly (KernalMainScaledRows) about
+10000 a blit and 550 a row.
 KERNAL_BLIT_SCALED with uiWidth and uiHeight (SKernalBlit +26 and +28): the image drawn at that size.
 
   Across            each drawn row is one copy, the offsets mapping each pixel drawn to the image pixel it is (the
