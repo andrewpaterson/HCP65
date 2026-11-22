@@ -114,3 +114,35 @@ happened since the program's last call; and a write past a canary that misses it
 NULL pointer's read, isn't noticed.  The direct page starts above the NULL canary so that nothing a
 program does on purpose touches it.  The check costs about 200 cycles of each call, which takes
 about 2,900 without it.
+
+### A program's memory
+
+A program's banks, as it sees them:
+
+| Banks | What |
+|---|---|
+| `$00` | Its bank 0: the stack, the direct page and the canaries (above) |
+| `$01`–`$1F` | Its code and data, put there by the kernel from its executable |
+| `$20`–`$3F`, `$44`–`$FE` | Its heap, mapped as it asks for it |
+| `$40`–`$43` | The maths tables, when it is built with them |
+| `$FF` | The heap block, at `$FF0300` |
+
+The heap block (`SKernalHeapInfo` in `HCP65User.h`) says where the heap is: the end of what was
+mapped before the program started (its `UserHeapSize`), the `HEAP` marker, and the heap's first
+byte and the byte past its last.  Libc65's `malloc` reads it and maps and unmaps the heap's banks
+itself ([Libc65](../compiler/libc65.md)), so a program rarely calls these:
+
+| Call | What it does |
+|---|---|
+| `KernalMapBanks(bank, count)` | Gives the program `count` banks of the heap from the one at `bank` (the address of its first byte), all or none.  Banks it already has are left as they are. |
+| `KernalUnmapBanks(bank, count)` | Takes back those of the `count` banks from `bank` that the program has. |
+| `KernalMemoryInfo(&info)` | Main memory's banks (`SKernalMemoryInfo`): all of them, those programs can have, those no program has, and the kernel's own heap's size and use. |
+
+`KERNAL_RESULT_BAD_ADDRESS` is a bank that isn't the heap's.  `KERNAL_RESULT_NO_MEMORY` is a
+mapping that would take main memory's last free bank: the kernel keeps one for its own heap, which
+takes banks from the top of main memory as processes take them from the bottom.  A bank isn't
+cleared before a program has it.  Every bank a program has goes back when it ends.
+
+On the emulator at the board's 25MHz a call to map one bank takes about 3,500 processor cycles from
+the `COP` to the program running again, and one to unmap it about the same.  Each bank more in the
+same call adds about 800 cycles to a mapping and 150 to an unmapping.
