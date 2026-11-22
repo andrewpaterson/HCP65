@@ -189,6 +189,7 @@ extern "C" uint16	KernalSystemCall(SKernalSystemCall* psCall);
 #define KERNAL_DEVICE_NOT_FOUND			8		//No such board, no driver for it, or no board at that index.
 #define KERNAL_DEVICE_NO_HANDLES		9		//The kernal has no handles left.
 #define KERNAL_DEVICE_BAD_HANDLE		10		//Not a handle of this program's.
+#define KERNAL_DEVICE_NO_MEMORY			11		//SFTImageMake: not the memory for the image.
 
 #define KERNAL_DEVICE_NAME_LENGTH		64
 #define KERNAL_DEVICE_DRIVER_LENGTH		32
@@ -286,8 +287,14 @@ extern "C" uint16	KernalDeviceCall(SKernalDeviceCall* psCall);
 //rectangle: uiSpans is the address of a pair of words for each of its rows from the top, the first pixel across the
 //rectangle drawn and the one just past the last (the same for none).  It is how what a sprite covered is drawn again
 //from a picture: only the part of each row that the sprite was in, a copy a row.  A transparent image ignores it.
+//
+//With KERNAL_BLIT_IMAGE uiImage is an image's handle (KernalScreenAddImage) and uiSize isn't used: its rows are drawn
+//as the image's flags say, each pixel with the image's palette unless that is KERNAL_SCREEN_NO_PALETTE.  Clipping and
+//spans are as for an SFT image.  KERNAL_DEVICE_BAD_HANDLE for a handle that isn't the program's;
+//KERNAL_DEVICE_BAD_ARGUMENT for an image whose memory the program no longer has (what came before has been drawn).
 #define KERNAL_BLIT_CLIP				0x0001
 #define KERNAL_BLIT_SPANS				0x0002
+#define KERNAL_BLIT_IMAGE				0x0004
 
 struct SKernalBlit
 {
@@ -314,6 +321,22 @@ extern "C" uint16	KernalScreenSetPalette(uint16 uiPalette);
 extern "C" uint16	KernalScreenWrite(uint32 uiOffset, const void* pvSource, uint32 uiLength);
 extern "C" uint16	KernalScreenRead(uint32 uiOffset, void* pvDest, uint32 uiLength);
 
+//Images: a picture of uiWidth by uiHeight pixels, a byte each, a row after another, in the program's own memory at
+//pvPixels, which the kernal is given a handle to so that blits can draw it (KERNAL_BLIT_IMAGE) by the Blitter or the
+//Graphics Board.  HCP65SFT.h's SFTImageMake makes one from an SFT image.  The image stays the program's memory: the
+//kernal keeps only where it is, its size, its flags (KERNAL_IMAGE_*) and the palette its pixels are drawn with
+//(KERNAL_SCREEN_NO_PALETTE: the one set).  A transparent image's pixels that are 0 aren't drawn.  If the program frees
+//or changes the memory, what is drawn is what is there.  KernalScreenRemoveImage takes the handle back and gives where
+//the image is (*ppvPixels, if it isn't NULL), for the program to free.  A program can have images without having the
+//picture; its handles go when it ends.  KERNAL_DEVICE_NO_HANDLES if the kernal has KERNAL_SCREEN_MAX_IMAGES already;
+//KERNAL_DEVICE_BAD_ARGUMENT for a size of 0 or memory the program hasn't; KERNAL_DEVICE_BAD_HANDLE for a handle that
+//isn't the program's (one taken back, or another program's).
+#define KERNAL_SCREEN_MAX_IMAGES		64
+#define KERNAL_IMAGE_TRANSPARENT		0x0001
+
+extern "C" uint16	KernalScreenAddImage(const void* pvPixels, uint16 uiWidth, uint16 uiHeight, uint16 uiFlags, uint16 uiPalette, uint16* puiImage);
+extern "C" uint16	KernalScreenRemoveImage(uint16 uiImage, void** ppvPixels);
+
 
 //How the screen calls reach the kernal (UserScreen.cpp, COP 14 in UserCalls.asm): one block in the program's memory.
 #define KERNAL_SCREEN_CALL_SET_MODE		0
@@ -326,15 +349,18 @@ extern "C" uint16	KernalScreenRead(uint32 uiOffset, void* pvDest, uint32 uiLengt
 #define KERNAL_SCREEN_CALL_SET_PALETTE	7
 #define KERNAL_SCREEN_CALL_WRITE		8
 #define KERNAL_SCREEN_CALL_READ			9
+#define KERNAL_SCREEN_CALL_ADD_IMAGE	10
+#define KERNAL_SCREEN_CALL_REMOVE_IMAGE	11
 
 struct SKernalScreenCall
 {
 	uint16	uiCall;			//+0   KERNAL_SCREEN_CALL_*.
-	uint16	uiValue;		//+2   The mode, the palette or the ticks.
-	uint32	uiOffset;		//+4   Write and Read: the first pixel.
+	uint16	uiValue;		//+2   The mode, the palette or the ticks.  Add Image: the palette; Remove Image: the handle.
+	uint32	uiOffset;		//+4   Write and Read: the first pixel.  Add Image: the width, and the height in its high word.
 	uint32	uiAddress;		//+8   The program's memory: the blit, the colours or the pixels.
-	uint32	uiLength;		//+12  Write and Read: the pixels.
-	uint32	uiResult;		//+16  Get Size: the width, and the height in its high word.
+	uint32	uiLength;		//+12  Write and Read: the pixels.  Add Image: the flags.
+	uint32	uiResult;		//+16  Get Size: the width, and the height in its high word.  Add Image: the handle; Remove
+							//     Image: where the image is.
 };
 
 extern "C" uint16	KernalScreenCall(SKernalScreenCall* psCall);

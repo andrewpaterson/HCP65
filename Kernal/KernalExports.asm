@@ -49,6 +49,8 @@ _gauiKernalExports:
 		.long _CKernalDriver__Wait.axy
 		.long Export_CKernalDriver__Blit
 		.long _CKernalDriver__Blit
+		.long Export_CKernalDriver__BlitImage
+		.long _CKernalDriver__BlitImage
 		.long Export_CKernalDriver__SetInterrupt
 		.long _CKernalDriver__SetInterrupt
 		.long Export_CKernalDriver__SetInterrupt_axssy
@@ -202,6 +204,8 @@ Export_CKernalDriver__Wait_axy:
 		.byte "_CKernalDriver__Wait.axy", 0
 Export_CKernalDriver__Blit:
 		.byte "_CKernalDriver__Blit", 0
+Export_CKernalDriver__BlitImage:
+		.byte "_CKernalDriver__BlitImage", 0
 Export_CKernalDriver__SetInterrupt:
 		.byte "_CKernalDriver__SetInterrupt", 0
 Export_CKernalDriver__SetInterrupt_axssy:

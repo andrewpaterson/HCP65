@@ -16,6 +16,8 @@
 
 
 #define VIDEO_TEST_GROUND		0x77	//What is under the blits.
+#define VIDEO_TEST_IMAGES_X		300		//Where the images whose palettes TestHCP65KernalVideo reads are drawn.
+#define VIDEO_TEST_IMAGES_Y		150
 
 
 uint8	gauiVideoTestRow[VIDEO_TEST_WIDTH];
@@ -245,6 +247,220 @@ uint16 VideoTestBlitAt(const void* pvImage, uint32 uiSize, int16 x, int16 y)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The image whose handle is uiImage blitted to (x, y), clipped to the
+// rectangle from (iClipLeft, iClipTop) if bClip.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 VideoTestBlitImage(uint16 uiImage, int16 x, int16 y, bool bClip, int16 iClipLeft, int16 iClipTop, int16 iClipRight, int16 iClipBottom)
+{
+	SKernalBlit	sBlit;
+
+	memset(&sBlit, 0, sizeof(SKernalBlit));
+	sBlit.uiImage = uiImage;
+	sBlit.iX = x;
+	sBlit.iY = y;
+	sBlit.uiFlags = (uint16)(KERNAL_BLIT_IMAGE | (bClip ? KERNAL_BLIT_CLIP : 0));
+	sBlit.iClipLeft = iClipLeft;
+	sBlit.iClipTop = iClipTop;
+	sBlit.iClipRight = iClipRight;
+	sBlit.iClipBottom = iClipBottom;
+	return KernalScreenBlit(&sBlit);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Images: the container's two made into images (SFTImageMake) and drawn
+// as the SFTs are, whole and through a clip rectangle; one whose rows
+// cross from one of the program's banks to another that isn't next to it
+// in main memory; handles that have gone or were never given, a size of
+// 0 and memory the program hasn't are refused, and there are no more than
+// KERNAL_SCREEN_MAX_IMAGES.  With the palette set 4, the opaque image is
+// drawn with its palette 3 at (VIDEO_TEST_IMAGES_X, VIDEO_TEST_IMAGES_Y),
+// the transparent one with none at 10 to its right and the SFT opaque at
+// 20 to its right after them (TestHCP65KernalVideo reads their palette
+// numbers: 3, 4, 4).  Two images are left for the kernal to take back
+// when the program ends.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 VideoTestImages(const uint8* puiOpaque, uint32 uiOpaqueSize, const uint8* puiTransparent, uint32 uiTransparentSize)
+{
+	static const uint8	auiOpaque0[] = { 0x77, 0x01, 0x02, 0x03, 0x04, 0x77 };
+	static const uint8	auiOpaque1[] = { 0x77, 0x05, 0x06, 0x07, 0x08, 0x77 };
+	static const uint8	auiOpaque2[] = { 0x77, 0x09, 0x0A, 0x0B, 0x0C, 0x77 };
+	static const uint8	auiGround[] = { 0x77, 0x77, 0x77, 0x77, 0x77, 0x77 };
+	static const uint8	auiClear0[] = { 0x77, 0x77, 0xA1, 0xA2, 0x77, 0x77 };
+	static const uint8	auiClear2[] = { 0x77, 0xA3, 0x77, 0x77, 0xA4, 0x77 };
+	static const uint8	auiClip1[] = { 0x77, 0x06, 0x07, 0x77, 0x77 };
+	static const uint8	auiCross0[] = { 0x77, 0xD1, 0xD2, 0xD3, 0xD4, 0x77 };
+	static const uint8	auiCross1[] = { 0x77, 0xD5, 0xD6, 0xD7, 0xD8, 0x77 };
+	static uint8		auiTiny[1] = { 0x55 };
+	uint16				auiImages[KERNAL_SCREEN_MAX_IMAGES];
+	uint16				uiOpaqueImage;
+	uint16				uiTransparentImage;
+	uint16				uiCrossImage;
+	uint16				uiImage;
+	uint16				uiMore;
+	uint8*				puiCross;
+	void*				pvPixels;
+	uint16				i;
+	uint16				y;
+
+	//Made from the SFTs, then drawn whole with the ground around them.
+	if ((SFTImageMake(puiOpaque, uiOpaqueSize, KERNAL_SCREEN_NO_PALETTE, &uiOpaqueImage) != KERNAL_DEVICE_SUCCESS) ||
+		(SFTImageMake(puiTransparent, uiTransparentSize, KERNAL_SCREEN_NO_PALETTE, &uiTransparentImage) != KERNAL_DEVICE_SUCCESS) ||
+		(SFTImageMake(puiOpaque, uiOpaqueSize - 1, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(SFTImageMake(gauiVideoTestWide, sizeof(gauiVideoTestWide), KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(SFTImageMake(gauiVideoTestImages, sizeof(gauiVideoTestImages), KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT))
+	{
+		return 1;
+	}
+	for (y = 60; y < 66; y++)
+	{
+		if (!VideoTestGround(100, y, 6) || !VideoTestGround(110, y, 6))
+		{
+			return 2;
+		}
+	}
+	if ((VideoTestBlitImage(uiOpaqueImage, 101, 61, false, 0, 0, 0, 0) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(100, 60, auiGround, 6) ||
+		!VideoTestPixels(100, 61, auiOpaque0, 6) ||
+		!VideoTestPixels(100, 62, auiOpaque1, 6) ||
+		!VideoTestPixels(100, 63, auiOpaque2, 6) ||
+		!VideoTestPixels(100, 64, auiGround, 6))
+	{
+		return 3;
+	}
+	if ((VideoTestBlitImage(uiTransparentImage, 111, 61, false, 0, 0, 0, 0) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(110, 60, auiGround, 6) ||
+		!VideoTestPixels(110, 61, auiClear0, 6) ||
+		!VideoTestPixels(110, 62, auiGround, 6) ||
+		!VideoTestPixels(110, 63, auiClear2, 6) ||
+		!VideoTestPixels(110, 64, auiGround, 6) ||
+		!VideoTestPixels(110, 65, auiGround, 6))
+	{
+		return 4;
+	}
+
+	//Through a clip rectangle that has only the middle row's middle two pixels.
+	for (y = 110; y < 113; y++)
+	{
+		if (!VideoTestGround(200, y, 5))
+		{
+			return 5;
+		}
+	}
+	if ((VideoTestBlitImage(uiOpaqueImage, 200, 110, true, 201, 111, 203, 112) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(200, 110, auiGround, 5) ||
+		!VideoTestPixels(200, 111, auiClip1, 5) ||
+		!VideoTestPixels(200, 112, auiGround, 5))
+	{
+		return 6;
+	}
+
+	//Rows across banks: $C0 is mapped, then $C2, then $C1, so $C0 and $C1 aren't next to each other in main memory.  The
+	//image's first row is the last two bytes of $C0 and the first two of $C1.
+	if ((KernalMapBanks((void*)0xC00000, 1) != KERNAL_RESULT_SUCCESS) ||
+		(KernalMapBanks((void*)0xC20000, 1) != KERNAL_RESULT_SUCCESS) ||
+		(KernalMapBanks((void*)0xC10000, 1) != KERNAL_RESULT_SUCCESS))
+	{
+		return 7;
+	}
+	puiCross = (uint8*)0xC0FFFE;
+	for (i = 0; i < 8; i++)
+	{
+		puiCross[i] = (uint8)(0xD1 + i);
+	}
+	for (y = 70; y < 74; y++)
+	{
+		if (!VideoTestGround(100, y, 6))
+		{
+			return 8;
+		}
+	}
+	if ((KernalScreenAddImage(puiCross, 4, 2, 0, KERNAL_SCREEN_NO_PALETTE, &uiCrossImage) != KERNAL_DEVICE_SUCCESS) ||
+		(VideoTestBlitImage(uiCrossImage, 101, 71, false, 0, 0, 0, 0) != KERNAL_DEVICE_SUCCESS) ||
+		!VideoTestPixels(100, 70, auiGround, 6) ||
+		!VideoTestPixels(100, 71, auiCross0, 6) ||
+		!VideoTestPixels(100, 72, auiCross1, 6) ||
+		!VideoTestPixels(100, 73, auiGround, 6) ||
+		(KernalScreenRemoveImage(uiCrossImage, &pvPixels) != KERNAL_DEVICE_SUCCESS) || (pvPixels != puiCross))
+	{
+		return 9;
+	}
+
+	//What isn't refused: an image on memory the program no longer has is, when it is blitted.
+	if ((KernalScreenAddImage(puiCross, 4, 2, 0, KERNAL_SCREEN_NO_PALETTE, &uiCrossImage) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalUnmapBanks((void*)0xC00000, 3) != KERNAL_RESULT_SUCCESS) ||
+		(VideoTestBlitImage(uiCrossImage, 101, 71, false, 0, 0, 0, 0) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenRemoveImage(uiCrossImage, NULL) != KERNAL_DEVICE_SUCCESS))
+	{
+		return 10;
+	}
+
+	//Refused: a size of 0, memory the program hasn't, flags and palettes there aren't, and handles that have gone or were
+	//never given.
+	if ((KernalScreenAddImage(auiTiny, 0, 1, 0, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenAddImage(auiTiny, 1, 0, 0, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenAddImage((void*)0xC00000, 1, 1, 0, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenAddImage(auiTiny, 1, 1, 0x0002, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(KernalScreenAddImage(auiTiny, 1, 1, 0, KERNAL_SCREEN_NUM_PALETTES, &uiImage) != KERNAL_DEVICE_BAD_ARGUMENT) ||
+		(VideoTestBlitImage(0, 300, 300, false, 0, 0, 0, 0) != KERNAL_DEVICE_BAD_HANDLE) ||
+		(VideoTestBlitImage(uiCrossImage, 300, 300, false, 0, 0, 0, 0) != KERNAL_DEVICE_BAD_HANDLE) ||
+		(KernalScreenRemoveImage(uiCrossImage, NULL) != KERNAL_DEVICE_BAD_HANDLE) ||
+		(KernalScreenRemoveImage(0, NULL) != KERNAL_DEVICE_BAD_HANDLE))
+	{
+		return 11;
+	}
+
+	//No more than KERNAL_SCREEN_MAX_IMAGES (the two above among them), and an entry used again has a new handle.
+	uiMore = KERNAL_SCREEN_MAX_IMAGES - 2;
+	for (i = 0; i < uiMore; i++)
+	{
+		if (KernalScreenAddImage(auiTiny, 1, 1, 0, KERNAL_SCREEN_NO_PALETTE, &auiImages[i]) != KERNAL_DEVICE_SUCCESS)
+		{
+			return 12;
+		}
+	}
+	if (KernalScreenAddImage(auiTiny, 1, 1, 0, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_NO_HANDLES)
+	{
+		return 13;
+	}
+	if ((KernalScreenRemoveImage(auiImages[0], NULL) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalScreenAddImage(auiTiny, 1, 1, 0, KERNAL_SCREEN_NO_PALETTE, &uiImage) != KERNAL_DEVICE_SUCCESS) ||
+		(uiImage == auiImages[0]) ||
+		(KernalScreenRemoveImage(auiImages[0], NULL) != KERNAL_DEVICE_BAD_HANDLE) ||
+		(KernalScreenRemoveImage(uiImage, NULL) != KERNAL_DEVICE_SUCCESS))
+	{
+		return 14;
+	}
+	for (i = 1; i < uiMore; i++)
+	{
+		if (KernalScreenRemoveImage(auiImages[i], NULL) != KERNAL_DEVICE_SUCCESS)
+		{
+			return 15;
+		}
+	}
+
+	//The palettes they are drawn with (TestHCP65KernalVideo looks): the opaque image's own 3, the set palette 4 for the
+	//transparent one, which has none, and 4 again for the SFT after them.
+	if ((SFTImageFree(uiOpaqueImage) != KERNAL_DEVICE_SUCCESS) ||
+		(SFTImageFree(uiOpaqueImage) != KERNAL_DEVICE_BAD_HANDLE) ||
+		(SFTImageMake(puiOpaque, uiOpaqueSize, 3, &uiOpaqueImage) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalScreenSetPalette(4) != KERNAL_DEVICE_SUCCESS) ||
+		(VideoTestBlitImage(uiOpaqueImage, VIDEO_TEST_IMAGES_X, VIDEO_TEST_IMAGES_Y, false, 0, 0, 0, 0) != KERNAL_DEVICE_SUCCESS) ||
+		(VideoTestBlitImage(uiTransparentImage, VIDEO_TEST_IMAGES_X + 10, VIDEO_TEST_IMAGES_Y, false, 0, 0, 0, 0) != KERNAL_DEVICE_SUCCESS) ||
+		(VideoTestBlitAt(puiOpaque, uiOpaqueSize, VIDEO_TEST_IMAGES_X + 20, VIDEO_TEST_IMAGES_Y) != KERNAL_DEVICE_SUCCESS) ||
+		(KernalScreenSetPalette(0) != KERNAL_DEVICE_SUCCESS))
+	{
+		return 16;
+	}
+	return 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The screen's calls.  The picture is this program's from when it sets a
 // mode until it sets text: the kernal has the Video Board meanwhile, and
 // lets it go after (the console isn't on it).  Blits: an opaque and a
@@ -274,6 +490,7 @@ uint16 VideoTestScreen(void)
 	const SSFTPalette*	psPalette;
 	const uint8*	puiColours;
 	SKernalBlit		sBlit;
+	uint16			uiResult;
 	uint16			uiHandle;
 	uint16			uiWidth;
 	uint16			uiHeight;
@@ -431,6 +648,13 @@ uint16 VideoTestScreen(void)
 		(KernalScreenBlit((const SKernalBlit*)0xF00000) != KERNAL_DEVICE_BAD_ARGUMENT))
 	{
 		return 13;
+	}
+
+	//Images.
+	uiResult = VideoTestImages(puiOpaque, uiOpaqueSize, puiTransparent, uiTransparentSize);
+	if (uiResult != 0)
+	{
+		return 20 + uiResult;
 	}
 
 	//A palette's colours, the palette drawn with, and the frames flipped; then the picture is given back.

@@ -114,6 +114,10 @@
 #define TEST_HCP65_CONSOLE_PAPER	0xFF000000
 #define TEST_HCP65_VIDEO_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VideoCard.img"	//The emulator's Machines/Video.xml boots it.
 #define TEST_HCP65_VIDEO_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "VideoTest" _FS_ "HCP65VideoTest.vcxproj"
+#define TEST_HCP65_VIDEO_IMAGES_X	300			//VideoTest.cpp's VIDEO_TEST_IMAGES_X and _Y.
+#define TEST_HCP65_VIDEO_IMAGES_Y	150
+#define TEST_KERNAL_SCREEN_MAX_IMAGES	64		//UserLib/HCP65User.h's KERNAL_SCREEN_MAX_IMAGES.
+#define TEST_KERNAL_SCREEN_IMAGE_SIZE	16		//Kernal/KernalDriver.h's SKernalImage on the W65C816 (14 bytes, kept to its uint32's 4).
 #define TEST_HCP65_VIDEO_RED		0x08000		//The Video Board's palettes in its slot (HCP65Video.h).
 #define TEST_HCP65_VIDEO_GREEN		0x10000
 #define TEST_HCP65_VIDEO_BLUE		0x18000
@@ -204,6 +208,7 @@ struct STestKernal
 	uint32				uiKernalEnd;	//The kernal's __end: its compiler is released once it is built (TestKernalBuild).
 	uint32				auiHeapBanks[2][TEST_HCP65_COP_ENTRIES];	//KernalMapHeapBanks' and KernalUnmapHeapBanks' entries (0 if
 																	//none), for TEST_HCP65_TIME_COP.
+	uint32				uiScreenImages;		//gasKernalScreenImages (KernalScreen.h), in MPU RAM.
 };
 
 
@@ -517,7 +522,7 @@ static bool TestKernalPutDriver(const char* szImage, const char* szName, const c
 			{
 				printf(" %s", cDriver.GetLinker()->GetMissing(i));
 			}
-			printf("\n");
+			printf("\n"); fflush(stdout);
 		}
 		if (getenv("TEST_HCP65_MAP"))
 		{
@@ -991,6 +996,8 @@ static bool TestKernalBuild(STestKernal* psKernal)
 		}
 		AssertTrue(psKernal->auiHeapBanks[i][0] != 0);
 	}
+	psKernal->uiScreenImages = 0;
+	AssertTrue(psKernal->cOS.GetSymbol("_gasKernalScreenImages", &psKernal->uiScreenImages));
 	psKernal->cBoot.Release();
 	psKernal->cOS.Release();
 	return true;
@@ -2328,6 +2335,9 @@ void TestHCP65KernalVideo(STestKernal* psKernal)
 	uint32				x;
 	uint32				y;
 	uint8				uiIndex;
+	uint8*				puiIndices;
+	uint8*				puiNumbers;
+	uint32				uiAt;
 	int					i;
 
 	if (!TestKernalPutVideoFiles())
@@ -2394,6 +2404,41 @@ void TestHCP65KernalVideo(STestKernal* psKernal)
 	AssertInt(182, pcVideo->Read(TEST_HCP65_VIDEO_RED + 2 * 256 + 0xA5));
 	AssertInt(146, pcVideo->Read(TEST_HCP65_VIDEO_GREEN + 2 * 256 + 0xA5));
 	AssertInt(170, pcVideo->Read(TEST_HCP65_VIDEO_BLUE + 2 * 256 + 0xA5));
+
+	//vidtest.exe left two images: the kernal took their handles back when it ended (each SKernalImage's first byte is
+	//its process).
+	for (i = 0; i < TEST_KERNAL_SCREEN_MAX_IMAGES; i++)
+	{
+		AssertInt(0, cHCP65.GetMPURAM()[psKernal->uiScreenImages + i * TEST_KERNAL_SCREEN_IMAGE_SIZE]);
+	}
+
+	//The frame vidtest.exe's images were blitted to: the opaque image at TEST_HCP65_VIDEO_IMAGES_X with its own palette
+	//3, the transparent one 10 to its right with the set palette 4, and the SFT 20 to its right with 4 again (the image
+	//before it didn't leave its own set).  Whichever frame it is, the other is the picture drawn after.
+	puiIndices = NULL;
+	for (i = 0; i < 2; i++)
+	{
+		if (pcVideo->GetChip(i, 0)[TEST_HCP65_VIDEO_IMAGES_Y * 640 + TEST_HCP65_VIDEO_IMAGES_X] == 0x01)
+		{
+			puiIndices = pcVideo->GetChip(i, 0);
+			puiNumbers = pcVideo->GetChip(i, 1);
+		}
+	}
+	AssertTrue(puiIndices != NULL);
+	if (puiIndices)
+	{
+		uiAt = TEST_HCP65_VIDEO_IMAGES_Y * 640 + TEST_HCP65_VIDEO_IMAGES_X;
+		AssertInt(0x02, puiIndices[uiAt + 1]);
+		AssertInt(3, puiNumbers[uiAt]);
+		AssertInt(3, puiNumbers[uiAt + 3]);
+		AssertInt(3, puiNumbers[uiAt + 2 * 640 + 3]);
+		AssertInt(0xA1, puiIndices[uiAt + 10 + 1]);
+		AssertInt(4, puiNumbers[uiAt + 10 + 1]);
+		AssertInt(4, puiNumbers[uiAt + 2 * 640 + 10 + 3]);
+		AssertInt(0x01, puiIndices[uiAt + 20]);
+		AssertInt(4, puiNumbers[uiAt + 20]);
+		AssertInt(4, puiNumbers[uiAt + 2 * 640 + 20 + 3]);
+	}
 
 	//Two more frames, so that the last is drawn after vidtest.exe's last change, then the picture.
 	cHCP65.Run(2 * 800 * 525 + 1000);

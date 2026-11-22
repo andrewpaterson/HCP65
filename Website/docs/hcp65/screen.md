@@ -30,6 +30,8 @@ The picture is two frames: one is shown while the other is drawn.
 | `KernalScreenWaitBlank(ticks)` | Waits for the next vertical blank. |
 | `KernalScreenSetColours(palette, record)` | A palette's colours from an SFT palette record (below): its colours at its indices, the rest left as they were. |
 | `KernalScreenSetPalette(palette)` | The palette each pixel drawn from now on takes. |
+| `KernalScreenAddImage(pixels, width, height, flags, palette, &image)` | A handle to an image in the program's memory: see [Images](#images). |
+| `KernalScreenRemoveImage(image, &pixels)` | Takes the handle back, and says where the image is. |
 
 A pixel is a byte.  The colour it shows is that entry of its palette, and there are 128 palettes.
 
@@ -104,6 +106,37 @@ assembly (`VideoBoardBlit.asm`), a run or a row of 8 pixels or more with one `MV
 The console's text uses the board the same way: the processor draws a glyph's runs, which are
 short (the board would draw one of eight pixels or more), and the board clears a row, or the
 screen, a line at a time from a line of zeros the driver keeps in main memory.
+
+## Images
+
+An image is a picture of a width by a height of pixels, a byte each, a row after another, in the
+program's own memory.  The program gives the kernel a handle to it (`KernalScreenAddImage`) and
+blits it by the handle: `KERNAL_BLIT_IMAGE` in the blit's flags, the handle in `uiImage`.  Its rows
+are flat, which is what the boards copy from: a row inside the clip rectangle is one copy.  Clipping
+and spans are as for an SFT image.
+
+`SFTImageMake` (`HCP65SFT.h`) makes one from an SFT image: it allocates the image's bytes, unpacks
+the SFT into them and gives the kernel the handle.  The program can free the SFT then, and blits
+from the image from then on.  `SFTImageFree` takes the handle back and frees the image.
+
+| Flag | What |
+|---|---|
+| `KERNAL_IMAGE_TRANSPARENT` | Its pixels that are 0 aren't drawn (an SFT's transparent image's undrawn pixels are 0). |
+
+An image has the palette its pixels are drawn with, or `KERNAL_SCREEN_NO_PALETTE` for the one set
+by `KernalScreenSetPalette`, which a blit of an image with its own palette puts back after it.
+
+The image stays the program's memory: the kernel only keeps where it is, its size, its flags and its
+palette.  It is found again at each blit, so its rows can cross from one of the program's banks to
+the next, which needn't be next to it in main memory: such a row is a copy from each.  If the
+program frees or changes the memory while it has the handle, what is drawn is whatever is there; if
+the program no longer has the bank, the blit is `KERNAL_DEVICE_BAD_ARGUMENT`.
+
+There are `KERNAL_SCREEN_MAX_IMAGES` (64) handles for all the programs together; the next is
+`KERNAL_DEVICE_NO_HANDLES`.  A program can have images without having the picture, and its handles
+go when it ends.  A handle that has been taken back, or is another program's, is
+`KERNAL_DEVICE_BAD_HANDLE`: each handle is the entry's number and a count of the times it has been
+used, so an old handle doesn't reach a newer image.
 
 ## The Blitter Board
 

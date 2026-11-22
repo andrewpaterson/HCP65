@@ -120,5 +120,17 @@ extern "C" const void*	SFTContainedImage(const void* pvContainer, uint32 uiSize,
 //colours), or no such image.
 extern "C" const SSFTPalette*	SFTContainedPalette(const void* pvContainer, uint32 uiSize, uint16 uiIndex);
 
+//Images (HCP65User.h's KernalScreenAddImage; UserSFTImage.cpp, with Libc65 and UserScreen.cpp).  SFTImageMake makes
+//one from the opaque or transparent SFT image at pvSFT (uiSize bytes): it mallocs the image's width x height bytes,
+//unpacks the SFT into them (a transparent image's undrawn pixels are SFT_PIXEL_TRANSPARENT, 0) and gives the kernal the
+//image, drawn with uiPalette (KERNAL_SCREEN_NO_PALETTE: the one set).  The SFT can be freed then.  It returns a
+//KERNAL_DEVICE_* result: KERNAL_DEVICE_BAD_ARGUMENT if the SFT isn't an image or is cut short, KERNAL_DEVICE_NO_MEMORY
+//if there isn't the memory, KERNAL_DEVICE_NO_HANDLES if the kernal has no handle left.  SFTImageFree takes the handle back and frees the image.
+//SFTImageUnpack is the unpacking alone, into pvPixels (width x height bytes); false if the SFT isn't an image or is cut
+//short.
+extern "C" uint16		SFTImageMake(const void* pvSFT, uint32 uiSize, uint16 uiPalette, uint16* puiImage);
+extern "C" uint16		SFTImageFree(uint16 uiImage);
+extern "C" bool			SFTImageUnpack(const void* pvSFT, uint32 uiSize, void* pvPixels);
+
 
 #endif // __HCP65_SFT_H__

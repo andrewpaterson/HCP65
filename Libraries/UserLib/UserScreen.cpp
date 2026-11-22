@@ -40,6 +40,33 @@ extern "C" uint16 KernalScreenSetText(void)
 }
 
 
+extern "C" uint16 KernalScreenAddImage(const void* pvPixels, uint16 uiWidth, uint16 uiHeight, uint16 uiFlags, uint16 uiPalette, uint16* puiImage)
+{
+	uint32	uiImage;
+	uint16	uiResult;
+
+	uiImage = 0;
+	uiResult = UserScreenCall(KERNAL_SCREEN_CALL_ADD_IMAGE, uiPalette, pvPixels, (uint32)uiWidth | ((uint32)uiHeight << 16), uiFlags, &uiImage);
+	*puiImage = (uint16)uiImage;
+	return uiResult;
+}
+
+
+extern "C" uint16 KernalScreenRemoveImage(uint16 uiImage, void** ppvPixels)
+{
+	uint32	uiPixels;
+	uint16	uiResult;
+
+	uiPixels = 0;
+	uiResult = UserScreenCall(KERNAL_SCREEN_CALL_REMOVE_IMAGE, uiImage, NULL, 0, 0, &uiPixels);
+	if (ppvPixels)
+	{
+		*ppvPixels = (uiResult == KERNAL_DEVICE_SUCCESS) ? (void*)uiPixels : NULL;
+	}
+	return uiResult;
+}
+
+
 extern "C" uint16 KernalScreenGetSize(uint16* puiWidth, uint16* puiHeight)
 {
 	uint32	uiSize;

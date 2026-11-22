@@ -17,6 +17,20 @@
 struct SKernalBlit;
 
 
+//An image the kernal has a handle to (KernalScreen.h): uiWidth by uiHeight pixels in the running process's memory at
+//uiPixels, a row after another, drawn without its 0s if uiFlags has KERNAL_IMAGE_TRANSPARENT (UserLib/HCP65User.h).
+struct SKernalImage
+{
+	uint8	uiProcess;		//The process whose it is, KERNAL_DRIVER_NO_OWNER if the entry is free.
+	uint8	uiPalette;		//The palette its pixels are drawn with, KERNAL_SCREEN_NO_PALETTE for the one set.
+	uint16	uiGeneration;	//Counted each time the entry is used again: a handle is its index and this.
+	uint32	uiPixels;
+	uint16	uiWidth;
+	uint16	uiHeight;
+	uint16	uiFlags;
+};
+
+
 #define KERNAL_DRIVER_NO_OWNER			0		//Process IDs are $FC to $FF.
 #define KERNAL_DRIVER_ALL_UNITS			0xFFFF	//Close's unit when the process has ended.
 #define KERNAL_DRIVER_MAX_UNITS			8		//NumUnits is at most this: the VIA Board's eight VIAs.
@@ -41,6 +55,8 @@ struct SKernalBlit;
 //Control's codes are the driver's own; Wait waits up to uiTicks (KERNAL_TICKS_PER_SECOND) for what uiValue says,
 //which a driver can do with WaitFor and IsWaitOver.  Blit draws an image, which is in the running process's memory
 //(UserLib/HCP65User.h's SKernalBlit), on a unit that is a picture: the screen's calls ask it (KernalScreen.h).
+//BlitImage draws an image the kernal has a handle to (KERNAL_BLIT_IMAGE) as Blit draws an SFT: psBlit's position,
+//clip and spans, psImage's pixels.
 class CKernalDriver
 {
 protected:
@@ -65,6 +81,7 @@ public:
 	virtual uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult);
 	virtual uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks);
 	virtual uint16	Blit(uint16 uiUnit, const SKernalBlit* psBlit);
+	virtual uint16	BlitImage(uint16 uiUnit, const SKernalBlit* psBlit, const SKernalImage* psImage);
 
 	SKernalDevice*		GetDevice(void) const;
 	uint16				GetSlot(void) const;

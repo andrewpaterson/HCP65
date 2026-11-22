@@ -127,7 +127,7 @@ extern "C"
 //The HCP65 Video Board's driver: its units are the board's memories (VIDEO_BOARD_PIXELS ...) and its text
 //(VIDEO_BOARD_TEXT, VIDEO_BOARD_FONT: VideoBoardText.cpp), and a program has the whole board.  The pixels and their
 //palette numbers are the board's main memory window (the frame the processor has); the palettes and the row table its
-//device RAM.  A blit draws an SFT image on the pixels (VideoBoardBlit.cpp).  The interrupt (trusted: only the board and the driver's own memory) is
+//device RAM.  A blit draws an SFT image, or an image the kernal has a handle to, on the pixels (VideoBoardBlit.cpp).  The interrupt (trusted: only the board and the driver's own memory) is
 //vertical blank's: it counts them and makes a flip asked for since the last.  Without a window from the kernal (or with
 //window 0, whose pixels aren't reachable in kernel mode) the pixels can't be reached: their reads and writes fail.
 class CKernalVideoBoard : public CKernalDriver
@@ -162,6 +162,7 @@ public:
 	uint16	Control(uint16 uiUnit, uint16 uiCode, uint32 uiValue, uint32* puiResult) override;
 	uint16	Wait(uint16 uiUnit, uint32 uiValue, uint16 uiTicks) override;
 	uint16	Blit(uint16 uiUnit, const SKernalBlit* psBlit) override;
+	uint16	BlitImage(uint16 uiUnit, const SKernalBlit* psBlit, const SKernalImage* psImage) override;
 
 protected:
 	bool	IsWaitOver(uint16 uiUnit, uint32 uiValue) override;
@@ -182,7 +183,8 @@ protected:
 	void	CatchUp(void);
 	void	DrawCell(uint16 uiCell);
 	void	ClearRow(uint16 uiRow);
-	uint16	BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
+	uint16	BlitStart(uint16 uiUnit, const SKernalBlit* psBlit, int32* paiClip);
+	uint16	BlitFlat(const SKernalBlit* psBlit, uint32 uiPixels, uint16 uiWidth, uint16 uiHeight, const int32* paiClip, uint16 uiTransparent);
 	uint16	BlitTransparent(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip);
 	uint16	BlitTransparentWhole(const SKernalBlit* psBlit, const uint8* puiImage, uint16 uiWidth, uint16 uiHeight);
 	uint16	BlitOpaqueSpans(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, int32 iRight, int32 iY, uint16 uiRow, uint32 uiSource, uint8* puiDest, uint16* puiSpans, int32 iBottom);

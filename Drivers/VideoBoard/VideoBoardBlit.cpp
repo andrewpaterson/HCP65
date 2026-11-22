@@ -44,14 +44,12 @@ uint16 CKernalVideoBoard::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 {
 	SSFTImage	sImage;
 	int32		aiClip[4];
+	uint16		uiResult;
 
-	if (uiUnit != VIDEO_BOARD_PIXELS)
+	uiResult = BlitStart(uiUnit, psBlit, aiClip);
+	if (uiResult != KERNAL_DRIVER_SUCCESS)
 	{
-		return KERNAL_DRIVER_NOT_SUPPORTED;
-	}
-	if (!muiWindow || (muiMode == 0xFF))
-	{
-		return KERNAL_DRIVER_FAILED;
+		return uiResult;
 	}
 	if ((psBlit->uiSize < sizeof(SSFTImage)) || !KernalCopyFromUser((uint8*)&sImage, psBlit->uiImage, sizeof(SSFTImage)) ||
 		(sImage.uiMagic != SFT_MAGIC) || (sImage.uiVersion != SFT_VERSION))
@@ -59,33 +57,13 @@ uint16 CKernalVideoBoard::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 		return KERNAL_DRIVER_BAD_ARGUMENT;
 	}
 
-	aiClip[VIDEO_CLIP_LEFT] = 0;
-	aiClip[VIDEO_CLIP_TOP] = 0;
-	aiClip[VIDEO_CLIP_RIGHT] = muiWidth;
-	aiClip[VIDEO_CLIP_BOTTOM] = muiHeight;
-	if (psBlit->uiFlags & KERNAL_BLIT_CLIP)
-	{
-		if (psBlit->iClipLeft > aiClip[VIDEO_CLIP_LEFT])
-		{
-			aiClip[VIDEO_CLIP_LEFT] = psBlit->iClipLeft;
-		}
-		if (psBlit->iClipTop > aiClip[VIDEO_CLIP_TOP])
-		{
-			aiClip[VIDEO_CLIP_TOP] = psBlit->iClipTop;
-		}
-		if (psBlit->iClipRight < aiClip[VIDEO_CLIP_RIGHT])
-		{
-			aiClip[VIDEO_CLIP_RIGHT] = psBlit->iClipRight;
-		}
-		if (psBlit->iClipBottom < aiClip[VIDEO_CLIP_BOTTOM])
-		{
-			aiClip[VIDEO_CLIP_BOTTOM] = psBlit->iClipBottom;
-		}
-	}
-
 	if (sImage.uiType == SFT_TYPE_OPAQUE)
 	{
-		return BlitOpaque(psBlit, sImage.uiWidth, sImage.uiHeight, aiClip);
+		if (psBlit->uiSize - sizeof(SSFTImage) < (uint32)sImage.uiWidth * sImage.uiHeight)
+		{
+			return KERNAL_DRIVER_BAD_ARGUMENT;
+		}
+		return BlitFlat(psBlit, psBlit->uiImage + sizeof(SSFTImage), sImage.uiWidth, sImage.uiHeight, aiClip, KERNAL_COPY_OPAQUE);
 	}
 	if (sImage.uiType == SFT_TYPE_TRANSPARENT)
 	{
@@ -97,11 +75,81 @@ uint16 CKernalVideoBoard::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// An opaque image: the part of each of its rows that is inside the clip
-// rectangle.
+// An image the kernal has a handle to: its rows as an opaque SFT image's
+// are drawn, a transparent one's without its 0s (and without spans).
 //
 //////////////////////////////////////////////////////////////////////////
-uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, uint16 uiHeight, const int32* paiClip)
+uint16 CKernalVideoBoard::BlitImage(uint16 uiUnit, const SKernalBlit* psBlit, const SKernalImage* psImage)
+{
+	int32		aiClip[4];
+	uint16		uiResult;
+
+	uiResult = BlitStart(uiUnit, psBlit, aiClip);
+	if (uiResult != KERNAL_DRIVER_SUCCESS)
+	{
+		return uiResult;
+	}
+	return BlitFlat(psBlit, psImage->uiPixels, psImage->uiWidth, psImage->uiHeight, aiClip,
+					(psImage->uiFlags & KERNAL_IMAGE_TRANSPARENT) ? SFT_PIXEL_TRANSPARENT : KERNAL_COPY_OPAQUE);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether a blit can be drawn on uiUnit, and its clip rectangle in
+// paiClip: the picture's, and with KERNAL_BLIT_CLIP the blit's inside it.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalVideoBoard::BlitStart(uint16 uiUnit, const SKernalBlit* psBlit, int32* paiClip)
+{
+	if (uiUnit != VIDEO_BOARD_PIXELS)
+	{
+		return KERNAL_DRIVER_NOT_SUPPORTED;
+	}
+	if (!muiWindow || (muiMode == 0xFF))
+	{
+		return KERNAL_DRIVER_FAILED;
+	}
+
+	paiClip[VIDEO_CLIP_LEFT] = 0;
+	paiClip[VIDEO_CLIP_TOP] = 0;
+	paiClip[VIDEO_CLIP_RIGHT] = muiWidth;
+	paiClip[VIDEO_CLIP_BOTTOM] = muiHeight;
+	if (psBlit->uiFlags & KERNAL_BLIT_CLIP)
+	{
+		if (psBlit->iClipLeft > paiClip[VIDEO_CLIP_LEFT])
+		{
+			paiClip[VIDEO_CLIP_LEFT] = psBlit->iClipLeft;
+		}
+		if (psBlit->iClipTop > paiClip[VIDEO_CLIP_TOP])
+		{
+			paiClip[VIDEO_CLIP_TOP] = psBlit->iClipTop;
+		}
+		if (psBlit->iClipRight < paiClip[VIDEO_CLIP_RIGHT])
+		{
+			paiClip[VIDEO_CLIP_RIGHT] = psBlit->iClipRight;
+		}
+		if (psBlit->iClipBottom < paiClip[VIDEO_CLIP_BOTTOM])
+		{
+			paiClip[VIDEO_CLIP_BOTTOM] = psBlit->iClipBottom;
+		}
+	}
+	return KERNAL_DRIVER_SUCCESS;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A flat image (an opaque SFT image's rows, or an image the kernal has a
+// handle to) of uiWidth by uiHeight whose first pixel is the process's
+// uiPixels: the part of each of its rows that is inside the clip
+// rectangle, without those that are uiTransparent unless it is
+// KERNAL_COPY_OPAQUE.  Spans are only for an opaque one.  A row that
+// crosses from one of the process's banks to the next (which needn't be
+// next to it in main memory) is a copy from each.
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalVideoBoard::BlitFlat(const SKernalBlit* psBlit, uint32 uiPixels, uint16 uiWidth, uint16 uiHeight, const int32* paiClip, uint16 uiTransparent)
 {
 	uint16*	puiSpans;
 	uint16	auiSpan[2];
@@ -120,10 +168,6 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 	uint8*	puiDest;
 	uint32	uiInBank;
 
-	if (psBlit->uiSize - sizeof(SSFTImage) < (uint32)uiWidth * uiHeight)
-	{
-		return KERNAL_DRIVER_BAD_ARGUMENT;
-	}
 	iLeft = (psBlit->iX > paiClip[VIDEO_CLIP_LEFT]) ? psBlit->iX : paiClip[VIDEO_CLIP_LEFT];
 	iRight = ((int32)psBlit->iX + uiWidth < paiClip[VIDEO_CLIP_RIGHT]) ? (int32)psBlit->iX + uiWidth : paiClip[VIDEO_CLIP_RIGHT];
 	if (iLeft >= iRight)
@@ -143,14 +187,14 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 		uiRow = (uint16)(paiClip[VIDEO_CLIP_TOP] - iY);
 		iY = paiClip[VIDEO_CLIP_TOP];
 	}
-	uiSource = psBlit->uiImage + sizeof(SSFTImage) + (uint32)uiRow * uiWidth + (uint32)(iLeft - psBlit->iX);
+	uiSource = uiPixels + (uint32)uiRow * uiWidth + (uint32)(iLeft - psBlit->iX);
 	uiPixel = (uint32)iY * muiWidth + (uint32)iLeft;
 
 	//With spans, each row only from its span's left to its right (inside the clip rectangle's, so inside the picture).
 	//They are read straight if they are all in one bank of the process's.
 	puiSpans = NULL;
 	uiSpanRows = 0;
-	if ((psBlit->uiFlags & (KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS)) == (KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS))
+	if (((psBlit->uiFlags & (KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS)) == (KERNAL_BLIT_CLIP | KERNAL_BLIT_SPANS)) && (uiTransparent == KERNAL_COPY_OPAQUE))
 	{
 		if (psBlit->iClipBottom <= psBlit->iClipTop)
 		{
@@ -207,9 +251,9 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 				{
 					if (puiSource && (uiInBank >= (uint32)(iSpanRight - iLeft)))
 					{
-						KernalMainCopy(puiDest + (iSpanLeft - iLeft), puiSource + (iSpanLeft - iLeft), (uint16)(iSpanRight - iSpanLeft), KERNAL_COPY_OPAQUE);
+						KernalMainCopy(puiDest + (iSpanLeft - iLeft), puiSource + (iSpanLeft - iLeft), (uint16)(iSpanRight - iSpanLeft), uiTransparent);
 					}
-					else if (!BlitPixels(uiPixel + (uint32)(iSpanLeft - iLeft), uiSource + (uint32)(iSpanLeft - iLeft), (uint32)(iSpanRight - iSpanLeft), KERNAL_COPY_OPAQUE))
+					else if (!BlitPixels(uiPixel + (uint32)(iSpanLeft - iLeft), uiSource + (uint32)(iSpanLeft - iLeft), (uint32)(iSpanRight - iSpanLeft), uiTransparent))
 					{
 						return KERNAL_DRIVER_BAD_ARGUMENT;
 					}
@@ -218,9 +262,9 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 		}
 		else if (puiSource && (uiInBank >= uiCount))
 		{
-			KernalMainCopy(puiDest, puiSource, uiCount, KERNAL_COPY_OPAQUE);
+			KernalMainCopy(puiDest, puiSource, uiCount, uiTransparent);
 		}
-		else if (!BlitPixels(uiPixel, uiSource, uiCount, KERNAL_COPY_OPAQUE))
+		else if (!BlitPixels(uiPixel, uiSource, uiCount, uiTransparent))
 		{
 			return KERNAL_DRIVER_BAD_ARGUMENT;
 		}
@@ -243,7 +287,7 @@ uint16 CKernalVideoBoard::BlitOpaque(const SKernalBlit* psBlit, uint16 uiWidth, 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// BlitOpaque's with spans that are all in one bank (puiSpans, the
+// BlitFlat's with spans that are all in one bank (puiSpans, the
 // kernal's pointer to them), no Blitter Board and the clip rectangle's
 // left inside the image: from screen row iY (the image's uiRow, whose
 // pixel at the clip's left is the process's uiSource and goes to puiDest)

@@ -227,6 +227,16 @@ uint16 CKernalDriver::Blit(uint16 uiUnit, const SKernalBlit* psBlit)
 
 //////////////////////////////////////////////////////////////////////////
 //
+//
+//////////////////////////////////////////////////////////////////////////
+uint16 CKernalDriver::BlitImage(uint16 uiUnit, const SKernalBlit* psBlit, const SKernalImage* psImage)
+{
+	return KERNAL_DRIVER_NOT_SUPPORTED;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A process that hadn't uiUnit open is opening it: the driver gets it
 // ready, or refuses (KERNAL_DRIVER_NOT_SUPPORTED for a board only the
 // kernal uses).
