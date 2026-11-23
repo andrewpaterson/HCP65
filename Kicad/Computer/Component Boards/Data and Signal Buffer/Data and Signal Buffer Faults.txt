@@ -32,8 +32,9 @@ What the board does there:
 3. HD0-HD2 land on Hold Count's Latch bits in reverse order
 
    HD0 (J5.A31) goes through S6 to the Processor Board's /H2, which is Hold Count's Latch2, and HD2 reaches Latch0.
-   See Hold Count Faults.txt, fault 2.  For example, the Memory Board drives HD0=0, HD1=1, HD2=1, which is 6 if HD0
-   is the least significant bit but reaches the counter as 3.
+   See Hold Count Faults.txt, fault 2.  HD0 is the least significant bit, so for example the Memory Board's HD0=0,
+   HD1=1, HD2=1 is 6 hold cycles but reaches the counter as 3.  The fix is on the Processor Board (swap B23 pins 5 and
+   7); this board passes the bits straight through.
 
 4. Possible: the device clocks only run during a device access
 

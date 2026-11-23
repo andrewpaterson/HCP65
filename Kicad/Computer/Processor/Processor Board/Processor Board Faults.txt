@@ -35,7 +35,9 @@ data bus reaches the mainboard in the right bit order, even where a daughter boa
    MPU Memory's H0 (B4 pin 44) and the main bus's HD0 (J5.A31, through B8 pin 39) are on net /H2, which is Hold
    Count's Latch2; H2 and HD2 reach Latch0.  See Hold Count Faults.txt, fault 2.
 
-   Fix: decide which end is the least significant bit; if it is H0, swap /H0 and /H2 at the B4 and B8 sockets.
+   H0 is the least significant bit, as the MPU Memory board and the main bus have it, so this is the Processor
+   Board's fault.  Fix: swap B23 pins 5 and 7 (Hold Count's Latch0 and Latch2).  /H0-/H2 only join B4, B8 and B23,
+   so this one swap fixes both sources.
 
 5. NMI and hold inputs from the mainboard have no pull-ups
 

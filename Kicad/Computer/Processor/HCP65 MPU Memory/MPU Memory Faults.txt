@@ -27,7 +27,7 @@ flash's address order is straight, so command sequences and images work.
 
 2. H0-H2 land on the Processor Board in reverse bit order
 
-   This board's H0 (connector pin 44) is on the Processor Board net /H2, which is Hold Count's Latch2, and H2 is on
-   Latch0.  Register accesses get a count of 4 in place of 1, and the ROM gets 6 in place of 3: slower, but it still
-   works.  The main bus's HD0-HD2 are reversed the same way, so the two sources agree with each other.  See Hold
-   Count Faults.txt, fault 2.
+   H0 is the least significant bit, as this board has it.  But this board's H0 (connector pin 44) is on the
+   Processor Board net /H2, which is Hold Count's Latch2, and H2 is on Latch0.  Register accesses get a count of 4 in
+   place of 1, and the ROM gets 6 in place of 3: slower, but it still works.  The fix is on the Processor Board (swap
+   B23 pins 5 and 7); this board is right.  See Hold Count Faults.txt, fault 2.

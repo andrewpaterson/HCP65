@@ -23,15 +23,17 @@ Clock Hold board's ~{Hold High}.
 
 2. H0-H2 reach Latch0-2 in reverse bit order (on the Processor Board)
 
-   The MPU Memory board's H0 is on its connector pin 44, which is the Processor Board net /H2, so it reaches Latch2.
-   Its H2 reaches Latch0.  The main bus's HD0-HD2 come through the Data and Signal Buffer the same way (HD0 to /H2
-   to Latch2).  The MPU Memory board treats H0 as the least significant bit.
+   H0 is the least significant bit (decided 2026-11-23), as the MPU Memory board, the main bus's HD0-HD2 and every
+   device board already have it.  But the MPU Memory board's H0 is on its connector pin 44, which is the Processor
+   Board net /H2, so it reaches Latch2, and its H2 reaches Latch0.  The main bus's HD0-HD2 come through the Data and
+   Signal Buffer the same way (HD0 to /H2 to Latch2).
 
-   Effect: the two sources agree with each other, but counts 1 and 4, and 3 and 6, are exchanged here.  For
-   example, MPU Memory's ROM setting of 3 gives 6 hold cycles, and a register access gets 4 in place of 1.
+   Effect: counts 1 and 4, and 3 and 6, are exchanged.  For example, MPU Memory's ROM setting of 3 gives 6 hold
+   cycles, a register access gets 4 in place of 1, and the Memory Board's flash setting of 6 gives 3, too few.
 
-   Fix: decide which end is the least significant bit and check the emulator's assumption.  Then either swap H0 and
-   H2 on the Processor Board at the B4 and B8 sockets, or rename the nets to match.
+   Fix: on the Processor Board, swap B23 pins 5 and 7, so /H0 goes to Latch0 and /H2 to Latch2.  /H0-/H2 only join
+   B4, B8 and B23, and both sources are reversed the same way, so this one swap fixes both.  (The emulator doesn't
+   model hold counts, so nothing there depends on the order.)
 
 3. Possible: H0-H2 may not be settled in time
 
