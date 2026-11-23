@@ -311,6 +311,9 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		mbInputs = true;
 		mcComponentInput.AddKeyboards();
 		mcComponentInput.AddMice();
+		//Held keys repeat in its dialogs' fields, as the IDE's do.  The screen takes keys as they go down and up, for the
+		//SNES pads and the PS/2 keyboard, so they still go down once.
+		mcComponentInput.SetRepeat(COMPONENT_INPUT_REPEAT_DELAY, COMPONENT_INPUT_REPEAT_PERIOD);
 		mpWindow->SetComponentInput(&mcComponentInput);
 		mpWindow->SetWindowSize(1920, 1200);
 	}
