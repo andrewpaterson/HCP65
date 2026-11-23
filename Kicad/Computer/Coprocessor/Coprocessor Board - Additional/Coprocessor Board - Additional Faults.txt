@@ -49,3 +49,26 @@ Found in the socket review of 2026-11-23
 
 The possible faults 4-6 in Coprocessor Board - Main Faults.txt (the transceiver, the Minimal's 74LVC4245 orientation,
 now confirmed, and the random control state at power up) apply to this board's coprocessors too.
+
+
+Found in the review of 2026-11-23
+---------------------------------
+
+What the board does: it carries coprocessors 2 and 3 (B18, B24) with their memory (B22, B28), selectors, Supports and
+Clock board (B35), plugged onto Coprocessor Board - Main.  J8-J13 sit under the Main board's J6, J3, J5, J4, J7 and J2
+and their pins line up one to one, on the PCB and in the schematic: 12V and the 40MHz clock come in on J10, CAccess2-3,
+CRun2-3, C~{Reset}2-3 and ~{Reset} on J13, the main bus's AM0-AM18, DM0-DM7, ~{Main RD}, ~{Main WD} and M~{Memory4-7}
+on J11, J8 and J9; INT2-3, ~{INT2-3} and the presence bits Q2-Q3 go back on J10 and J12.  IC3 (LD1117S50C) makes the
+board's 5V from 12V.
+
+6. The overclocked coprocessors' supply and timing (B35)
+
+   B35 gets /40MHz from the Main board's oscillator over J10 pin 3 and passes it to both W65C816s undivided.  The
+   overclock is intended; what follows from it (a 5.0V supply where ~5.3V is needed, the LK112s overheating, and
+   12.5ns for a memory read) is the same as Coprocessor Board - Main Faults.txt fault 7.
+
+The possible faults 9-11 and minor fault 13 in Coprocessor Board - Main Faults.txt apply to this board too: a write to
+the Flags can pulse C~{Reset}2-3; stopping a coprocessor with PHI2 high leaves ~{WD} on across a hand-over; IC3 drops
+7V for the board's 5V (two Memory 1MB, four Selectors, two Supports, the Clock and the Transceiver); and Q2-Q3 show
+that B20 and B26 are fitted, not the W65C816s.  Fault 8 there (~{INT}2-3 floating) is what happens on the Main board
+when this board isn't fitted.

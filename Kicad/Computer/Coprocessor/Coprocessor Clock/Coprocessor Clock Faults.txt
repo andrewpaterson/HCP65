@@ -1,0 +1,34 @@
+Coprocessor Clock - schematic faults
+====================================
+
+From the review of 2026-11-23.
+
+What the board does: IC13 (74LVC1G04) inverts the incoming 40MHz, which then goes through R6 (47 ohm, with C3 5pF)
+to both halves of IC10 (74LVC74) and to IC11 (74LVC32).  Each half of IC10 samples CRun0/CRun1 on the rising edge of
+the inverted clock, and IC11 makes CPHI2_0/CPHI2_1 = (inverted 40MHz) OR Q, so a high Q holds that coprocessor's PHI2
+high and a low Q lets it run.  Q only changes just after the inverted clock rises, while the OR's output is already
+high, so starting and stopping don't make short pulses.  ~{Reset} clears both flip-flops, so the clocks run during
+reset.  The 40MHz comes from the Coprocessor Memory Select board's Y1 (XLH735040, a 40.000MHz oscillator).  The
+pinouts agree with the datasheets.
+
+1. At 40MHz a memory read doesn't fit in the cycle (IC11, IC13)
+
+   CPHI2 is the 40MHz clock itself, a 25ns cycle.  The W65C816 is overclocked on purpose (it reaches about 40MHz at
+   about 5.3V), so the rate itself isn't a fault.  The coprocessor's address path through the Selector 12bit muxes is
+   set by CAccess and stays put while it runs, so a read starts as soon as the address is out, and its data has to
+   be at the W65C816 before PHI2 falls again 25ns later, less its read data setup time (tDSR).
+
+   Measured by the user (the datasheet is very conservative): the W65C816 puts out its address about 10ns after PHI2
+   falls, and the bank byte about 12ns after.  With the user's figure of under 3ns for a lightly loaded 74LVC4245:
+   - Low address bits: 10ns + 74LVC157 (about 3ns) + 10ns SRAM + 74LVC4245 (under 3ns) = about 26ns.
+   - Bank bits (A16-A18, and through the Coprocessor Support's decode the SRAM chip select): 12ns + the CBT3244
+     bypass (about 0.25ns) + the same path = about 28-29ns, more if the chip select decode is slower.
+
+   Effect: before tDSR is counted, a read needs about 29ns, so at 40MHz (25ns) the data arrives after the W65C816 has
+   taken it.  Reads fail; writes may still work.
+
+   Fix: run the coprocessors at about 30MHz or less (an XLH735 at 30MHz on the Memory Select board), or use faster
+   SRAM (the 8ns IS61WV5128 grade saves 2ns) and take the bank bits out of the chip select's path.  Measure the
+   result.  The Run gating here doesn't depend on the frequency.
+
+   Note: the coprocessors' supply is only 5.0V, not the ~5.3V the overclock needs (W65C816 Power Faults.txt, fault 3).

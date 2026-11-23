@@ -58,3 +58,23 @@ What the board does:
 
    Fix: make IC20's turn-on reliably more than 15ns after PHI2 falls, or drop the CBT bypass: the transparent '573
    alone meets tBAS = 33ns easily.
+
+
+Found in the review of 2026-11-23 (from the W65C816 Minimal, which has the same circuit)
+----------------------------------------------------------------------------------------
+
+5. Not a fault: the W65C816 overdrives the bank latch for a few ns at each bank change (IC5, IC20, RN2)
+
+   While Bank Latch is high, IC5 (74VHCT573) is transparent and IC20 (74CBT3244) joins the W65C816's D0-D7 to
+   BA16-23, while IC5's Q outputs drive BA16-23 through RN2 (220 ohm): a closed, non-inverting loop on each bit.
+   The design intent (the user's): IC20 lets the bank byte out onto BA as soon as the W65C816 puts it on its data
+   pins, and IC5 latches it at the end of Bank Latch (~PHI2, delayed).  For the few ns after a bank change, until
+   IC5 follows, the W65C816 drives each changed bit through IC20 (a few ohms) against IC5's old output behind RN2's
+   220 ohm, and has to win.  IC5's D inputs are on the W65C816's own pins, so what matters is how far those pins are
+   pulled back.
+
+   With an output resistance of about 50 ohm the W65C816's pin loses only about 18% of the swing, well past IC5's
+   2.0V threshold.  Only by the datasheet's minimum output current would it lose, and the user has found the
+   W65C816's datasheet very conservative.  Each changed bit draws a spike of up to about 20mA for those few ns.
+
+   Effect: none.  The user confirms the W65C816 drives fairly hard, so it wins cleanly.

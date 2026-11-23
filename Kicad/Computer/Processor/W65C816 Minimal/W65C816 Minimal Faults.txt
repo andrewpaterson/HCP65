@@ -22,3 +22,56 @@ From the review of 2026-11-23.  Only the data transceiver was checked; the rest 
 
 Used on Coprocessor Board - Main (B2, B6) and Coprocessor Board - Additional (B18, B24).  Those boards' own faults
 files cover how the sockets are wired (PHI2 into the Latch boards, and ~DE).
+
+
+Found in the review of 2026-11-23
+---------------------------------
+
+What the board does: the W65C816 (IC2) runs at 5V from the host's W65C816 Power board (W65C816V on pins 3 and 23).
+IC1 (74LVC2T45, 3.3V A to 5V B, DIR tied high) shifts ~{Reset} and PHI2 up to 5V, PHI2 through R3 (20 ohm).  IC3A
+(74LVC139) makes ~{RD} and ~{WD} from PHI2 and R/~W.  IC5 (74VHCT573, 5V) latches the low four bank bits (BA0-BA3,
+so 1MB) while Bank Latch is high, out through RN2 (220 ohm), and IC20 (74CBT3244, enabled through IC11 while Bank
+Latch is high) bypasses the latch.  RDY is held up by R1; BE, ~{ABORT}, ~{IRQ} and ~{NMI} are tied to 5V.  The
+address bus goes out at 5V, which is fine: on both hosts it goes only to 74LVC157s (Selector 12bit) and the
+Coprocessor Support's 5V 74F30s and LVC gates.  The pinouts of IC1, IC2 (PLCC-44), IC3, IC5, IC11 and IC20 agree with
+their datasheets.  Faults 3 and 4 of W65C816 Breakout Faults.txt (contention at PHI2 rising, and IC20 turning on
+inside the read data hold time) apply here too, as this board's bank capture is the same circuit cut to four bits.
+
+2. Not a fault: the W65C816 overdrives the bank latch for a few ns at each bank change (IC5, RN2, IC20)
+
+   While Bank Latch is high, IC5 (74VHCT573) is transparent and IC20 (74CBT3244) is on, so D0-D3_65 -> IC5 D -> Q ->
+   RN2 (220 ohm) -> BA0-3 -> IC20 -> D0-D3_65 is a closed, non-inverting loop.
+   The design intent (the user's): IC20 lets the bank byte out onto BA as soon as the W65C816 puts it on its data
+   pins, and IC5 latches it at the end of Bank Latch (~PHI2, delayed).  For the few ns after a bank change, until
+   IC5 follows, the W65C816 drives each changed bit through IC20 (a few ohms) against IC5's old output behind RN2's
+   220 ohm, and has to win.  IC5's D inputs are on the W65C816's own pins, so what matters is how far those pins are
+   pulled back.
+
+   With an output resistance of about 50 ohm the W65C816's pin loses only about 18% of the swing (about 4.3V for a
+   high at 5.3V), well past IC5's 2.0V threshold, and the bits change within a gate delay.  Only by the datasheet's
+   minimum output current (0.7mA at VDD - 0.4V, roughly 570 ohm) would it lose, and the user has found the
+   W65C816's datasheet very conservative.  Each changed bit still draws a spike of up to about 20mA for those few ns.
+
+   Effect: none.  The user confirms the W65C816 drives fairly hard, so it wins cleanly.
+
+3. R/~W is pulled up to the 3.3V rail (R4)
+
+   R4 (6.8k) goes from R/~W, a 5V W65C816 output, to /3.3V.  BE is tied high, so R/~W is never released and doesn't
+   need a pull-up.
+
+   Effect: whenever R/~W is high (most cycles) about 0.25mA flows back into /3.3V.  The AP7365 can't sink current and
+   the 3.3V loads here (IC1's VCCA, IC3, IC11, IC6's VCCB) draw only microamps when idle, so the rail can be pulled
+   above 3.3V.
+
+   Fix: remove R4 (or take it to 5V).
+
+4. Minor: ~{RD} isn't qualified with VDA or VPA (IC3A)
+
+   ~{RD} is PHI2 AND R/~W alone.  The W65C816 Breakout qualifies its strobes with VPA + VDA; here VDA and VPA are
+   unconnected.
+
+   Effect: the internal operation cycles (VDA = VPA = 0) also give a read strobe at whatever address is on the bus.
+   On the coprocessor hosts only SRAM is on the bus, so nothing is affected today, but a read-sensitive device on the
+   coprocessor's bus would be.
+
+   Fix: none needed for SRAM only; otherwise enable IC3A with VDA OR VPA as the Breakout does.

@@ -7,17 +7,38 @@ What the board does: IC1 (LK112M50) makes W65C816V = 5.0V from 12V, enabled by t
 powers the whole Breakout, including the Breakout's own AP7365 3.3V regulator, so the 74ALVC164245's VCC(B) >= VCC(A)
 rule is met.  The unconnected bypass pin is optional.
 
-Nothing here is a definite fault; both items are worth measuring.
+The W65C816 is overclocked on purpose: it reaches about 40MHz at about 5.3V.  The main processor runs at 25MHz
+(Triple MPU Clock Generator) and the coprocessors at 40MHz (Coprocessor Clock), which makes faults 1 and 3 definite.
+The user has measured the overclocked W65C816 drawing from under 40mA to 160mA.
 
-1. Possible: IC1 runs hot
+1. IC1 can't supply the overclocked W65C816's peak current
 
-   IC1 drops 7V in a SOT23-5 with RthJA about 255 C/W.  The load is the W65C816 (about 2mA/MHz), 16 address lines
-   driven at 5V, and the Breakout's whole 3.3V side (the data bus, and ~{RD}/~{WD} to about ten boards).  At 30-50mA
-   that is 0.2-0.35W, a rise of 55-90 C, close to the limit.
+   Measured by the user, the overclocked W65C816 draws from under 40mA to 160mA, without getting noticeably warm
+   itself.  The heat is in IC1 instead, which drops the rest of the 12V: it is a SOT23-5 with RthJA 255 C/W and an
+   output current limit of 150mA (ST datasheet).
+   - At 40mA: (12 - 5.25) x 0.04 = 0.27W, a rise of about 70 C.  Warm, but within its limit.
+   - At 160mA: about 1.1W, far past what the package can dissipate, and over the 150mA limit.
+   On the Processor Board, the Breakout's whole 3.3V side (the data bus, and ~{RD}/~{WD} to about ten boards) is on
+   this rail too.
 
-   Fix: drop some of the voltage in a series resistor first, or use a 5V LDO in SOT-89 or SOT-223, or a switcher.
+   Effect: at the high end of the range IC1 current-limits or goes into thermal shutdown, so the processor's supply
+   dips or drops out.
+
+   Fix: a regulator rated for 200mA or more that can dissipate it (SOT-223 or DPAK with copper), or drop most of the
+   12V before it (a switcher from 12V to about 6V, then the LDO).
 
 2. Possible: reset can end before the processor has power
 
    W65C816V only comes up once both 12V and 5V are present.  If 12V is late, ~{Reset} could release before the
    W65C816 has had a valid VDD and two clocks.  Check this against the reset timing from the mainboard.
+
+3. The supply is 5.0V, not the ~5.3V the overclock needs
+
+   IC1 is an LK112M50, a fixed 5.0V regulator.  The W65C816 needs about 5.3V to reach about 40MHz.
+
+   Effect: at 25-40MHz the processor runs with less margin than intended, or fails.
+
+   Fix: a pin-compatible 5.25V version of the regulator, which the user expects will work (ST's own LK112 range lists
+   no 5.25V part, so it comes from another range or maker), bearing fault 1's current and heat in mind.  The parts on
+   the W65C816's buses are fine at 5.25V: the 74ALVC164245's and 74LVC4245's 5V side, and the 74VHCT573, are rated
+   to 5.5V.

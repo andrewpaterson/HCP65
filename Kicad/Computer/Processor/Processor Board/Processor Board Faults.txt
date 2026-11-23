@@ -74,7 +74,7 @@ Found comparing the Processor Board with Mainboard Small, 2026-11-23
 
    The board's PHI2 is the inverse of MPU CLK (J5.B3), but the mainboard's ~Main Slot (J5.B11) is low only while MPU
    CLK is high, so it closes as PHI2 rises.  The processor can't reach main memory.  See Main/Triple MPU Clock Generator
-   Faults.txt.  MPU CLK there is also 33MHz, from a 100MHz oscillator.
+   Faults.txt.  (MPU CLK there is drawn as 33MHz, from a 100MHz oscillator; it is meant to be 25MHz.)
 
 11. ~ABORT is pulled to 5V by the mainboard (J5.B6)
 

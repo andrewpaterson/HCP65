@@ -26,7 +26,8 @@ crossing between them has exactly one driver.
 
    ~Main Access0 is low for the last 10ns of MPU CLK's high time; the Processor Board's PHI2 is MPU CLK inverted, so
    the slot closes as PHI2 rises and never overlaps the processor's ~RD or ~WD.  See Triple MPU Clock Generator
-   Faults.txt, faults 1 and 2 (the processor clock is also 33MHz).
+   Faults.txt, faults 1 and 2 (the clock generator's oscillator is drawn as 100MHz, giving 33MHz; it is meant to be 75MHz for
+   25MHz).
 
 3. ~ABORT is pulled up to 5V (R4)
 

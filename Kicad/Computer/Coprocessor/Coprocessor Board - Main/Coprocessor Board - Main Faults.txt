@@ -65,3 +65,104 @@ Found in the socket review of 2026-11-23
 
    Nothing resets B33 (Register 8bit: CAccess0-3, CRun0-3) or B9's F0-F3 latch, which drives C~Reset0-3.  So the
    coprocessors' run, reset and bus ownership come up random.  (Related to fault 1.)
+
+
+Found in the review of 2026-11-23
+---------------------------------
+
+What the board does: the main processor sees the board as a 32KB device (B16 buffers AD0-AD14; B11 and B12 decode
+the 1KB device ROM IC1 at $000 and the registers at $400).  Register $403 (B33, Register 8bit with IO) holds CAccess0-3
+in bits 0-3 and CRun0-3 in bits 4-7; Flags $402 (B9) holds C~{Reset}0-3 in F0-F3.  CAccess = 0 gives a coprocessor
+its 1MB (the 74LVC157 Selectors pick their A inputs, and the Minimal's ~DE is enabled); CAccess = 1 gives it to the
+main bus, as window A or B (B31 decodes AM19, AM20, ~{Memory A} and ~{Memory B} into M~{Memory0-7}).  CRun = 1 stops
+a coprocessor's clock (B34's flip-flop forces CPHI2 high); CRun = 0 runs it.  Each Coprocessor Support's INT is read
+in State $404 bits 0-3 and cleared by writing $404-$407; their ~INT are ANDed on B31 into the Flags board's interrupt.
+Coprocessors 2 and 3 are on Coprocessor Board - Additional, which plugs onto J2-J7; every header's pins line up one
+to one with the Additional board's J8-J13, on the PCB and in the schematic.  The host boards have no 74LVC02s of
+their own.
+
+7. The overclocked coprocessors' supply and timing (B31 Y1, B34; Additional board B35)
+
+   B31's oscillator Y1 is an XLH735040.000000I (40.000000MHz).  It reaches B34 (and, over J5/J10, the Additional
+   board's B35) as /40MHz, and the Coprocessor Clock board passes it on undivided: each W65C816 gets PHI2 = 40MHz, a
+   25ns cycle with 12.5ns phases.  The W65C816 is overclocked on purpose (about 40MHz at about 5.3V), so the rate is
+   intended, but:
+   - The W65C816 Power boards make 5.0V (LK112M50), not ~5.3V.  See W65C816 Power Faults.txt,
+     fault 3.
+   - At 40MHz each W65C816 draws far more current, and its LK112 (SOT23-5, 7V drop from 12V) overheats.  See W65C816
+     Power Faults.txt, fault 1.
+   - A read has 12.5ns to get through the 74LVC4245, the Selector 12bit muxes and the 10ns SRAM.  See Coprocessor
+     Clock Faults.txt, fault 1.
+
+   Fix: a supply that can be set to ~5.3V and handle the current (see W65C816 Power Faults.txt), and measure the
+   memory timing at 40MHz.
+
+8. ~{INT}0-3 float when a coprocessor's Support board or the Additional board isn't fitted (B31 pins 2, 3, 4, 6)
+
+   The board is meant to work part filled: Q0-Q3 (R1, R2, R4, R5 pull-downs) tell the main processor which
+   coprocessors are fitted.  But ~{INT}0 and ~{INT}1 come only from B3 and B17, and ~{INT}2 and ~{INT}3 only from the
+   Additional board over J5 pins 5 and 7, and nothing pulls them up.  B31 ANDs them (IC4, 74LVC08) into ~{INT} for the
+   Flags board.  INT0-3 (into B10, S0-S3) float the same way.
+
+   Effect: without the Additional board, or with a coprocessor slot left empty, a floating ~{INT} input can read low,
+   so the board interrupts the main processor at random (and Write Clear can't clear it), and the State bits read at
+   random.
+
+   Fix: 10K pull-ups to 5V on ~{INT}0-3 and 10K pull-downs on INT0-3, on this board.
+
+9. Possible: a write to the Flags can pulse the coprocessors' resets (B9 F0-F3, C~{Reset}0-3)
+
+   C~{Reset}0-3 come straight from the Flags board's IC8, a 74LVC573 that is transparent while Write Flags is high.
+   Its outputs follow the data bus from the start of the write strobe, before the write data is valid.  This is the
+   same as Component Boards/Register 8bit with IO Faults.txt fault 1, which covers CAccess and CRun on B33.
+
+   Effect: any write to the Flags (to reset one coprocessor, or to change Enable) can briefly pull ~{Reset} low on all
+   four coprocessors, partly resetting ones that are running.
+
+   Fix: an edge triggered latch (a 74LVC574 clocked as the write ends) for F0-F5 on the Flags board, or move the
+   resets into an edge triggered register.
+
+10. Possible: a stopped coprocessor keeps its write strobe on, so handing its memory over can corrupt a byte (B34, B5,
+    B8, B13, B14)
+
+   B34 stops a coprocessor with PHI2 high, in the middle of its data phase.  The Minimal makes ~{WD} from PHI2 and
+   R/~W, so a coprocessor stopped in a write cycle holds ~{WD} (and its chip select and address) active while stopped.
+   When CAccess then goes to 1, the 74LVC157s switch the SRAM's address, ~{Memory} and ~{WD} from the coprocessor's to
+   the main bus's at once.  Any skew that changes an address line before ~{WE} or ~{CE} rises writes the byte
+   somewhere else.  Nothing in hardware makes CAccess wait for the clock to stop either: a single write that sets
+   CRun and CAccess together switches the memory up to 25ns before the clock stops.
+
+   Effect: an occasional corrupted byte in the coprocessor's memory on a hand-over; a hand-over in the same write as
+   the stop can break a running cycle.
+
+   Fix: stop the clock with PHI2 low (the W65C816S can hold PHI2 in either state), where ~{RD} and ~{WD} are both
+   inactive: for example clock B34's flip-flop on the 40MHz falling edge and AND its ~Q into PHI2.  The driver must
+   set CRun in one write and change CAccess in a later one.
+
+11. Possible: IC3 (LD1117S50C) dissipation
+
+   IC3 makes the board's 5V from 12V for every daughter board except the W65C816s: about 20 boards, most with their
+   own AP7365 for 3.3V, two Memory 1MB boards whose 10ns SRAMs are selected for most coprocessor cycles, the Device
+   Buffer's four 74ABT245s and the Supports' 74F30s.  It drops 7V in a SOT-223 (110C/W): 150mA is already 1W, a rise
+   of about 115C.
+
+   Fix: measure the current; use a 12V to 5V buck regulator if it is more than about 100mA.
+
+12. Possible: the 3.3V flash is driven by 5V outputs (IC1)
+
+   IC1 (SST39VF010) runs from /3.3V; its maximum input is VDD + 0.5V, 3.8V.  Its address lines, ~{OE} and ~{WE},
+   and on writes its data lines, are driven by the Device Buffer's 74ABT245s on 5V.  ABT outputs go to about 3.5V high
+   rather than to the rail, so this is probably within the limit, but it isn't guaranteed.
+
+   Effect: possible over-voltage on IC1's inputs, with current through its clamp diodes into /3.3V.
+
+   Fix: an SST39SF010A (the 5V part, same pinout) on /5V; the 74LVC parts on /D0-D7 are 5V tolerant.
+
+13. Minor: Q0-Q3 show that a Selector board is fitted, not a processor (B8, B13; Additional B20, B26)
+
+   The sheet's note says "Q[0..3] indicate the presence of an MPU when high", but each Q is a Selector 12bit's Q11,
+   which passes /3.3V (on both A11 and B11) whatever is fitted.  A slot with its Selector but no W65C816 Minimal or
+   Memory 1MB reads present.
+
+   Fix: none needed if a slot is always fitted complete; otherwise take presence from the Minimal (a spare pin to
+   5V through it) and fix the note.
