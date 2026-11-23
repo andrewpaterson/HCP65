@@ -30,6 +30,13 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65DebugRecords.h"
 
 
+//An object's debug records (CAsm65DebugRecords) are the host's: a program on the HCP65 that reads objects (the kernal's
+//module loader) has none in them, and reads no further than their sources.
+#ifndef __LIBC65__
+#define ASM65_DEBUG_RECORDS
+#endif
+
+
 //A symbol's section when it is not in one.
 #define ASM65_SECTION_ABSOLUTE	-1
 #define ASM65_SECTION_UNDEFINED	-2
@@ -168,7 +175,9 @@ protected:
 	CArrayChars					maszSourceFiles;
 	CArrayAsm65SourceLines		mcSourceLines;
 	CArrayAsm65Fingerprints		mcFingerprints;
+#ifdef ASM65_DEBUG_RECORDS
 	CAsm65DebugRecords			mcDebug;			//Its functions' frames and variables, globals and types, at places in its sections.
+#endif
 	bool						mbSkipSectionBytes;
 
 public:
@@ -198,7 +207,9 @@ public:
 	void				AddFingerprint(const char* szLabel, uint32 uiHash, int64 iTime);
 	size				NumFingerprints(void) const;
 	SAsm65Fingerprint*	GetFingerprint(size uiIndex);
+#ifdef ASM65_DEBUG_RECORDS
 	CAsm65DebugRecords*	GetDebug(void);
+#endif
 
 	void				Dump(CChars* psz);
 

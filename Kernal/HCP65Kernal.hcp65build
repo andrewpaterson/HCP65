@@ -3,7 +3,7 @@
      loader ROM (HCP65/Boot) reads into MPU RAM and jumps to.  bss after them may go up to the remap table.  Debugged on
      the boot loader it starts from, on the emulator's card. -->
 <BuildConfigurations>
-	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" BreakpointSpace="Kernel" NoFloats="true" MathTables="false" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img" CardPath="\OS\OS.SYS">
+	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" Debug="true" BreakpointSpace="Kernel" NoFloats="true" MathTables="false" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img" CardPath="\OS\OS.SYS">
 		<Image File="OS.SYS" Size="0x30100" Fill="0xFF" Limit="0x7FC00" Load="0xFF00">
 			<Region Start="0xFF00" End="0x40000" Offset="0x0"/>
 		</Image>

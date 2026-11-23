@@ -134,7 +134,9 @@ void CAsm65Object::Init(const char* szName)
 	maszSourceFiles.Init();
 	mcSourceLines.Init();
 	mcFingerprints.Init();
+#ifdef ASM65_DEBUG_RECORDS
 	mcDebug.Init();
+#endif
 	mbSkipSectionBytes = false;
 }
 
@@ -152,7 +154,9 @@ void CAsm65Object::Kill(void)
 	{
 		mcFingerprints.Get(i)->szLabel.Kill();
 	}
+#ifdef ASM65_DEBUG_RECORDS
 	mcDebug.Kill();
+#endif
 	mcFingerprints.Kill();
 	mcSourceLines.Kill();
 	maszSourceFiles.Kill();
@@ -448,6 +452,7 @@ SAsm65Fingerprint* CAsm65Object::GetFingerprint(size uiIndex)
 }
 
 
+#ifdef ASM65_DEBUG_RECORDS
 //////////////////////////////////////////////////////////////////////////
 //
 //
@@ -456,6 +461,7 @@ CAsm65DebugRecords* CAsm65Object::GetDebug(void)
 {
 	return &mcDebug;
 }
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -800,7 +806,9 @@ bool CAsm65Object::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt64(psFingerprint->iTime);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Sources");
+#ifdef ASM65_DEBUG_RECORDS
 	bResult &= mcDebug.WriteChunks(pcChunkFile);
+#endif
 	return bResult;
 }
 
@@ -850,7 +858,15 @@ bool CAsm65Object::ReadChunks(CChunkFile* pcChunkFile)
 	{
 		return false;
 	}
-	return ReadHeader(pcChunkFile) && ReadSections(pcChunkFile) && ReadSymbols(pcChunkFile) && ReadRelocations(pcChunkFile) && ReadSources(pcChunkFile) && mcDebug.ReadChunks(pcChunkFile);
+	if (!ReadHeader(pcChunkFile) || !ReadSections(pcChunkFile) || !ReadSymbols(pcChunkFile) || !ReadRelocations(pcChunkFile) || !ReadSources(pcChunkFile))
+	{
+		return false;
+	}
+#ifdef ASM65_DEBUG_RECORDS
+	return mcDebug.ReadChunks(pcChunkFile);
+#else
+	return true;
+#endif
 }
 
 

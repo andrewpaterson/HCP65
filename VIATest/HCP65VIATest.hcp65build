@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <BuildConfigurations>
-	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" BreakpointSpace="User" MathTables="false" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\VIACard.img" CardPath="\viatest.exe">
+	<Configuration Name="Debug|W65C816" Toolchain="W65C816" Solution="Debug|Win32" Debug="true" BreakpointSpace="User" MathTables="false" Card="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\VIACard.img" CardPath="\viatest.exe">
 		<Executable File="viatest.exe" Entry="UserStart" Limit="0x200000">
 			<Symbol Name="UserHeapSize" Value="0x20000"/>
 		</Executable>
