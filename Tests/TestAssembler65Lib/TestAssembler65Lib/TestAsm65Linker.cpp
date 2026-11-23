@@ -1076,6 +1076,7 @@ void TestAsm65LinkerDebugRecords(void)
 	int64					iStart;
 	int64					iBody;
 	int64					iOther;
+	int64					iHandler;
 	int64					iCount;
 
 	LinkTestInit(&sTest);
@@ -1111,7 +1112,16 @@ void TestAsm65LinkerDebugRecords(void)
 	LinkTestObject(&sTest,
 		"	.global Other\n"
 		"Other:\n"
-		"	.dfunction \"CShape::Area\"\n"
+		"	.dfunction \"CShape::Area\", short\n"
+		"	ret\n"
+		"	.dend\n"
+		"	.global Stray\n"
+		"Stray:\n"
+		"	ret\n"
+		"	.global Handler\n"
+		"Handler:\n"
+		"	.dfunction \"[Interrupt]\", interrupt\n"
+		"	.dframe user, 2\n"
 		"	ret\n"
 		"	.section text.Shared, comdat\n"
 		"	.global Shared\n"
@@ -1136,17 +1146,19 @@ void TestAsm65LinkerDebugRecords(void)
 	iStart = LinkedSymbol(&sTest, "Start");
 	iBody = LinkedSymbol(&sTest, "Body");
 	iOther = LinkedSymbol(&sTest, "Other");
+	iHandler = LinkedSymbol(&sTest, "Handler");
 	iCount = LinkedSymbol(&sTest, "Count");
 	pcRecords = sTest.cLinker.GetDebugInfo()->GetRecords();
 
-	//Start, Other and one copy of Shared; Unused's object wasn't linked.
-	AssertSize(3, pcRecords->NumFunctions());
+	//Start, Other, Handler and one copy of Shared; Unused's object wasn't linked.
+	AssertSize(4, pcRecords->NumFunctions());
 	psFunction = pcRecords->FindFunction((uint32)iStart);
 	AssertTrue(psFunction != NULL);
 	AssertString("Start", psFunction->szName.Text());
 	AssertInt(ASM65_DEBUG_ABSOLUTE, psFunction->sStart.uiSection);
 	AssertInt((uint32)iStart, psFunction->sStart.uiOffset);
 	AssertInt((uint32)iBody, psFunction->uiBody);
+	AssertInt(ADE_Long, psFunction->uiEntry);
 	AssertInt(ADL_Frame, psFunction->uiLink);
 	AssertInt(6, psFunction->iLink);
 	AssertTrue(pcRecords->FindFunction((uint32)iBody + 1) == psFunction);
@@ -1154,9 +1166,19 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd) != psFunction);
 	psFunction = pcRecords->FindFunction((uint32)iOther);
 	AssertString("CShape::Area", psFunction->szName.Text());
+	AssertInt(ADE_Short, psFunction->uiEntry);
 	AssertInt(ADL_None, psFunction->uiLink);
 	AssertInt((uint32)iOther, psFunction->uiBody);
+	AssertInt((uint32)LinkedSymbol(&sTest, "Stray"), psFunction->uiEnd);
 	AssertTrue(pcRecords->FindFunction(0) == NULL);
+
+	//Stray's code, after .dend, has none; Handler's starts again.
+	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd) == NULL);
+	psFunction = pcRecords->FindFunction((uint32)iHandler);
+	AssertString("[Interrupt]", psFunction->szName.Text());
+	AssertInt(ADE_Interrupt, psFunction->uiEntry);
+	AssertInt(ADL_User, psFunction->uiLink);
+	AssertInt(2, psFunction->iLink);
 
 	//Start's variables, typed by the linked types.
 	psFunction = pcRecords->FindFunction((uint32)iStart);
@@ -1231,11 +1253,13 @@ void TestAsm65LinkerDebugRecords(void)
 	cRead.Init();
 	AssertTrue(cRead.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
 	pcRecords = cRead.GetRecords();
-	AssertSize(3, pcRecords->NumFunctions());
+	AssertSize(4, pcRecords->NumFunctions());
 	AssertSize(4, pcRecords->NumTypes());
 	AssertSize(2, pcRecords->NumGlobals());
 	psFunction = pcRecords->FindFunction((uint32)iOther);
 	AssertString("CShape::Area", psFunction->szName.Text());
+	AssertInt(ADE_Short, psFunction->uiEntry);
+	AssertInt(ADL_User, pcRecords->FindFunction((uint32)iHandler)->uiLink);
 	AssertString("int", pcRecords->GetType(pcRecords->GetVariable(pcRecords->FindFunction((uint32)iStart), 0)->uiType)->szKey.Text());
 	AssertTrue(pcRecords->FindType("EKind") != NULL);
 	cRead.Move(-iStart);
@@ -1276,13 +1300,30 @@ void TestAsm65LinkerDebugErrors(void)
 	AssertString(
 		"1:2: .dframe must follow a .dfunction '.dframe'\n"
 		"2:2: .dvariable must follow a .dfunction '.dvariable'\n"
-		"5:10: Expected none, frame or saved 'up'\n"
+		"5:10: Expected none, frame, saved or user 'up'\n"
 		"6:42: Expected a line no earlier than the first '4'\n"
 		"7:9: A .dtype's index must be the number of types before it '1'\n"
 		"8:26: Expected a kind of type 'number'\n"
 		"9:2: .dmember must follow a .dtype '.dmember'\n"
 		"11:20: A debug global must be at a label in one of the object's sections '12'\n"
 		"12:1: A debug record names a type the unit doesn't describe 'end of file'\n", cAssembler.GetErrors());
+	cObject.Kill();
+	cAssembler.Kill();
+
+	//.dend ends a function, once; an entry is one of three.
+	cAssembler.Init();
+	cObject.Init("errors");
+	AssertFalse(cAssembler.AssembleObject(
+		"	.dend\n"
+		"Start:\n"
+		"	.dfunction \"Start\", far\n"
+		"	.dfunction \"Next\"\n"
+		"	.dend\n"
+		"	.dend\n", &cObject));
+	AssertString(
+		"1:2: .dend must follow a .dfunction not yet ended '.dend'\n"
+		"3:22: Expected long, short or interrupt 'far'\n"
+		"6:2: .dend must follow a .dfunction not yet ended '.dend'\n", cAssembler.GetErrors());
 	cObject.Kill();
 	cAssembler.Kill();
 

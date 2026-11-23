@@ -90,11 +90,13 @@ void CAsm65DebugRecords::Clear(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A function starting at the place, with no frame (its body is all of it)
-// until SetFrame.  Its variables are the ones added after it.
+// A function starting at the place, got to as eEntry says, with no frame
+// (its body is all of it) until SetFrame, running to its section's end
+// unless EndFunction ends it first.  Its variables are the ones added
+// after it.
 //
 //////////////////////////////////////////////////////////////////////////
-SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset)
+SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset, EAsm65DebugEntry eEntry)
 {
 	SAsm65DebugFunction*	psFunction;
 
@@ -102,8 +104,9 @@ SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 
 	psFunction->szName.Init(szName);
 	psFunction->sStart.uiSection = uiSection;
 	psFunction->sStart.uiOffset = uiOffset;
-	psFunction->uiEnd = uiOffset;
+	psFunction->uiEnd = ASM65_DEBUG_NONE;
 	psFunction->uiBody = uiOffset;
+	psFunction->uiEntry = (uint8)eEntry;
 	psFunction->uiLink = ADL_None;
 	psFunction->iLink = 0;
 	psFunction->uiFirstVariable = (uint32)masVariables.NumElements();
@@ -136,8 +139,29 @@ bool CAsm65DebugRecords::SetFrame(uint32 uiBody, EAsm65DebugLink eLink, int32 iL
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The functions in uiSection end at uiEnd, the section's size: each
-// function has a section of its own.
+// The last function ends at uiEnd (its section's offset), before code
+// the records don't describe.  False with no function, or one ended.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::EndFunction(uint32 uiEnd)
+{
+	SAsm65DebugFunction*	psFunction;
+
+	psFunction = LastFunction();
+	if (!psFunction || (psFunction->uiEnd != ASM65_DEBUG_NONE))
+	{
+		return false;
+	}
+	psFunction->uiEnd = uiEnd;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The functions in uiSection not ended (EndFunction) end at uiEnd, the
+// section's size.  A function found by its address (FindFunction) is the
+// last to start at or before it, so one section may hold several.
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65DebugRecords::EndFunctions(uint32 uiSection, uint32 uiEnd)
@@ -148,7 +172,7 @@ void CAsm65DebugRecords::EndFunctions(uint32 uiSection, uint32 uiEnd)
 	for (ui = 0; ui < masFunctions.NumElements(); ui++)
 	{
 		psFunction = masFunctions.Get(ui);
-		if (psFunction->sStart.uiSection == uiSection)
+		if ((psFunction->sStart.uiSection == uiSection) && (psFunction->uiEnd == ASM65_DEBUG_NONE))
 		{
 			psFunction->uiEnd = uiEnd;
 		}
@@ -404,7 +428,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 			continue;
 		}
 		auiFunctions.Add((uint32)masFunctions.NumElements());
-		psFunction = AddFunction(psSourceFunction->szName.Text(), ASM65_DEBUG_ABSOLUTE, uiAddress + psSourceFunction->sStart.uiOffset);
+		psFunction = AddFunction(psSourceFunction->szName.Text(), ASM65_DEBUG_ABSOLUTE, uiAddress + psSourceFunction->sStart.uiOffset, (EAsm65DebugEntry)psSourceFunction->uiEntry);
 		psFunction->uiEnd = uiAddress + psSourceFunction->uiEnd;
 		psFunction->uiBody = uiAddress + psSourceFunction->uiBody;
 		psFunction->uiLink = psSourceFunction->uiLink;
@@ -801,6 +825,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= Asm65WritePlace(pcChunkFile, &psFunction->sStart);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiEnd);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiBody);
+		bResult &= pcChunkFile->WriteInt8(psFunction->uiEntry);
 		bResult &= pcChunkFile->WriteInt8(psFunction->uiLink);
 		bResult &= pcChunkFile->WriteInt32(psFunction->iLink);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiFirstVariable);
@@ -899,7 +924,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 		psFunction = masFunctions.Add();
 		psFunction->szName.Init();
 		if (!Asm65ReadText(pcChunkFile, &psFunction->szName) || !Asm65ReadPlace(pcChunkFile, &psFunction->sStart) || !pcChunkFile->ReadInt32(&psFunction->uiEnd) ||
-			!pcChunkFile->ReadInt32(&psFunction->uiBody) || !pcChunkFile->ReadInt8(&psFunction->uiLink) || !pcChunkFile->ReadInt32(&psFunction->iLink) ||
+			!pcChunkFile->ReadInt32(&psFunction->uiBody) || !pcChunkFile->ReadInt8(&psFunction->uiEntry) || !pcChunkFile->ReadInt8(&psFunction->uiLink) || !pcChunkFile->ReadInt32(&psFunction->iLink) ||
 			!pcChunkFile->ReadInt32(&psFunction->uiFirstVariable) || !pcChunkFile->ReadInt32(&psFunction->uiNumVariables))
 		{
 			return false;

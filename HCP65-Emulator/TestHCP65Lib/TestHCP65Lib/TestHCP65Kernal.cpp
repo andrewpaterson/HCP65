@@ -11,6 +11,7 @@
 #include "BaseLib/ConstructorCall.h"
 #include "BaseLib/DataMemory.h"
 #include "Assembler65Lib/Asm65Object.h"
+#include "Assembler65Lib/Asm65StackWalker.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
@@ -19,6 +20,7 @@
 #include "SupportLib/SFTWriter.h"
 #include "HCP65Lib/HCP65.h"
 #include "HCP65Lib/HCP65DebugPort.h"
+#include "HCP65Lib/HCP65DebugTarget.h"
 #include "HCP65Lib/HCP65Audio.h"
 #include "HCP65Lib/HCP65SDCard.h"
 #include "HCP65Lib/HCP65UART.h"
@@ -98,6 +100,8 @@
 #define TEST_HCP65_EXCEPTIONS_PROGRAM	"Programs" _FS_ "ExceptionsTest" _FS_ "ExceptionsTest.vcxproj"
 #define TEST_HCP65_EXCEPTIONS_PATH	"\\excepts.exe"
 #define TEST_HCP65_EXCEPTIONS_EXIT	77		//ExceptionsTest.cpp's terminate handler's.
+#define TEST_HCP65_EXCEPTIONS_DEBUG	TEST_HCP65_OUTPUT _FS_ "excepts.debug"	//TestKernalPutExe's.
+#define TEST_HCP65_KERNAL_DEBUG		TEST_HCP65_OUTPUT _FS_ "Kernal.debug"	//TestKernalBuild's.
 #define TEST_HCP65_LCD_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "LCDTest" _FS_ "HCP65LCDTest.vcxproj"
 #define TEST_HCP65_LCD_PROGRAM_PATH	"\\LCDTEST.EXE"
 #define TEST_HCP65_HELLO_PATH		"\\HELLO.TXT"
@@ -210,6 +214,8 @@ struct STestKernal
 	uint32				auiHeapBanks[2][TEST_HCP65_COP_ENTRIES];	//KernalMapHeapBanks' and KernalUnmapHeapBanks' entries (0 if
 																	//none), for TEST_HCP65_TIME_COP.
 	uint32				uiScreenImages;		//gasKernalScreenImages (KernalScreen.h), in MPU RAM.
+	uint32				uiCopCall;			//KernalCopCall, where each kernal call goes once Start.asm's KernalCop has saved
+											//the process's registers.
 };
 
 
@@ -469,6 +475,7 @@ static bool TestKernalIsDone(STestKernalStatus* psStatus)
 static bool TestKernalPutExe(const char* szImage, const char* szName, const char* szProjectFile, const char** aszLibraries, uint32 uiHeapSize, bool bMathTables, bool bExceptions = false)
 {
 	CHCP65ExeBuilder	cExe;
+	CChars				szDebug;
 	bool				bBuilt;
 
 	cExe.Init();
@@ -480,6 +487,13 @@ static bool TestKernalPutExe(const char* szImage, const char* szName, const char
 	AssertTrue(bBuilt);
 	if (bBuilt)
 	{
+		//Its debug file beside it in Output, named as the program is (\excepts.exe's Output/excepts.debug).
+		szDebug.Init(TEST_HCP65_OUTPUT _FS_)->Append(&szName[1]);
+		szDebug.SetLength(szDebug.FindFromEnd('.'));
+		szDebug.Append(".debug");
+		AssertTrue(cExe.GetDebugInfo()->WriteFile(szDebug.Text()));
+		szDebug.Kill();
+
 		AssertTrue(cExe.GetExecutableSize() > 0);
 		if (getenv("TEST_HCP65_VERBOSE"))
 		{
@@ -999,6 +1013,9 @@ static bool TestKernalBuild(STestKernal* psKernal)
 	}
 	psKernal->uiScreenImages = 0;
 	AssertTrue(psKernal->cOS.GetSymbol("_gasKernalScreenImages", &psKernal->uiScreenImages));
+	psKernal->uiCopCall = 0;
+	AssertTrue(psKernal->cOS.GetSymbol("_KernalCopCall", &psKernal->uiCopCall));
+	AssertTrue(psKernal->cOS.GetBuilder()->GetDebugInfo()->WriteFile(TEST_HCP65_KERNAL_DEBUG));
 	psKernal->cBoot.Release();
 	psKernal->cOS.Release();
 	return true;
@@ -2542,6 +2559,167 @@ void TestHCP65KernalExceptions(STestKernal* psKernal)
 }
 
 
+//The HCP65's memory as a stack walk reads it, through its debugger's target: kernel mode's, or user mode's (the process
+//the processor board names).
+class CTestKernalStackMemory : public CAsm65StackMemory
+{
+public:
+	CHCP65DebugTarget*	mpcTarget;
+
+	bool	Read(EAsm65StackSpace eSpace, uint32 uiAddress, void* pvDest, size uiBytes) override;
+};
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CTestKernalStackMemory::Read(EAsm65StackSpace eSpace, uint32 uiAddress, void* pvDest, size uiBytes)
+{
+	return mpcTarget->PeekSpaceMemory((eSpace == ASS_Kernel) ? 0 : 1, uiAddress, pvDest, uiBytes) == uiBytes;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The name of the function of the walk's uiIndex'th frame, "" for code
+// with no records.
+//
+//////////////////////////////////////////////////////////////////////////
+static const char* TestKernalFrameName(CArrayAsm65StackFrames* pasFrames, size uiIndex)
+{
+	SAsm65StackFrame*	psFrame;
+
+	psFrame = pasFrames->Get(uiIndex);
+	return (psFrame && psFrame->psFunction) ? psFrame->psFunction->szName.Text() : "";
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Stopped at each of excepts.exe's kernal calls (KernalCopCall), its stack
+// walked from the kernal's and the program's debug records goes through
+// Start.asm's COP stub ("[Kernal call]") to the program's cop and on up
+// the program's calls (DebuggerPlan.txt decision 6), reading the
+// program's stack in user mode's memory from kernel mode; one of the calls
+// is the heap's, from main.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestHCP65KernalWalk(STestKernal* psKernal)
+{
+	CHCP65					cHCP65;
+	CTestMainboard			cMainboard;
+	CHCP65SDCard*			pcSDCard;
+	CHCP65DebugTarget		cTarget;
+	CTestKernalStackMemory	cMemory;
+	CAsm65DebugInfo			cKernal;
+	CAsm65DebugInfo			cProgram;
+	CAsm65StackWalker		cWalker;
+	CArrayAsm65StackFrames	asFrames;
+	SAsm65StackRegisters	sRegisters;
+	SAsm65StackFrame*		psFrame;
+	STestKernalStatus		sStatus;
+	uint8*					puiRAM;
+	uint32					uiStatus;
+	uint32					uiAddress;
+	uint8					uiCop;
+	size					uiCalls;
+	size					ui;
+	bool					bMain;
+	int						i;
+
+	if (!TestKernalCopyBlankCard(TEST_HCP65_EXCEPTIONS_CARD_IMAGE) ||
+		!TestKernalPutExe(TEST_HCP65_EXCEPTIONS_CARD_IMAGE, TEST_HCP65_EXCEPTIONS_PATH, TEST_HCP65_EXCEPTIONS_PROGRAM, NULL, HCP65_EXE_DEFAULT_HEAP, false, true))
+	{
+		return;
+	}
+	TestKernalSetStartUp(TEST_HCP65_EXCEPTIONS_CARD_IMAGE, TEST_HCP65_EXCEPTIONS_PATH, 0, &uiStatus);
+	cKernal.Init();
+	cProgram.Init();
+	AssertTrue(cKernal.ReadFile(TEST_HCP65_KERNAL_DEBUG));
+	AssertTrue(cProgram.ReadFile(TEST_HCP65_EXCEPTIONS_DEBUG));
+
+	cHCP65.Init(TEST_HCP65_CLOCK_RATE);
+	if (!TestKernalPlugIn(&cMainboard, &cHCP65, TEST_HCP65_EXCEPTIONS_MACHINE))
+	{
+		cProgram.Kill();
+		cKernal.Kill();
+		cHCP65.Kill();
+		cMainboard.Kill();
+		return;
+	}
+	pcSDCard = (CHCP65SDCard*)TestKernalBoard(&cMainboard, TEST_HCP65_SD_SOCKET, HCP65_SD_NAME);
+	TestKernalBoard(&cMainboard, TEST_HCP65_MEMORY_SOCKET, HCP65_MEMORY_BOARD_NAME);
+	TestKernalStart(&cHCP65, psKernal);
+	cTarget.Init(&cHCP65);
+	cMemory.mpcTarget = &cTarget;
+	cWalker.Init(&cMemory);
+	cWalker.AddRecords(cKernal.GetRecords(), ASS_Kernel);
+	cWalker.AddRecords(cProgram.GetRecords(), ASS_User);
+	asFrames.Init();
+	cHCP65.GetModeBreakpoints(true)->Add(psKernal->uiCopCall, true);
+
+	puiRAM = cHCP65.GetMPURAM();
+	uiCalls = 0;
+	bMain = false;
+	for (i = 0; i < TEST_HCP65_MAX_RUNS; i++)
+	{
+		cHCP65.Run(TEST_HCP65_RUN_CYCLES);
+		if (cHCP65.IsAtBreakpoint())
+		{
+			//KernalCopCall, called by the stub, called by the program's cop, which a function of the program's called (a
+			//UserCalls.asm entry, or the heap's): the walk ends at the start up's code (UserStart.asm), which has no records.
+			uiCalls++;
+			sRegisters.Init(cHCP65.GetMPU(), ASS_Kernel);
+			cWalker.Walk(&sRegisters, &asFrames, 64);
+			AssertTrue(asFrames.NumElements() >= 3);
+			AssertString("KernalCopCall", TestKernalFrameName(&asFrames, 0));
+			AssertString("[Kernal call]", TestKernalFrameName(&asFrames, 1));
+			psFrame = asFrames.Get(2);
+			AssertInt(ASS_User, psFrame->uiSpace);
+			AssertTrue(cMemory.Read(ASS_User, psFrame->uiPC - 2, &uiCop, 1));
+			AssertIntHex(0x02, uiCop);
+			for (ui = 2; ui < asFrames.NumElements(); ui++)
+			{
+				AssertInt(ASS_User, asFrames.Get(ui)->uiSpace);
+				bMain |= strcmp(TestKernalFrameName(&asFrames, ui), "main") == 0;
+			}
+			AssertString("", TestKernalFrameName(&asFrames, asFrames.NumElements() - 1));
+
+			//The process's memory written from kernel mode, as a debugger edits a variable: below its stack, which kernel
+			//mode's memory at the same address isn't.
+			if (uiCalls == 1)
+			{
+				uiAddress = (uint32)psFrame->uiS - 16;
+				uiCop = 0xA5;
+				AssertSize(1, cTarget.PokeSpaceMemory(1, uiAddress, &uiCop, 1));
+				AssertIntHex(0xA5, *cHCP65.MemoryAt(uiAddress, false));
+				AssertTrue(cHCP65.MemoryAt(uiAddress, false) != cHCP65.MemoryAt(uiAddress, true));
+			}
+			continue;
+		}
+		TestKernalReadStatus(puiRAM, uiStatus, &sStatus);
+		if (TestKernalIsDone(&sStatus) || cHCP65.IsStopped())
+		{
+			break;
+		}
+	}
+	AssertTrue(uiCalls >= 2);
+	AssertTrue(bMain);
+	AssertInt(TEST_KERNAL_STATE_BOOT_EXITED, sStatus.uiState);
+	AssertInt(TEST_HCP65_EXCEPTIONS_EXIT, sStatus.uiExitCode);
+
+	asFrames.Kill();
+	cWalker.Kill();
+	cTarget.Kill();
+	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
+	cHCP65.Kill();
+	cMainboard.Kill();
+	cProgram.Kill();
+	cKernal.Kill();
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 // Without a memory board the kernal scans the devices and stops: the SD
@@ -3665,6 +3843,10 @@ void TestHCP65Kernal(void)
 		if (TestKernalRuns("Exceptions"))
 		{
 			TestHCP65KernalExceptions(&sKernal);
+		}
+		if (TestKernalRuns("Walk"))
+		{
+			TestHCP65KernalWalk(&sKernal);
 		}
 	}
 	sKernal.cOS.Kill();

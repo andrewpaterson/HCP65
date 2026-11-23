@@ -78,9 +78,9 @@ size CAsmW65C816FrameCheck::Run(size uiMaxSteps)
 //////////////////////////////////////////////////////////////////////////
 //
 // Before the instruction at the program address runs: checks a direct
-// page store (Check), and a jsl (jsr), or an rtl that calls through a
-// pointer (AsmW65C816IsIndirectCall), starts a call.  Returns its opcode,
-// for AfterStep.
+// page store (Check), and a jsl (jsr), a cop or brk, or an rtl that calls
+// through a pointer (AsmW65C816IsIndirectCall), starts a call.  Returns
+// its opcode, for AfterStep.
 //
 //////////////////////////////////////////////////////////////////////////
 uint8 CAsmW65C816FrameCheck::BeforeStep(void)
@@ -98,6 +98,11 @@ uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 	if (AsmW65C816IsSubroutineCall(uiOpcode))
 	{
 		AddCall(uiS, uiS - ((uiOpcode == 0x22) ? 2 : 1), uiAddress + ((uiOpcode == 0x22) ? 4 : 3));
+	}
+	else if ((uiOpcode == 0x02) || (uiOpcode == 0x00))
+	{
+		//The program bank, where it comes back to (after the signature byte), then P.
+		AddCall(uiS, uiS - 2, uiAddress + 2);
 	}
 	else if (uiOpcode == 0x6B)
 	{

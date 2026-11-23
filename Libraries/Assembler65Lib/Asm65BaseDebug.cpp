@@ -22,7 +22,8 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 //The words the debug directives take for their kinds, in each enum's order.
-static const char*	gaszAsm65DebugLinks[] = { "none", "frame", "saved", NULL };
+static const char*	gaszAsm65DebugEntries[] = { "long", "short", "interrupt", NULL };
+static const char*	gaszAsm65DebugLinks[] = { "none", "frame", "saved", "user", NULL };
 static const char*	gaszAsm65DebugWheres[] = { "none", "frame", "indirect", NULL };
 static const char*	gaszAsm65DebugVariableKinds[] = { "local", "parameter", NULL };
 static const char*	gaszAsm65DebugTypes[] = { "void", "bool", "integer", "float", "enum", "pointer", "reference", "array", "class", "function", NULL };
@@ -35,9 +36,14 @@ static const char*	gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enume
 // types for a debugger (CAsm65DebugRecords, kept in the object).  Each is
 // only allowed in an object, and adds its record in the final pass:
 //
-//   .dfunction "name"                  A function starts here.
+//   .dfunction "name"[, entry]         A function starts here, got to by
+//                                      entry: long (jsl, as when left out),
+//                                      short (jsr) or interrupt.
 //   .dframe link, offset               Its prologue ends here: link is
-//                                      none, frame or saved (EAsm65DebugLink).
+//                                      none, frame, saved or user
+//                                      (EAsm65DebugLink).
+//   .dend                              It ends here, before code with no
+//                                      records (else at its section's end).
 //   .dvariable local|parameter, "name", type, where, offset, first, last
 //                                      A variable of the function: where is
 //                                      none, frame or indirect, in scope from
@@ -63,6 +69,10 @@ bool CAsm65BaseAssembler::DebugDirective(SAsm65Token* psDirective, bool* pbResul
 	else if (psDirective->IsIdentifierIgnoreCase(".dframe"))
 	{
 		*pbResult = DebugObject(psDirective) && DebugFrame(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dend"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugEnd(psDirective);
 	}
 	else if (psDirective->IsIdentifierIgnoreCase(".dvariable"))
 	{
@@ -113,13 +123,19 @@ bool CAsm65BaseAssembler::DebugObject(SAsm65Token* psDirective)
 bool CAsm65BaseAssembler::DebugFunction(SAsm65Token* psDirective)
 {
 	CChars	szName;
+	int		iEntry;
 	bool	bResult;
 
+	iEntry = ADE_Long;
 	szName.Init();
 	bResult = DebugText(&szName, "a function's name");
+	if (bResult && Accept(AP65_Comma))
+	{
+		bResult = DebugWord(gaszAsm65DebugEntries, &iEntry, "long, short or interrupt");
+	}
 	if (bResult && mbFinal)
 	{
-		mpcObject->GetDebug()->AddFunction(szName.Text(), muiSection, muiAddress);
+		mpcObject->GetDebug()->AddFunction(szName.Text(), muiSection, muiAddress, (EAsm65DebugEntry)iEntry);
 	}
 	szName.Kill();
 	return bResult;
@@ -136,13 +152,27 @@ bool CAsm65BaseAssembler::DebugFrame(SAsm65Token* psDirective)
 	int64	iOffset;
 
 	iLink = ADL_None;
-	if (!DebugWord(gaszAsm65DebugLinks, &iLink, "none, frame or saved") || !Expect(AP65_Comma, "','") || !DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset"))
+	if (!DebugWord(gaszAsm65DebugLinks, &iLink, "none, frame, saved or user") || !Expect(AP65_Comma, "','") || !DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset"))
 	{
 		return false;
 	}
 	if (mbFinal && !mpcObject->GetDebug()->SetFrame(muiAddress, (EAsm65DebugLink)iLink, (int32)iOffset))
 	{
 		return Error(psDirective, ".dframe must follow a .dfunction");
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugEnd(SAsm65Token* psDirective)
+{
+	if (mbFinal && !mpcObject->GetDebug()->EndFunction(muiAddress))
+	{
+		return Error(psDirective, ".dend must follow a .dfunction not yet ended");
 	}
 	return true;
 }

@@ -30,10 +30,14 @@ L_SIZE		= 12
 		.section text.KernalInterrupts
 		.relax
 
+; Each routine is described for a debugger (.dfunction: how it is called, so how its caller is found), as Start.asm's
+; interrupt stubs are.
+
 
 ; extern "C" void KernalIrqDispatch(void): calls the handler of each device that is interrupting.
 		.global _KernalIrqDispatch
 _KernalIrqDispatch:
+		.dfunction "KernalIrqDispatch"
 		.width (A, X), 16
 		phd
 		tsc
@@ -41,6 +45,7 @@ _KernalIrqDispatch:
 		sbc L_SIZE
 		tcs
 		tcd
+		.dframe frame, L_SIZE
 		sep m
 		lda [REGISTER_INTERRUPTS_LOW]:24
 		eor 0xFF
@@ -67,6 +72,7 @@ _KernalIrqDispatch:
 ; busy.
 		.global _KernalRunPendingInterrupts
 _KernalRunPendingInterrupts:
+		.dfunction "KernalRunPendingInterrupts"
 		.width (A, X), 16
 		php
 		sei
@@ -129,6 +135,7 @@ PendingHighNext:
 ; For each slot whose bit is set in L_LOW and L_HIGH: DispatchSlot (L_MODE 0) or RunPendingSlot, with A the slot.
 ; They keep nothing but the frame.
 EachSlot:
+		.dfunction "EachSlot", short
 		.width (A, X), 16
 		lda 1
 		sta [D + L_SLOT]
@@ -158,6 +165,7 @@ EachHighNext:
 		rts
 
 SlotRoutine:
+		.dfunction "SlotRoutine", short
 		.width (A, X), 16
 		lda [D + L_MODE]
 		bne SlotRoutinePending
@@ -310,6 +318,7 @@ CallHandlerReturn:
 
 ; X = the slot in A's offset in gasKernalInterrupts (16 bytes a slot).
 SlotOffset:
+		.dfunction "SlotOffset", short
 		.width (A, X), 16
 		asl A
 		asl A
@@ -323,6 +332,7 @@ SlotOffset:
 ; IRQ be taken (and dispatched) before setting I again.
 		.global _KernalWaitForInterrupt
 _KernalWaitForInterrupt:
+		.dfunction "KernalWaitForInterrupt"
 		.width (A, X), 16
 		wai
 		cli
@@ -333,6 +343,7 @@ _KernalWaitForInterrupt:
 
 		.global _KernalInterruptsOn
 _KernalInterruptsOn:
+		.dfunction "KernalInterruptsOn"
 		.width (A, X), 16
 		cli
 		rtl
@@ -340,6 +351,7 @@ _KernalInterruptsOn:
 
 		.global _KernalInterruptsOff
 _KernalInterruptsOff:
+		.dfunction "KernalInterruptsOff"
 		.width (A, X), 16
 		sei
 		rtl

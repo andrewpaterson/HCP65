@@ -37,6 +37,7 @@ public:
 
 	uint8*			GetExecutable(void) const;
 	size			GetExecutableSize(void) const;
+	CAsm65DebugInfo*	GetDebugInfo(void);
 	const char*		GetErrors(void) const;
 
 protected:

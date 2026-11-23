@@ -915,8 +915,20 @@ void CHCP65::Write(uint32 uiAddress, uint8 uiValue)
 //////////////////////////////////////////////////////////////////////////
 uint8* CHCP65::MemoryAt(uint32 uiAddress)
 {
+	return MemoryAt(uiAddress, mbKernel);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// As MemoryAt, in kernel mode (bKernel) or user mode: the process's
+// memory, by the remap table, whichever mode the processor is in.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8* CHCP65::MemoryAt(uint32 uiAddress, bool bKernel)
+{
 	uiAddress &= 0xFFFFFF;
-	if (!mbKernel)
+	if (!bKernel)
 	{
 		return MainMemoryAt(UserAddress(uiAddress));
 	}

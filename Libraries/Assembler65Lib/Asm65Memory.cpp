@@ -148,10 +148,10 @@ uint8 CAsm65Memory::GetByte(uint32 uiAddress)
 //////////////////////////////////////////////////////////////////////////
 //
 // Copies uiBytes from uiAddress, false (not a bad access) if any of them
-// isn't memory.
+// isn't memory.  There is no user mode: every space is the one memory.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65Memory::Read(uint32 uiAddress, void* pvDest, size uiBytes)
+bool CAsm65Memory::Read(EAsm65StackSpace eSpace, uint32 uiAddress, void* pvDest, size uiBytes)
 {
 	uint8*	puiByte;
 	size	ui;

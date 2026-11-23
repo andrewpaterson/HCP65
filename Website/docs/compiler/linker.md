@@ -103,8 +103,9 @@ they have).  The compiler writes them into the assembly with these directives:
 |---|---|
 | `.line "file", line` | The code from here is for this line of this file. |
 | `.fingerprint "label", hash, time` | The function's code hashed, so a debugger can tell whether the function changed since the line table was made. |
-| `.dfunction "name"` | A function starts here (its name as C++ writes it). |
-| `.dframe link, offset` | Its prologue ends here; `link` (`none`, `frame` or `saved`) and `offset` say where its caller's D and return address are. |
+| `.dfunction "name"[, entry]` | A function starts here (its name as C++ writes it), got to by `entry`: `long` (jsl, when left out), `short` (jsr) or `interrupt` (an interrupt, cop or brk). |
+| `.dframe link, offset` | Its prologue ends here; `link` (`none`, `frame`, `saved` or `user`) and `offset` say where its caller's D and return address are.  `user` is a kernel's interrupt from user mode, on the kernel's own stack: the interrupted D and S are the words at S + `offset` + 1 and + 3. |
+| `.dend` | The function ends here, before code with no records (otherwise at its section's end, or where the next function starts). |
 | `.dvariable local\|parameter, "name", type, where, offset, first, last` | A variable of the function, `where` (`none`, `frame` or `indirect`) at D + `offset`, in scope from line `first` to `last`. |
 | `.dglobal "name", type, label` | A global at the label. |
 | `.dstatic "name", type, label` | A static local of the function, at the label. |

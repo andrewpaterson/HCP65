@@ -453,6 +453,7 @@ void TestHCP65Debugger(void)
 	uint32					uiKernel;
 	uint32					uiUser;
 	uint8					uiByte;
+	uint8					auiRead[16];
 	int						i;
 	static const uint8		auiMain[] = { 0x18, 0xFB, 0xE8, 0x20, 0x10, 0x80, 0xC8, 0x80, 0xF9 };
 	static const uint8		auiFunction[] = { 0xE8, 0x60 };
@@ -641,14 +642,17 @@ void TestHCP65Debugger(void)
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumModuleChanges, 2);
 	AssertSize(0, cClient.NumModules());
 
-	//Memory through the map: RAM at 0 once native.  A device reads as $FF and isn't written.
-	AssertTrue(cClient.ReadMemory(0x8000, sizeof(auiMain)));
+	//Memory through the map, both fetched in one request: RAM at 0 once native, and a device, which reads as $FF and
+	//isn't written.
+	AssertFalse(cClient.ReadMemory(DEBUG_SPACE_ANY, 0x8000, auiRead, sizeof(auiMain)));
+	AssertFalse(cClient.ReadMemory(DEBUG_SPACE_ANY, 0x100008, &uiByte, 1));
+	AssertTrue(cClient.FetchMemory() != 0);
+	AssertInt(0, cClient.FetchMemory());
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumMemoryReplies, 1);
-	AssertMemory(auiMain, cClient.GetMemory(), sizeof(auiMain));
-	AssertTrue(cClient.ReadMemory(0x100008, 1));
-	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumMemoryReplies, 2);
-	AssertSize(1, cClient.GetMemorySize());
-	AssertIntHex(0xFF, cClient.GetMemory()[0]);
+	AssertTrue(cClient.ReadMemory(DEBUG_SPACE_ANY, 0x8000, auiRead, sizeof(auiMain)));
+	AssertMemory(auiMain, auiRead, sizeof(auiMain));
+	AssertTrue(cClient.ReadMemory(DEBUG_SPACE_ANY, 0x100008, &uiByte, 1));
+	AssertIntHex(0xFF, uiByte);
 	uiByte = 0x55;
 	AssertTrue(cClient.WriteMemory(0x100008, &uiByte, 1));
 	TestHCP65DebugWait(&cServer, &cClient, &CDebugClient::NumErrors, 2);

@@ -104,7 +104,7 @@ public:
 	uint16			GetWord(uint32 uiAddress);
 	uint32			GetLong(uint32 uiAddress);
 	uint64			GetQuad(uint32 uiAddress);
-	bool			Read(uint32 uiAddress, void* pvDest, size uiBytes) override;
+	bool			Read(EAsm65StackSpace eSpace, uint32 uiAddress, void* pvDest, size uiBytes) override;
 	void			SetLong(uint32 uiAddress, uint32 uiValue);
 	void			Load(CAsm65Output* pcOutput);
 	void			LoadProgram(CAsm65Output* pcOutput, uint32 uiResetAddress);

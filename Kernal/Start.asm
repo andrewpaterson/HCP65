@@ -76,6 +76,10 @@ KernalAbort:
 		; counted it up from 0) the frame is on the process's stack and S still points there, in MPU RAM now: the
 		; registers are saved without the stack, as KernalCop does, and the dispatch runs on the kernal's stack below
 		; where KernalEnterUser left it.  From kernel mode (a wait let it in) they go on the kernal's stack.
+		;
+		; For a debugger (DebuggerPlan.txt, decision 6) each way is described from where it is known (.dfunction,
+		; Assembler65Lib's CAsm65StackWalker): from kernel mode its caller is found from the pushes; from user mode
+		; the process's S and D are pushed on the kernal's stack (.dframe user) until the call returns (.dend).
 KernalIrq:
 		rep (m, x)
 		sta [_gauiKernalIrqSave + 0]:24
@@ -85,6 +89,7 @@ KernalIrq:
 		and 0xFF
 		cmp 1
 		beq KernalIrqFromUser
+		.dfunction "[Interrupt]", interrupt
 		lda [_gauiKernalIrqSave + 0]:24
 		pha
 		phx
@@ -104,6 +109,7 @@ KernalIrq:
 		pla
 		rti
 KernalIrqFromUser:
+		.dfunction "[Interrupt]", interrupt
 		.width (A, X), 16
 		txa
 		sta [_gauiKernalIrqSave + 2]:24
@@ -116,15 +122,20 @@ KernalIrqFromUser:
 		lda [_gsKernalCall + 12]:24
 		tcs
 		phb
-		lda 0
-		tcd
 		phk
 		plb
+		lda [_gauiKernalIrqSave + 6]:24
+		pha
+		phd
+		.dframe user, 0
+		lda 0
+		tcd
 		jsl _KernalIrqDispatch
 		.width (A, X), 16
+		pld
+		.dend
+		pla
 		plb
-		lda [_gauiKernalIrqSave + 8]:24
-		tcd
 		lda [_gauiKernalIrqSave + 6]:24
 		tcs
 		lda [_gauiKernalIrqSave + 4]:24
@@ -141,6 +152,7 @@ KernalIrqFromUser:
 		; the other's).  KernalCopCall (C++) reads the signature byte through the remap table.  The exit call goes back
 		; to whoever ran the process (KernalEnterUser's caller); every other call returns to the process.
 KernalCop:
+		.dfunction "[Kernal call]", interrupt
 		rep (m, x)
 		sta [_gsKernalCall + 0]:24
 		txa
@@ -159,13 +171,18 @@ KernalCop:
 		pla
 		rep m
 		sta [_gsKernalCall + 10]:24
-		lda 0
-		tcd
 		phk
 		plb
+		lda [_gsKernalCall + 6]:24
+		pha
+		phd
+		.dframe user, 0
+		lda 0
+		tcd
 		jsl _KernalCopCall
 		.width (A, X), 16
 		lda [_gsKernalCall + 14]:24
+		.dend
 		bne KernalCopExit
 
 		sep m
@@ -200,6 +217,7 @@ KernalCopExit:
 		; interrupt depth to 0 (user mode) before it pulls, so it pulls from the process's stack.
 		.global _KernalEnterUser
 _KernalEnterUser:
+		.dfunction "KernalEnterUser"
 		.width (A, X), 16
 		phb
 		phd

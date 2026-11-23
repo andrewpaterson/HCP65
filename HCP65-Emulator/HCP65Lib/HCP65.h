@@ -147,6 +147,7 @@ public:
 	uint8				Read(uint32 uiAddress);
 	void				Write(uint32 uiAddress, uint8 uiValue);
 	uint8*				MemoryAt(uint32 uiAddress);
+	uint8*				MemoryAt(uint32 uiAddress, bool bKernel);
 
 protected:
 	void				UpdateMode(void);

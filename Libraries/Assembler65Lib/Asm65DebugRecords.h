@@ -28,10 +28,19 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 #define ASM65_DEBUG_RECORDS_MAGIC	"Asm65DebugRecords"
-#define ASM65_DEBUG_RECORDS_VERSION	1
+#define ASM65_DEBUG_RECORDS_VERSION	2
 
 #define ASM65_DEBUG_NONE		0xFFFFFFFF		//No type, function or section.
 #define ASM65_DEBUG_ABSOLUTE	0xFFFFFFFE		//A place's section once linked: its offset is its address.
+
+
+//How a function is got to, so what is above S as it starts: where its caller goes on.
+enum EAsm65DebugEntry
+{
+	ADE_Long,		//jsl: the return address less one, three bytes.
+	ADE_Short,		//jsr: the return address less one, two bytes, in the function's own bank.
+	ADE_Interrupt,	//An interrupt (or cop, brk): P, then the address it goes back to, three bytes.
+};
 
 
 //How a function's caller is found from the D its body runs on (the stack walker's rule, CAsm65StackWalker).
@@ -40,6 +49,8 @@ enum EAsm65DebugLink
 	ADL_None,		//No frame: D is the caller's, and the return address is on top of the stack as the body starts.
 	ADL_Frame,		//S after phd is D + iLink: the caller's D is at D + iLink + 1, the return address after it.
 	ADL_SavedS,		//The word at D + iLink is S as it was after phd (an aligned frame).
+	ADL_User,		//A kernel's interrupt from user mode, run on the kernel's own stack: the word at S + iLink + 1 is the
+					//interrupted D and the one after it its S, where the interrupt's frame is in user mode's memory.
 };
 
 
@@ -100,6 +111,7 @@ struct SAsm65DebugFunction
 	SAsm65DebugPlace	sStart;
 	uint32				uiEnd;
 	uint32				uiBody;
+	uint8				uiEntry;		//EAsm65DebugEntry.
 	uint8				uiLink;			//EAsm65DebugLink.
 	int32				iLink;
 	uint32				uiFirstVariable;
@@ -183,8 +195,9 @@ public:
 	void					Kill(void);
 	void					Clear(void);
 
-	SAsm65DebugFunction*	AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset);
+	SAsm65DebugFunction*	AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset, EAsm65DebugEntry eEntry);
 	bool					SetFrame(uint32 uiBody, EAsm65DebugLink eLink, int32 iLink);
+	bool					EndFunction(uint32 uiEnd);
 	void					EndFunctions(uint32 uiSection, uint32 uiEnd);
 	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine);
 	bool					AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic);

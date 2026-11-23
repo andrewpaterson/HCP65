@@ -111,10 +111,33 @@ bool CHCP65DebugTarget::Step(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Device addresses read as $FF.
+// In the mode the processor is in.
 //
 //////////////////////////////////////////////////////////////////////////
 size CHCP65DebugTarget::PeekMemory(uint32 uiAddress, void* pvDest, size uiSize)
+{
+	return Peek(uiAddress, pvDest, uiSize, mpcHCP65->IsKernelMode());
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Kernel mode's memory (space 0) or user mode's (1), the process's whose
+// ID the processor board holds (GetUserProcess).
+//
+//////////////////////////////////////////////////////////////////////////
+size CHCP65DebugTarget::PeekSpaceMemory(size uiSpace, uint32 uiAddress, void* pvDest, size uiSize)
+{
+	return Peek(uiAddress, pvDest, uiSize, uiSpace == 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Device addresses read as $FF.
+//
+//////////////////////////////////////////////////////////////////////////
+size CHCP65DebugTarget::Peek(uint32 uiAddress, void* pvDest, size uiSize, bool bKernel)
 {
 	size	i;
 	uint8*	puiMemory;
@@ -123,7 +146,7 @@ size CHCP65DebugTarget::PeekMemory(uint32 uiAddress, void* pvDest, size uiSize)
 	puiDest = (uint8*)pvDest;
 	for (i = 0; i < uiSize; i++)
 	{
-		puiMemory = mpcHCP65->MemoryAt((uint32)(uiAddress + i));
+		puiMemory = mpcHCP65->MemoryAt((uint32)(uiAddress + i), bKernel);
 		puiDest[i] = puiMemory ? *puiMemory : 0xFF;
 	}
 	return uiSize;
@@ -132,10 +155,32 @@ size CHCP65DebugTarget::PeekMemory(uint32 uiAddress, void* pvDest, size uiSize)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Stops at the first device address.
+// In the mode the processor is in.
 //
 //////////////////////////////////////////////////////////////////////////
 size CHCP65DebugTarget::PokeMemory(uint32 uiAddress, void* pvSource, size uiSize)
+{
+	return Poke(uiAddress, pvSource, uiSize, mpcHCP65->IsKernelMode());
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Kernel mode's memory (space 0) or user mode's (1), as PeekSpaceMemory.
+//
+//////////////////////////////////////////////////////////////////////////
+size CHCP65DebugTarget::PokeSpaceMemory(size uiSpace, uint32 uiAddress, void* pvSource, size uiSize)
+{
+	return Poke(uiAddress, pvSource, uiSize, uiSpace == 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Stops at the first device address.
+//
+//////////////////////////////////////////////////////////////////////////
+size CHCP65DebugTarget::Poke(uint32 uiAddress, void* pvSource, size uiSize, bool bKernel)
 {
 	size	i;
 	uint8*	puiMemory;
@@ -144,7 +189,7 @@ size CHCP65DebugTarget::PokeMemory(uint32 uiAddress, void* pvSource, size uiSize
 	puiSource = (uint8*)pvSource;
 	for (i = 0; i < uiSize; i++)
 	{
-		puiMemory = mpcHCP65->MemoryAt((uint32)(uiAddress + i));
+		puiMemory = mpcHCP65->MemoryAt((uint32)(uiAddress + i), bKernel);
 		if (!puiMemory)
 		{
 			break;
@@ -205,6 +250,31 @@ CBreakpoints* CHCP65DebugTarget::GetProcessBreakpoints(size uiSpace, uint32 uiPr
 //////////////////////////////////////////////////////////////////////////
 uint32 CHCP65DebugTarget::GetCurrentSpace(void) const		{ return mpcHCP65->IsKernelMode() ? 1 : 2; }
 uint32 CHCP65DebugTarget::GetCurrentProcess(void) const	{ return mpcHCP65->IsKernelMode() ? DEBUG_PROCESS_ANY : mpcHCP65->GetProcessID(); }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The process whose ID the processor board holds, which user mode's memory
+// is (the last run: a kernal call's or interrupt's), if the kernal has
+// said it is running.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CHCP65DebugTarget::GetUserProcess(void) const
+{
+	CHCP65DebugPort*	pcPort;
+	SDebugProcess		sProcess;
+	size				ui;
+
+	pcPort = mpcHCP65->GetDebugPort();
+	for (ui = 0; ui < pcPort->NumProcesses(); ui++)
+	{
+		if (pcPort->GetProcess(ui, &sProcess) && (sProcess.uiProcess == mpcHCP65->GetProcessID()))
+		{
+			return sProcess.uiProcess;
+		}
+	}
+	return DEBUG_PROCESS_ANY;
+}
 
 
 void CHCP65DebugTarget::ClearBreakpoints(void)					{ mpcHCP65->ClearBreakpoints(); }

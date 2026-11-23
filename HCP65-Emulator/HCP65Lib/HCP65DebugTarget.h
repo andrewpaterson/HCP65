@@ -58,6 +58,7 @@ public:
 	bool			TakeModuleEvent(EDebugModuleEvent* peEvent, SDebugModule* psDest) override;
 	uint32			GetCurrentSpace(void) const override;
 	uint32			GetCurrentProcess(void) const override;
+	uint32			GetUserProcess(void) const override;
 	bool			IsAtBreakpoint(void) const override;
 	bool			IsStopped(void) const override;
 
@@ -67,6 +68,12 @@ public:
 
 	size			PeekMemory(uint32 uiAddress, void* pvDest, size uiSize) override;
 	size			PokeMemory(uint32 uiAddress, void* pvSource, size uiSize) override;
+	size			PeekSpaceMemory(size uiSpace, uint32 uiAddress, void* pvDest, size uiSize) override;
+	size			PokeSpaceMemory(size uiSpace, uint32 uiAddress, void* pvSource, size uiSize) override;
+
+protected:
+	size			Peek(uint32 uiAddress, void* pvDest, size uiSize, bool bKernel);
+	size			Poke(uint32 uiAddress, void* pvSource, size uiSize, bool bKernel);
 	CDebugDecoder*	GetDecoder(void) override;
 };
 

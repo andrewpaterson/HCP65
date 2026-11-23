@@ -176,6 +176,7 @@ protected:
 	bool			DebugObject(SAsm65Token* psDirective);
 	bool			DebugFunction(SAsm65Token* psDirective);
 	bool			DebugFrame(SAsm65Token* psDirective);
+	bool			DebugEnd(SAsm65Token* psDirective);
 	bool			DebugVariable(SAsm65Token* psDirective);
 	bool			DebugGlobal(SAsm65Token* psDirective, bool bStatic);
 	bool			DebugType(SAsm65Token* psDirective);

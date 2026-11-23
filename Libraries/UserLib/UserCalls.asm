@@ -5,11 +5,13 @@
 ; The compiler passes extern "C" arguments in registers too (CppCompilerLib/W65C816.txt): a call with arguments goes to
 ; the label with its register suffix.  Those entries push the register words again, and copy the caller's pushed
 ; words below them, so the stack holds every argument in order; then they call the stack entry and pop what they
-; pushed (ply keeps the result in A and X).  The caller removes its own pushed words.
+; pushed (ply keeps the result in A and X).  The caller removes its own pushed words.  Each entry is described for a
+; debugger (.dfunction), so a stack walked from the kernal's call goes on into the program.
 
 		.section text.KernalPutValue
 		.global _KernalPutValue.a
 _KernalPutValue.a:
+		.dfunction "KernalPutValue"
 		.width (A, X), 16
 		pha
 		jsl _KernalPutValue
@@ -18,6 +20,7 @@ _KernalPutValue.a:
 
 		.global _KernalPutValue
 _KernalPutValue:
+		.dfunction "KernalPutValue"
 		.width (A, X), 16
 		tsc
 		clc
@@ -28,6 +31,7 @@ _KernalPutValue:
 		.section text.KernalExecute
 		.global _KernalExecute.axy
 _KernalExecute.axy:
+		.dfunction "KernalExecute"
 		.width (A, X), 16
 		pha
 		lda [S + 8]
@@ -49,6 +53,7 @@ _KernalExecute.axy:
 
 		.global _KernalExecute
 _KernalExecute:
+		.dfunction "KernalExecute"
 		.width (A, X), 16
 		tsc
 		clc
@@ -59,6 +64,7 @@ _KernalExecute:
 		.section text.KernalGetArgument
 		.global _KernalGetArgument
 _KernalGetArgument:
+		.dfunction "KernalGetArgument"
 		.width (A, X), 16
 		tsc
 		clc
@@ -69,6 +75,7 @@ _KernalGetArgument:
 		.section text.KernalFileSize
 		.global _KernalFileSize.ax
 _KernalFileSize.ax:
+		.dfunction "KernalFileSize"
 		.width (A, X), 16
 		phx
 		pha
@@ -79,6 +86,7 @@ _KernalFileSize.ax:
 
 		.global _KernalFileSize
 _KernalFileSize:
+		.dfunction "KernalFileSize"
 		.width (A, X), 16
 		tsc
 		clc
@@ -89,6 +97,7 @@ _KernalFileSize:
 		.section text.KernalFileLoad
 		.global _KernalFileLoad.ax
 _KernalFileLoad.ax:
+		.dfunction "KernalFileLoad"
 		.width (A, X), 16
 		pha
 		lda [S + 12]
@@ -114,6 +123,7 @@ _KernalFileLoad.ax:
 
 		.global _KernalFileLoad
 _KernalFileLoad:
+		.dfunction "KernalFileLoad"
 		.width (A, X), 16
 		tsc
 		clc
@@ -124,6 +134,7 @@ _KernalFileLoad:
 		.section text.KernalFileRead
 		.global _KernalFileRead.ax
 _KernalFileRead.ax:
+		.dfunction "KernalFileRead"
 		.width (A, X), 16
 		pha
 		lda [S + 16]
@@ -155,6 +166,7 @@ _KernalFileRead.ax:
 
 		.global _KernalFileRead
 _KernalFileRead:
+		.dfunction "KernalFileRead"
 		.width (A, X), 16
 		tsc
 		clc
@@ -165,6 +177,7 @@ _KernalFileRead:
 		.section text.KernalDeviceCall
 		.global _KernalDeviceCall.ax
 _KernalDeviceCall.ax:
+		.dfunction "KernalDeviceCall"
 		.width (A, X), 16
 		phx
 		pha
@@ -175,6 +188,7 @@ _KernalDeviceCall.ax:
 
 		.global _KernalDeviceCall
 _KernalDeviceCall:
+		.dfunction "KernalDeviceCall"
 		.width (A, X), 16
 		tsc
 		clc
@@ -185,6 +199,7 @@ _KernalDeviceCall:
 		.section text.KernalSystemCall
 		.global _KernalSystemCall.ax
 _KernalSystemCall.ax:
+		.dfunction "KernalSystemCall"
 		.width (A, X), 16
 		phx
 		pha
@@ -195,6 +210,7 @@ _KernalSystemCall.ax:
 
 		.global _KernalSystemCall
 _KernalSystemCall:
+		.dfunction "KernalSystemCall"
 		.width (A, X), 16
 		tsc
 		clc
@@ -205,6 +221,7 @@ _KernalSystemCall:
 		.section text.KernalScreenCall
 		.global _KernalScreenCall.ax
 _KernalScreenCall.ax:
+		.dfunction "KernalScreenCall"
 		.width (A, X), 16
 		phx
 		pha
@@ -215,6 +232,7 @@ _KernalScreenCall.ax:
 
 		.global _KernalScreenCall
 _KernalScreenCall:
+		.dfunction "KernalScreenCall"
 		.width (A, X), 16
 		tsc
 		clc

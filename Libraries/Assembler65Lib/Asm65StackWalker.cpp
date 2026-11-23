@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include "MicroprocessorLib/FastW65C816.h"
 #include "AsmW65C816Disassembler.h"
 #include "AsmW65C816Opcodes.h"
 #include "Asm65StackWalker.h"
@@ -61,6 +62,8 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define OP_REP	0xC2
 #define OP_SEP	0xE2
 #define OP_RTL	0x6B
+#define OP_RTS	0x60
+#define OP_RTI	0x40
 
 
 //What a register holds while Entering follows a prologue: the function's entry S less iBelow, if it is known.
@@ -111,11 +114,48 @@ static void SetWidths(uint8* puiBytes, bool* pbMemory8, bool* pbIndex8)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The instruction that returns from a function got to as eEntry says.
+//
+//////////////////////////////////////////////////////////////////////////
+static uint8 ReturnOpcode(EAsm65DebugEntry eEntry)
+{
+	switch (eEntry)
+	{
+	case ADE_Short:
+		return OP_RTS;
+	case ADE_Interrupt:
+		return OP_RTI;
+	default:
+		return OP_RTL;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// pcFast's registers as they are, its code running in eSpace.
+//
+//////////////////////////////////////////////////////////////////////////
+void SAsm65StackRegisters::Init(CFastW65C816* pcFast, EAsm65StackSpace eSpace)
+{
+	uiPC = pcFast->GetProgramAddress();
+	uiS = pcFast->GetS();
+	uiD = pcFast->GetD();
+	uiC = pcFast->GetC();
+	uiX = pcFast->GetX();
+	uiY = pcFast->GetY();
+	uiP = pcFast->GetP();
+	uiSpace = (uint8)eSpace;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65StackWalker::Init(CAsm65StackMemory* pcMemory)
 {
-	mapcRecords.Init();
+	masRecords.Init();
 	mpcMemory = pcMemory;
 }
 
@@ -126,19 +166,24 @@ void CAsm65StackWalker::Init(CAsm65StackMemory* pcMemory)
 //////////////////////////////////////////////////////////////////////////
 void CAsm65StackWalker::Kill(void)
 {
-	mapcRecords.Kill();
+	masRecords.Kill();
 	mpcMemory = NULL;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A loaded program's records, at its addresses (linked, Sort'ed).
+// A loaded program's records, at its addresses (linked, Sort'ed) in
+// eSpace: the kernel's, or the process's in user mode.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65StackWalker::AddRecords(CAsm65DebugRecords* pcRecords)
+void CAsm65StackWalker::AddRecords(CAsm65DebugRecords* pcRecords, EAsm65StackSpace eSpace)
 {
-	mapcRecords.Add(&pcRecords);
+	SAsm65StackRecords*	psRecords;
+
+	psRecords = masRecords.Add();
+	psRecords->pcRecords = pcRecords;
+	psRecords->eSpace = eSpace;
 }
 
 
@@ -147,7 +192,9 @@ void CAsm65StackWalker::AddRecords(CAsm65DebugRecords* pcRecords)
 // The calls the W65C816 is in, innermost first, up to uiMaxFrames: the
 // function running, then each caller while its callee's is found.  The
 // last has no function (psFunction NULL) where the walk reached code the
-// records don't describe.  Returns how many.
+// records don't describe.  A caller on the same stack is above its
+// callee; an interrupt from user mode goes over to the process's stack.
+// Returns how many.
 //
 //////////////////////////////////////////////////////////////////////////
 size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames)
@@ -161,14 +208,14 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 		return 0;
 	}
 
-	Find(psRegisters->uiPC, &sFrame);
+	Find(psRegisters->uiPC, (EAsm65StackSpace)psRegisters->uiSpace, &sFrame);
 	sFrame.uiS = psRegisters->uiS;
 	sFrame.uiD = psRegisters->uiD;
 	pasFrames->Add(&sFrame);
 	while ((pasFrames->NumElements() < uiMaxFrames) && sFrame.psFunction)
 	{
-		//Only the first frame's registers are known; a caller's S is above its callee's.
-		if (!Caller(&sFrame, (pasFrames->NumElements() == 1) ? psRegisters : NULL, &sCaller) || (sCaller.uiS <= sFrame.uiS))
+		//Only the first frame's registers are known.
+		if (!Caller(&sFrame, (pasFrames->NumElements() == 1) ? psRegisters : NULL, &sCaller) || ((sCaller.uiSpace == sFrame.uiSpace) && (sCaller.uiS <= sFrame.uiS)))
 		{
 			break;
 		}
@@ -181,10 +228,10 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Where psVariable, one of psFrame's function's, is while it runs: in its
-// frame, or where the address kept there points (the low 24 bits of a
-// pointer).  False if it isn't kept anywhere, or the address can't be
-// read.
+// Where psVariable, one of psFrame's function's, is while it runs, in
+// psFrame's space: in its frame, or where the address kept there points
+// (the low 24 bits of a pointer).  False if it isn't kept anywhere, or the
+// address can't be read.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, uint32* puiAddress)
@@ -199,7 +246,7 @@ bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* p
 		*puiAddress = uiPlace;
 		return true;
 	case ADW_Indirect:
-		if (!mpcMemory->Read(uiPlace, auiPointer, 3))
+		if (!mpcMemory->Read((EAsm65StackSpace)psFrame->uiSpace, uiPlace, auiPointer, 3))
 		{
 			return false;
 		}
@@ -213,19 +260,22 @@ bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* p
 
 //////////////////////////////////////////////////////////////////////////
 //
-// psFrame's function and records for code at uiPC; false (NULL) if no
-// records describe it.
+// psFrame's function and records for code at uiPC in eSpace; false
+// (NULL) if no records describe it.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65StackWalker::Find(uint32 uiPC, SAsm65StackFrame* psFrame)
+bool CAsm65StackWalker::Find(uint32 uiPC, EAsm65StackSpace eSpace, SAsm65StackFrame* psFrame)
 {
-	size	ui;
+	size				ui;
+	SAsm65StackRecords*	psRecords;
 
 	psFrame->uiPC = uiPC;
-	for (ui = 0; ui < mapcRecords.NumElements(); ui++)
+	psFrame->uiSpace = (uint8)eSpace;
+	for (ui = 0; ui < masRecords.NumElements(); ui++)
 	{
-		psFrame->pcRecords = *mapcRecords.Get(ui);
-		psFrame->psFunction = psFrame->pcRecords->FindFunction(uiPC);
+		psRecords = masRecords.Get(ui);
+		psFrame->pcRecords = psRecords->pcRecords;
+		psFrame->psFunction = (psRecords->eSpace == eSpace) ? psFrame->pcRecords->FindFunction(uiPC) : NULL;
 		if (psFrame->psFunction)
 		{
 			return true;
@@ -264,23 +314,27 @@ bool CAsm65StackWalker::Caller(SAsm65StackFrame* psFrame, SAsm65StackRegisters* 
 //////////////////////////////////////////////////////////////////////////
 //
 // The caller of a function taking its frame apart: its code from
-// psFrame's PC to an rtl runs straight on, pulls only (pld, pla, plx, ply,
-// plb) touching the stack and D.  Their widths are P's, or 16 bits in a
-// caller (as a call returns).  False for any other, and for an rtl that
-// calls through a pointer.
+// psFrame's PC to its return (rtl, rts or rti, as it was got to) runs
+// straight on, pulls only (pld, pla, plx, ply, plb) touching the stack and
+// D.  Their widths are P's, or 16 bits in a caller (as a call returns).
+// False for any other, and for an rtl that calls through a pointer.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65StackWalker::Returning(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psRegisters, SAsm65StackFrame* psCaller)
 {
 	uint8	auiBytes[4];
-	uint32	uiAddress;
-	uint16	uiS;
-	uint16	uiD;
-	size	uiLength;
-	size	ui;
-	bool	bMemory8;
-	bool	bIndex8;
+	uint32				uiAddress;
+	uint16				uiS;
+	uint16				uiD;
+	size				uiLength;
+	size				ui;
+	bool				bMemory8;
+	bool				bIndex8;
+	EAsm65StackSpace	eSpace;
+	EAsm65DebugEntry	eEntry;
 
+	eSpace = (EAsm65StackSpace)psFrame->uiSpace;
+	eEntry = (EAsm65DebugEntry)psFrame->psFunction->uiEntry;
 	uiAddress = psFrame->uiPC;
 	uiS = psFrame->uiS;
 	uiD = psFrame->uiD;
@@ -288,7 +342,7 @@ bool CAsm65StackWalker::Returning(SAsm65StackFrame* psFrame, SAsm65StackRegister
 	bIndex8 = psRegisters && (psRegisters->uiP & 0x10);
 	for (ui = 0; ui < STACK_WALKER_MAX_RETURNING; ui++)
 	{
-		uiLength = Instruction(uiAddress, auiBytes, bIndex8, bMemory8);
+		uiLength = Instruction(eSpace, uiAddress, auiBytes, bIndex8, bMemory8);
 		if (uiLength == 0)
 		{
 			return false;
@@ -296,10 +350,14 @@ bool CAsm65StackWalker::Returning(SAsm65StackFrame* psFrame, SAsm65StackRegister
 
 		switch (auiBytes[0])
 		{
-		case OP_RTL:
-			return !IsIndirectCall(uiAddress, uiS) && ReturnTo(uiS, uiD, psCaller);
+		case OP_RTL: case OP_RTS: case OP_RTI:
+			if ((auiBytes[0] != ReturnOpcode(eEntry)) || ((auiBytes[0] == OP_RTL) && IsIndirectCall(eSpace, uiAddress, uiS)))
+			{
+				return false;
+			}
+			return ReturnTo(psFrame, uiS, uiD, eEntry, eSpace, psCaller);
 		case OP_PLD:
-			if (!ReadWord(uiS + 1, &uiD))
+			if (!ReadWord(eSpace, uiS + 1, &uiD))
 			{
 				return false;
 			}
@@ -342,7 +400,8 @@ bool CAsm65StackWalker::Returning(SAsm65StackFrame* psFrame, SAsm65StackRegister
 // they were copied from S (the entry S is found from a register once an
 // aligned frame's "and" has lost S).  The caller's D is the one it pushed
 // (phd), or the D running.  An indirect call (phk, per, the target pushed,
-// rtl) comes back to S as it was before it.
+// rtl) comes back to S as it was before it.  An interrupt from user mode
+// (ADL_User) came from the process's stack: its caller is the process's.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65StackWalker::Entering(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psRegisters, SAsm65StackFrame* psCaller)
@@ -361,7 +420,11 @@ bool CAsm65StackWalker::Entering(SAsm65StackFrame* psFrame, SAsm65StackRegisters
 	bool				bMemory8;
 	bool				bIndex8;
 	uint16				uiD;
+	EAsm65StackSpace	eSpace;
+	EAsm65StackSpace	eCallerSpace;
 
+	eSpace = (EAsm65StackSpace)psFrame->uiSpace;
+	eCallerSpace = (psFrame->psFunction->uiLink == ADL_User) ? ASS_User : eSpace;
 	sS.Set(0);
 	sA.Forget();
 	sX.Forget();
@@ -372,7 +435,7 @@ bool CAsm65StackWalker::Entering(SAsm65StackFrame* psFrame, SAsm65StackRegisters
 	bIndex8 = false;
 	for (uiAddress = psFrame->psFunction->sStart.uiOffset; uiAddress < psFrame->uiPC; uiAddress += (uint32)uiLength)
 	{
-		uiLength = Instruction(uiAddress, auiBytes, bIndex8, bMemory8);
+		uiLength = Instruction(eSpace, uiAddress, auiBytes, bIndex8, bMemory8);
 		if (uiLength == 0)
 		{
 			return false;
@@ -496,11 +559,11 @@ bool CAsm65StackWalker::Entering(SAsm65StackFrame* psFrame, SAsm65StackRegisters
 	}
 
 	uiD = psFrame->uiD;
-	if (sPushedD.bKnown && !ReadWord((uint32)(iEntryS - sPushedD.iBelow + 1), &uiD))
+	if (sPushedD.bKnown && !ReadWord(eSpace, (uint32)(iEntryS - sPushedD.iBelow + 1), &uiD))
 	{
 		return false;
 	}
-	return ReturnTo((uint16)iEntryS, uiD, psCaller);
+	return ReturnTo(psFrame, (uint16)iEntryS, uiD, (EAsm65DebugEntry)psFrame->psFunction->uiEntry, eCallerSpace, psCaller);
 }
 
 
@@ -508,44 +571,71 @@ bool CAsm65StackWalker::Entering(SAsm65StackFrame* psFrame, SAsm65StackRegisters
 //
 // The caller of a function running on its own frame: S as it was after
 // phd is D plus its link (ADL_Frame) or kept there (ADL_SavedS), the
-// caller's D above it.
+// caller's D above it.  An interrupt from user mode (ADL_User) keeps the
+// process's D and S above S plus its link, the interrupt's frame on the
+// process's stack.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65StackWalker::Linked(SAsm65StackFrame* psFrame, SAsm65StackFrame* psCaller)
 {
-	uint16	uiPushedD;
-	uint16	uiCallerD;
+	SAsm65DebugFunction*	psFunction;
+	EAsm65StackSpace		eSpace;
+	uint16					uiPushedD;
+	uint16					uiCallerD;
+	uint16					uiCallerS;
 
-	uiPushedD = (uint16)(psFrame->uiD + psFrame->psFunction->iLink);
-	if ((psFrame->psFunction->uiLink == ADL_SavedS) && !ReadWord(uiPushedD, &uiPushedD))
+	psFunction = psFrame->psFunction;
+	eSpace = (EAsm65StackSpace)psFrame->uiSpace;
+	if (psFunction->uiLink == ADL_User)
+	{
+		uiPushedD = (uint16)(psFrame->uiS + psFunction->iLink);
+		return ReadWord(eSpace, uiPushedD + 1, &uiCallerD) && ReadWord(eSpace, uiPushedD + 3, &uiCallerS) &&
+			   ReturnTo(psFrame, uiCallerS, uiCallerD, ADE_Interrupt, ASS_User, psCaller);
+	}
+
+	uiPushedD = (uint16)(psFrame->uiD + psFunction->iLink);
+	if ((psFunction->uiLink == ADL_SavedS) && !ReadWord(eSpace, uiPushedD, &uiPushedD))
 	{
 		return false;
 	}
-	if (!ReadWord(uiPushedD + 1, &uiCallerD))
-	{
-		return false;
-	}
-	return ReturnTo(uiPushedD + 2, uiCallerD, psCaller);
+	return ReadWord(eSpace, uiPushedD + 1, &uiCallerD) && ReturnTo(psFrame, uiPushedD + 2, uiCallerD, (EAsm65DebugEntry)psFunction->uiEntry, eSpace, psCaller);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The caller whose jsl pushed its return address above uiEntryS (S as the
-// function was entered): it returns to the instruction after the jsl, with
-// S as it was before it and D uiD.
+// psFrame's caller, in eSpace, whose call (eEntry: jsl, jsr or an
+// interrupt) pushed where it goes back to above uiEntryS (S as psFrame's
+// function was entered): it runs on from the instruction after the jsl
+// or jsr, or the one interrupted, with S as it was before it and D uiD.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65StackWalker::ReturnTo(uint16 uiEntryS, uint16 uiD, SAsm65StackFrame* psCaller)
+bool CAsm65StackWalker::ReturnTo(SAsm65StackFrame* psFrame, uint16 uiEntryS, uint16 uiD, EAsm65DebugEntry eEntry, EAsm65StackSpace eSpace, SAsm65StackFrame* psCaller)
 {
 	uint8	auiReturn[3];
+	uint32	uiSkip;
+	uint32	uiBytes;
+	uint32	uiReturn;
 
-	if ((uiEntryS > 0xFFFF - 3) || !mpcMemory->Read(uiEntryS + 1, auiReturn, 3))
+	//An interrupt pushed P below where it goes back to; jsr only the address in the bank.
+	uiSkip = (eEntry == ADE_Interrupt) ? 1 : 0;
+	uiBytes = (eEntry == ADE_Short) ? 2 : 3;
+	auiReturn[2] = (uint8)(psFrame->uiPC >> 16);
+	if (((uint32)uiEntryS + uiSkip + uiBytes > 0xFFFF) || !mpcMemory->Read(eSpace, uiEntryS + 1 + uiSkip, auiReturn, uiBytes))
 	{
 		return false;
 	}
-	Find((auiReturn[0] | (auiReturn[1] << 8) | (auiReturn[2] << 16)) + 1, psCaller);
-	psCaller->uiS = uiEntryS + 3;
+	uiReturn = auiReturn[0] | (auiReturn[1] << 8) | (auiReturn[2] << 16);
+	if (eEntry == ADE_Short)
+	{
+		uiReturn = (uiReturn & 0xFF0000) | ((uiReturn + 1) & 0xFFFF);
+	}
+	else if (eEntry == ADE_Long)
+	{
+		uiReturn++;
+	}
+	Find(uiReturn, eSpace, psCaller);
+	psCaller->uiS = (uint16)(uiEntryS + uiSkip + uiBytes);
 	psCaller->uiD = uiD;
 	return true;
 }
@@ -557,11 +647,11 @@ bool CAsm65StackWalker::ReturnTo(uint16 uiEntryS, uint16 uiD, SAsm65StackFrame* 
 // a pointer (AsmW65C816IsIndirectCall).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65StackWalker::IsIndirectCall(uint32 uiAddress, uint16 uiS)
+bool CAsm65StackWalker::IsIndirectCall(EAsm65StackSpace eSpace, uint32 uiAddress, uint16 uiS)
 {
 	uint8	auiStack[6];
 
-	return mpcMemory->Read(uiS + 1, auiStack, 6) && AsmW65C816IsIndirectCall(uiAddress, auiStack);
+	return mpcMemory->Read(eSpace, uiS + 1, auiStack, 6) && AsmW65C816IsIndirectCall(uiAddress, auiStack);
 }
 
 
@@ -569,11 +659,11 @@ bool CAsm65StackWalker::IsIndirectCall(uint32 uiAddress, uint16 uiS)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65StackWalker::ReadWord(uint32 uiAddress, uint16* puiWord)
+bool CAsm65StackWalker::ReadWord(EAsm65StackSpace eSpace, uint32 uiAddress, uint16* puiWord)
 {
 	uint8	auiBytes[2];
 
-	if (!mpcMemory->Read(uiAddress, auiBytes, 2))
+	if (!mpcMemory->Read(eSpace, uiAddress, auiBytes, 2))
 	{
 		return false;
 	}
@@ -584,24 +674,24 @@ bool CAsm65StackWalker::ReadWord(uint32 uiAddress, uint16* puiWord)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Reads the instruction at uiAddress into puiBytes (its opcode and up to
-// three operand bytes) with those widths.  Returns its length, 0 if it
-// can't be read.
+// Reads the instruction at uiAddress in eSpace into puiBytes (its opcode
+// and up to three operand bytes) with those widths.  Returns its length, 0
+// if it can't be read.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65StackWalker::Instruction(uint32 uiAddress, uint8* puiBytes, bool bIndex8, bool bMemory8)
+size CAsm65StackWalker::Instruction(EAsm65StackSpace eSpace, uint32 uiAddress, uint8* puiBytes, bool bIndex8, bool bMemory8)
 {
 	SAsmW65C816Widths	sWidths;
 	size				uiLength;
 
-	if (!mpcMemory->Read(uiAddress, puiBytes, 1))
+	if (!mpcMemory->Read(eSpace, uiAddress, puiBytes, 1))
 	{
 		return 0;
 	}
 	sWidths.bMemory8 = bMemory8;
 	sWidths.bIndex8 = bIndex8;
 	uiLength = AsmW65C816InstructionLength(puiBytes[0], &sWidths);
-	if ((uiLength > 1) && !mpcMemory->Read(uiAddress + 1, &puiBytes[1], uiLength - 1))
+	if ((uiLength > 1) && !mpcMemory->Read(eSpace, uiAddress + 1, &puiBytes[1], uiLength - 1))
 	{
 		return 0;
 	}

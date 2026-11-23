@@ -3,11 +3,13 @@
 ; the kernal's heap block says it is there, to map and unmap the heap's banks.
 ;
 ; The compiler passes extern "C" arguments in registers too (CppCompilerLib/W65C816.txt): the register entry pushes
-; the pointer's words and calls the stack entry, then pops them (ply keeps the result in A).
+; the pointer's words and calls the stack entry, then pops them (ply keeps the result in A).  Both are described for a
+; debugger (.dfunction), as UserCalls.asm's are.
 
 		.section text.__HeapSystemCall
 		.global ___HeapSystemCall.ax
 ___HeapSystemCall.ax:
+		.dfunction "__HeapSystemCall"
 		.width (A, X), 16
 		phx
 		pha
@@ -18,6 +20,7 @@ ___HeapSystemCall.ax:
 
 		.global ___HeapSystemCall
 ___HeapSystemCall:
+		.dfunction "__HeapSystemCall"
 		.width (A, X), 16
 		tsc
 		clc
