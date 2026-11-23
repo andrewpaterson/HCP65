@@ -101,7 +101,7 @@ void CHCP65DebugPort::TellProcess(SHCP65DebugMessage* psMessage)
 
 	if (mbWatching)
 	{
-		psEvent = masEvents.Add();
+		psEvent = masEvents.Push();
 		psEvent->eEvent = bStarted ? DPE_Started : DPE_Ended;
 		psEvent->sProcess.uiProcess = uiProcess;
 		psEvent->sProcess.iExitCode = (int16)psMessage->uiExitCode;
@@ -191,10 +191,10 @@ bool CHCP65DebugPort::TakeEvent(EDebugProcessEvent* peEvent, SDebugProcess* psDe
 	{
 		return false;
 	}
-	psEvent = masEvents.Get(0);
+	psEvent = masEvents.Front();
 	*peEvent = psEvent->eEvent;
 	memcpy(psDest, &psEvent->sProcess, sizeof(SDebugProcess));
-	masEvents.RemoveAt(0);
+	masEvents.Pop();
 	return true;
 }
 
@@ -217,7 +217,7 @@ void CHCP65DebugPort::TellDriver(SHCP65DebugMessage* psMessage)
 	psDriver->szName[DEBUG_MODULE_NAME_SIZE - 1] = '\0';
 	if (mbWatching)
 	{
-		masDriverEvents.Add(psDriver);
+		masDriverEvents.Push(psDriver);
 		mpcHCP65->StopRun();
 	}
 }
@@ -256,8 +256,7 @@ bool CHCP65DebugPort::TakeDriverEvent(SHCP65DebugDriver* psDest)
 	{
 		return false;
 	}
-	memcpy(psDest, masDriverEvents.Get(0), sizeof(SHCP65DebugDriver));
-	masDriverEvents.RemoveAt(0);
+	masDriverEvents.Pop(psDest);
 	return true;
 }
 

@@ -1,6 +1,7 @@
 #ifndef __HCP65_DEBUG_PORT_H__
 #define __HCP65_DEBUG_PORT_H__
 #include "BaseLib/ArrayTemplate.h"
+#include "BaseLib/QueueTemplate.h"
 #include "EmulatorDebugLib/DebugTarget.h"
 #include "DebugLib/HCP65DebugMessage.h"
 #include "HCP65Registers.h"
@@ -15,7 +16,7 @@ struct SHCP65DebugPortEvent
 	EDebugProcessEvent	eEvent;
 	SDebugProcess		sProcess;
 };
-typedef CArrayTemplate<SHCP65DebugPortEvent>	CArrayHCP65DebugPortEvents;
+typedef CQueueTemplate<SHCP65DebugPortEvent>	CQueueHCP65DebugPortEvents;
 
 
 //A driver the kernal loaded: its file, where it is in MPU RAM and the slot of the first board it drives.
@@ -44,9 +45,9 @@ protected:
 	bool						mabRunning[HCP65_NUM_PROCESSES];
 	char						maszRunning[HCP65_NUM_PROCESSES][DEBUG_PROCESS_NAME_SIZE];
 	bool						mbWatching;
-	CArrayHCP65DebugPortEvents	masEvents;
+	CQueueHCP65DebugPortEvents	masEvents;
 	CArrayHCP65DebugDrivers		masDrivers;
-	CArrayHCP65DebugDrivers		masDriverEvents;
+	CQueueTemplate<SHCP65DebugDriver>	masDriverEvents;
 	bool						mbDriversCleared;
 
 public:
