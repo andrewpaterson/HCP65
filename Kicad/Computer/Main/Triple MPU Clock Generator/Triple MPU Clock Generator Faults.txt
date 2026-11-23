@@ -1,0 +1,51 @@
+Triple MPU Clock Generator - schematic faults
+=============================================
+
+From the comparison of the Processor Board with Mainboard Small, 2026-11-23.
+
+What the board does: Y1 (XLH735100, a 100MHz oscillator) is CLK.  Two rings of three D flip-flops each make the
+processor clocks and the main memory slots: ring A (IC2, IC4, IC6) steps on CLK rising, ring B (IC3, IC5, IC10) on CLK
+falling.  IC11 and IC7 (74LVC157, S = ~CLK) pick ring A while CLK is high and ring B while it is low, giving ~MPU
+Clock0-2 and ~Main Access0-2 at half-CLK resolution.  ~Reset holds both rings in their start states and stops their
+clocks (IC12).
+
+Working through the reset states (ring A CK = 1,0,1 and MA = 1,1,0; ring B CK = 0,0,1 and MA = 1,1,0, and ring B
+always steps first after reset), slot 0 runs, in 5ns halves of CLK:
+
+   ~MPU Clock0 (the mainboard's MPU CLK):  1 1 0 0 0 1   (period 30ns, 33.3MHz, 50% duty)
+   ~Main Access0 (the mainboard's ~Main Slot): 0 0 1 1 1 1   (low for 10ns)
+
+So ~Main Access0 is low for the last 10ns of each MPU CLK high time, and rises as MPU CLK falls.
+
+1. The main memory slot is open while the processor's PHI2 is low
+
+   On the Processor Board, the W65C816 Clock Hold board makes PHI2 from MPU CLK through a 74LVC1GX04 (whose Y follows
+   X1 and X2 is inverted) and IC29.  PHI2 falls at MPU CLK's rising edge and rises at its falling edge, so PHI2 is the
+   inverse of MPU CLK.  The slot is therefore open only in the address phase (PHI2 low), and closes just as PHI2
+   rises.
+
+   The Processor Board only drives main memory while ~Main AND ~Main Slot are low (Main Memory Address IC2, Main Memory
+   Data IC2/IC6), and its ~RD and ~WD are only low while PHI2 is high.  The two never overlap.
+
+   Effect: the processor can't read or write main memory: the strobes and write data never reach the bus while its slot
+   is open.
+
+   Fix: the slot has to cover the processor's PHI2-high time.  Inverting MPU CLK (here or on the Processor Board) only
+   moves the slot to the last 10ns of a 15ns PHI2 high, which is too short for the buffers plus a memory access.  With
+   three processors sharing main memory, each one's PHI2 high has to fit inside its own third of the cycle, so the
+   processor clocks need a 1/3 duty cycle with PHI2 high aligned to the slot, at a lower base clock (see fault 2).
+
+2. The processor clock is 33MHz
+
+   100MHz / 3 gives each processor a 33.3MHz clock; the W65C816 is specified to 14MHz at 5V.  The HCP65 emulator and
+   the website docs describe the board as running at 25MHz.  A 75MHz oscillator would give 25MHz.  Even then, a 1/3
+   slot is 13ns, so the slot timing in fault 1 needs reworking rather than just a slower oscillator.
+
+3. Possible: the clock pattern depends on how reset is released
+
+   Ring B has to step before ring A for the clean pattern above; if ring A steps first, ~MPU Clock0 comes out as 1 1 0 0
+   1 0, an extra 5ns pulse every cycle.  Releasing reset while CLK is low makes R.CLK (IC12) rise at once, so ring B
+   steps on the same edge that releases its flip-flops' set and clear.  If that edge comes inside the flip-flops'
+   recovery time, ring B misses the step and the pattern is wrong until the next reset.
+
+   Fix: synchronise ~Reset to CLK (a flip-flop clocked on CLK rising) before it reaches the rings and IC12.

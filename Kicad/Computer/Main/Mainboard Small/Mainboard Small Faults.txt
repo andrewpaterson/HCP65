@@ -1,0 +1,62 @@
+Mainboard Small - schematic faults
+==================================
+
+From the socket review of 2026-11-23: every socket's pins were compared with its daughter board.  The rest of the
+board hasn't been reviewed.
+
+1. Memory contention never reaches the processor's NMI (B5, Main Memory Small Enable, pins 18 and 19)
+
+   The board's symbol has ~Contention on pin 18, wired to /~NMI1 (MPU0.B4, pulled up by R1).  On the Main Memory Small
+   Enable board pin 18 isn't connected; its ~Contention output (IC4 ~1Q) is on pin 19, which the board leaves N.C.
+   Mainboard Full's B10 has it right, on pin 19.
+
+   Effect: a main memory contention is latched and disables main memory, but MPU0 is never told: its ~NMI1 just sits
+   pulled up.
+
+   Fix: move /~NMI1 to B5 pin 19, and correct the Main_Memory_Small_Enable symbol.
+
+
+Found comparing the Processor Board with Mainboard Small, 2026-11-23
+--------------------------------------------------------------------
+
+The two boards' slot connector (J5 and MPU0) and device connector (J1 and MPD0) match pin for pin, and every signal
+crossing between them has exactly one driver.
+
+2. The processor can't reach main memory: its slot is open while PHI2 is low (B12)
+
+   ~Main Access0 is low for the last 10ns of MPU CLK's high time; the Processor Board's PHI2 is MPU CLK inverted, so
+   the slot closes as PHI2 rises and never overlaps the processor's ~RD or ~WD.  See Triple MPU Clock Generator
+   Faults.txt, faults 1 and 2 (the processor clock is also 33MHz).
+
+3. ~ABORT is pulled up to 5V (R4)
+
+   R4 (3.3k) pulls /~ABORT to /5V.  On the Processor Board, ~ABORT goes to the W65C816 Breakout's 74ALVC164245 3.3V
+   (A port) input, IC1 pin 32, which also has RN4 (4.7k) to 3.3V.  The line idles at about 4.3V, above the A port's
+   VCCA + 0.5V maximum, and current flows into the Breakout's 3.3V rail.  Nothing on this board drives ~ABORT.
+
+   Fix: pull R4 to /3.3V (or remove it: the Breakout already pulls ~ABORT up).
+
+4. Minor: ~NMI1 and ~NMI2 are also pulled up to 5V (R1, R2)
+
+   They only reach the Processor Board's MPU NMI 74LVC14 inputs, which are 5V tolerant, so this is harmless; 3.3V would
+   match the rest of the slot.  ~NMI2 is driven by IC7 (MAX6816, push-pull at 5V), which is likewise fine for those
+   inputs.
+
+5. Possible: the main buses sit at mid-rail two thirds of the time (RN1-RN4)
+
+   AM and DM are biased to /1.6V by 10k networks.  With one processor, only its slot drives them, so for two thirds of
+   each cycle every CMOS input on the main bus (the memory boards' SRAMs and buffers) sits at 1.6V and draws
+   shoot-through current.  Pull-ups or bus-hold would be better.
+
+Checked and fine on this board:
+- MPU0 and MPU1 identity pins are pulled to GND (3.3k), so the processor reads MPU 0.
+- ~Reset comes from the Processor Reset Device (IC7, 74LVC14); the Processor Board only receives it.  (Its header
+  J2 pin 4 is also on ~Reset: a button there would fight IC7.)
+- The device enables for devices 1, 2 and 7 are tied to GND, and the Processor Board pulls up the rest.
+- ~Device, Kernal and Native Latch only go to test points here.
+- Devices 1 (Main Memory Channel), 2 (Status and Clock Device, split on A4) and 7 (Processor Reset Device) each
+  drive HD0-HD2 for their whole select.  Devices 5 and 6 have no board, so an access there leaves HD0-HD2 floating
+  (Data and Signal Buffer Faults.txt, fault 2).
+- Possible: the device buses (AD, DD, D~RD, D~WD) are driven by the Processor Board's 5V 74ABT245s; their high level
+  (about 3.4V) reaches 3.3V parts here, such as the Clock Device's RTC (IC8).  This is marginal against those parts'
+  VCC + 0.3-0.5V maximum.
