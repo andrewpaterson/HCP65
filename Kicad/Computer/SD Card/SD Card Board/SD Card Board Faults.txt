@@ -118,3 +118,25 @@ Found later (2026-11-16, reading the Video Board and the Component Boards it sha
     - Counter 24bit (B8, the DMA address counter): its upper 20 bits count whenever the low nibble is $F, whether or not
       Count Enable is high.  (The board's address counter only counts up by one byte at a time, so this matters only if
       Count Enable is ever low while the low nibble is $F.)
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+13. ~Write Read Start has no driver (B2, SD Card Clock)
+
+   The board takes ~Write Read Start from B2 pin 14, but the SD Card Clock board has it on its pin 15; its pin 14 isn't
+   connected.  The net only reaches inputs: SD Card Read Signals (B13) pin 11, its IC2 and the Funk counter's ~PE (IC6).
+
+   Effect: those inputs float, so the read state machine loads and resets at random.
+
+   Fix: move the net to B2 pin 15 (and correct the SD_Card_Clock symbol).
+
+14. Write Data has no driver (B14, SD Card Write Signals)
+
+   The board takes Write Data from B14 pin 24, but the SD Card Write Signals board has it on its pin 25; its pin 24
+   isn't connected.  The net only reaches SD Card Write Data (B15) pin 2, the LEs of its IC3.
+
+   Effect: the write data latches open and close at random.
+
+   Fix: move the net to B14 pin 25 (and correct the SD_Card_Write_Signals symbol).

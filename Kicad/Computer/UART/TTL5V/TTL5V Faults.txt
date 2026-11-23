@@ -1,0 +1,15 @@
+TTL5V - schematic faults
+========================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The UART's ~ADS input floats (pin 3)
+
+   Pin 3 is ~{ADS}, the TL16C550's address strobe (IC2 pin 24), with nothing on this board holding it.  The UART Board
+   leaves it unconnected.
+
+   Effect: the UART latches its address and chip selects at random, so register accesses can go to the wrong register
+   or be ignored.
+
+   Fix: tie ~ADS to GND here (the 16C550 then passes its address and chip selects straight through), or on the UART
+   Board.  See UART Board Faults.txt.

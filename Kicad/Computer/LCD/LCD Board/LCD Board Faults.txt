@@ -71,3 +71,19 @@ The board also uses a standard board with faults of its own, which it has with
 it (see its Faults file in Component Boards):
   - Clock Hold Standard: a NOR where an OR is needed, so the clock hold code
     is fought over on every cycle.
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+3. The SNES Controller Readers' pins 4 and 5 are swapped (B4, B5)
+
+   The SNES_Controller_Reader socket symbol has D5 on pin 4 and GND on pin 5.  The SNES Controller Reader board has
+   GND on pin 4 and its D2 output (IC6/IC7 Q2) on pin 5.  The rest of the data bus is reversed consistently (the
+   reader's Dn on the board's D(7-n)), so its D2 should reach the board's D5.
+
+   Effect: on both sockets the board's D5 is held to GND through the reader, so every read on the LCD Board's data bus
+   has D5 low (including the flash and the LCD).  Each reader's D2 output drives straight into GND when it is read.
+
+   Fix: swap pins 4 and 5 in the SNES_Controller_Reader symbol (D5 on pin 5, GND on pin 4), update it here, and
+   re-route B4 and B5.

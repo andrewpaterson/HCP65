@@ -19,3 +19,35 @@ The board also uses standard boards with faults of their own, which it has
 with them (see each one's Faults file in Component Boards):
   - Clock Hold Standard: a NOR where an OR is needed, so the clock hold code
     is fought over on every cycle.
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+2. The sound RAMs' top address lines are shifted by one (B5, Selector 12bit)
+
+   On a Selector 12bit, output Qn passes input An or Bn.  B5's Q1, Q2 and Q3 drive M12, M13 and M14, so their inputs
+   must be A12/C12, A13/C13 and A14/C14.  The board feeds them one pin along: GND on pins 11 and 24 (Q3's inputs), A14
+   and C14 on pins 12 and 25 (Q2), A13 and C13 on 13 and 26 (Q1), and A12 and C12 on 14 and 27 (Q0, which goes
+   nowhere).
+
+   Effect: M14 is always 0, M13 carries A14/C14 and M12 carries A13/C13, and bit 12 is lost.  Only the lower 16KB of
+   each 32KB sound RAM (B4, B6) is used; processor addresses that differ only in A12 land on the same byte, and
+   playback reads each 4KB block twice.
+
+   Fix: move the inputs down one pin (A14/C14 on pins 11/24, A13/C13 on 12/25, A12/C12 on 13/26, GND on 14/27), or take
+   M12-M14 from Q0-Q2.
+
+3. The Audio Address Decode gets CLK where it needs ~CLK (B12 pin 10)
+
+   B12 pin 10 is ~{CLK} on the Audio Address Decode board (and in this board's own symbol), but it is wired to /CLK.
+   /~{CLK} exists on the board (B13 pin 26).  On the daughter, Sound Address = pin 10 AND ~Device RAM drives the LE of
+   both sound output latches (B4/B6 IC3, 74LVC573).  The sound RAMs drive DM while CLK is low (~OE = CLK, from B5), the
+   counter steps on CLK rising, and the DAC writes happen while CLK is low.  So the latches must be open while CLK is
+   low and close when it rises: LE = ~CLK.
+
+   Effect: with CLK, the latches are open while the RAMs are off and DM floats, and close as the RAM starts to drive.
+   The DAC gets the floating bus, at best the previous sample held by stray capacitance.
+
+   Fix: wire B12 pin 10 to /~{CLK}.  After that, the latch closes about two gate delays after the RAM's ~OE rises and
+   the address changes; that relies on the RAM's output hold or bus capacitance, so it is worth checking.

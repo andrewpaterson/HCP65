@@ -1,0 +1,14 @@
+SD Card Write Signals - schematic faults
+========================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The socket symbol has Write Data one pin off (pins 24 and 25)
+
+   On this board Write Data is on pin 25 and pin 24 isn't connected.  The HCP65:SD_Card_Write_Signals symbol puts it on
+   pin 24.
+
+   Effect: on the SD Card Board (B14) Write Data has no driver, so the SD Card Write Data board's latch enables float.
+   See SD Card Board Faults.txt, fault 14.
+
+   Fix: move the pin in the symbol and update the SD Card Board.

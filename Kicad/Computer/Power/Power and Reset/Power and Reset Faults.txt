@@ -1,0 +1,15 @@
+Power and Reset - schematic faults
+==================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The socket symbol has the two resets swapped (pins 29 and 32)
+
+   On this board pin 29 (J3.9) is ~{Reset}_{5V}, from IC4 (74LVC1G17 on 5V), and pin 32 (J3.12) is ~{Reset}_{3.3V},
+   from IC7 (74LVC1G17 on 3.3V).  The HCP65:Power_and_Reset symbol that host boards place names pin 29 ~RES_3V and pin
+   32 ~RES_5V.
+
+   Effect: hosts that want the 3.3V reset get the 5V one.  The Pico GPIO Controller Board and the Pico SDRAM board both
+   drive the Pico's RUN pin from pin 29, which can damage the Pico (the RP2040 isn't 5V tolerant).
+
+   Fix: swap the two pin names in the symbol and update the host boards.  See their faults files.

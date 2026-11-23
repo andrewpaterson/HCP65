@@ -1,0 +1,51 @@
+Coprocessor Board - Additional - schematic faults
+=================================================
+
+From the symbol library review of 2026-11-23.  The rest of this board hasn't been reviewed.
+
+1. The W65C816 Power boards get no ground (B1, B25)
+
+   This schematic's copy of the HCP65:W65C816_Power symbol is out of date.  It has GND on pin 12 and pins 3 and 10
+   N.C., so the board connects /GND only to pin 12 of B1 and B25.  The W65C816 Power board has its GND on J2 pins 3 and
+   10, and its pin 12 isn't connected; the library symbol and the Processor Board (B21) agree with that.
+
+   Effect: the LK112 regulator on each W65C816 Power board has no ground return, so W65C816V2 and W65C816V3 are
+   undefined.  The processors they supply won't run, and they can be damaged.
+
+   Fix: update the symbol from the library (Tools > Update Symbols from Library), which puts GND on pins 3 and 10,
+   and re-route B1 and B25 on the PCB.
+
+2. Minor: the W65C816_Latch_Time sockets' copies are also out of date (B30, B36)
+
+   Pin 7 is N.C. in this schematic's copy and Presence in the library.  The board leaves it unconnected either way, so
+   there is no effect, but updating the symbols removes the difference.
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+3. /3.3V has no source
+
+   /3.3V only reaches the two Selector 12bit boards' A11/B11 inputs (B20, B26 pins 3 and 15) and the two W65C816 Latch
+   boards' supply (B30, B36 pin 6); the Latch boards have no regulator of their own.  On Coprocessor Board - Main the
+   Clock Hold Standard board (B4) supplies /3.3V, but this board has no such board, and none of J8-J13 carries 3.3V.
+
+   Effect: the Latch boards are unpowered, so Bank Latch2 and Bank Latch3 are undefined.  Selector bit 11 floats, so
+   the /Q2 and /Q3 presence bits (J12 to Coprocessor Board - Main J7, then B10 S10/S11) read at random.
+
+   Fix: add a 3.3V source (for example an AP7365 from 5V, as the other boards use), or bring 3.3V over J8-J13.
+
+4. The W65C816 Latch boards get PHI2 where they need ~PHI2 (B30, B36 pin 3)
+
+   B30 pin 3 is /CPHI23 and B36 pin 3 is /CPHI22, the same nets as the W65C816 Minimals' PHI2 (B24, B18 pin 26), but
+   the Latch board's pin 3 is ~PHI2.  The same fault as Coprocessor Board - Main Faults.txt fault 2, with the same
+   effect: the bank latch keeps the data byte instead of the bank.
+
+5. The Minimals' data transceivers are enabled for the whole cycle (B18, B24 pin 38; B30, B36 pin 9)
+
+   The Latch boards' ~{Data Output} isn't connected, and the Minimals' ~DE is /CAccess2 and /CAccess3 directly.  The
+   same fault as Coprocessor Board - Main Faults.txt fault 3: the 74LVC4245 fights the 65816's bank byte during PHI2
+   low on every read.
+
+The possible faults 4-6 in Coprocessor Board - Main Faults.txt (the transceiver, the Minimal's 74LVC4245 orientation,
+now confirmed, and the random control state at power up) apply to this board's coprocessors too.

@@ -1,0 +1,24 @@
+Mainboard Full - schematic faults
+=================================
+
+From the socket review of 2026-11-23: every socket's pins were compared with its daughter board.  The rest of the
+board hasn't been reviewed.
+
+1. MPU1 and MPU2 can't select main memory (B10, Main Memory Full Enable)
+
+   B10 ORs the active-low ~Main lines into /~Main, which is ~E1 on the Main Memory Select boards (B1, B2, B3, B9).  Its
+   inputs are MPU0's ~Main and its devices 3, 4, 5 and 16-19, and the MPU1 and MPU2 devices 16 and 17.  /MPU1 ~Main
+   (MPU1.B9) and /MPU2 ~Main (MPU2.B9) go only to the Small Abort boards B5 and B11.
+
+   Effect: when MPU1 or MPU2 reads or writes main memory and nothing else is asking for it, no memory chip is selected.
+
+   Fix: put /MPU1 ~Main and /MPU2 ~Main on two of B10's spare inputs (pins 13, 14, 22 and 23 are tied to 3.3V).
+
+Checked and not a fault: the abort boards only compare the ~Main lines within each MPU's slot group.  Two MPUs' raw
+~Main lines may overlap by design, because only one MPU's slot is open at a time: the Triple MPU Clock Generator's two
+3-stage rings (reset to one 0 each, and only ever rotated) open one ~Main Access at a time, and each Processor Board
+gates its drive onto AM/DM with ~Main AND ~Main Slot.  This holds only if every device board in the MPU1/MPU2 slots also
+gates its bus drive with ~Main Slot, which wasn't checked.
+
+Not settled: B12 pins 10, 13 and 16 put the Triple MPU Clock Generator's ~MPU Clock0/1/2 onto nets named MPU0/1/2
+CLK.  Whether that inversion is intended depends on the clock and slot phases.

@@ -1,0 +1,16 @@
+Register 24bit with IO - schematic faults
+=========================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The socket symbol has the six strobes one pin off (pins 21-27)
+
+   On this board the strobes are Latch Bank, Latch High, Latch Low, Read Bank, Read High and Read Low on pins 22-27,
+   and pin 21 isn't connected.  The HCP65:Register_24bit_with_IO symbol puts them on pins 21-26.  The data bus, the
+   outputs and the power pins all match.
+
+   Effect: on the Graphics Board (B13) every strobe reaches the wrong function.  The host's "Write Bank" goes nowhere,
+   "Read Bank" opens the low latch, and this board's Read Low (IC6 pin 6) floats, so its read buffer turns on at
+   random.  See Graphics Board Faults.txt, fault 4.
+
+   Fix: move the six strobes to pins 22-27 in the symbol and update the Graphics Board.

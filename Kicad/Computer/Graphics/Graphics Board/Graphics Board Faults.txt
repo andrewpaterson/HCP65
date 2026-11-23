@@ -247,3 +247,25 @@ with them (see each one's Faults file in Component Boards):
   - Counter 16bit with IO: the same as the Counter 24bit, on its upper 12
     bits.  The count's clock only runs while it is counting here, so it does
     no harm.
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+Every socket's pins were compared with its daughter board.  The definite faults found are all listed above.  Two
+possible ones:
+
+14. Possible: the Graphics Transparency holding latch closes at the start of a read (B20 pin 2)
+
+   The board feeds ~Main Read straight into the LE of the Graphics Transparency board's holding latch (IC4,
+   74LVC573).  LE is high, and the latch transparent, whenever no read is happening; it closes on LE falling, at the
+   start of the next read, before MD carries the new byte.  Its D and Q are both on MD and its outputs are enabled by
+   ~Write, so in a write it passes the floating MD bus back onto itself, and the byte written survives only on bus
+   charge and the three-gate delay on Graphics Main Data's ~OEA.  A holding latch needs LE high during the read and
+   falling at its end, which is Main Read with active-high polarity.
+
+15. Possible: B4 and B14 drive AM together for a few ns at each write-to-read change
+
+   CLK1 and CLK3 are the Q and ~Q of one flip-flop, and ~Main Write goes through one more gate (IC4, 74LVC1G332) than
+   ~Main Read.  So when a write ends and the next read begins, ~Main Read falls about one gate delay before ~Main Write
+   rises, and B4 and B14 both drive AM for that time.  B7's 543 has the same short overlap on its A side.

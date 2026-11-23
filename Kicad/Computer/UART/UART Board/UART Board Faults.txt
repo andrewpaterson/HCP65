@@ -1,0 +1,22 @@
+UART Board - schematic faults
+=============================
+
+From the socket review of 2026-11-23: every socket's pins were compared with its daughter board.  The rest of the
+board hasn't been reviewed.
+
+1. The UARTs' ~ADS input floats (B3 RS232, B5 TTL5V, pin 3)
+
+   Pin 3 of each UART board is ~{ADS}, the TL16C550's address strobe (IC2 pin 24), with nothing on the daughter
+   holding it.  The host symbol names the pin but the board leaves it unconnected.
+
+   Effect: with ~ADS floating, the UART latches its address and chip selects at random; register accesses can go to
+   the wrong register or be ignored.
+
+   Fix: tie pin 3 of B3 and B5 to GND (the 16C550's ~ADS low makes the address and chip select inputs transparent).
+
+2. Possible: ~Device Enable only says "enabled" while the UART is being accessed (B6 pin 8)
+
+   UART Signals' ~Device Enable is tied through NT1 to ~Device Select.  The HCP65 Device Interrupts board reads
+   ~Device Enable as a status bit, so a status read always sees this slot as disabled.  Other boards drive it from a
+   Flags board, and the VIA Board ties it to GND (always enabled).  Whether this matters depends on how the kernal uses
+   that bit.

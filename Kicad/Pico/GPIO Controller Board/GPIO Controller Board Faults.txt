@@ -1,0 +1,16 @@
+GPIO Controller Board - schematic faults
+========================================
+
+From the socket review of 2026-11-23: every socket's pins were compared with its daughter board.  The rest of the
+board hasn't been reviewed.
+
+1. The Pico's RUN pin is driven by the 5V reset (B7, Power and Reset, pin 29)
+
+   The HCP65_Power_and_Reset socket symbol names pin 29 ~RES_3V and pin 32 ~RES_5V, but the Power and Reset board has
+   them the other way round: pin 29 (J3.9) is ~Reset_5V, from IC4 (74LVC1G17 on 5V), and pin 32 (J3.12) is
+   ~Reset_3.3V, from IC7 (74LVC1G17 on 3.3V).  This board takes its reset from pin 29 and leaves pin 32 unconnected.
+
+   Effect: a push-pull 5V reset drives /~{Reset}, which goes to the Pico's RUN pin (J6.11, Pico pin 30).  The RP2040
+   isn't 5V tolerant, so this can damage the Pico.
+
+   Fix: swap the two pin names in the Power_and_Reset symbol, update it here, and take /~{Reset} from pin 32.

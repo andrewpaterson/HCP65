@@ -1,0 +1,17 @@
+Graphics Signals - schematic faults
+===================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. ~Done is on a pin the socket symbol doesn't connect (pin 9)
+
+   On this board ~{Done} is on pin 9, into IC2's ~1RD and ~2RD (pins 1 and 13).  The HCP65:Graphics_Signals symbol has
+   ~Done on pin 4, so host boards wire ~Done there and leave pin 9 open.
+
+   Effect: on the Graphics Board and Blitter Board (B19) IC2's resets float, so the flip-flops clear at random.  See
+   Graphics Board Faults.txt and Blitter Board Faults.txt, fault 2.
+
+   Fix: put ~Done on pin 9 in the symbol and update both host boards.
+
+Checked and not a fault: pin 31 (~MCLK) is driven on this board (IC9's ~Y through R2) and only used here, so the hosts
+leaving it open is harmless.

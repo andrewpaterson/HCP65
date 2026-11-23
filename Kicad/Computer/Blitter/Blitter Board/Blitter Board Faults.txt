@@ -147,3 +147,16 @@ with them (see each one's Faults file in Component Boards):
   - Counter 16bit with IO: the same as the Counter 24bit, on its upper 12
     bits.  The count's clock only runs while it is counting here, so it does
     no harm.
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+Every socket's pins were compared with its daughter board.  The definite faults found are all listed above.  The
+Graphics Board's two possible faults 14 and 15 apply here too, as the shared daughter boards are wired the same way:
+
+9. Possible: the Graphics Transparency holding latch (B2 pin 2) is clocked by ~Main Read, so it closes at the start
+   of a read, not the end.  See Graphics Board Faults.txt, fault 14.
+
+10. Possible: B4 and B14 drive AM together for about one gate delay at each write-to-read change.  See Graphics Board
+    Faults.txt, fault 15.

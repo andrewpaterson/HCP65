@@ -1,0 +1,14 @@
+Clock Hold V1 to V2 - schematic faults
+======================================
+
+From the socket review of 2026-11-23.  This adapter maps an old (V1) Clock Hold socket onto the current W65C816 Clock
+Hold (B22) and Hold Count (B23) boards.  Every input the two new boards need is mapped: CLK IN, ~Reset, ~Hold High
+(from B23's L=C), H0-H3, CHP and ~CHP, and power.  The old socket's pinout couldn't be checked: there is no symbol for
+it in the library.
+
+1. Possible: ~Hold Low may float (B22 pin 12)
+
+   B22 pin 12 (~Hold Low) takes "3.3V" from the old socket's pin 14.  If pin 14 was the V1 daughter board's own 3.3V
+   output rather than a host supply, nothing drives it now and ~Hold Low floats.
+
+   Fix: tie B22 pin 12 to B22 pin 18, which carries the Clock Hold board's own 3.3V.

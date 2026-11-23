@@ -19,3 +19,49 @@ The board also uses standard boards with faults of their own, which it has
 with them (see each one's Faults file in Component Boards):
   - Clock Hold Standard: a NOR where an OR is needed, so the clock hold code
     is fought over on every cycle.
+
+
+Found in the socket review of 2026-11-23
+----------------------------------------
+
+2. The W65C816 Latch boards get PHI2 where they need ~PHI2 (B7, B32 pin 3)
+
+   B7 pin 3 is /CPHI20 and B32 pin 3 is /CPHI21, the same nets as the W65C816 Minimals' PHI2 (B2, B6 pin 26).  The
+   Latch board's pin 3 is ~PHI2: Bank Latch = ~PHI2 AND a delayed ~PHI2.  On the Processor Board, the Latch board's
+   pin 3 is ~PHI2 while the Breakout gets PHI2.  The Coprocessor Clock only makes one phase per CPU (CPHI2 = 40MHz OR
+   Run), with no inverted output.
+
+   Effect: Bank Latch is high while PHI2 is high, in the data phase.  On the Minimal, the bank latch (74VHCT573) is
+   transparent and the CBT3244 bypass is closed then, so BA16-19 carry the data byte and the latch keeps the data
+   byte, not the bank.  The memory's A16-A18, the CA19 chip select and the Coprocessor Support's $FFFFF interrupt
+   decode are all wrong.
+
+   Fix: feed pin 3 an inverted CPHI2 (a 74LVC1G04 per CPU).
+
+3. The Minimals' data transceivers are enabled for the whole cycle (B2, B6 pin 38; B7, B32 pin 9)
+
+   The Latch boards' ~{Data Output} (pin 9) isn't connected, and the Minimals' ~DE (pin 38) is tied straight to
+   /CAccess0 and /CAccess1.  On the Processor Board, ~Data Output drives the Breakout's ~DE.
+
+   Effect: while CAccess is 0, the Minimal's 74LVC4245 is on for the whole cycle with DIR = R/~W.  On every read it
+   drives the 65816's data pins during PHI2 low, while the 65816 is putting the bank byte out on them, so the two
+   fight every cycle.
+
+   Fix: ~DE = CAccess OR ~{Data Output}.
+
+4. Possible: the Coprocessor Transceiver can join the buses while a coprocessor is using its memory (B37)
+
+   The transceiver is enabled only by the main bus decode (M~{Memory0.1}, ...), not gated with CAccess.  If the main
+   processor touches a coprocessor's memory window while that coprocessor owns it (CAccess = 0), DM is switched onto
+   its memory bus mid-cycle.  It is safe only if software never does that.
+
+5. The W65C816 Minimal's data transceiver is the wrong way round (B2, B6)
+
+   Confirmed: the 65816 (5V) is on the 74LVC4245's 3.3V B port and the connector on its 5V A port.  Reads give the
+   65816 3.3V highs, below its 4.0V input high; writes drive 5V into the B port and onto the 3.3V SRAMs.  See
+   Processor/W65C816 Minimal/W65C816 Minimal Faults.txt.
+
+6. Possible: the coprocessors' control state is random at power up
+
+   Nothing resets B33 (Register 8bit: CAccess0-3, CRun0-3) or B9's F0-F3 latch, which drives C~Reset0-3.  So the
+   coprocessors' run, reset and bus ownership come up random.  (Related to fault 1.)

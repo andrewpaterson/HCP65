@@ -1,0 +1,14 @@
+SNES Controller Reader - schematic faults
+=========================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The socket symbol has pins 4 and 5 swapped
+
+   On this board pin 4 is GND and pin 5 is D2 (IC6/IC7 Q2).  The HCP65:SNES_Controller_Reader symbol has a data line on
+   pin 4 and GND on pin 5.
+
+   Effect: on the LCD Board (B4, B5) the host's D5 is held to GND through this board, and this board's D2 output drives
+   into GND.  See LCD Board Faults.txt, fault 3.
+
+   Fix: swap pins 4 and 5 in the symbol and update the LCD Board.

@@ -1,0 +1,17 @@
+SD Card Clock - schematic faults
+================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The socket symbol has ~Write Read Start one pin off (pins 14 and 15)
+
+   On this board ~{Write Read Start} is on pin 15 and pin 14 isn't connected.  The HCP65:SD_Card_Clock symbol puts it
+   on pin 14.
+
+   Effect: on the SD Card Board (B2) the host's ~Write Read Start has no driver, so the SD Card Read Signals inputs it
+   feeds float.  See SD Card Board Faults.txt, fault 13.
+
+   The SD Card Board's schematic also keeps an old copy of this symbol (pin 5 named Main_CLK where the library has
+   CLK_{M}); updating it from the library brings it in step.
+
+   Fix: move the pin in the symbol and update the SD Card Board.

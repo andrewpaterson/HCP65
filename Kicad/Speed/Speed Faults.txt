@@ -1,0 +1,13 @@
+Speed - schematic faults
+========================
+
+From the socket review of 2026-11-23.  This test project wasn't reviewed in detail.
+
+1. Its socket symbols are out of date
+
+   Speed.kicad_sch keeps old copies of several socket symbols (MPU_Memory, MPU_Timer, W65C816_Breakout and others)
+   that no longer match today's boards.  For example, its MPU Memory socket (B4) has 5V, GND and address and data
+   lines on pins where the current MPU Memory board has different signals.
+
+   Fix: update the symbols from the library (Tools > Update Symbols from Library) before using it, then re-check the
+   sockets.

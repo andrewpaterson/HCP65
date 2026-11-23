@@ -1,0 +1,24 @@
+W65C816 Minimal - schematic faults
+==================================
+
+From the review of 2026-11-23.  Only the data transceiver was checked; the rest of the board hasn't been reviewed.
+
+1. The data transceiver is the wrong way round (IC6, 74LVC4245)
+
+   The 74LVC4245's A port runs at VCCA (pin 1, 5V) and its B port at VCCB (pins 23-24, 3.3V).  Here the A port (A0-A7,
+   pins 3-10) is the connector's D0-D7 and the B port (B0-B7, pins 21-14) is the W65C816's own data pins (/D0_65 ..
+   /D7_65).  The W65C816 (IC2) runs from 5V (VDD on the 5V net).
+
+   Effect:
+   - On reads the B port drives the processor's data pins with 3.3V highs, below the W65C816's 4.0V input high at 5V,
+     so read data is unreliable.
+   - On writes the processor drives 5V into the B port, above its VCCB + 0.5V maximum.
+   - The A port drives the connector at 5V.  On the coprocessor boards that is the coprocessor's memory bus, with
+     IS61WV5128 3.3V SRAMs that aren't 5V tolerant.
+   The W65C816 Breakout has it the right way round: the processor on the 5V side.
+
+   Fix: swap the ports, so the processor's D0-D7 are on A0-A7 (5V) and the connector's on B0-B7 (3.3V), and check DIR:
+   with the ports swapped, R/~W high (a read) must drive B to A.
+
+Used on Coprocessor Board - Main (B2, B6) and Coprocessor Board - Additional (B18, B24).  Those boards' own faults
+files cover how the sockets are wired (PHI2 into the Latch boards, and ~DE).

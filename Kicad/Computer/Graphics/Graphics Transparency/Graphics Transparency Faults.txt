@@ -1,0 +1,16 @@
+Graphics Transparency - schematic faults
+========================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed beyond this.
+
+1. Possible: the holding latch closes at the start of a read (IC4)
+
+   IC4 (74LVC573) is a holding latch on MD, with its LE on pin 2.  The Graphics Board (B20) and Blitter Board (B2) both
+   feed pin 2 with ~Main Read.  LE is then high, and the latch transparent, whenever no read is happening, and it
+   closes at the start of the next read, before MD carries the new byte.  Its D and Q are both on MD and its outputs
+   are enabled by ~Write, so in a write it puts the floating MD bus back onto itself.
+
+   Effect: the byte held for the write survives only on bus charge and a three-gate delay.
+
+   Fix: LE needs to be high during the read and fall at its end, which is Main Read with active-high polarity: invert
+   it here or on the hosts.  See Graphics Board Faults.txt, fault 14.

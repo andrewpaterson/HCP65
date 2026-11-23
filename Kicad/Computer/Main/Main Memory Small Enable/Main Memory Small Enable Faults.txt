@@ -1,0 +1,14 @@
+Main Memory Small Enable - schematic faults
+===========================================
+
+From the socket review of 2026-11-23.  The board's own circuit hasn't been reviewed.
+
+1. The socket symbol has ~Contention one pin off (pins 18 and 19)
+
+   On this board ~{Contention} (IC4 ~1Q) is on pin 19 and pin 18 isn't connected.  The HCP65:Main_Memory_Small_Enable
+   symbol has ~Contention on pin 18 and pin 19 N.C.
+
+   Effect: on Mainboard Small (B5) a memory contention never reaches the processor's NMI.  See Mainboard Small
+   Faults.txt.  (Mainboard Full uses Main Memory Full Enable, whose ~Contention is on pin 19 and is wired right.)
+
+   Fix: move ~Contention to pin 19 in the symbol and update Mainboard Small.

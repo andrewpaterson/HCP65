@@ -1,0 +1,39 @@
+VIA Board - schematic faults
+============================
+
+From the socket review of 2026-11-23: every socket's pins were compared with its daughter board.  The rest of the
+board hasn't been reviewed.
+
+1. The hold count bits are reversed (B5 VIA Control, pins 54 and 56)
+
+   The board's HD2 (J5.A29) lands on VIA Control's H0, and HD0 (J5.A31) on its H2; HD1 is right.  Every other host
+   (Audio, Blitter, Graphics, UART, LCD, PS2, SD Card, Video Signals, Coprocessor Main and both mainboards) puts H0 on
+   HD0 and H2 on HD2.
+
+   Effect: VIA Control's ROM count of 3 reaches the bus as 6, and its register counts of 1 and 3 as 4 and 6, so those
+   accesses get the wrong number of hold cycles.  RAM's 0 is unaffected.
+
+   Fix: swap B5 pins 54 and 56.
+
+2. The 3.3V flash is driven at 5V (IC3)
+
+   IC3 (SST39VF010, on /3.3V) shares D0-D7, A0-A9 and ~WD with the VIA Breakouts (B1, B4, B6, B7: W65C22S at 5V, which
+   drive D0-D7 rail to rail on every VIA read) and the Device Buffer (B2, 74ABT245 at 5V).  The flash's maximum input is
+   VDD + 0.5V.
+
+   Effect: over-voltage on IC3's pins, with current through its clamp diodes into the 3.3V rail.
+
+   Fix: 5V-tolerant isolation between IC3 and the 5V bus (for example a 74LVC245 on 3.3V), or run the VIAs at 3.3V.
+
+3. Possible: the VIAs' IRQ pull-ups push current into the 3.3V rail (B1, B4, B6, B7 pins 3 and 26)
+
+   The W65C22S's IRQ output is push-pull at 5V, and RN1 (6.8k) pulls each line up to /3.3V.  Eight VIA outputs high push
+   about 2mA into a rail whose only other load is IC3, and the AP7365 regulator can't sink current, so /3.3V can rise.
+   With push-pull outputs the pull-ups aren't needed.
+
+4. Possible: a VIA and the Device Buffer can fight on D at the edges of an access (B1, B4, B6, B7, B2)
+
+   Each VIA's R/~W comes from /~WD, so it treats every non-write as a read and drives D whenever it is selected and its
+   PHI2 is high.  The Device Buffer's IC4 drives local D (DIR = ~RD) whenever Device ~CS is low and ~RD is high.  If
+   ~Select Device is low before ~RD or ~WD go low, or after they go high, the two fight.  The VIAs' PHI2 is a separate
+   CLK/2 made on VIA Control, not tied to the strobes, so this depends on bus timing.
