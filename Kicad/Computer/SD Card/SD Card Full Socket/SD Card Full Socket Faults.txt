@@ -1,0 +1,23 @@
+SD Card Full Socket - schematic faults
+======================================
+
+From the symbol library review of 2026-11-23.
+
+1. The SD socket's symbol is one contact off, so power and ground are on the wrong contacts
+
+   The symbol JST:SDK-9BNS-K13-GS-TB_LF__SN_1 names its pins 1=DAT2, 2=CD/DAT3, 3=CMD, 4=VSS, 5=VDD, 6=CLK, 7=VSS,
+   8=DAT0, 9=DAT1.  JST numbers the socket's circuits the same as the SD card's pins: 1=CD/DAT3, 2=CMD, 3=VSS1, 4=VDD,
+   5=CLK, 6=VSS2, 7=DAT0, 8=DAT1, 9=DAT2.  Its drawing has No.9 beside No.1, and the footprint (SamacSys_Parts:
+   SDK9BNSK13GSTBLFSN1) follows it: pad 9 is at the end beside pad 1, and pads 7 and 8 are on the narrow pitch.
+
+   Effect: on the routed PCB, every signal and supply is one contact along:
+   - VDD (pad 4) is on GND.
+   - CLK (pad 5) is on 3.3V.
+   - VSS1 (pad 3) and VSS2 (pad 6) carry signals (CMD and CLK).
+   - DAT0-DAT2 and CD/DAT3 are each on the neighbouring contact.
+   A card fitted to this board has its supply pin grounded while 3.3V and the signals drive its clock and ground
+   pins.  It won't work, and the 3.3V supply is shorted through the card to GND.  The card detect (CD1),
+   write protect (WP1) and shell pins are right.
+
+   Fix: renumber the symbol's pins to the SD numbering (see Symbols/Symbol Faults.txt, item 2), update the symbol in
+   this schematic, and re-route the board.

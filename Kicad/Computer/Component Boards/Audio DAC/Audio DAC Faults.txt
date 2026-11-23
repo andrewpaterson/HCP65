@@ -1,0 +1,15 @@
+Audio DAC - schematic faults
+============================
+
+From the symbol library review of 2026-11-23.  The rest of this board hasn't been reviewed.
+
+1. The stereo jack's left and right channels are swapped
+
+   The symbol CUI_Devices:SJ1-3525NG-GR names pin 2 R, 3 L, 4 RN and 5 LN.  The Same Sky (CUI) datasheet has pin 2 as
+   the tip, 3 the ring, 4 the tip switch and 5 the ring switch, and the tip is left by convention.
+
+   Effect: the channel this board means as left comes out on the ring (right).  Nothing is damaged, and each switch
+   pin still goes with its own channel.
+
+   Fix: rename the symbol's pins 2 = L, 3 = R, 4 = LN, 5 = RN (see Symbols/Symbol Faults.txt, item 4), update the
+   symbol here and re-route, or swap the two channels where they reach the jack.

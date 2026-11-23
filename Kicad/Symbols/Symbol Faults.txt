@@ -1,0 +1,175 @@
+Symbol library - pinout faults
+==============================
+
+From the review of 2026-11-23.  Every symbol in these libraries was checked against its manufacturer's datasheet:
+each pin number against the pin table for the package that the symbol's footprint uses.  The local copies in
+HCP65/Datasheets were used where they exist, otherwise the maker's site.  That is 417 symbols, 189 of them used in a
+schematic.
+
+HCP65.kicad_sym (165 board and connector symbols) has no datasheets and isn't covered here: those symbols have to
+match the daughter board each one stands for (see "Schematic copies out of date" below).
+
+
+Serious: wrong pin numbers on a symbol that is used
+---------------------------------------------------
+
+1. Nexperia:74LVC02APW,118 and 74LVC02APW,118_Multi - the 74LVC00's numbering
+
+   Symbol:   1A=1 1B=2 1Y=3 2A=4 2B=5 2Y=6 3Y=8 3A=9 3B=10 4Y=11 4A=12 4B=13
+   74LVC02A: 1Y=1 1A=2 1B=3 2Y=4 2A=5 2B=6 3A=8 3B=9 3Y=10 4A=11 4B=12 4Y=13
+
+   Every output is on an input pin.  Used on:
+     Processor/HCP65 Kernal Mode (IC10), HCP65 Device Reset (IC7), HCP65 Instruction Code (IC10), HCP65 MPU NMI (IC6)
+     Component Boards/Device Decode stage A (IC3), Device Decode stage B (IC3, IC5, IC6, IC16)
+     Main/Processor Full Device (IC10)
+   Each board's own faults file says what the misplaced pins do there.
+
+2. JST:SDK-9BNS-K13-GS-TB_LF__SN_1 (full size SD socket) - every pin name is one contact off
+
+   Symbol:              1=DAT2    2=CD/DAT3 3=CMD  4=VSS 5=VDD  6=CLK  7=VSS  8=DAT0 9=DAT1
+   JST and SD numbering: 1=CD/DAT3 2=CMD    3=VSS1 4=VDD 5=CLK  6=VSS2 7=DAT0 8=DAT1 9=DAT2
+
+   JST numbers its circuits the same as the SD card's pins (its drawing has No.9 next to No.1, and No.7 and No.8 on
+   the narrow pitch).  The footprint SamacSys_Parts:SDK9BNSK13GSTBLFSN1 follows that numbering, so the board gets VDD,
+   CLK and both grounds on the wrong contacts.  CD1, WP1 and the shell pins are right.  Used on SD Card/SD Card Full
+   Socket (see its faults file).
+
+   Fix: renumber the symbol's pins to the SD numbering above.
+
+3. Kingbright:KCPSA04-107 - the common pin is an anode, not a cathode
+
+   Pin 14 is named "Cathode", but KCPSA04-107 is common anode (KCPSC04-107 is the common cathode part).  All 15
+   segment pins are right.  Used on Processor/W65C816 Opcode Display (LED 14 Display), Pico/LED Digit Tester and
+   Tester/LCD 14 Segment Tester (LED 14 Display).
+
+   Fix: fit KCPSC04-107 (and make a symbol for it, checking its pins), or redesign for common anode.
+
+4. CUI_Devices:SJ1-3525NG-GR (3.5mm stereo jack) - left and right are swapped
+
+   Datasheet: 2 = tip, 3 = ring, 4 = tip switch, 5 = ring switch.  The symbol has 2 = R, 3 = L, 4 = RN, 5 = LN.  Tip is
+   left by convention, so the channels are swapped; each switch pin stays with its own channel.  Used on Component
+   Boards/Audio DAC.
+
+   Fix: rename 2 = L, 3 = R, 4 = LN, 5 = RN.
+
+
+Serious, but the symbol isn't used yet
+--------------------------------------
+
+5. More NOR gates with the 74LVC00's numbering
+   - Nexperia:74ALVC02D,118 (SO14)
+   - Texas_Instruments:SN74AHCT02PWR (TSSOP14).  Its pin 14 is also named "3V" on a 5V part.
+   Both use the same wrong numbering as item 1.
+
+6. Nexperia:74LVC373AD,118, 74LVC373ADB,118, 74LVC373APW,118 - the 74LVC573's numbering
+
+   Symbol (573 layout): D0-D7 on 2-9, Q7-Q0 on 12-19.
+   74LVC373A:           D0-D7 on 3,4,7,8,13,14,17,18; Q0-Q7 on 2,5,6,9,12,15,16,19.
+   Inputs and outputs are swapped.  ~OE (1), GND (10), LE (11) and VCC (20) are right.
+
+7. W65C64:W65C64BusReduced
+   - Pin 6 is defined twice (GND and 3.3V); it should be VSS.
+   - Pin 9 (VDD) is missing.
+   - Pins 35 and 36 are named A28/A29, repeating pins 32/33; they should be A30 and A31.
+   Checked against W65C64/Pin Functions.png.
+
+8. Bourns:CAY16-000J2LF - pin "7" should be pin 3
+   The symbol's pins are 1, 2, 7, 4, but the 4-pad footprint has pads 1-4 (R1 is 1-4, R2 is 2-3), so pad 3 is never
+   connected.
+
+9. All_Socket:QFP44-0.8_Chip_Carrier has the QFP100 clamshell footprint
+   (AllSocket-QFP-100-14X14-0.5-Clamshell), copied from the QFP100 entry.
+
+
+Minor: names, fields and drawings (pin numbers right)
+-----------------------------------------------------
+
+- W65C64:W65C64BusFull (used in W65C64/W65C64.kicad_sch): pins 31 and 78 are named VSS; the pin table says VSSIO.
+  That only matters if the IO and core grounds are meant to be kept apart.  (The pin table itself labels pins 11-16
+  "A8 - A14"; they are A10-A15, as the symbol has them.)
+- Diodes_Inc:AP7365-33WG-7 (122 schematics): pin 4 is named ADJ; on the fixed 3.3V part it is NC.
+- ST_Microelectronics:L7812ACD2T-TR (Mainboard Full, Mainboard Small, Power and Reset): pin 2 is named N.C.; on
+  D2PAK the middle stub is GND, joined to the tab (pad 4 = GND, which is right).
+- ST_Microelectronics:LK112M60TR: output pin 4 named "5.0VOut" on a 6.0V part.
+- Nexperia:74LVC1GX04GW,125: pin 4 named ~{Y}; the datasheet calls it X2, the unbuffered crystal output.
+- Texas_Instruments:SN74AHCT08PWRG4: pin 14 named "3V" on a 5V part.
+- Texas_Instruments:SN74ABT245BDBR: A0-A7/B0-B7 where the datasheet has A1-A8/B1-B8.
+- Texas_Instruments:SN74LVC543APWR: shortened control names (~{LEB} = LEBA, ~{OEA} = OEBA, ~{OEB} = OEAB, ~{LEA} =
+  LEAB).
+- Units split oddly (no electrical effect): 74LVC2G74DP,125, 74LVCH162373ADGG, 74LVC257APW,118, 74VHC74M,
+  MC74HC259ADR2G.
+- Pins named "~" or blank (checked from the drawing, right): PBSS4350X, 2SK209-Y_TE85L, FQP47P06.
+- Wrong datasheet or part fields:
+  - Nexperia:2PB1424 points at PBSS4350X.pdf, and its footprint's tab pad 4 (collector) has no symbol pin.
+  - MC74VHC125DTR2G points at Nexperia's 74LVC125A.
+  - 74VHC74M and MAX5102BEUE+T point at package drawings.
+  - CD74HC244M96G4 points at the 74HC240 page.
+  - CTS:219-3MST carries 218-6LPST's part number and datasheet.
+  - Wurth:150224YS73100A (yellow) carries the blue 150224BS73100A's footprint and datasheet.
+  - Micro_Crystal:CM8V-T1A-32_768K-TA-QA (Main/Clock Device) has no footprint or datasheet.
+  - 74LVC257APW,118 has no datasheet URL.
+  - Epson:MC-306 is described as an oscillator; it is a crystal.
+
+Correct, but only with its own footprint:
+- WDC:W65C816S6TQG-14 is numbered like the PLCC-44, not the TQFP-44.  Its custom footprint (SamacSys_Parts "W65C816
+  PLCC 0.8mm 44 Pin") uses the same numbering, so each pad lands on the right physical pin.  It would be wrong with a
+  standard TQFP-44 footprint.
+
+
+Not verified
+------------
+
+- Diptronic:DTS-62N-V (5 schematics): no datasheet could be downloaded; the footprint matches the usual 6x6 tact switch.
+- Cree:XPEBWT: which pad is the anode and which the cathode couldn't be read from the local PDF.
+- Osram:KRTBLFLM71.32 (RGB LED): the local datasheet is for a different part, so the A/K per colour isn't confirmed.
+- Osram 8 LED Light Bar: its datasheet link is the 10-segment part's.
+- Nexperia:74LVC3G34, 74LVC1G14, 74HCT259BQ (DHVQFN16) and 74HC08D: Nexperia's site refused downloads; checked
+  against the family layout and other makers' parts only.  None is used.
+
+
+Schematic copies out of date
+----------------------------
+
+Each schematic keeps its own copy of every symbol it uses.  Where a schematic's copy and the library disagree, the
+schematic's copy is what its PCB was built from.  Two of these matter:
+
+- Coprocessor/Coprocessor Board - Additional, W65C816_Power (B1, B25): the schematic's copy has GND on pin 12 and pins
+  3 and 10 N.C.  The W65C816 Power board (and the library) have GND on pins 3 and 10, with pin 12 unconnected, so the
+  power board gets no ground.  See that board's faults file.
+- SD Card/SD Card Board, Main_Memory_Address (B3): the schematic's copy has MCLK on pin 30 and CLK/~CLK on pins
+  64/63, which the current Main Memory Address board doesn't have.  That board's faults file already covers it
+  (fault 1, Fast CLK has no source).
+
+The rest only differ in pin names: "~" versus blank on passives, "DM0" versus "D0_{M}", and N.C. versus Presence.  On
+Coprocessor Board - Additional, W65C816_Latch_Time pin 7 is N.C. where the library has Presence.  On Speed/Speed.kicad_sch
+the old copies of MPU_Memory, MPU_Timer and W65C816_Breakout don't match today's boards either.  Updating the symbols
+from the library (Tools > Update Symbols from Library) after the library fixes brings them back in step.
+
+
+HCP65.kicad_sym board symbols (socket review of 2026-11-23)
+-----------------------------------------------------------
+
+Every placed socket (240 with a single board connector, 21 with header pairs, matched by pad position) was compared
+pin by pin with the daughter board it takes.  Every socket footprint matches its daughter board's connector pad for
+pad, so every board plugs in; the faults are in what the pins carry.  These socket symbols don't match their daughter
+boards:
+
+- Power_and_Reset: pins 29 and 32 are swapped (the daughter has ~Reset_5V on 29 and ~Reset_3.3V on 32).  Hosts:
+  Pico/GPIO Controller Board and Pico/SDRAM, which drive the Pico's RUN pin from the 5V reset.
+- SNES_Controller_Reader: pins 4 and 5 are swapped (the daughter has GND on 4 and D2 on 5).  Host: LCD Board B4, B5.
+- Register_24bit_with_IO: the six strobes are on pins 21-26; the daughter has them on 22-27.  Host: Graphics Board B13.
+- Main_Memory_Small_Enable: ~Contention is on pin 18; the daughter has it on 19.  Host: Mainboard Small B5.
+- SD_Card_Clock: ~Write Read Start is on pin 14; the daughter has it on 15.  Host: SD Card Board B2.
+- SD_Card_Write_Signals: Write Data is on pin 24; the daughter has it on 25.  Host: SD Card Board B14.
+- Graphics_Signals: ~Done is on pin 4; the daughter has it on 9.  Hosts: Graphics Board, Blitter Board B19.
+- Flags_Interrupt: pin 32 is N.C.; the daughter has ~Reset there, so every host leaves it floating (Audio, Blitter,
+  Coprocessor Main, Graphics, PS2, SD Card, Video Signals).
+- Main_Memory_Address: ~Main WD/~Main RD on pins 60/61 reach the bus's ~Main RD/~Main WD on the Processor Board and SD
+  Card Board (the daughter's outputs are crossed relative to the bus).
+
+Each host board's faults file has the details.  The other socket faults found are in how a host wires a correct
+symbol, and are only in those boards' faults files: Audio Board B5 and B12, VIA Board B5, Mainboard Full B10, both
+coprocessor boards' Latch sockets, the UART Board's ~ADS, and Video Signals B1's CEP.
+
+The Speed test project (Speed/Speed.kicad_sch) has old copies of several socket symbols (MPU_Memory, MPU_Timer,
+W65C816_Breakout and others) that no longer match today's boards; it wasn't reviewed further.
