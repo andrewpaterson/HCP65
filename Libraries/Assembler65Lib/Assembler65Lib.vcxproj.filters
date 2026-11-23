@@ -15,10 +15,19 @@
     <ClCompile Include="Asm65BaseAssembler.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="Asm65BaseDebug.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Asm65BaseExpressions.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="Asm65C64Operands.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Asm65DebugInfo.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="Asm65DebugRecords.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="AsmW65C816Assembler.cpp">
@@ -144,6 +153,12 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65C64Lockstep.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Asm65DebugInfo.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="Asm65DebugRecords.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65Library.h">

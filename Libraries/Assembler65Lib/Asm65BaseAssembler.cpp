@@ -332,6 +332,11 @@ void CAsm65BaseAssembler::Pass(void)
 			for (i = 0; i < mpcObject->NumSections(); i++)
 			{
 				mpcObject->GetSection(i)->uiSize = mcSectionAddresses.GetValue(i);
+				mpcObject->GetDebug()->EndFunctions((uint32)i, mcSectionAddresses.GetValue(i));
+			}
+			if (!mpcObject->GetDebug()->IsValid())
+			{
+				Report(&mcErrors, Peek(), "A debug record names a type the unit doesn't describe");
 			}
 		}
 	}
@@ -557,7 +562,7 @@ void CAsm65BaseAssembler::Statement(void)
 			{
 				bResult = Fingerprint(psToken);
 			}
-			else if (!ProcessorDirective(psToken, &bResult))
+			else if (!DebugDirective(psToken, &bResult) && !ProcessorDirective(psToken, &bResult))
 			{
 				bResult = Error(psToken, "Unknown directive");
 			}

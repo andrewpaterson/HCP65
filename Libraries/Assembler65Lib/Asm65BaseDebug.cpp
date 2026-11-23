@@ -1,0 +1,384 @@
+/** ---------------- COPYRIGHT NOTICE, DISCLAIMER, and LICENSE ------------- **
+
+Copyright (c) 2026 Andrew Paterson
+
+This file is part of The Codaphela Project: Codaphela Assembler65Lib
+
+Codaphela Assembler65Lib is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Codaphela Assembler65Lib is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
+
+** ------------------------------------------------------------------------ **/
+#include "Asm65BaseAssembler.h"
+
+
+//The words the debug directives take for their kinds, in each enum's order.
+static const char*	gaszAsm65DebugLinks[] = { "none", "frame", "saved", NULL };
+static const char*	gaszAsm65DebugWheres[] = { "none", "frame", "indirect", NULL };
+static const char*	gaszAsm65DebugVariableKinds[] = { "local", "parameter", NULL };
+static const char*	gaszAsm65DebugTypes[] = { "void", "bool", "integer", "float", "enum", "pointer", "reference", "array", "class", "function", NULL };
+static const char*	gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enumerator", NULL };
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The debug directives, which describe a unit's functions, variables and
+// types for a debugger (CAsm65DebugRecords, kept in the object).  Each is
+// only allowed in an object, and adds its record in the final pass:
+//
+//   .dfunction "name"                  A function starts here.
+//   .dframe link, offset               Its prologue ends here: link is
+//                                      none, frame or saved (EAsm65DebugLink).
+//   .dvariable local|parameter, "name", type, where, offset, first, last
+//                                      A variable of the function: where is
+//                                      none, frame or indirect, in scope from
+//                                      line first to last.
+//   .dglobal "name", type, label       A global at the label.
+//   .dstatic "name", type, label       A static local of the function.
+//   .dtype index, "key", "name", kind, flags, bytes, target, count
+//                                      The unit's index'th type.
+//   .dmember kind, "name", type, value, bit offset, bits
+//                                      A member of the last type: base,
+//                                      field, vtable or enumerator.
+//
+// A type is its index in the unit's types, -1 for none.  False if
+// psDirective isn't one of them; else *pbResult is whether it was right.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugDirective(SAsm65Token* psDirective, bool* pbResult)
+{
+	if (psDirective->IsIdentifierIgnoreCase(".dfunction"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugFunction(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dframe"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugFrame(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dvariable"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugVariable(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dglobal"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugGlobal(psDirective, false);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dstatic"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugGlobal(psDirective, true);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dtype"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugType(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dmember"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugMember(psDirective);
+	}
+	else
+	{
+		return false;
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugObject(SAsm65Token* psDirective)
+{
+	if (!mbObject)
+	{
+		return Error(psDirective, "Debug directives are only allowed when assembling an object");
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugFunction(SAsm65Token* psDirective)
+{
+	CChars	szName;
+	bool	bResult;
+
+	szName.Init();
+	bResult = DebugText(&szName, "a function's name");
+	if (bResult && mbFinal)
+	{
+		mpcObject->GetDebug()->AddFunction(szName.Text(), muiSection, muiAddress);
+	}
+	szName.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugFrame(SAsm65Token* psDirective)
+{
+	int		iLink;
+	int64	iOffset;
+
+	iLink = ADL_None;
+	if (!DebugWord(gaszAsm65DebugLinks, &iLink, "none, frame or saved") || !Expect(AP65_Comma, "','") || !DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset"))
+	{
+		return false;
+	}
+	if (mbFinal && !mpcObject->GetDebug()->SetFrame(muiAddress, (EAsm65DebugLink)iLink, (int32)iOffset))
+	{
+		return Error(psDirective, ".dframe must follow a .dfunction");
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugVariable(SAsm65Token* psDirective)
+{
+	CChars		szName;
+	int			iKind;
+	int			iWhere;
+	uint32		uiType;
+	int64		iOffset;
+	int64		iFirst;
+	int64		iLast;
+	bool		bResult;
+
+	iKind = 0;
+	iWhere = ADW_None;
+	szName.Init();
+	bResult = DebugWord(gaszAsm65DebugVariableKinds, &iKind, "local or parameter") && Expect(AP65_Comma, "','") &&
+			  DebugText(&szName, "a variable's name") && Expect(AP65_Comma, "','") &&
+			  DebugTypeIndex(&uiType) && Expect(AP65_Comma, "','") &&
+			  DebugWord(gaszAsm65DebugWheres, &iWhere, "none, frame or indirect") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iFirst, 0, 0x7FFFFFFFll, "a line") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iLast, iFirst, 0x7FFFFFFFll, "a line no earlier than the first");
+	if (bResult && mbFinal && !mpcObject->GetDebug()->AddVariable(szName.Text(), uiType, (EAsm65DebugWhere)iWhere, iKind == 1, (int32)iOffset, (uint32)iFirst, (uint32)iLast))
+	{
+		bResult = Error(psDirective, ".dvariable must follow a .dfunction");
+	}
+	szName.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// .dglobal and .dstatic: a variable at a label in one of the object's
+// sections.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugGlobal(SAsm65Token* psDirective, bool bStatic)
+{
+	CChars			szName;
+	uint32			uiType;
+	SAsm65Token*	psLabel;
+	SAsm65Value		sValue;
+	bool			bResult;
+
+	szName.Init();
+	bResult = DebugText(&szName, "a variable's name") && Expect(AP65_Comma, "','") && DebugTypeIndex(&uiType) && Expect(AP65_Comma, "','");
+	if (bResult)
+	{
+		psLabel = Peek();
+		ClearValue(&sValue);
+		bResult = Expression(&sValue);
+		if (bResult && (sValue.iTerms > 0))
+		{
+			//The record keeps the label's section and offset: it needs no relocation.
+			UseTerm();
+		}
+		if (bResult && mbFinal)
+		{
+			if (!sValue.bResolved || (sValue.iSection < 0))
+			{
+				bResult = Error(psLabel, "A debug global must be at a label in one of the object's sections");
+			}
+			else if (!mpcObject->GetDebug()->AddGlobal(szName.Text(), uiType, (uint32)sValue.iSection, (uint32)sValue.iValue, bStatic))
+			{
+				bResult = Error(psDirective, ".dstatic must follow a .dfunction");
+			}
+		}
+	}
+	szName.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugType(SAsm65Token* psDirective)
+{
+	CChars			szKey;
+	CChars			szName;
+	SAsm65Token*	psIndex;
+	int64			iIndex;
+	int				iKind;
+	int64			iFlags;
+	int64			iBytes;
+	uint32			uiTarget;
+	int64			iCount;
+	bool			bResult;
+
+	iKind = ADT_Void;
+	szKey.Init();
+	szName.Init();
+	psIndex = Peek();
+	bResult = DebugNumber(&iIndex, 0, 0x7FFFFFFFll, "a type's index") && Expect(AP65_Comma, "','") &&
+			  DebugText(&szKey, "a type's key") && Expect(AP65_Comma, "','") &&
+			  DebugText(&szName, "a type's name") && Expect(AP65_Comma, "','") &&
+			  DebugWord(gaszAsm65DebugTypes, &iKind, "a kind of type") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iFlags, 0, 0xFF, "a type's flags") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iBytes, 0, 0xFFFFFFFFll, "a type's size") && Expect(AP65_Comma, "','") &&
+			  DebugTypeIndex(&uiTarget) && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iCount, 0, 0xFFFFFFFFll, "a count");
+	if (bResult && mbFinal)
+	{
+		if ((uint32)iIndex != mpcObject->GetDebug()->NumTypes())
+		{
+			bResult = Error(psIndex, "A .dtype's index must be the number of types before it");
+		}
+		else if (!mpcObject->GetDebug()->AddType(szKey.Text(), szName.Text(), (EAsm65DebugType)iKind, (uint8)iFlags, (uint32)iBytes, uiTarget, (uint32)iCount))
+		{
+			bResult = Error(psDirective, "A type of that key is already described");
+		}
+	}
+	szName.Kill();
+	szKey.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugMember(SAsm65Token* psDirective)
+{
+	CChars	szName;
+	int		iKind;
+	uint32	uiType;
+	int64	iValue;
+	int64	iBitOffset;
+	int64	iBits;
+	bool	bResult;
+
+	iKind = ADM_Field;
+	szName.Init();
+	bResult = DebugWord(gaszAsm65DebugMembers, &iKind, "base, field, vtable or enumerator") && Expect(AP65_Comma, "','") &&
+			  DebugText(&szName, "a member's name") && Expect(AP65_Comma, "','") &&
+			  DebugTypeIndex(&uiType) && Expect(AP65_Comma, "','") &&
+			  ExpressionValue(&iValue) && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iBitOffset, 0, 0xFF, "a bit offset") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iBits, 0, 0xFF, "a number of bits");
+	if (bResult && mbFinal && !mpcObject->GetDebug()->AddMember(szName.Text(), (EAsm65DebugMember)iKind, uiType, iValue, (uint8)iBitOffset, (uint8)iBits))
+	{
+		bResult = Error(psDirective, ".dmember must follow a .dtype");
+	}
+	szName.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugText(CChars* pszDest, const char* szWhat)
+{
+	SAsm65Token*	psText;
+
+	psText = Peek();
+	if (psText->eType != AT65_String)
+	{
+		return ErrorExpected(psText, szWhat);
+	}
+	Next();
+	pszDest->Set(mcTokeniser.GetString(psText));
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugNumber(int64* piValue, int64 iMin, int64 iMax, const char* szWhat)
+{
+	SAsm65Token*	psNumber;
+
+	psNumber = Peek();
+	if (!ExpressionValue(piValue))
+	{
+		return false;
+	}
+	if ((*piValue < iMin) || (*piValue > iMax))
+	{
+		return ErrorExpected(psNumber, szWhat);
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// An identifier, one of aszWords (NULL ended): *piIndex is which.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugWord(const char** aszWords, int* piIndex, const char* szWhat)
+{
+	SAsm65Token*	psWord;
+	int				i;
+
+	psWord = Peek();
+	for (i = 0; aszWords[i]; i++)
+	{
+		if (psWord->IsIdentifierIgnoreCase(aszWords[i]))
+		{
+			Next();
+			*piIndex = i;
+			return true;
+		}
+	}
+	return ErrorExpected(psWord, szWhat);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A type's index in the unit's types, -1 for none.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugTypeIndex(uint32* puiType)
+{
+	int64	iType;
+
+	if (!DebugNumber(&iType, -1, 0x7FFFFFFFll, "a type's index or -1"))
+	{
+		return false;
+	}
+	*puiType = (iType < 0) ? ASM65_DEBUG_NONE : (uint32)iType;
+	return true;
+}

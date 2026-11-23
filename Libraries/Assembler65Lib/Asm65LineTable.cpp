@@ -19,8 +19,6 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 ** ------------------------------------------------------------------------ **/
 #include "BaseLib/StringHelper.h"
-#include "BaseLib/DiskFile.h"
-#include "BaseLib/FileUtil.h"
 #include "Asm65Object.h"
 #include "Asm65LineTable.h"
 
@@ -465,83 +463,6 @@ SAsm65LineFingerprint* CAsm65LineTable::FindFingerprint(const char* szLabel)
 	return NULL;
 }
 
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Writes the table as a chunk file.  pcFile is freed by the chunk file
-// when it is a must free file (DiskFile, MemoryFile).
-//
-//////////////////////////////////////////////////////////////////////////
-bool CAsm65LineTable::Write(CAbstractFile* pcFile)
-{
-	CChunkFile	cChunkFile;
-	bool		bResult;
-
-	cChunkFile.Init(pcFile);
-	bResult = cChunkFile.WriteOpen();
-	if (bResult)
-	{
-		bResult = WriteChunks(&cChunkFile);
-		bResult &= cChunkFile.WriteClose();
-	}
-	cChunkFile.Kill();
-	return bResult;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// Reads a table Write wrote into an initialised, empty table.
-//
-//////////////////////////////////////////////////////////////////////////
-bool CAsm65LineTable::Read(CAbstractFile* pcFile)
-{
-	CChunkFile	cChunkFile;
-	bool		bResult;
-
-	//ReadClose frees what a failed ReadOpen allocated too.
-	cChunkFile.Init(pcFile);
-	bResult = cChunkFile.ReadOpen();
-	bResult = bResult && ReadChunks(&cChunkFile);
-	bResult &= cChunkFile.ReadClose();
-	cChunkFile.Kill();
-	return bResult;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
-bool CAsm65LineTable::WriteFile(const char* szFilename)
-{
-	return Write(DiskFile(szFilename));
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// False, with the table emptied, if the file can't be read or isn't a
-// line table of this version.
-//
-//////////////////////////////////////////////////////////////////////////
-bool CAsm65LineTable::ReadFile(const char* szFilename)
-{
-	CFileUtil	cFileUtil;
-
-	Clear();
-	if (!cFileUtil.Exists(szFilename))
-	{
-		return false;
-	}
-	if (!Read(DiskFile(szFilename)))
-	{
-		Clear();
-		return false;
-	}
-	return true;
-}
 
 
 //////////////////////////////////////////////////////////////////////////

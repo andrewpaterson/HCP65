@@ -183,7 +183,7 @@ Process (Hello.cpp)
 Process (ctype.cpp)
 ...
 Wrote 65788 bytes to Output/W65C816/Plain/hello.exe.
-Wrote its line table to Output/W65C816/Plain/hello.exe.lines.
+Wrote its debug info to Output/W65C816/Plain/hello.exe.debug.
 Plain|W65C816 build succeeded.
 ```
 

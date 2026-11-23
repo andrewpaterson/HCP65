@@ -185,6 +185,7 @@
   <ItemGroup>
     <ClCompile Include="Asm65C64Assembler.cpp" />
     <ClCompile Include="Asm65BaseAssembler.cpp" />
+    <ClCompile Include="Asm65BaseDebug.cpp" />
     <ClCompile Include="Asm65BaseExpressions.cpp" />
     <ClCompile Include="AsmW65C816Assembler.cpp" />
     <ClCompile Include="AsmW65C816FrameCheck.cpp" />
@@ -210,6 +211,8 @@
     <ClCompile Include="Asm65Memory.cpp" />
     <ClCompile Include="Asm65Object.cpp" />
     <ClCompile Include="Asm65C64Operands.cpp" />
+    <ClCompile Include="Asm65DebugInfo.cpp" />
+    <ClCompile Include="Asm65DebugRecords.cpp" />
     <ClCompile Include="Asm65Output.cpp" />
     <ClCompile Include="Asm65Source.cpp" />
     <ClCompile Include="Asm65Symbols.cpp" />
@@ -230,6 +233,8 @@
     <ClInclude Include="Asm65HostFiles.h" />
     <ClInclude Include="Asm65KeptTokens.h" />
     <ClInclude Include="Asm65C64Lockstep.h" />
+    <ClInclude Include="Asm65DebugInfo.h" />
+    <ClInclude Include="Asm65DebugRecords.h" />
     <ClInclude Include="Asm65Library.h" />
     <ClInclude Include="Asm65Linker.h" />
     <ClInclude Include="Asm65LineTable.h" />

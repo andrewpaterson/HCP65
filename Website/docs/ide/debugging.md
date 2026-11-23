@@ -60,8 +60,8 @@ built program has a line for, that file is opened with its line marked.
 ## Breakpoints
 
 F9 in a source file, or a click in the gutter's first column, toggles a breakpoint on that line.  It is
-drawn as a red cell; a red `o` means it isn't **bound** yet.  A build writes a line table beside each
-program (`<program>.lines`), and a line's breakpoint is bound to the addresses its code is at:
+drawn as a red cell; a red `o` means it isn't **bound** yet.  A build writes debug info beside each
+program (`<program>.debug`), whose line table binds a line's breakpoint to the addresses its code is at:
 
 - in the configuration's own program, in its [breakpoint space](#breakpoint-spaces);
 - in what is loaded with it (the boot loader's ROM), in every space;

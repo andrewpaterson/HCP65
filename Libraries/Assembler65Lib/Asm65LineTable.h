@@ -57,8 +57,8 @@ typedef CArrayTemplate<SAsm65LineFingerprint>	CArrayAsm65LineFingerprints;
 
 
 //The linker's line table: from an address in the program to the source line its code is for (.line), and the
-//linked functions' fingerprints.  Lines are in address order once Sort is called.  Write and Read keep it in a file
-//beside the program it is for (WriteFile, ReadFile), for a debugger.
+//linked functions' fingerprints.  Lines are in address order once Sort is called.  It is kept in the program's debug
+//file (CAsm65DebugInfo), for a debugger.
 class CAsm65LineTable
 {
 protected:
@@ -90,15 +90,11 @@ public:
 	SAsm65LineFingerprint*	GetFingerprint(size uiIndex);
 	SAsm65LineFingerprint*	FindFingerprint(const char* szLabel);
 
-	bool					Write(CAbstractFile* pcFile);
-	bool					Read(CAbstractFile* pcFile);
-	bool					WriteFile(const char* szFilename);
-	bool					ReadFile(const char* szFilename);
+	bool					WriteChunks(CChunkFile* pcChunkFile);
+	bool					ReadChunks(CChunkFile* pcChunkFile);
 
 protected:
 	uint32					FileIndex(const char* szFile);
-	bool					WriteChunks(CChunkFile* pcChunkFile);
-	bool					ReadChunks(CChunkFile* pcChunkFile);
 };
 
 

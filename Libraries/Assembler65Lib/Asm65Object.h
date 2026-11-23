@@ -27,6 +27,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/Chars.h"
 #include "BaseLib/AbstractFile.h"
 #include "BaseLib/ChunkFile.h"
+#include "Asm65DebugRecords.h"
 
 
 //A symbol's section when it is not in one.
@@ -36,9 +37,10 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //A relocation that targets a symbol instead of a section.
 #define ASM65_TARGET_SYMBOL		-1
 
-//The object file: a ChunkFile with Header, Sections, Symbols, Relocations and Sources chunks.
+//The object file: a ChunkFile with Header, Sections, Symbols, Relocations and Sources chunks, then its debug records'
+//(CAsm65DebugRecords::WriteChunks).
 #define ASM65_OBJECT_MAGIC		"Asm65Object"
-#define ASM65_OBJECT_VERSION	5
+#define ASM65_OBJECT_VERSION	6
 
 
 //The kind of a section comes from its name: "text", "text.anything", "rodata.x" ...
@@ -166,6 +168,7 @@ protected:
 	CArrayChars					maszSourceFiles;
 	CArrayAsm65SourceLines		mcSourceLines;
 	CArrayAsm65Fingerprints		mcFingerprints;
+	CAsm65DebugRecords			mcDebug;			//Its functions' frames and variables, globals and types, at places in its sections.
 	bool						mbSkipSectionBytes;
 
 public:
@@ -195,6 +198,7 @@ public:
 	void				AddFingerprint(const char* szLabel, uint32 uiHash, int64 iTime);
 	size				NumFingerprints(void) const;
 	SAsm65Fingerprint*	GetFingerprint(size uiIndex);
+	CAsm65DebugRecords*	GetDebug(void);
 
 	void				Dump(CChars* psz);
 

@@ -92,19 +92,29 @@ exports.  Its symbols are the entry point and the bounds of its init table.
 
 `Limit`, on all three, is the highest address the linker may place anything at.
 
-## Line tables
+## Debug info
 
-A program built for debugging has a line table beside it (`hello.exe.lines`): for each address,
-the source file and line its code is for, and a fingerprint of each linked function.  The compiler
-writes them into the assembly with two directives:
+A program built for debugging has its debug info beside it (`hello.exe.debug`): its line table
+(for each address, the source file and line its code is for, and a fingerprint of each linked
+function) and its debug records (each function's frame and variables, the globals, and the types
+they have).  The compiler writes them into the assembly with these directives:
 
 | Directive | Means |
 |---|---|
 | `.line "file", line` | The code from here is for this line of this file. |
 | `.fingerprint "label", hash, time` | The function's code hashed, so a debugger can tell whether the function changed since the line table was made. |
+| `.dfunction "name"` | A function starts here (its name as C++ writes it). |
+| `.dframe link, offset` | Its prologue ends here; `link` (`none`, `frame` or `saved`) and `offset` say where its caller's D and return address are. |
+| `.dvariable local\|parameter, "name", type, where, offset, first, last` | A variable of the function, `where` (`none`, `frame` or `indirect`) at D + `offset`, in scope from line `first` to `last`. |
+| `.dglobal "name", type, label` | A global at the label. |
+| `.dstatic "name", type, label` | A static local of the function, at the label. |
+| `.dtype index, "key", "name", kind, flags, bytes, target, count` | The unit's `index`'th type. |
+| `.dmember kind, "name", type, value, bit offset, bits` | A member of the last type: a `base`, `field`, `vtable` or `enumerator`. |
 
-The HCP65 IDE's debugger and the emulators' profilers read the line table to show the source for an
-address.
+A type is named by its index in the unit's types (-1 for none).  The linker keeps one of each type
+however many units describe it (by its key), and leaves out the records of anything it doesn't
+place.  The HCP65 IDE's debugger and the emulators' profilers read the debug info to show the source
+for an address.
 
 ## Missing names
 

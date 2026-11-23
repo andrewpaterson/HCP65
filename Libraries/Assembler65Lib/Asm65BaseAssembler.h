@@ -170,6 +170,20 @@ protected:
 	bool			SourceLine(SAsm65Token* psDirective);
 	void			SourceFileLine(uint32 uiSection);
 	bool			Fingerprint(SAsm65Token* psDirective);
+
+	//Asm65BaseDebug.cpp: the debug directives.
+	bool			DebugDirective(SAsm65Token* psDirective, bool* pbResult);
+	bool			DebugObject(SAsm65Token* psDirective);
+	bool			DebugFunction(SAsm65Token* psDirective);
+	bool			DebugFrame(SAsm65Token* psDirective);
+	bool			DebugVariable(SAsm65Token* psDirective);
+	bool			DebugGlobal(SAsm65Token* psDirective, bool bStatic);
+	bool			DebugType(SAsm65Token* psDirective);
+	bool			DebugMember(SAsm65Token* psDirective);
+	bool			DebugText(CChars* pszDest, const char* szWhat);
+	bool			DebugNumber(int64* piValue, int64 iMin, int64 iMax, const char* szWhat);
+	bool			DebugWord(const char** aszWords, int* piIndex, const char* szWhat);
+	bool			DebugTypeIndex(uint32* puiType);
 	void			SwitchSection(uint32 uiSection);
 	bool			InBss(SAsm65Token* psToken);
 	void			MarkExternals(void);

@@ -739,15 +739,16 @@ void TestAsm65LinkerPrograms(void)
 //
 // The objects' source lines (.line) are the linked program's line table, by
 // address: past the end of a section's lines there is no line.  Written
-// and read back, the table is the same.
+// and read back in the program's debug info, the table is the same.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65LinkerLineTable(void)
 {
 	SLinkTest			sTest;
 	CAsm65LineTable*	pcTable;
-	CAsm65LineTable		cRead;
-	CAsm65LineTable		cEmpty;
+	CAsm65LineTable*	pcRead;
+	CAsm65DebugInfo		cRead;
+	CAsm65DebugInfo		cEmpty;
 	CFileUtil			cFileUtil;
 	filePos				iBigFile;
 	CMemoryFile*		pcMemoryFile;
@@ -832,54 +833,56 @@ void TestAsm65LinkerLineTable(void)
 	AssertInt(0x123456, auiAddresses.GetValue(0));
 	auiAddresses.Kill();
 
+	//Written in the program's debug info and read back.
 	pcMemoryFile = MemoryFile();
 	pcMemoryFile->mbBasicFileMustFree = false;
-	AssertTrue(pcTable->Write(pcMemoryFile));
+	AssertTrue(sTest.cLinker.GetDebugInfo()->Write(pcMemoryFile));
 	cRead.Init();
 	AssertTrue(cRead.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
-	AssertSize(pcTable->NumFiles(), cRead.NumFiles());
+	pcRead = cRead.GetLines();
+	AssertSize(pcTable->NumFiles(), pcRead->NumFiles());
 	for (ui = 0; ui < pcTable->NumFiles(); ui++)
 	{
-		AssertString(pcTable->GetFile(ui), cRead.GetFile(ui));
+		AssertString(pcTable->GetFile(ui), pcRead->GetFile(ui));
 	}
-	AssertSize(pcTable->NumLines(), cRead.NumLines());
+	AssertSize(pcTable->NumLines(), pcRead->NumLines());
 	for (ui = 0; ui < pcTable->NumLines(); ui++)
 	{
 		psLine = pcTable->GetLine(ui);
-		psRead = cRead.GetLine(ui);
+		psRead = pcRead->GetLine(ui);
 		AssertInt(psLine->uiAddress, psRead->uiAddress);
 		AssertInt(psLine->uiFile, psRead->uiFile);
 		AssertInt(psLine->uiLine, psRead->uiLine);
 	}
-	psRead = cRead.FindLine((uint32)iStart + 3);
+	psRead = pcRead->FindLine((uint32)iStart + 3);
 	AssertTrue(psRead != NULL);
 	AssertInt(10, psRead->uiLine);
-	AssertSize(pcTable->NumFingerprints(), cRead.NumFingerprints());
+	AssertSize(pcTable->NumFingerprints(), pcRead->NumFingerprints());
 
-	//Moved (a module's table, from its link's addresses to its own): each line is where it was less the start.
+	//Moved (a module's, from its link's addresses to its own): each line is where it was less the start.
 	cRead.Move(-iStart);
-	psRead = cRead.FindLine(3);
+	psRead = pcRead->FindLine(3);
 	AssertTrue(psRead != NULL);
 	AssertInt(10, psRead->uiLine);
-	AssertInt(pcTable->GetLine(0)->uiAddress - (uint32)iStart, cRead.GetLine(0)->uiAddress);
+	AssertInt(pcTable->GetLine(0)->uiAddress - (uint32)iStart, pcRead->GetLine(0)->uiAddress);
 	cRead.Kill();
 
-	//Written over a bigger table's file, an empty table's file is its own size (a rebuild's .lines doesn't grow).
+	//Written over a bigger file, empty debug info's file is its own size (a rebuild's .debug doesn't grow).
 	cFileUtil.TouchDir("Output");
-	AssertTrue(pcTable->WriteFile("Output" _FS_ "Rewrite.lines"));
-	iBigFile = cFileUtil.Size("Output" _FS_ "Rewrite.lines");
+	AssertTrue(sTest.cLinker.GetDebugInfo()->WriteFile("Output" _FS_ "Rewrite.debug"));
+	iBigFile = cFileUtil.Size("Output" _FS_ "Rewrite.debug");
 	cEmpty.Init();
-	AssertTrue(cEmpty.WriteFile("Output" _FS_ "Rewrite.lines"));
-	AssertTrue(cFileUtil.Size("Output" _FS_ "Rewrite.lines") < iBigFile);
-	AssertTrue(cEmpty.ReadFile("Output" _FS_ "Rewrite.lines"));
-	AssertSize(0, cEmpty.NumLines());
+	AssertTrue(cEmpty.WriteFile("Output" _FS_ "Rewrite.debug"));
+	AssertTrue(cFileUtil.Size("Output" _FS_ "Rewrite.debug") < iBigFile);
+	AssertTrue(cEmpty.ReadFile("Output" _FS_ "Rewrite.debug"));
+	AssertSize(0, cEmpty.GetLines()->NumLines());
 	cEmpty.Kill();
-	cFileUtil.Delete("Output" _FS_ "Rewrite.lines");
+	cFileUtil.Delete("Output" _FS_ "Rewrite.debug");
 
-	//Not a line table: nothing is read.
+	//Not debug info: nothing is read.
 	cRead.Init();
-	AssertFalse(cRead.Read(MemoryFile((void*)"Not a line table at all.", 24)));
-	AssertSize(0, cRead.NumLines());
+	AssertFalse(cRead.Read(MemoryFile((void*)"Not a debug file at all.", 24)));
+	AssertSize(0, cRead.GetLines()->NumLines());
 	cRead.Kill();
 
 	SafeKill(pcMemoryFile);
@@ -1050,6 +1053,249 @@ void TestAsm65LinkerRelocatable(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The debug directives describe each unit's functions, variables and
+// types; linked, they are at their sections' addresses, a type two units
+// describe is one (the complete description over an incomplete one), and
+// a function left out (a dropped COMDAT copy, a library object nothing
+// uses) is left out of them too.  Written and read back, moved.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerDebugRecords(void)
+{
+	SLinkTest				sTest;
+	CAsm65DebugRecords*		pcRecords;
+	CAsm65DebugInfo			cRead;
+	CAsm65Object			cObject;
+	CMemoryFile*			pcMemoryFile;
+	SAsm65DebugFunction*	psFunction;
+	SAsm65DebugVariable*	psVariable;
+	SAsm65DebugGlobal*		psGlobal;
+	SAsm65DebugType*		psType;
+	SAsm65DebugType*		psInt;
+	SAsm65DebugMember*		psMember;
+	int64					iStart;
+	int64					iBody;
+	int64					iOther;
+	int64					iCount;
+
+	LinkTestInit(&sTest);
+	LinkTestObject(&sTest,
+		"	.global Start\n"
+		"Start:\n"
+		"	.dfunction \"Start\"\n"
+		"	psh V\n"
+		"	.global Body\n"
+		"Body:\n"
+		"	.dframe frame, 6\n"
+		"	jsr Other\n"
+		"	jsr Shared\n"
+		"	ret\n"
+		"	.dvariable parameter, \"iCount\", 0, frame, 9, 10, 20\n"
+		"	.dvariable local, \"pcShape\", 1, frame, 2, 12, 18\n"
+		"	.dstatic \"siCalls\", 0, Calls\n"
+		"	.section text.Shared, comdat\n"
+		"	.global Shared\n"
+		"Shared:\n"
+		"	.dfunction \"Shared\"\n"
+		"	ret\n"
+		"	.section data\n"
+		"	.global Count\n"
+		"Count:\n"
+		"	.word 0\n"
+		"Calls:\n"
+		"	.word 0\n"
+		"	.dglobal \"giCount\", 0, Count\n"
+		"	.dtype 0, \"int\", \"int\", integer, 1, 2, -1, 0\n"
+		"	.dtype 1, \"*CShape\", \"CShape*\", pointer, 0, 4, 2, 0\n"
+		"	.dtype 2, \"CShape\", \"CShape\", class, 8, 0, -1, 0\n");
+	LinkTestObject(&sTest,
+		"	.global Other\n"
+		"Other:\n"
+		"	.dfunction \"CShape::Area\"\n"
+		"	ret\n"
+		"	.section text.Shared, comdat\n"
+		"	.global Shared\n"
+		"Shared:\n"
+		"	.dfunction \"Shared\"\n"
+		"	ret\n"
+		"	.dtype 0, \"CShape\", \"CShape\", class, 0, 8, -1, 0\n"
+		"	.dmember vtable, \"\", -1, 0, 0, 0\n"
+		"	.dmember field, \"meKind\", 2, 4, 0, 0\n"
+		"	.dmember field, \"miSides\", 1, 6, 3, 5\n"
+		"	.dtype 1, \"int\", \"int\", integer, 1, 2, -1, 0\n"
+		"	.dtype 2, \"EKind\", \"EKind\", enum, 0, 2, 1, 0\n"
+		"	.dmember enumerator, \"EK_One\", -1, 1, 0, 0\n"
+		"	.dmember enumerator, \"EK_Two\", -1, -2, 0, 0\n");
+	LinkTestLibraryObject(&sTest, "unused",
+		"	.global Unused\n"
+		"Unused:\n"
+		"	.dfunction \"Unused\"\n"
+		"	ret\n");
+	AssertTrue(sTest.cLinker.Link());
+	AssertString("", sTest.cLinker.GetErrors());
+	iStart = LinkedSymbol(&sTest, "Start");
+	iBody = LinkedSymbol(&sTest, "Body");
+	iOther = LinkedSymbol(&sTest, "Other");
+	iCount = LinkedSymbol(&sTest, "Count");
+	pcRecords = sTest.cLinker.GetDebugInfo()->GetRecords();
+
+	//Start, Other and one copy of Shared; Unused's object wasn't linked.
+	AssertSize(3, pcRecords->NumFunctions());
+	psFunction = pcRecords->FindFunction((uint32)iStart);
+	AssertTrue(psFunction != NULL);
+	AssertString("Start", psFunction->szName.Text());
+	AssertInt(ASM65_DEBUG_ABSOLUTE, psFunction->sStart.uiSection);
+	AssertInt((uint32)iStart, psFunction->sStart.uiOffset);
+	AssertInt((uint32)iBody, psFunction->uiBody);
+	AssertInt(ADL_Frame, psFunction->uiLink);
+	AssertInt(6, psFunction->iLink);
+	AssertTrue(pcRecords->FindFunction((uint32)iBody + 1) == psFunction);
+	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd - 1) == psFunction);
+	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd) != psFunction);
+	psFunction = pcRecords->FindFunction((uint32)iOther);
+	AssertString("CShape::Area", psFunction->szName.Text());
+	AssertInt(ADL_None, psFunction->uiLink);
+	AssertInt((uint32)iOther, psFunction->uiBody);
+	AssertTrue(pcRecords->FindFunction(0) == NULL);
+
+	//Start's variables, typed by the linked types.
+	psFunction = pcRecords->FindFunction((uint32)iStart);
+	AssertInt(2, psFunction->uiNumVariables);
+	psVariable = pcRecords->GetVariable(psFunction, 0);
+	AssertString("iCount", psVariable->szName.Text());
+	AssertTrue(psVariable->bParameter);
+	AssertInt(ADW_Frame, psVariable->uiWhere);
+	AssertInt(9, psVariable->iOffset);
+	AssertInt(10, psVariable->uiFirstLine);
+	AssertInt(20, psVariable->uiLastLine);
+	psInt = pcRecords->GetType(psVariable->uiType);
+	AssertString("int", psInt->szName.Text());
+	AssertInt(ADT_Integer, psInt->uiKind);
+	AssertInt(ADTF_Signed, psInt->uiFlags);
+	psVariable = pcRecords->GetVariable(psFunction, 1);
+	AssertFalse(psVariable->bParameter);
+	psType = pcRecords->GetType(psVariable->uiType);
+	AssertString("CShape*", psType->szName.Text());
+	AssertInt(ADT_Pointer, psType->uiKind);
+	AssertTrue(pcRecords->GetVariable(psFunction, 2) == NULL);
+
+	//CShape is b's complete description, its members typed by the linked types; the pointer to it is a's.
+	psType = pcRecords->GetType(psType->uiTarget);
+	AssertString("CShape", psType->szKey.Text());
+	AssertInt(0, psType->uiFlags);
+	AssertInt(8, psType->uiBytes);
+	AssertInt(3, psType->uiNumMembers);
+	AssertTrue(pcRecords->FindType("CShape") == psType);
+	AssertInt(ADM_VTable, pcRecords->GetMember(psType, 0)->uiKind);
+	psMember = pcRecords->GetMember(psType, 2);
+	AssertString("miSides", psMember->szName.Text());
+	AssertTrue(pcRecords->GetType(psMember->uiType) == psInt);
+	AssertLong(6, psMember->iValue);
+	AssertInt(3, psMember->uiBitOffset);
+	AssertInt(5, psMember->uiBits);
+	psType = pcRecords->GetType(pcRecords->GetMember(psType, 1)->uiType);
+	AssertString("EKind", psType->szName.Text());
+	AssertTrue(pcRecords->GetType(psType->uiTarget) == psInt);
+	AssertLong(-2, pcRecords->GetMember(psType, 1)->iValue);
+	AssertSize(4, pcRecords->NumTypes());
+
+	//The global and Start's static, at their labels.
+	psGlobal = pcRecords->FindGlobal("giCount", NULL);
+	AssertTrue(psGlobal != NULL);
+	AssertInt((uint32)iCount, psGlobal->sPlace.uiOffset);
+	AssertInt(ASM65_DEBUG_NONE, psGlobal->uiFunction);
+	AssertTrue(pcRecords->FindGlobal("siCalls", NULL) == NULL);
+	psGlobal = pcRecords->FindGlobal("siCalls", pcRecords->FindFunction((uint32)iStart));
+	AssertTrue(psGlobal != NULL);
+	AssertInt((uint32)iCount + 2, psGlobal->sPlace.uiOffset);
+
+	//An object written and read back keeps its records.
+	pcMemoryFile = MemoryFile();
+	pcMemoryFile->mbBasicFileMustFree = false;
+	AssertTrue(sTest.acObjects[0].Write(pcMemoryFile));
+	cObject.Init("read");
+	AssertTrue(cObject.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
+	AssertSize(2, cObject.GetDebug()->NumFunctions());
+	AssertSize(2, cObject.GetDebug()->NumVariables());
+	AssertSize(2, cObject.GetDebug()->NumGlobals());
+	AssertSize(3, cObject.GetDebug()->NumTypes());
+	AssertString("siCalls", cObject.GetDebug()->GetGlobal(0)->szName.Text());
+	AssertInt(0, cObject.GetDebug()->GetGlobal(0)->uiFunction);
+	cObject.Kill();
+	SafeKill(pcMemoryFile);
+
+	//Written and read back, then moved as a module's are.
+	pcMemoryFile = MemoryFile();
+	pcMemoryFile->mbBasicFileMustFree = false;
+	AssertTrue(sTest.cLinker.GetDebugInfo()->Write(pcMemoryFile));
+	cRead.Init();
+	AssertTrue(cRead.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
+	pcRecords = cRead.GetRecords();
+	AssertSize(3, pcRecords->NumFunctions());
+	AssertSize(4, pcRecords->NumTypes());
+	AssertSize(2, pcRecords->NumGlobals());
+	psFunction = pcRecords->FindFunction((uint32)iOther);
+	AssertString("CShape::Area", psFunction->szName.Text());
+	AssertString("int", pcRecords->GetType(pcRecords->GetVariable(pcRecords->FindFunction((uint32)iStart), 0)->uiType)->szKey.Text());
+	AssertTrue(pcRecords->FindType("EKind") != NULL);
+	cRead.Move(-iStart);
+	AssertTrue(pcRecords->FindFunction(0) != NULL);
+	AssertString("Start", pcRecords->FindFunction(0)->szName.Text());
+	AssertInt((uint32)(iBody - iStart), pcRecords->FindFunction(0)->uiBody);
+	AssertInt((uint32)(iCount - iStart), pcRecords->FindGlobal("giCount", NULL)->sPlace.uiOffset);
+	cRead.Kill();
+	SafeKill(pcMemoryFile);
+	LinkTestKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What the debug directives refuse.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerDebugErrors(void)
+{
+	CAsm65C64Assembler	cAssembler;
+	CAsm65Object		cObject;
+
+	cAssembler.Init();
+	cObject.Init("errors");
+	AssertFalse(cAssembler.AssembleObject(
+		"	.dframe frame, 2\n"
+		"	.dvariable local, \"i\", -1, frame, 2, 1, 2\n"
+		"Start:\n"
+		"	.dfunction \"Start\"\n"
+		"	.dframe up, 2\n"
+		"	.dvariable local, \"i\", -1, frame, 2, 5, 4\n"
+		"	.dtype 1, \"int\", \"int\", integer, 1, 2, -1, 0\n"
+		"	.dtype 0, \"int\", \"int\", number, 1, 2, -1, 0\n"
+		"	.dmember field, \"x\", -1, 0, 0, 0\n"
+		"	.dvariable local, \"j\", 7, frame, 2, 1, 2\n"
+		"	.dglobal \"g\", -1, 12\n", &cObject));
+	AssertString(
+		"1:2: .dframe must follow a .dfunction '.dframe'\n"
+		"2:2: .dvariable must follow a .dfunction '.dvariable'\n"
+		"5:10: Expected none, frame or saved 'up'\n"
+		"6:42: Expected a line no earlier than the first '4'\n"
+		"7:9: A .dtype's index must be the number of types before it '1'\n"
+		"8:26: Expected a kind of type 'number'\n"
+		"9:2: .dmember must follow a .dtype '.dmember'\n"
+		"11:20: A debug global must be at a label in one of the object's sections '12'\n"
+		"12:1: A debug record names a type the unit doesn't describe 'end of file'\n", cAssembler.GetErrors());
+	cObject.Kill();
+	cAssembler.Kill();
+
+	//Only in an object.
+	cAssembler.Init();
+	AssertFalse(cAssembler.Assemble("	.dfunction \"Start\"\n"));
+	AssertString("1:2: Debug directives are only allowed when assembling an object '.dfunction'\n", cAssembler.GetErrors());
+	cAssembler.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65Linker(void)
@@ -1069,6 +1315,8 @@ void TestAsm65Linker(void)
 	TestAsm65LinkerRemoveUnusedLibrary();
 	TestAsm65LinkerPrograms();
 	TestAsm65LinkerLineTable();
+	TestAsm65LinkerDebugRecords();
+	TestAsm65LinkerDebugErrors();
 	TestAsm65LinkerRelocatable();
 
 	TestStatistics();
