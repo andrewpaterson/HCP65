@@ -1,0 +1,44 @@
+HCP65 Hold Count - schematic faults
+===================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC23 (74LVC163) counts each CLK High Pulse from the Clock Hold board.  IC24 XORs each Count bit
+with Latch0-3 (Latch0-2 are H0-H2 on the Processor Board; Latch3 is tied to GND), and IC26 and IC28 reduce that to
+L=C (high when equal) and ~{L=C}.  ~{Reset Counter} = ~{L=C} OR ~{CLK High Pulse} goes to IC23's ~MR.  L=C is the
+Clock Hold board's ~{Hold High}.
+
+1. The counter is never reset (IC23 ~MR, IC26 gate 4)
+
+   The 74LVC163's ~MR is synchronous: it is sampled one set-up time before CP's rising edge.  ~{Reset Counter} can
+   only go low after that edge (the same CLK High Pulse that clocks the counter), and it is high again before the
+   next one.
+
+   Effect: ~MR is always high when it is sampled, so the counter free-runs modulo 16.  Every hold lasts until the
+   count wraps round to the Latch value, up to about 16 CLKs, whatever H0-H2 say.
+
+   Fix: drive ~MR straight from ~{L=C} (IC26 pin 8) and drop gate 4's CLK High Pulse gating.  Better still, together
+   with W65C816 Clock Hold Faults.txt fault 1: clock the counter on CLK's falling edge and reset it synchronously
+   while PHI2 is low.  That gives exactly H hold cycles, with L=C settled before each High Pulse.
+
+2. H0-H2 reach Latch0-2 in reverse bit order (on the Processor Board)
+
+   The MPU Memory board's H0 is on its connector pin 44, which is the Processor Board net /H2, so it reaches Latch2.
+   Its H2 reaches Latch0.  The main bus's HD0-HD2 come through the Data and Signal Buffer the same way (HD0 to /H2
+   to Latch2).  The MPU Memory board treats H0 as the least significant bit.
+
+   Effect: the two sources agree with each other, but counts 1 and 4, and 3 and 6, are exchanged here.  For
+   example, MPU Memory's ROM setting of 3 gives 6 hold cycles, and a register access gets 4 in place of 1.
+
+   Fix: decide which end is the least significant bit and check the emulator's assumption.  Then either swap H0 and
+   H2 on the Processor Board at the B4 and B8 sockets, or rename the nets to match.
+
+3. Possible: H0-H2 may not be settled in time
+
+   H0-H2 must be stable about one CLK after PHI2 falls: the W65C816's address time (tADS, 30ns), plus the decode on
+   MPU Memory or the device, plus about 10ns of compare here.  Near 14MHz that is marginal, and any glitch feeds the
+   Clock Hold race (Clock Hold Faults.txt fault 1).
+
+4. Note: this board's presence pin (J1 pin 12) isn't read
+
+   The Processor Board leaves B23 pin 12 unconnected.  See Board Presence Faults.txt, note 3.

@@ -72,3 +72,107 @@ Kernal/KernalProcess.cpp).
    the process's bank 0 and its second from the kernal's, as intended, and
    RTI's pulls are all in user mode.  IC6's third inverter (pins 5 and 6) is
    then spare.
+
+
+Found in the daughter board review of 2026-11-23 (faults 1 to 3 above are
+all still in the schematic)
+-------------------------------------------------------------------------
+
+4. IC10's symbol has the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins
+   like a '00 (1A=1, 1B=2, 1Y=3, 2A=4, 2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11,
+   4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real part fitted:
+   - Pins 10 and 13 (3Y, 4Y) drive the Processor Board's global ~{WD},
+     fighting the Breakout's IC19, so every write in the machine is affected.
+   - Pin 1 (1Y) drives ~{Process ID} against the MPU Address Decode board's
+     Register8 output, and pin 4 (2Y) drives ~{Interrupt Depth} against
+     Register9 (which also reaches the counters' ~PL through IC3 pin 12).
+   - Pins 3 and 6 sit on /Read Process ID and /Read Interrupt Depth, which
+     nothing then drives, so IC6 pins 9 and 11 float and IC4 drives D0-D7 at
+     random.
+   - Pin 8 sits on /Write Process ID, so IC7's 2LE (pin 25) floats and the
+     Process ID latch takes random values.  Pin 11 (4A) is unconnected.
+
+   Fix: correct the symbol's pin numbers (it is also used by Device Reset,
+   Instruction Code, MPU NMI, Device Decode stage A/B and Processor Full
+   Device) and re-route IC10.
+
+5. The interrupt depth counters are held clear (IC9, IC5)
+
+   The 74HCT193's MR (pin 14 on both) is active high, but it is on ~{Reset}.
+
+   Effect: both counters are held at zero for as long as the machine is out
+   of reset, so the count is always zero.
+
+   Fix: MR from an active-high Reset, for example IC10's spare gate 4 as
+   NOR(~{Reset}, ~{Reset}) once IC10 is re-routed, or IC6's third inverter
+   once fault 3 is fixed.
+
+6. The counters' clocks idle low (IC9 pins 4 and 5)
+
+   CPU (pin 5) is Enter Interrupt (VP inverted by IC6) and CPD (pin 4) is
+   RTI.  Both are low except during their own events.  A 74HCT193 counts up
+   on CPU's rising edge only while CPD is high, and down on CPD's rising edge
+   only while CPU is high.
+
+   Effect: neither direction counts, and the ~{TCU} and ~{TCD} cascade
+   outputs into IC5 are wrong too.
+
+   Fix: both clocks must idle high.  Feeding ~{VP} and an active-low RTI in
+   directly would count on the end of each pulse instead, which for RTI is
+   after its stack pulls and breaks the "RTI pulls in user mode" scheme.  A
+   synchronous up/down counter with count enables (a 74LVC169-type part,
+   clocked from ~{PHI2}) driven by edge-detected VP and RTI avoids that.
+
+7. Back to back RTIs count down only once
+
+   RTI is a level decoded from the latched opcode (OP0-OP7 from the
+   Instruction Code board), so it stays high across two RTI opcodes in a
+   row.  This happens with nested interrupts, for example an NMI taken just
+   before an IRQ handler's RTI returns straight onto that RTI.
+
+   Effect: the count is left at 1 after returning to user code, so the board
+   stays in kernel mode.
+
+   Fix: count down on each opcode fetch whose opcode is $40 (Opcode Valid
+   qualified with the decode), not on the RTI level.  Note that OP0-OP7 are
+   themselves a cycle late and miss some fetches today (Instruction Code
+   Faults.txt).
+
+8. IC13 has no power (74LVC2G74, pin 8)
+
+   IC13's VCC pin 8 is on GND, on the schematic and the PCB.  Pin 4 is GND
+   as well.
+
+   Effect: the flip-flop is only phantom-powered through its inputs, so
+   Kernal Mode OUT and ~{Kernal Mode} OUT are invalid.
+
+   Fix: connect pin 8 to 3.3V.
+
+9. Possible: A_OUT16-23 have two drivers for an instant when the mode
+   changes (IC7, IC8)
+
+   IC7's first half is enabled by Kernal Mode and IC8 by the same signal
+   through an inverter, so both drive KA16-23 for an inverter delay.  This
+   is still so after fault 3's fix, as Q and ~{Q} switch a few ns apart.
+
+   Fix: accept it, or make the switch break-before-make.
+
+10. Possible: the remap latch closes on the same edge that ends the lookup
+    (IC7)
+
+    IC7's 1LE is ~{PHI2}, so the remap byte is latched on the same edge that
+    switches the Selector 12bit boards back to the processor's address and
+    that enables the Breakout's data transceiver (its DE is PHI2 directly,
+    while ~{PHI2} lags it by an inverter).  The data hold is only the '157's
+    delay plus the SRAM's tOH (about 3ns) against the 74LVC16373's hold
+    time, and on a write cycle the transceiver can start driving the
+    processor's bank byte onto D0-D7 before IC7 has closed.
+
+    Fix: close the remap latch earlier than the bus turnaround, for example
+    with a PHI2-derived signal that leads DE, or delay the transceiver
+    enable.

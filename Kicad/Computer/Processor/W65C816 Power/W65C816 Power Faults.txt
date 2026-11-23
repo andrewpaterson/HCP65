@@ -1,0 +1,23 @@
+W65C816 Power - schematic faults
+================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC1 (LK112M50) makes W65C816V = 5.0V from 12V, enabled by the Processor Board's 5V.  That rail
+powers the whole Breakout, including the Breakout's own AP7365 3.3V regulator, so the 74ALVC164245's VCC(B) >= VCC(A)
+rule is met.  The unconnected bypass pin is optional.
+
+Nothing here is a definite fault; both items are worth measuring.
+
+1. Possible: IC1 runs hot
+
+   IC1 drops 7V in a SOT23-5 with RthJA about 255 C/W.  The load is the W65C816 (about 2mA/MHz), 16 address lines
+   driven at 5V, and the Breakout's whole 3.3V side (the data bus, and ~{RD}/~{WD} to about ten boards).  At 30-50mA
+   that is 0.2-0.35W, a rise of 55-90 C, close to the limit.
+
+   Fix: drop some of the voltage in a series resistor first, or use a 5V LDO in SOT-89 or SOT-223, or a switcher.
+
+2. Possible: reset can end before the processor has power
+
+   W65C816V only comes up once both 12V and 5V are present.  If 12V is late, ~{Reset} could release before the
+   W65C816 has had a valid VDD and two clocks.  Check this against the reset timing from the mainboard.

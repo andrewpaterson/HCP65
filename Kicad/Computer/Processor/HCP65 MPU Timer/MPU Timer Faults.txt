@@ -1,0 +1,46 @@
+HCP65 MPU Timer - schematic faults
+==================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC1 is a divide-by-two flip-flop clocked by Watchdog CLK (J5.B30, not PHI2).  Its ~SD is ~{Hold},
+which the Processor Board ties to Native Latch, so the timer is stopped until the boot goes native; that polarity is
+right.  IC1 feeds two 74HCT4040 ripple counters (IC6, IC14) at 5V.  IC7 (PI3B3251, an 8 to 1 bus switch) picks one
+of eight taps, and its output is ~{Set Timer} to the MPU NMI board.  IC2 ('273) holds the rate in D0-D2; IC9 ('541)
+reads it back on ~{NMI Rate Select} and ~{RD}, and only drives the bus during that read.
+
+1. The counters are held reset (IC6, IC14)
+
+   The 74HCT4040's MR (pin 11) is active high, but on both counters it is ~{Reset}.
+
+   Effect: both counters sit in reset whenever the machine is running, so ~{Set Timer} never changes and the timer
+   NMI never happens.
+
+   Fix: MR from an active-high Reset (an inverter on ~{Reset}), or tie MR low.
+
+2. The rate register is clocked through Watchdog CLK (IC11)
+
+   IC11 (74LVC1G27, 3-input NOR) makes IC2's clock from NOR(Watchdog CLK, ~{NMI Rate Select}, ~{WD}).  Watchdog CLK
+   has nothing to do with the bus cycle.
+
+   Effect: a write is missed whenever Watchdog CLK is high, and when it is low the register can latch before the
+   write data is valid.
+
+   Fix: CP = OR(~{NMI Rate Select}, ~{WD}), for example a 74LVC1G32, so the register latches on ~{WD} rising at the
+   end of the write.  Check the hold margin: the W65C816 holds write data for 10ns, about the same as ~{WD}'s delay.
+
+3. Possible: ~{Set Timer} can glitch (IC7)
+
+   IC7 is a passive FET switch passing the 4040s' 5V HCT levels at a 3.3V VCC.  Its high level is clamped to about
+   VCC - Vt, the off channels see 5V (check its I/O tolerance), and the output floats for a moment
+   break-before-make when the rate changes.
+
+   Effect: changing the rate can give a spurious falling edge on ~{Set Timer}, which is a timer NMI.
+
+   Fix: run the counters at 3.3V (74HC4040 or LVC parts) and use a logic mux such as a 74LVC151 in place of the bus
+   switch.
+
+4. Minor: pin 24 (GND) isn't connected on the Processor Board
+
+   J2 pin 24 is GND on this board, but the Processor Board's B10 pin 24 has no connection.  The other three ground
+   pins are connected, so this only loses one return path.

@@ -1,0 +1,45 @@
+W65C816 Clock Hold - schematic faults
+=====================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC47 (74LVC1GX04) splits CLK IN into CLK (the buffered Y output) and ~{CLK} (the unbuffered X2
+output).  IC31 and IC7's inverters make a short pulse on each CLK rising edge (CLK High Pulse) and falling edge (CLK
+Low Pulse).  Each pulse is ANDed with ~{Hold High} or ~{Hold Low} (IC1), ORed (IC3), and clocks IC29 (74LVC1G79)
+with D = ~{CLK}, which gives PHI2.  A suppressed High Pulse stretches PHI2 high by one CLK.  ~{Hold Low} is tied high
+on the Processor Board, so PHI2 low is never stretched.  ~{Hold High} is the Hold Count board's L=C; its polarity is
+right (L=C high lets the pulse through, so PHI2 falls on the next CLK rising edge).  PHI2 is a flip-flop output, so it
+can't glitch directly.
+
+1. ~{Hold High} changes during the pulse it gates (IC1A into IC29's CP)
+
+   The Hold Count board's counter is clocked by the same CLK High Pulse.  L=C settles 1.5-7.3ns (74LVC163) plus the
+   XOR, OR and NOR delays after that edge, about 4.5-21ns.  The pulse itself is about 3-18ns wide (two LVC14 delays
+   plus the LVC74's reset-to-Q).  The two windows overlap.
+
+   Effect: when L=C goes high during a pulse, IC29 gets a late clock that may be shorter than its 2.5ns minimum, so
+   PHI2 either ends its hold one CLK early or IC29 goes metastable.  When L=C goes low during a pulse, the clock IC29
+   has already seen is cut short.
+
+   Fix: make ~{Hold High} settle half a CLK before the pulse it gates: clock the counter from CLK Low Pulse or
+   ~{CLK}, or register L=C on CLK's falling edge.  See Hold Count Faults.txt.
+
+2. Possible: the pulse can be shorter than the counter's minimum clock width
+
+   The CLK High Pulse can be about 3ns at the fast corner, while the 74LVC163 needs at least 4.0ns, so the Hold Count
+   board can miss counts.
+
+   Fix: more delay in the one-shot's reset path.
+
+3. Possible: ~{CLK} comes from the unbuffered crystal output (IC47 X2)
+
+   X2's output levels are only specified for Y.  Here X2 drives IC31's 2CP, IC29's D, a 10pF capacitor in CN1 and
+   the Processor Board's ~{CLK} out to the Data and Signal Buffer, and its skew against CLK isn't matched.
+
+   Fix: make ~{CLK} with an ordinary inverter (a 74LVC1G04) from Y.
+
+4. Possible: ~{Hold High} has no pull-up
+
+   It floats into IC1 pin 1 when the Hold Count board isn't fitted, and PHI2 then behaves at random.
+
+   Fix: 10k to 3.3V.

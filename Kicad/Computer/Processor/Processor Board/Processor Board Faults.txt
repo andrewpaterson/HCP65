@@ -1,0 +1,80 @@
+Processor Board - schematic faults
+==================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.  These are faults in the Processor Board's own
+wiring between the sockets.  Each daughter board's own faults are in a "... Faults.txt" next to its schematic.
+
+Every socket's pins (B1-B23) were matched against the daughter board's connector, and J5 and J1 against the
+Mainboard Small and Mainboard Full MPU slots.  J5's and J1's pin names all match the mainboard.  Every address and
+data bus reaches the mainboard in the right bit order, even where a daughter board's labels are reversed.
+
+1. Main memory ~RD and ~WD are swapped (B7 pins 60 and 61)
+
+   B7 pin 60 is the Main Memory Address board's ~{Main WD} output, but it goes to J5.D10, which is the mainboard's
+   ~{Main RD} (the SRAM's ~OE).  Pin 61 (~{Main RD}) goes to J5.D11, ~{Main WD}.  Every main memory read becomes a
+   write.  See Main Memory Address Faults.txt, fault 1.
+
+   Fix: swap the nets on B7 pins 60 and 61.
+
+2. RDY is tied to 3.3V on a 5V processor (B1 pin 21)
+
+   The W65C816 runs at 5V, and RDY's input-high threshold is 4.0V.  WAI drives RDY low straight into the 3.3V
+   plane.  See W65C816 Breakout Faults.txt, fault 1.
+
+   Fix: leave B1 pin 21 unconnected (the Breakout's R1 pulls it up to 5V).  BE (B1 pin 20) is fine at 3.3V.
+
+3. The Debug Display's BE and RDY inputs float (B13 pins 36 and 43)
+
+   The nets /BE and /RDY have only B13 on them.  The "BE" and "RDY" labels near B1 aren't on the 3.3V wire, so they
+   don't join it.  KiCad's ERC reports both.
+
+   Fix: put B13 pins 36 and 43 on the same nets as B1 pins 20 and 21.
+
+4. The hold count bits are reversed (B4 pins 44-46, B8 pins 37-39)
+
+   MPU Memory's H0 (B4 pin 44) and the main bus's HD0 (J5.A31, through B8 pin 39) are on net /H2, which is Hold
+   Count's Latch2; H2 and HD2 reach Latch0.  See Hold Count Faults.txt, fault 2.
+
+   Fix: decide which end is the least significant bit; if it is H0, swap /H0 and /H2 at the B4 and B8 sockets.
+
+5. NMI and hold inputs from the mainboard have no pull-ups
+
+   ~{NMI}_{1} and ~{NMI}_{2} (J5.B4, B5), MPU0 and MPU1 (J5.B8, B7) and HD0-HD2 (J5.A29-A31) all float when nothing
+   on the mainboard drives them.  The floating NMI inputs give spurious NMIs (MPU NMI Faults.txt, fault 3), and
+   HD0-HD2 give random hold counts (Data and Signal Buffer Faults.txt, fault 2).
+
+   Fix: pull-ups to 3.3V, like R6 and R7.
+
+6. Minor: B10 pin 24 (GND) has no connection
+
+   The MPU Timer board has GND on that pin.  Its other three grounds are connected.
+
+7. Minor: the Hold Count board's presence pin isn't read (B23 pin 12)
+
+   B20 pin 28 (S11) is free, tied only to GND.  Wiring B23 pin 12 to B20 pin 28 in its place gives Hold Count a
+   presence bit.
+
+8. Note: header J2 carries the push-pull ~{NMI} and ~{IRQ} outputs (pins 5 and 2)
+
+   A button or open-drain source on J2 would fight the MPU NMI and Device Interrupts boards' outputs.  Treat J2 as
+   monitor only.
+
+9. Possible: IC3 (LD1117, 12V to 5V) dissipation
+
+   IC3 supplies every daughter board's 5V, and through their own regulators their 3.3V, with a 7V drop in a SOT-223.
+   Estimate the total current: at 300mA it is already 2.1W.
+
+
+Found comparing the Processor Board with Mainboard Small, 2026-11-23
+--------------------------------------------------------------------
+
+10. On Mainboard Small the processor's main memory slot doesn't line up with PHI2
+
+   The board's PHI2 is the inverse of MPU CLK (J5.B3), but the mainboard's ~Main Slot (J5.B11) is low only while MPU
+   CLK is high, so it closes as PHI2 rises.  The processor can't reach main memory.  See Main/Triple MPU Clock Generator
+   Faults.txt.  MPU CLK there is also 33MHz, from a 100MHz oscillator.
+
+11. ~ABORT is pulled to 5V by the mainboard (J5.B6)
+
+   Mainboard Small's R4 pulls ~ABORT up to 5V, and it lands on the Breakout's 3.3V 74ALVC164245 input.  See Mainboard
+   Small Faults.txt, fault 3.

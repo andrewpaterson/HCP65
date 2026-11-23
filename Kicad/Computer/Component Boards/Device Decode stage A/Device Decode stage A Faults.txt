@@ -1,0 +1,33 @@
+Device Decode stage A - schematic faults
+========================================
+
+From the review of 2026-11-23.
+
+What the board does: it splits a device's address space into ROM, registers and RAM, and makes the device's resets.
+- IC2 (74LVC138) is enabled when A16, A15, A14 and A13 are all 0 (~E1 = A16, ~E2 = A15+A14 from IC6, E3 = ~A13 from
+  IC13).  It decodes A10-A12: Y0 is ~{Device ROM} at $0000-$03FF and Y1 is ~{Device Registers} at $0400-$07FF.
+- ~{Device RAM} is low for the rest of the space.  IC3 makes ~(A16+A15), ~(A14+A13) and ~(A12+A11), and IC5 (a
+  3-input AND) is high only when A11-A16 are all 0.
+- IC6 ORs each of the three with ~{Device Select}.
+- IC4 ANDs the two reset inputs into ~{Reset}, and IC13 makes Reset, ~A3 and ~A4.
+
+The board is used on the Audio, Blitter, Coprocessor Main, Graphics, LCD, PS2, SD Card, UART, VIA and Video Signals
+boards.  Those with a 32KB device space tie A15 and A16 to GND.  As drawn the decode is right, and every part's
+pinout is right except IC3's.
+
+1. IC3's symbol has the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins like a '00 (1A=1, 1B=2, 1Y=3, 2A=4,
+   2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11, 4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real part fitted:
+   - Pin 4 (2Y) drives A16, pin 10 (3Y) drives A13 and pin 13 (4Y) drives A11.  These are the device's own address
+     inputs, so on every board that carries this one, IC3 fights the device bus address lines.  On the boards that
+     tie A16 to GND, pin 4 is shorted to GND.
+   - Pin 1 (1Y) is shorted to GND, and its input pin 3 floats.
+   - Pins 6, 8 and 11 are inputs where the gate outputs should be, so the ~(A16+A15), ~(A14+A13) and ~(A12+A11) nets
+     float.  IC5's three inputs float, so ~{Device RAM} is random.
+
+   Fix: correct the symbol's pin numbers (it is also used by Device Decode stage B, Processor Full Device, Kernal
+   Mode, Device Reset, Instruction Code and MPU NMI) and re-route IC3.

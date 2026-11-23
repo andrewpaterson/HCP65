@@ -1,0 +1,32 @@
+HCP65 Main Memory Address - schematic faults
+============================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: two 74LVC16244s.  IC4 buffers A15-A8 and the remapped bank KA23-KA16, and IC1 buffers A7-A0
+and the ~{RD}/~{WD} strobes, onto the main bus.  All outputs are enabled by ~{Main Access} = ~{Main} OR ~{Main Slot}
+(IC2).  This board's labels are bit-reversed (its A0 is the Processor Board's KA23, its MA0 the Processor Board's
+MA23), but every processor address bit n reaches the mainboard's AMn: A0 to J5.D17, A8 to J5.C16, KA16 to J5.C8 and
+KA23 to J5.C1.
+
+1. ~{RD} and ~{WD} are swapped onto the main bus
+
+   ~{WD} enters on J2 pin 5, goes IC1 pin 36 (3A0) to pin 13 (3Y0), and leaves on J2 pin 60 as "~{Main WD}".  The
+   Processor Board wires B7 pin 60 to J5.D10, which on both mainboards is ~{Main RD}; the Memory Board wires D10 to
+   the SRAM's ~OE.  Likewise ~{RD} goes IC1 pin 35 to pin 14, J2 pin 61, then J5.D11, which is ~{Main WD} and the SRAM's
+   ~WE.
+
+   Effect: every processor write to main memory turns the SRAM's outputs on while the Main Memory Data board drives
+   MD, so the two fight and nothing is written.  Every read pulses the SRAM's ~WE and writes whatever is on the bus
+   into the location read, while the processor reads a floating bus.
+
+   Fix: swap the Processor Board nets on B7 pins 60 and 61 (so pin 60 goes to J5.D11 and pin 61 to J5.D10), or swap
+   IC1 pins 35 and 36 on this board.
+
+2. Possible: the strobes are released, not driven high, when the slot ends
+
+   ~{Main RD} and ~{Main WD} go high impedance on the same enable as the address lines.  If ~{Main Slot} or ~{Main}
+   goes high while a strobe is still low, the strobe rises slowly through the mainboard's 10k pull-up, with the
+   address already released.
+
+   Fix: make sure the slot always ends after PHI2 falls, or buffer the strobes with their own always-enabled gates.

@@ -1,0 +1,60 @@
+W65C816 Breakout - schematic faults
+===================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does:
+- The W65C816 (IC2) and its address bus run at 5V, from W65C816V (the W65C816 Power board, 5.0V).
+- IC1 (74ALVC164245) shifts levels.  Half 1 is D0-D7, with direction from R~{W} and enable ~{DE}.  Half 2 is fixed
+  3.3V to 5V for BE, ~{ABORT}, ~{IRQ}, ~{NMI}, ~{RES} and PHI2 (through R3, 20 ohm).  The 5V input-high threshold
+  (0.8 x VDD = 4.0V) is met for all of those.
+- IC3 (74LVC139) half 1 makes ~{RD} and ~{WD} from R~{W}, PHI2 and VPA+VDA, buffered by IC19.  Half 2 makes ~{DE} =
+  BE.DE.~(~{Data Output}); DE is tied to PHI2 on the Processor Board.
+- IC5 (74VHCT573) latches the bank byte on Bank Latch, with IC20 (74CBT3244) as a bypass while Bank Latch.BE.
+- IC6 latches M and X.  IC9B is the Native Latch: cleared by reset, set while E is low.
+- Opcode Valid = VPA.VDA.(A0 XOR the previous cycle's A0), from IC9A, IC18 and IC7.
+
+1. RDY is tied to the Processor Board's 3.3V rail (J7 pin 21)
+
+   The Processor Board puts B1 pin 21 (RDY) on its 3.3V net.  The W65C816 runs at 5V, where RDY's input-high
+   threshold is 0.8 x VDD = 4.0V.
+
+   Effect:
+   - 3.3V isn't a valid high, so the processor can stall at random.
+   - WAI drives RDY low, straight into the 3.3V plane.
+   - R1 (6.8k to W65C816V) does nothing useful and back-feeds about 0.25mA into the 3.3V rail.
+
+   Fix: leave B1 pin 21 unconnected on the Processor Board (or tie it through 10k or more) and let R1 hold RDY at
+   5V.  If RDY ever has to be driven, use an open-drain driver.  BE (pin 20) goes through IC1's 5V port and is fine
+   at 3.3V.
+
+2. Opcode Valid misses opcode fetches (IC9A, IC18, IC7)
+
+   Opcode Valid is VPA.VDA ANDed with "A0 changed since the last cycle".  IC9A latches the previous cycle's A0 on
+   every rising edge of ~{PHI2}.  In an implied or accumulator instruction (INX, TAX, CLC, ASL A, ...), cycle 2 is a
+   dummy read at PBR,PC+1, which is the next opcode's own address.
+
+   Effect: the fetch after every such instruction has the same A0 as the cycle before it, so it isn't flagged.  About
+   half of the fetches after a taken branch, jump, RTS or RTI are missed the same way.  The Instruction Code board
+   counts and latches on Opcode Valid, and the Kernal Mode board decodes RTI from that latch, so both go wrong.
+   Opcode Valid is also an asynchronous AND, so it can glitch while the address settles, yet it is used as a clock.
+
+   Fix: use VPA.VDA itself, registered on a PHI2 edge.  If the A0 gate is there to stop RDY-stretched cycles being
+   counted twice, qualify with RDY instead.
+
+3. Possible: bus contention at PHI2 rising
+
+   The W65C816 only holds the bank byte on D0-D7 for tBH = 10ns after its PHI2 rises.  IC1 starts driving D0-D7 for
+   a read after the Latch board's delay plus the '139 plus the 164245's enable time, roughly 5-24ns after the system
+   PHI2.  IC20 may also still be on (IC4 to IC20 turn-off is roughly 3-14ns), so read data can briefly reach
+   A16-A23 at the start of PHI2 high.
+
+   Fix: see W65C816 Latch Faults.txt.
+
+4. Possible: IC20 turning on at PHI2 falling can break the read data hold time
+
+   Bank Latch rises a few gate delays after PHI2 falls.  IC20 then joins D0-D7 to the bank bus, which IC5 is still
+   driving with the old bank (through 220 ohm).  With fast parts that lands inside tDHR = 10ns after PHI2 falls.
+
+   Fix: make IC20's turn-on reliably more than 15ns after PHI2 falls, or drop the CBT bypass: the transparent '573
+   alone meets tBAS = 33ns easily.

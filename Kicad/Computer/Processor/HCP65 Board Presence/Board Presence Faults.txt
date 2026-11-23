@@ -1,0 +1,35 @@
+HCP65 Board Presence - schematic faults
+=======================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC2 and IC4 ('574) latch the presence lines S0-S11 on the falling edge of ~{State} (through the
+IC1 inverter).  They take turns driving D0-D7 on ~{State} and ~{RD}, chosen by IC6 (74LVC1G79) through IC7 and IC8
+(74LVC1G332).  D0/D1 are tied 1/0 and 0/1 to tag which half was read.  Every S line has a 6.8k pull-down (RN1-RN4),
+so an absent board reads 0.  The J3 header lines up with the Processor Board's pads 25-28 (S8-S11).  The read
+drivers only drive during the read.
+
+1. The half select never changes (IC6)
+
+   IC6's D (pin 1) is tied to its own Q (pin 4, net /Q), so each clock loads the value it already has.
+
+   Effect: every read returns the same half, chosen at random at power up, so half of the presence bits can never
+   be read.
+
+   Fix: connect D to ~Q (net /~Q, IC1 pin 4).
+
+2. Possible: the toggle can fall out of step
+
+   Even with fault 1 fixed, IC6 would toggle on every falling edge of ~{State} from the address decode.  That
+   includes writes, the W65C816's dummy and read-modify-write reads, and decoder glitches.
+
+   Effect: reads can return the halves in the wrong order.  The D0/D1 tag lets software notice, but not avoid it.
+
+   Fix: toggle on the rising edge of the read strobe (OR of ~{State} and ~{RD}, at the end of the read), and reset
+   IC6 from ~{Reset} so the first read is always the same half.
+
+3. Note: the Hold Count board's presence isn't read
+
+   The Hold Count board has a presence pin (B23 pin 12) that the Processor Board leaves unconnected, while this
+   board's S11 (B20 pin 28) is tied to GND.  Wiring B23 pin 12 to B20 pin 28 on the Processor Board would give Hold
+   Count a presence bit with no change to either daughter board.

@@ -1,0 +1,48 @@
+W65C816 Debug Display - schematic faults
+========================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: 12V comes in on J2 to IC2 (LD1117S50, 5V).  Eight ATF16V8BQL GALs (IC5/13 data, IC6/14 A0-7,
+IC7/15 A8-15, IC8/16 A16-23) decode hex for four KCDC03-123 dual common-cathode displays through 220 ohm arrays.
+Their cathodes go to IC3 (BV1LB150 low-side switch), switched from ~{LED Enable} (S2-1) through IC12.  Two ABT245s
+(IC10, IC11) drive 15 discrete LEDs from the control signals; an LED is lit when its signal is high.
+
+The Processor Board footprint (B13, 49 pads) lines up with this board's headers: J4 is D7-D0 on pads 1-8, J2 12V on
+9, J3 A23-A0 on 10-33, J1 GND on 34, and J5 PHI2 ... X on 35-49.
+
+1. The BE and RDY inputs float (IC11 pin 13, IC10 pin 13)
+
+   On the Processor Board, B13 pins 36 (BE) and 43 (RDY) are nets with nothing else on them.  The processor's BE
+   and RDY are on the 3.3V net, and the "BE" and "RDY" labels near B1 don't join it (KiCad's ERC reports both).  The
+   SN74ABT245B has no bus hold.
+
+   Effect: LED2 (BE) and LED10 (RDY) flicker or glow at random.  The floating input stages can oscillate and couple
+   noise into the neighbouring outputs.  There is no harm to the processor, as these outputs only drive LEDs.
+
+   Fix: on the Processor Board, put B13 pins 36 and 43 on the same nets as B1 pins 20 and 21.  If RDY stops being
+   tied to 3.3V (W65C816 Breakout Faults.txt, fault 1), connect B13 pin 43 to the processor's RDY instead.
+
+2. The "Always Show Data" switch works the wrong way round (S2-2)
+
+   ~{Data LED Enable} = ~{LED Enable} OR (Always Show Data AND ~{PHI2}), where Always Show Data means S2-2 closed.
+
+   Effect: with S2-2 closed the data digits blank while PHI2 is low, and with it open they show all the time.
+
+   Fix: invert the switch's sense (IC9/IC12), or relabel it.
+
+3. Possible: IC2 (LD1117, SOT-223) runs too hot
+
+   The load is up to 56 segments at roughly 5-9mA each, plus eight GALs, two ABT245s and 15 LEDs: about 0.3-0.5A at
+   a 7V drop, which is 2-3.5W.
+
+   Effect: thermal shutdown and cycling, which browns out the GALs.
+
+   Fix: a 12V to 5V buck regulator, or 5V from the Processor Board, and larger segment resistors (about 680 ohm to
+   1k).  The GALs are also asked to source well beyond their rated IOH of a few mA, so the segment brightness will
+   vary; larger resistors help that too.
+
+4. Possible: GAL power-down on pin 4
+
+   Pin 4 (IN3/PD) of each GAL carries Data2 or Addr2/6/10/14/18/22.  If the power-down option is set in a GAL's JEDEC
+   file, those digits blank.  Make sure power-down is off when programming them.

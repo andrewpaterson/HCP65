@@ -1,0 +1,21 @@
+W65C816 Latch - schematic faults
+================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: a chain of 74LVC08 gates with 47 ohm / 5pF RC stages makes two signals from ~{PHI2}:
+- ~{Data Output}: ~{PHI2} delayed by three gates.
+- Bank Latch: ~{PHI2} AND the delayed ~{PHI2}, high during PHI2 low, starting late and ending a gate delay after
+  PHI2 rises.
+
+1. Possible: the delays are much shorter than intended, and not guaranteed
+
+   47 ohm x about 10pF (5pF plus the input) is about 0.5ns, so each stage's delay is almost all the LVC08's own: 1 to
+   4.4ns at 3.3V.  The total is roughly 3-14ns, not the "approx 10ns" in the note, and it varies with parts and
+   temperature.
+
+   Effect: this is the timing that W65C816 Breakout Faults.txt faults 3 and 4 depend on, contention on D0-D7 at PHI2
+   rising and a broken read hold time at PHI2 falling.
+
+   Fix: a much larger RC (for example 470 ohm to 1k with 22pF) into Schmitt inputs (74LVC14 or 74LVC1G17), or a delay
+   timed from the board clock (CLK, ~{CLK}) instead of gates.

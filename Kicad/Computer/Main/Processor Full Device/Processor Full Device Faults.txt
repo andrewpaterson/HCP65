@@ -1,0 +1,74 @@
+Processor Full Device - schematic faults
+========================================
+
+From the review of 2026-11-23.
+
+What the board does: it is device 7 of MPU0 on the Mainboard Full (B13), and lets MPU0 interrupt, NMI and reset the
+other MPUs and see their interrupts.
+- IC4 (74LVC138) decodes A0-A2, enabled by ~{Device Select} with A4 low (~E2) and A3 low (E3 = ~A3 from IC10's
+  fourth gate).  Y0 to Y3 are four registers.
+- Writes: IC10's gates 1-3 make Y1.WD, Y2.WD and Y3.WD as the clocks of IC13 (resets), IC12 (NMIs) and IC14 (IRQs),
+  three 74LVC273s.  D0-D2 reach IC12 and IC14 through IC17 (3G17), and IC13 inverted through IC15 (3G04).  All three
+  are cleared by ~{Device Reset}, so after reset the other MPUs are held in reset, with no NMI or IRQ to them.
+- The outputs go through IC1 and IC2 (3G04) to ~{MPUn NMI}_{out} and ~{MPUn IRQ}_{out}.  The reset outputs go
+  straight to ~{MPUn Reset}_{out}.
+- Reads: IC9, IC8, IC7 and IC11 (74LCX540, inverting) put the IRQ inputs, reset outputs, NMI outputs and IRQ outputs
+  onto DO0-DO2 for Y0-Y3.  IC16 (74LVC541) puts DO0-DO2 (and 0s on D3-D7) onto D0-D7.
+- ~{Device Interrupt} = AND of the three ~{MPUn IRQ}_{in} (IC5).
+
+The Mainboard Full's B13 socket matches this board's J1 pin for pin.  Every part's pinout is right except IC10's.
+
+1. IC10's symbol has the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins like a '00 (1A=1, 1B=2, 1Y=3, 2A=4,
+   2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11, 4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real part fitted:
+   - Pin 10 (3Y) drives MPU0's device bus ~{WD} (J1 pin 11), and pin 13 (4Y) drives its A3 (J1 pin 8).  Both are
+     shared by every device on MPU0's bus.
+   - Pins 1 and 4 (1Y, 2Y) drive ~Y1 and ~Y2 against IC4.
+   - Pins 3, 6 and 8 are inputs where the gate outputs should be, so IC13, IC12 and IC14's clocks float, and those
+     registers load at random: the other MPUs get random resets, NMIs and IRQs.
+   - Pin 11 (4A) is an input on ~A3, so IC4's E3 floats and the decode is random.
+
+   Fix: correct the symbol's pin numbers (it is also used by Device Decode stage A and B, Kernal Mode, Device Reset,
+   Instruction Code and MPU NMI) and re-route IC10.  Better, see fault 2.
+
+2. The registers latch at the start of the write, before the data is valid (IC12, IC13, IC14)
+
+   Yn.WD = NOR(~Yn, ~WD) rises when ~{WD} falls, at the start of the write, and the '273s load on that rising edge.
+   ~{WD} falls as PHI2 rises, and the W65C816's write data is only valid tMDS after that.
+
+   Effect: the registers load whatever was on the data bus before the write, usually the bank byte.
+
+   Fix: clock them from OR(~Yn, ~WD), which rises at the end of the write: a 74LVC32 in IC10's place does all three,
+   and also avoids the faulty symbol.  ~A3 then needs an inverter of its own (for example a 74LVC1G04), as IC1, IC2
+   and IC15 have no spare gates.  Check the data hold time against the delay of ~{WD} after PHI2 falls: the W65C816
+   holds write data for 10ns.
+
+3. IC16 drives the data bus on every device read, not only this board's (IC16)
+
+   IC16's ~OE1 and ~OE2 are both ~{RD}.  On the Mainboard Full that is MPU0's D~{RD}, the device bus read strobe that
+   every device on MPU0's bus shares.
+
+   Effect: on every device read by MPU0, from any device, IC16 drives D0-D7 against the device being read: it puts 0
+   on D3-D7, and on D0-D2 whatever DO0-DO2 float to.  DO0-DO2 have no driver unless one of IC7, IC8, IC9 or IC11 is
+   enabled.
+
+   Fix: enable IC16 only for this board's own registers, for example ~OE1 = AND(~Y0, ~Y1, ~Y2, ~Y3) (low when one of
+   Y0-Y3 is selected) with ~OE2 = ~{RD}.
+
+4. Possible: the IRQ inputs float when the other MPUs' boards are absent (IC5, IC9)
+
+   ~{MPU1 IRQ}_{in} and ~{MPU2 IRQ}_{in} come from the Processor Small Device boards (B14, B15 on the Mainboard
+   Full).  There are no pull-ups on either board or the mainboard.  With a Processor Small Device absent, its input
+   floats into IC5, so ~{Device Interrupt} (device 7's interrupt to MPU0) goes on and off at random.
+
+   Fix: pull-ups to 3.3V on ~{MPU1 IRQ}_{in} and ~{MPU2 IRQ}_{in}, on this board or the mainboard.
+
+5. Note: this board doesn't drive the hold count
+
+   The J1 connector has no HD0-HD2 pins, so on an access to this device MPU0's hold count bus is undriven.  See
+   Processor/Processor Board/Processor Board Faults.txt, fault 5, and Component Boards/Data and Signal Buffer/Data and
+   Signal Buffer Faults.txt, fault 2.

@@ -1,0 +1,38 @@
+HCP65 Device Reset - schematic faults
+=====================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: three 74LVC273 write-only registers hold the reset lines for devices 1-7, 8-15 and 16-19.  ~MR
+is ~{Reset}, so every device is held in reset until software writes 1s.  Each register's clock is AND(NOR(~select,
+~{WD}), ~{CLK}), where ~{CLK} is the Processor Board's ~{PHI2}.  The 8-15 register's select is tied to 3.3V on the
+Processor Board, so it is never written; that is harmless.
+
+1. IC7's symbol has the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins like a '00 (1A=1, 1B=2, 1Y=3, 2A=4,
+   2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11, 4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real part fitted:
+   - Pin 10 (3Y) drives the system-wide ~{WD} against the Breakout's driver, which corrupts every write in the
+     machine.
+   - Pin 1 (1Y) fights the MPU Address Decode board's ~{Device Reset}_{1..7} select.
+   - Pin 4 (2Y) is shorted to 3.3V, and pin 13 (4Y) to GND.
+   - Pins 3, 6 and 8 are inputs where the gate outputs should be, so IC8's inputs float.  Pin 11 (4A) floats too.
+
+   Fix: correct the symbol's pin numbers (it is also used by Kernal Mode, Instruction Code, MPU NMI, Device Decode
+   stage A/B and Processor Full Device) and re-route IC7.
+
+2. The registers' clocks are a race (IC8)
+
+   The Write net is high only while PHI2 is high, and ~{CLK} (~{PHI2}) is high only while PHI2 is low.  Their AND is
+   only the overlap between ~{PHI2} rising (one gate after PHI2 falls) and ~{WD} rising (about three gates after).
+   The address select may also be changing in that window.
+
+   Effect: the clock pulse is a few ns wide, or missing, depending on the parts and temperature, so writes to the
+   reset registers are unreliable.
+
+   Fix: clock each '273 from OR(~select, ~{WD}), so it latches on the rising edge of ~{WD} at the end of the write.
+   Check the data and address hold times against ~{WD}'s delay after PHI2 falls: the W65C816 holds write data for
+   10ns.

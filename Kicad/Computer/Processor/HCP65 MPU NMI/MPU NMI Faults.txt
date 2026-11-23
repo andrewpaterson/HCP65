@@ -1,0 +1,67 @@
+HCP65 MPU NMI - schematic faults
+================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board is meant to do (as traced, with IC6 wired as a NOR as intended):
+- IC8A is the Timer flag, set by the edge of ~{Set Timer}.  IC8B, IC13A and IC13B are the Break 1-3 flags.  Each is
+  cleared by a Register 7 write with D0-D3.
+- IC4A is the mask.  D4 or Set Enable NMI (RTI) enables it; D5 or Set Disable NMI (Enter Interrupt) disables it.
+  ~{Reset}'s rising edge clocks in 0, so NMI is enabled after reset.
+- ~{NMI} = OR(AND of the ~flags, mask), through IC2, as a single push-pull driver.  Masking on entry and unmasking
+  on RTI makes a fresh falling edge for any flag still set, so the W65C816's edge-triggered NMI doesn't lose a
+  source.
+- IC9 reads back Timer, Break 1-3, NMI Enabled, MPU0 and MPU1 on ~{NMI State} and ~{RD}.
+
+1. IC6's symbol has the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins like a '00 (1A=1, 1B=2, 1Y=3, 2A=4,
+   2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11, 4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real part fitted:
+   - Pin 1 (1Y) drives ~{NMI State} against the MPU Address Decode board.
+   - Pin 3 (1B) is an input where an output should be, so the whole Register 7 write net floats.
+   - Pins 10 and 13 (3Y, 4Y) drive the Set Enable NMI (RTI) and Set Disable NMI (Enter Interrupt) nets against the
+     Kernal Mode board's outputs.
+   - Pins 8 and 11 are inputs, so the ~{Enable NMI} and ~{Disable NMI} nets float.
+   - Pin 4 (2Y) is shorted to GND, and pin 6 (2B) floats.
+
+   Fix: correct the symbol's pin numbers (it is also used by Kernal Mode, Device Reset, Instruction Code, Device
+   Decode stage A/B and Processor Full Device) and re-route IC6.
+
+2. NMI can fire straight after reset (IC8, IC13)
+
+   The four flags have no reset path: ~SD is tied high and ~RD only comes from software, so they power up random.
+   IC4 then enables NMI as reset releases.
+
+   Effect: a spurious NMI at boot, before the kernal is ready for one.
+
+   Fix: AND ~{Reset} into each flag's clear, and/or tie IC4 pin 2 (D) high so that reset leaves NMI masked.
+
+3. Inputs float with no pull-ups (IC7, IC9)
+
+   ~{Set Break}1 and ~{Set Break}2 come only from J5.B4 and J5.B5 on the Processor Board and float when nothing on
+   the mainboard drives them.  ~{Set Timer} floats when the MPU Timer board is absent (or while its mux output is off,
+   MPU Timer Faults.txt).  MPU0 and MPU1 (J5.B8, J5.B7) into IC9 float the same way.  The board has no pull-ups
+   on any of them.
+
+   Effect: noise clocks the flags and gives spurious NMIs; IC9 reads garbage for the MPU number.
+
+   Fix: pull-ups to 3.3V on the Processor Board, like R6 and R7.
+
+4. Possible: the register writes act on unsettled data (IC11, IC1)
+
+   D0-D5 are gated with Register 7 AND ~{WD} as a level for the whole of PHI2 high.  Until the W65C816's write data
+   is valid (tMDS after PHI2 rises), the bus can still hold the previous byte or the bank byte.
+
+   Effect: a flag clear can glitch (a lost NMI), or writing "disable" can briefly enable, which gives a short low
+   pulse on ~{NMI}: a spurious edge.
+
+   Fix: latch the write data on the end-of-write edge (a '74 or '273) and drive the clears and sets from the latched
+   value.
+
+5. Possible: ~{NMI} is also on the Processor Board's header J2 (pin 5)
+
+   ~{NMI} is a push-pull output.  A button or open-drain source on J2 would fight it.  Treat J2 as monitor only, or
+   make the output open-drain using the existing pull-ups.

@@ -1,0 +1,51 @@
+Data and Signal Buffer - schematic faults
+=========================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23, as fitted at B8 on the Processor Board.
+
+What the board does there:
+- IC2 (74ABT245, 5V) has DIR tied high, so all channels go A to B, enabled by ~{Device}: CLK to Device CLK, ~{CLK} to
+  ~{Device CLK}, A16 to DA16, and the processor's ~{RD}/~{WD} to D~{RD}/D~{WD} on the main bus.  The ~{RD}/~{WD}
+  labels on this board are swapped, but the signals arrive on the right bus pins.  HD0-HD2 come in from the bus and
+  drive the Processor Board's H lines, so their direction is right too.
+- IC1 (74ABT245) is the device data bus, with DIR = ~{RD} and OE = ~{Device}.  Processor Dn reaches DDn.
+
+1. IC1 fights the device at the end of every device read
+
+   When ~{RD} rises at the end of a read, DIR flips IC1 to A to B straight away while ~{Device} is still low.  IC1
+   then drives DD while the device is still turning its own outputs off (10-30ns for a flash or ABT buffer).  The
+   20 ohm series resistors limit the fight but don't remove it.
+
+   Fix: take DIR from R~{W}, which is stable for the whole cycle, and enable IC1 only while a strobe is active: OE =
+   ~{Device} OR (~{RD} AND ~{WD}).  That needs R~{W} on the connector, or a gate on this board.  (During the PHI2 low
+   part of a device read, IC1 also drives DD from the undriven processor data bus; that is harmless.)
+
+2. HD0-HD2 float when nothing drives them
+
+   The A side inputs for S4-S6 (IC2 pins 3-5) have no pull-ups, and the mainboard has none on HD0-HD2 either.
+
+   Effect: a device access to an empty slot, or to a device that doesn't drive HD0-HD2, puts floating ABT inputs onto
+   H0-H2, which gives the Hold Count board a random count.
+
+   Fix: 10k pull-ups to 3.3V on HD0-HD2 (giving the safe count 7), here on the A side or on the mainboard.
+
+3. HD0-HD2 land on Hold Count's Latch bits in reverse order
+
+   HD0 (J5.A31) goes through S6 to the Processor Board's /H2, which is Hold Count's Latch2, and HD2 reaches Latch0.
+   See Hold Count Faults.txt, fault 2.  For example, the Memory Board drives HD0=0, HD1=1, HD2=1, which is 6 if HD0
+   is the least significant bit but reaches the counter as 3.
+
+4. Possible: the device clocks only run during a device access
+
+   Device CLK and ~{Device CLK} go through IC2, so they only run while ~{Device} is low.  In between they float up
+   slowly through the 10k pull-ups, both ending high, and each release gives a slow spurious rising edge.
+
+   Effect: device boards that need a continuous PHI2 (65C22 timers, 65C51) will misbehave.
+
+   Fix: buffer the clocks through a separate, always-enabled gate.
+
+5. Possible: IC1's high level on the 3.3V processor data bus
+
+   IC1's A side drives the processor's 3.3V data bus from a 5V ABT part.  ABT's high level is about 3-3.5V, with a 3V
+   minimum and no maximum given, against the Breakout's 74ALVC164245 3.3V side's absolute maximum of VCC + 0.5V =
+   3.8V.  It is probably fine but marginal; a 74LVC245 at 3.3V (5V tolerant inputs) would be cleaner.

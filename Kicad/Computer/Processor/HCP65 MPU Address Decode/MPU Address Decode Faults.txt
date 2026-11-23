@@ -1,0 +1,30 @@
+HCP65 MPU Address Decode - schematic faults
+===========================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC11 ('138) decodes A19-A21 into 512KB blocks when A23 and A22 are 0 and the latched Kernal
+Mode OUT is high: RAM, ROM, Device Group 32K and Device Group 128K.  IC16 splits $100000-$13FFFF into eight 32KB
+slots (~{Registers}, then ~{Device}1-7), and IC33 splits $180000-$1FFFFF into ~{Device}16-19; both are gated by
+~{Reset}.  IC38 and IC39 decode A0-A3 into Register0-15.  ~{Main} is low except below $200000 in kernel mode.
+~{Devices} is either device group except the registers slot.  IC3 ('125) swaps ~{RAM} and ~{ROM} while RAM Swap (the
+Native Latch) is low.  This all matches memory-map.md, and the polarities are right.
+
+Neither item is a definite fault.
+
+1. Possible: IC3's swap buffers overlap when RAM Swap changes
+
+   Buffers 1 and 2 are enabled through the IC1 inverter, buffers 3 and 4 by RAM Swap directly.  For one inverter
+   delay, IC3 pins 3 and 11 both drive ~{RAM}_I, and pins 6 and 8 both drive ~{ROM}_I, at opposite levels if the
+   access is to RAM or ROM.
+
+   Effect: a short fight once per boot, when the Native Latch sets.
+
+   Fix: accept it, or make sure the XCE that sets the latch isn't directly followed by a RAM or ROM access.
+
+2. Possible: ~{Devices} isn't gated by reset
+
+   IC11 isn't gated by ~{Reset}, but IC16 and IC33 are.  During reset, ~{Devices} can go low for $100000-$1FFFFF
+   accesses while no single device select does.
+
+   Fix: gate IC11's device group outputs with ~{Reset} as well, if any board relies on ~{Devices} during reset.

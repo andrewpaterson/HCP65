@@ -1,0 +1,33 @@
+HCP65 MPU Memory - schematic faults
+===================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: IC25 (AS7C34096A SRAM) and IC46 (SST39LF040 flash) share SA0-SA18 and D0-D7, with ~OE = S~{RD}
+and ~WE = S~{WD}; IC25's ~CE is S~{RAM} and IC46's is S~{ROM}.  The two Selector 12bit boards (B14, B16) switch the
+SA, strobe and chip-select lines between the processor (PHI2 high) and the remap table lookup at $070000 + Process
+ID x $100 + bank (PHI2 low).  IC1 and IC5 (74LVC244) drive a hold count onto H0-H2, with H0 the least significant
+bit: 0 for ~{Main}, 1 for ~{Register}, 0 for S~{RAM} and 3 for S~{ROM}.  The memory pinouts are right, and the
+flash's address order is straight, so command sequences and images work.
+
+1. H0-H2 have two drivers during the lookup half of the cycle (IC5, IC1)
+
+   IC5's first half is enabled by S~{RAM}.  The selectors force S~{RAM} low whenever PHI2 is low, for the remap
+   lookup, so IC5 drives H = 000 for the first half of every cycle.
+
+   Effect:
+   - On a register access, IC1's second half is enabled by the unswitched ~{Register} for the whole cycle and drives
+     H0 high, so for half the cycle IC5 pins 18 and 3 fight IC1 pin 3 (and pin 18).
+   - On any device access, the device's hold count comes in through the Data and Signal Buffer's IC2 (enabled by
+     ~{Device}) for the whole cycle and fights IC5 on all three H lines.
+   - The Hold Count board sees contended levels just when it is being set up.
+
+   Fix: enable IC5's first half from the unswitched ~{RAM} (B5 pin 32 on the Processor Board, brought in on a spare
+   J8 pin: 2, 3, 16, 30 and 32 are free), or from S~{RAM} OR ~{PHI2}.
+
+2. H0-H2 land on the Processor Board in reverse bit order
+
+   This board's H0 (connector pin 44) is on the Processor Board net /H2, which is Hold Count's Latch2, and H2 is on
+   Latch0.  Register accesses get a count of 4 in place of 1, and the ROM gets 6 in place of 3: slower, but it still
+   works.  The main bus's HD0-HD2 are reversed the same way, so the two sources agree with each other.  See Hold
+   Count Faults.txt, fault 2.

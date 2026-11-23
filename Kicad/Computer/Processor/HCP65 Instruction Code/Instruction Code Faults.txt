@@ -1,0 +1,81 @@
+HCP65 Instruction Code - schematic faults
+=========================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does:
+- IC1 (74LVC574) latches the data bus on every rising edge of ~{PHI2}.  IC16 (74LVC574) copies IC1 to OP0-OP7 on
+  the rising edge of Opcode Valid (from the Breakout).  OP0-OP7 go to the Kernal Mode board (to spot RTI) and the
+  Opcode Display.
+- IC2, IC4, IC5 and IC6 (74HC590 at 5V) are a 32-bit ripple-chained instruction counter clocked by Opcode Valid
+  through IC17 (SN74ABT245, a 3.3V to 5V buffer).  A read of Count Access 0 snapshots it (CPR); with J4 fitted the
+  snapshot is also ORed with ~{PHI2}.
+- IC13 clears the counter on ~{Reset}, ~{Clear Counter} or a write to Count Access 0.  IC10 (74LVC02) and IC15
+  (74LVC04) make the read enables for IC7, IC8, IC9 and IC14 (74LVC245), which put the count on D0-D7.
+
+1. IC10's symbol has the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins like a '00 (1A=1, 1B=2, 1Y=3, 2A=4,
+   2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11, 4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real part fitted:
+   - Pins 10 and 13 (3Y, 4Y) drive the system-wide ~{RD}.  Each is NOR(a floating net, ~{Count Access}2 or 3), and
+     those selects are high nearly all the time, so both outputs sit low.  ~{RD} is held low for the whole machine,
+     with heavy contention current.
+   - Pins 1 and 4 (1Y, 2Y) drive ~{Count Access}0 and ~{Count Access}1 against the MPU Address Decode board.
+     ~{Count Access}0 also feeds IC3 (~{Write Count}), so a ~{WD} can clear the counter at random.
+   - Pins 3, 6, 8 and 11 sit on the Read Count Access nets, which then have no driver.  IC15's inputs float, so
+     IC7, IC8, IC9 and IC14 turn on at random and fight the data bus.  Read Count Access_0T also floats IC3's 2B,
+     so the CPR snapshot clocks at random.
+
+   Fix: correct the symbol's pin numbers (it is also used by Kernal Mode, Device Reset, MPU NMI, Device Decode stage
+   A/B and Processor Full Device) and re-route IC10.
+
+2. OP0-OP7 hold the byte before the opcode (IC1, IC16)
+
+   Opcode Valid rises early in the opcode fetch cycle, a few ns after the address is valid.  IC16 latches on that
+   edge, but IC1 then still holds the byte from the previous cycle; the opcode only reaches IC1 at the end of the
+   fetch cycle.
+
+   Effect: OP0-OP7 show the last byte of the previous instruction, not the opcode.  Kernal Mode's RTI decode and the
+   Opcode Display both see the wrong byte.
+
+   Fix: latch the opcode at the end of the fetch cycle.  For example, replace IC1 and IC16 with a 74LVC377 (CP =
+   ~{PHI2}, ~E = Opcode Valid inverted, D = the data bus): Opcode Valid falls about 9ns after the PHI2 edge, which
+   gives the hold time.  Clocking IC16 on the falling edge of Opcode Valid also works, but with only about 3ns
+   margin.
+
+3. Opcode Valid misses fetches (from the Breakout)
+
+   Opcode Valid is gated on "A0 changed since the last cycle" (W65C816 Breakout Faults.txt, fault 2), so the
+   counter misses the fetch after every one-byte implied instruction and about half the fetches after a jump,
+   branch, RTS or RTI.
+
+4. The ABT245 is too low to drive 5V HC inputs (IC17)
+
+   IC17 drives the 74HC590s' CPC, CPR and ~MRC.  ABT's high output level is TTL: 2.5-3.0V minimum at 5V, typically
+   about 3.4V.  74HC at 5V needs at least 3.5V for a high.
+
+   Effect: a marginal counter clock (missed or extra counts) and extra supply current in the 590s.
+
+   Fix: a 74HCT245 or 74AHCT245 (TTL-level inputs, full-swing outputs) in place of IC17.
+
+5. Possible: Opcode Valid can glitch
+
+   It is decoded from VPA, VDA and A0, which change at slightly different times after PHI2 falls, and it is used as
+   an edge clock (the 590s' CPC and IC16's CP).  A runt pulse gives a spurious count.  The clocked approach in fault
+   2 avoids it.
+
+6. Possible: read access time, and J4
+
+   Reading Count Access 0 starts the CPR snapshot and enables IC9 at the same time.  The data is valid after OR +
+   ABT + HC590 CPR-to-Q + LVC245, tens of ns at 5V; check it against the PHI2 high time at the intended clock speed.
+   With J4 fitted, ~{PHI2} OR Read Access0 can dip low between ~{PHI2} falling and the select asserting, which gives
+   a second snapshot in the middle of the read.
+
+7. Possible: a snapshot can catch the ripple
+
+   The four 590s ripple, so the count takes up to about 4 x 20-30ns to settle after an Opcode Valid edge.  A
+   snapshot in that window gives a torn count.  This only matters if Count Access 0 is read within about 100ns of
+   an opcode fetch.

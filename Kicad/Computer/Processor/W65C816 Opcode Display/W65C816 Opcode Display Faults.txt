@@ -1,0 +1,39 @@
+W65C816 Opcode Display - schematic faults
+=========================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: 12V comes in on J2 pin 1 to IC2 (LD1117S50, 5V), then IC10 (AP7365, 3.3V).  OP0-OP7 address six
+SST39VF010 flash chips (A8 is LED Enable), whose outputs drive three 14-segment displays (DS1, DS4, DS6) through six
+ABT245s and 220 ohm resistors, to spell the mnemonic.  IC0-IC15 drive four GALs and two KCDC03-123 7-segment
+displays (DS2, DS3) for the count.  All commons go to IC18 (BV1LB150), switched by ~{LED Enable} from S2.
+
+The Processor Board footprint (B18) lines up exactly with this board's headers: J2 is 12V and OP7-OP0 on pads 1-9,
+J1 GND and IC15-IC8 on 10-18, J3 IC7-IC0 on 19-26, and J4 GND on 27-34.
+
+1. The 14-segment displays are common anode, wired as common cathode (DS1, DS4, DS6)
+
+   KCPSA04-107 is Kingbright's common-anode 14-segment display; the common-cathode part is KCPSC04-107.  Here the
+   segments are driven high and pin 14 ("Cathode") is switched to GND by IC18.
+
+   Effect: every segment LED is reverse biased, so the mnemonic never lights.  DS2 and DS3 (KCDC03-123) are common
+   cathode and are fine.
+
+   Fix: fit KCPSC04-107 (same yellow, same size), after checking its pin 14 and segment pinout against the symbol.
+
+2. Possible: IC2 (LD1117, SOT-223) runs too hot
+
+   The load is 28 GAL-driven and 42 ABT-driven segments at about 5-8mA each, plus six always-enabled flash chips
+   (on the 3.3V made from this 5V), four GALs and six ABT245s: about 0.3-0.6A at a 7V drop, which is 2-4W.
+
+   Fix: a 12V to 5V buck regulator, or 5V from the Processor Board, and larger segment resistors.
+
+3. Possible: GAL power-down on pin 4
+
+   Pin 4 (IN3/PD) of each GAL carries IC2, IC6, IC10 or IC14.  Make sure power-down is off in the JEDEC files, or
+   those digits blank.
+
+4. Not this board's fault: what it shows is wrong
+
+   OP0-OP7 hold the byte before the opcode, and some opcode fetches are missed (Instruction Code Faults.txt, faults
+   2 and 3), so the mnemonic and count shown are wrong until those are fixed.

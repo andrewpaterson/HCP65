@@ -1,0 +1,22 @@
+HCP65 Main Memory Data - schematic faults
+=========================================
+
+From the review of the Processor Board's daughter boards, 2026-11-23.
+
+What the board does: a 74LVC543 (pins checked against the datasheet).  For a write, ~{Write} = ~{Main} OR ~{Main
+Slot} OR ~{WD} (IC6) drives OEAB and LEAB, so MD is only driven during the write strobe.  For a read, ~{Read} (IC2)
+drives LEBA, and OEBA = ~{Read} AND ~{Read} delayed through two LVC08 gates, so it turns on late and off at once.  The
+labels are bit-reversed, but processor Dn reaches the mainboard's DMn (D0 to J5.D8).
+
+1. Possible: the read latch never holds anything
+
+   OEBA goes high at the same moment LEBA latches, so the latched data is never put out.  The processor's read hold
+   time (10ns after PHI2 falls) then rests only on gate delays after ~{RD} rises.  It is probably fine, but it isn't
+   guaranteed by the design.
+
+   Fix: if the latch was meant to give extra hold time, delay OEBA's release as well.
+
+2. Note: every write fights the SRAM until Main Memory Address is fixed
+
+   Main memory's ~RD and ~WD are swapped on the Main Memory Address board (Main Memory Address Faults.txt, fault 1),
+   so on every main memory write this board's B outputs fight the SRAM's outputs on DM0-DM7.

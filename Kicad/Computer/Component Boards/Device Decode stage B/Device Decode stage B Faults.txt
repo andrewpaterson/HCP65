@@ -1,0 +1,41 @@
+Device Decode stage B - schematic faults
+========================================
+
+From the review of 2026-11-23.
+
+What the board does: it turns a device's register block into eight read strobes and eight write strobes.
+- IC2 (74LVC138) decodes A0-A2, enabled by ~{Device Registers} (~E1), and by ~E2 and E3 from the connector.  The
+  host boards wire ~E2 and E3 to A3, ~A3, ~A4 or A4 to pick their block.
+- IC4 (74LVC2G34) buffers ~{RD} and ~{WD}.
+- Four 74LVC02s make the active-high strobes: Yn+R = NOR(~Yn, ~RD) from IC16 and IC6, and Yn+W = NOR(~Yn, ~WD)
+  from IC3 and IC5.
+
+The board is used on the Audio, Blitter (twice), Coprocessor Main, Graphics (twice), PS2, SD Card (twice) and Video
+Signals (three times) boards.  As drawn the logic is right, and IC2's and IC4's pinouts are right.
+
+1. All four NOR gates (IC3, IC5, IC6, IC16) have the 74LVC00's pinout, not the 74LVC02's
+
+   The symbol 74LVC02APW,118 in Symbols/Nexperia.kicad_sym numbers its pins like a '00 (1A=1, 1B=2, 1Y=3, 2A=4,
+   2B=5, 2Y=6, 3Y=8, 3A=9, 3B=10, 4Y=11, 4A=12, 4B=13).  The real 74LVC02A is 1Y=1, 1A=2, 1B=3, 2Y=4, 2A=5, 2B=6,
+   3A=8, 3B=9, 3Y=10, 4A=11, 4B=12, 4Y=13.
+
+   Effect, with the real parts fitted:
+   - Pins 10 and 13 of IC16 and IC6 all drive /~{RD}: four outputs against IC4's buffer.  Pins 10 and 13 of IC3 and
+     IC5 drive /~{WD} the same way.  The board's read and write strobes are destroyed.
+   - Pins 1 and 4 of each chip drive IC2's outputs: ~Y0 and ~Y1 from IC3 and IC16, ~Y4 and ~Y5 from IC5 and IC6.
+     Each of those nets has three outputs on it.
+   - Pins 3, 6, 8 and 11 of every chip are inputs sitting on the strobe outputs, so all sixteen Yn+R and Yn+W
+     strobes to the connector have no driver.  The host board's registers read and latch at random.
+
+   Fix: correct the symbol's pin numbers (it is also used by Device Decode stage A, Processor Full Device, Kernal
+   Mode, Device Reset, Instruction Code and MPU NMI) and re-route the four chips.
+
+2. Possible: the write strobes start before the write data is valid
+
+   Yn+W is high for the whole time ~{WD} is low.  ~{WD} falls as PHI2 rises, and the W65C816's write data is only
+   valid tMDS later.  A host board that clocks a register on the rising edge of a Yn+W strobe (for example a '574 or
+   '273 CP) latches stale data.  A transparent latch whose LE closes on the falling edge (a '573), or an edge clock
+   driven from the end of the strobe, is right.
+
+   Check: how each host board uses its Yn+W strobes ("Write Flags", "Write Start", "Write Clear Interrupt",
+   "Latch ..." and so on).
