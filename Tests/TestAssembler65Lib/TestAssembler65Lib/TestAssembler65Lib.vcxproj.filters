@@ -57,6 +57,9 @@
     <ClCompile Include="TestAsm65Relocate.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="TestAsm65StackWalker.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="TestAsm65C64Brainfuck.cpp">
       <Filter>Source</Filter>
     </ClCompile>

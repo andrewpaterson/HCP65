@@ -245,6 +245,7 @@
     <ClCompile Include="TestAsm65C64Mandelbrot.cpp" />
     <ClCompile Include="TestAsm65C64Sieve.cpp" />
     <ClCompile Include="TestAsm65Relocate.cpp" />
+    <ClCompile Include="TestAsm65StackWalker.cpp" />
     <ClCompile Include="TestAsm65C64Brainfuck.cpp" />
     <ClCompile Include="TestAsm65C64Queens.cpp" />
     <ClCompile Include="TestAsm65C64Base64.cpp" />

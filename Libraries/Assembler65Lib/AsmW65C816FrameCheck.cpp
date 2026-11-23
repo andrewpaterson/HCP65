@@ -78,33 +78,63 @@ size CAsmW65C816FrameCheck::Run(size uiMaxSteps)
 //////////////////////////////////////////////////////////////////////////
 //
 // Before the instruction at the program address runs: checks a direct
-// page store (Check), and a jsl (jsr) starts a call.  The stack's top is S
-// at the first call (the start up's, once it has set S).  Returns its
-// opcode, for AfterStep.
+// page store (Check), and a jsl (jsr), or an rtl that calls through a
+// pointer (AsmW65C816IsIndirectCall), starts a call.  Returns its opcode,
+// for AfterStep.
 //
 //////////////////////////////////////////////////////////////////////////
 uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 {
-	uint32				uiAddress;
-	uint8				uiOpcode;
-	SAsmW65C816FrameCall*	psCall;
+	uint32	uiAddress;
+	uint16	uiS;
+	uint8	uiOpcode;
+	uint8	auiStack[6];
+	size	ui;
 
 	uiAddress = mpcFast->GetProgramAddress();
 	uiOpcode = mpcMemory->GetByte(uiAddress);
+	uiS = mpcFast->GetS();
 	Check(uiAddress, uiOpcode);
 	if (AsmW65C816IsSubroutineCall(uiOpcode))
 	{
-		if (masCalls.NumElements() == 0)
+		AddCall(uiS, uiS - ((uiOpcode == 0x22) ? 2 : 1), uiAddress + ((uiOpcode == 0x22) ? 4 : 3));
+	}
+	else if (uiOpcode == 0x6B)
+	{
+		for (ui = 0; ui < 6; ui++)
 		{
-			muiStackTop = mpcFast->GetS();
+			auiStack[ui] = mpcMemory->GetByte((uint16)(uiS + 1 + ui));
 		}
-		psCall = masCalls.Add();
-		psCall->uiS = mpcFast->GetS();
-		psCall->uiD = mpcFast->GetD();
-		psCall->uiReturn = psCall->uiS - ((uiOpcode == 0x22) ? 2 : 1);
-		psCall->uiReturnTo = uiAddress + ((uiOpcode == 0x22) ? 4 : 3);
+		if (AsmW65C816IsIndirectCall(uiAddress, auiStack))
+		{
+			//S before its phk, its return address the three bytes it pushed.
+			AddCall(uiS + 6, uiS + 4, uiAddress + 1);
+		}
 	}
 	return uiOpcode;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A call starting: S before it, the lowest byte of its return address,
+// the instruction that is.  The stack's top is S at the first call (the
+// start up's, once it has set S).
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsmW65C816FrameCheck::AddCall(uint16 uiS, uint16 uiReturn, uint32 uiReturnTo)
+{
+	SAsmW65C816FrameCall*	psCall;
+
+	if (masCalls.NumElements() == 0)
+	{
+		muiStackTop = uiS;
+	}
+	psCall = masCalls.Add();
+	psCall->uiS = uiS;
+	psCall->uiD = mpcFast->GetD();
+	psCall->uiReturn = uiReturn;
+	psCall->uiReturnTo = uiReturnTo;
 }
 
 
@@ -222,6 +252,64 @@ void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 		mszWrites.Append(sz);
 		AppendWrite(psWrite, &mszWrites);
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The calls being run, the first (outermost) at 0.
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsmW65C816FrameCheck::NumCalls(void) const
+{
+	return masCalls.NumElements();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+SAsmW65C816FrameCall* CAsmW65C816FrameCheck::GetCall(size uiIndex)
+{
+	return masCalls.Get(uiIndex);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The first frame of a walk (CAsm65StackWalker's, from the registers as
+// they are before the next step) that isn't the call it should be: each
+// caller where its call returns to, with S as it was before the call and
+// its D.  The walk may stop at code the debug records don't describe;
+// stopping anywhere else, its index is the walk's length.  0 if the walk
+// is right.
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsmW65C816FrameCheck::WrongFrame(CArrayAsm65StackFrames* pasFrames)
+{
+	SAsm65StackFrame*		psFrame;
+	SAsmW65C816FrameCall*	psCall;
+	size					uiFrames;
+	size					uiCalls;
+	size					ui;
+
+	uiFrames = pasFrames->NumElements();
+	uiCalls = masCalls.NumElements();
+	for (ui = 1; ui < uiFrames; ui++)
+	{
+		psFrame = pasFrames->Get(ui);
+		psCall = (ui <= uiCalls) ? masCalls.Get(uiCalls - ui) : NULL;
+		if (!psCall || (psFrame->uiPC != psCall->uiReturnTo) || (psFrame->uiS != psCall->uiS) || (psFrame->uiD != psCall->uiD))
+		{
+			return ui;
+		}
+	}
+	if ((uiFrames > 0) && pasFrames->Tail()->psFunction && (uiFrames <= uiCalls))
+	{
+		return uiFrames;
+	}
+	return 0;
 }
 
 

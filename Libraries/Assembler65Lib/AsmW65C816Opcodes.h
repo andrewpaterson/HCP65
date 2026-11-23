@@ -50,6 +50,7 @@ bool			AsmW65C816IsCall(uint8 uiOpcode);
 bool			AsmW65C816IsReturn(uint8 uiOpcode);
 EAsmW65C816Flow	AsmW65C816Flow(uint8 uiOpcode);
 bool			AsmW65C816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget);
+bool			AsmW65C816IsIndirectCall(uint32 uiAddress, uint8* puiStack);
 
 
 #endif // __ASM_W65C816_OPCODES_H__

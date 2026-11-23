@@ -147,6 +147,30 @@ uint8 CAsm65Memory::GetByte(uint32 uiAddress)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Copies uiBytes from uiAddress, false (not a bad access) if any of them
+// isn't memory.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65Memory::Read(uint32 uiAddress, void* pvDest, size uiBytes)
+{
+	uint8*	puiByte;
+	size	ui;
+
+	for (ui = 0; ui < uiBytes; ui++)
+	{
+		puiByte = Byte(uiAddress + (uint32)ui);
+		if (!puiByte)
+		{
+			return false;
+		}
+		((uint8*)pvDest)[ui] = *puiByte;
+	}
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65Memory::SetByte(uint32 uiAddress, uint8 uiValue)

@@ -24,6 +24,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/ArrayTemplate.h"
 #include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Memory.h"
+#include "Asm65StackWalker.h"
 
 
 //A call being run: S before the jsl (S is below it while the call runs), the caller's D then, the lowest byte of the
@@ -54,7 +55,7 @@ struct SAsmW65C816FrameWrite
 //within the stack.  A function's pushed arguments are below both, so it may write those; code running on its
 //caller's D (a runtime routine, a stub) isn't checked; a store through a pointer isn't a direct page store.  As
 //CAsmW65C816Lockstep checks the emulator, which runs it too (SetFrameCheck): BeforeStep and AfterStep go round each
-//step of whatever runs the program.
+//step of whatever runs the program.  The calls it follows check a stack walker's walk (WrongFrame).
 class CAsmW65C816FrameCheck
 {
 protected:
@@ -73,12 +74,16 @@ public:
 	uint8	BeforeStep(void);
 	void	AfterStep(uint8 uiOpcode);
 
+	size					NumCalls(void) const;
+	SAsmW65C816FrameCall*	GetCall(size uiIndex);
+	size					WrongFrame(CArrayAsm65StackFrames* pasFrames);
 	size					NumWrites(void) const;
 	SAsmW65C816FrameWrite*	GetWrite(size uiIndex);
 	const char*				GetWrites(void) const;
 	static void				AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest);
 
 protected:
+	void	AddCall(uint16 uiS, uint16 uiReturn, uint32 uiReturnTo);
 	void	Check(uint32 uiAddress, uint8 uiOpcode);
 	uint32	Limit(void);
 };

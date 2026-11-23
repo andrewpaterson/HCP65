@@ -195,3 +195,21 @@ bool AsmW65C816FlowTarget(uint32 uiAddress, uint8* puiBytes, uint32* puiTarget)
 		return false;
 	}
 }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the rtl at uiAddress is a call through a pointer, puiStack the
+// six bytes above S as it runs: the compiler's indirect call pushes where
+// it comes back to (phk, per to the instruction after the rtl, less one),
+// then where it goes (less one), and goes there with the rtl.  A return
+// never comes back to the instruction after itself.
+//
+//////////////////////////////////////////////////////////////////////////
+bool AsmW65C816IsIndirectCall(uint32 uiAddress, uint8* puiStack)
+{
+	uint32	uiReturn;
+
+	uiReturn = puiStack[3] | (puiStack[4] << 8) | (puiStack[5] << 16);
+	return uiReturn == uiAddress;
+}

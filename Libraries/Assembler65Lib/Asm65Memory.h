@@ -29,6 +29,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Output.h"
 #include "Asm65HostFiles.h"
+#include "Asm65StackWalker.h"
 
 
 #define ASM65_MEMORY_LOW_SIZE		0x200000
@@ -74,8 +75,8 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //
 //It is the W65C816's test memory too: the devices' page 00FF:0000 is the W65C816's bank $FF, so the memory at 0000:0000
 //can be up to $FF0000 bytes.  TickHighW65C816 and TickLowW65C816 are CW65C816Meta's callbacks; InitFast65816 connects a
-//CFastW65C816 (ReadByte and WriteByte).
-class CAsm65Memory
+//CFastW65C816 (ReadByte and WriteByte).  A stack walker reads it as it is (Read).
+class CAsm65Memory : public CAsm65StackMemory
 {
 protected:
 	uint8*				mpuiLow;
@@ -103,6 +104,7 @@ public:
 	uint16			GetWord(uint32 uiAddress);
 	uint32			GetLong(uint32 uiAddress);
 	uint64			GetQuad(uint32 uiAddress);
+	bool			Read(uint32 uiAddress, void* pvDest, size uiBytes) override;
 	void			SetLong(uint32 uiAddress, uint32 uiValue);
 	void			Load(CAsm65Output* pcOutput);
 	void			LoadProgram(CAsm65Output* pcOutput, uint32 uiResetAddress);
