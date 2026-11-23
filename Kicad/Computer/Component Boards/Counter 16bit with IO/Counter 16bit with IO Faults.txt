@@ -1,0 +1,48 @@
+HCP65 Counter 16bit with IO - schematic faults
+==============================================
+
+From the review of 2026-11-23.
+
+What the board does: four 74LVC161s (IC7 C0-C3, IC8 C4-C7, IC9 C8-C11, IC10 C12-C15) make a synchronous 16 bit
+counter on CLK, cleared by ~{Reset} on ~MR and loaded from the start address on a rising CLK while ~{Load Count
+Start} is low.  The start address is held in two 74LVC573s, IC2 (low) and IC1 (high, wired bit reversed but
+consistently), transparent while Write Start Address Low/High is high, so they latch at the end of the write.  The
+count is read back through two 74LVC574s, IC11 and IC12, clocked together by Latch Address = AND(Latch Address
+Enable, Read Address Low) (IC3) and enabled by the inverted Read Address Low/High (IC4); they only drive the bus
+during their read.  Used on the Audio Board (B1), Blitter Board (B5) and Graphics Board (B5).
+
+1. The upper 12 bits count whether or not Count Enable is high (IC7)
+
+   The same fault as the Counter 24bit's fault 1.  IC7 has Count Enable on CEP (pin 7) and CET (pin 10) tied to
+   3.3V, so TC_{0..3} is high whenever C0-C3 is $F, and IC8-IC10 (CEP = TC_{0..3}) count on every clock then.
+
+   Effect: with Count Enable low the upper 12 bits still go up by one each clock while the low nibble is $F.  No
+   harm on the current hosts: the Audio Board ties Count Enable high, and on the Blitter and Graphics Boards the
+   clock only runs while counting (see their Faults files).
+
+   Fix: put Count Enable on IC7's CET (pin 10) too.
+
+2. TC_{12..15} ignores the low nibble (IC8 pin 10)
+
+   IC8's CET (pin 10) is tied to 3.3V, so TC_{12..15} (IC10 pin 15, socket pin 40) is high whenever C4-C15 is $FFF,
+   whatever C0-C3 and Count Enable are.  No host uses pin 40 at present.
+
+   Effect: a counter cascaded from TC_{12..15} would count 16 times at the top of this one's count, not once.
+
+   Fix: feed IC8's CET from TC_{0..3} in place of 3.3V (with fault 1's fix), so that TC_{12..15} is high only at
+   $FFFF while counting.
+
+3. Possible: the read-back snapshot races the counter (IC3, IC11, IC12)
+
+   IC11 and IC12 are clocked by IC3's AND of Latch Address Enable and Read Address Low, with nothing to keep that
+   edge away from CLK.  On the Blitter and Graphics Boards Latch Address Enable is CLK1, the counter's own clock, so
+   during a low read every CLK1 rising edge clocks the counter and, one AND gate later (about 1-4ns), the snapshot.
+   The 74LVC161's Qn change 1.5-7.3ns after CP, and the 74LVC574 needs its data held 1.5ns after its CP, so the
+   snapshot is taken while the count is changing.  On the Audio Board (Latch Address Enable = Read Address Low) the
+   snapshot is taken on the read's rising edge, asynchronous to CLK, and can land on a count edge the same way.
+
+   Effect: now and then a read gives a mix of the old and new count, e.g. $0F -> $10 read as $1F or $00.  With
+   Latch Address Enable = CLK1 the low byte on the bus can also change during the read itself, on each CLK1 edge.
+
+   Fix: take the snapshot on the other edge of the counter's clock, e.g. Latch Address = AND(~CLK, Read Address
+   Low), or hold the counter still while it is read.

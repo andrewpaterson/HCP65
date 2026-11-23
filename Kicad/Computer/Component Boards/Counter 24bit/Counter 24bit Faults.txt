@@ -24,3 +24,23 @@ HCP65 Counter 24bit - schematic faults
 
    Every board with a Counter 24bit has this: Video Board - Memory, Blitter
    Board, Graphics Board and SD Card Board.
+
+
+Found in the review of 2026-11-23
+---------------------------------
+
+The rest of the board was reviewed: the ~MR and ~PE polarities, the load paths (D0-D3 to IC3, IC6, IC9 and D4-D7
+to IC4, IC7, IC10, each strobe inverted by IC2 onto its byte's ~PE), IC2's pinout and the decoupling are right.
+The load is synchronous, so it needs a CLK edge inside the write strobe; the host boards' Faults files cover that.
+
+2. TC_{20..23} ignores the low nibble (IC4 pin 10)
+
+   IC4's CET (pin 10) is tied to 3.3V, so the CET chain IC4 -> IC6 -> IC7 -> IC9 -> IC10 starts at C4.
+   TC_{20..23} (IC10 pin 15, socket pin 28) is high whenever C4-C23 is $FFFFF, whatever C0-C3 and Count Enable
+   are.  No host uses pin 28 at present.
+
+   Effect: a counter cascaded from TC_{20..23} would count 16 times at the top of this one's count, not once.
+
+   Fix: feed IC4's CET from TC_{0..3} in place of 3.3V (with fault 1's fix), so that TC_{20..23} is high only at
+   $FFFFFF while counting.  The CET chain is then six stages, about 6 x 7.5ns worst case: check it against the
+   fastest clock it is used with (the Video Board's pixel clock).

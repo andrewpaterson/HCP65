@@ -1,0 +1,29 @@
+Coprocessor Support - schematic faults
+======================================
+
+From the review of 2026-11-23.
+
+What the board does: the schematic's note says "The coprocessor signals an interrupt by touching address 0F:FFFF".
+IC5 and IC6 (74F30, 8-input NAND, 5V) decode CA0-CA7 and CA8-CA15 all high, IC7 (74LVC00) CA16.CA17 and CA18.CA19,
+and IC1 (74LVC32) ORs the four into ~{CATOP}, low at $FFFFF (any bank $xF, as only four bank bits exist).
+~{CATOP} drives IC2A's (74LVC74) ~SD, so INT and ~{INT} latch the request.  IC2A is cleared by Reset (IC3A) OR CLR
+(Write Clear, an active-high write pulse from Device Decode stage B), through IC1D and IC3B.  IC4 (74LVC1GX04) makes
+the two 512KB chip selects from CA19: Y (pin 6) = CA19 for Memory1 and the unbuffered X2 (pin 4) = ~CA19 for Memory0.
+The pinouts agree with the datasheets, and the unused gate inputs are tied off.
+
+1. The interrupt decode isn't qualified by the clock, so it can fire on a passing address (IC1, IC2A)
+
+   ~{CATOP} is a purely combinational decode of the address bus and sets IC2A asynchronously, at any time in the
+   cycle.  During PHI2 low the address is settling, and CA16-CA19 are the W65C816 Minimal's bank latch while it is
+   transparent (its IC5 and IC20 pass D0-D3 straight through), so they show whatever is on D0-D3 until the bank byte
+   is driven: at first the previous cycle's read data.  VDA and VPA aren't checked either.
+
+   Effect: spurious coprocessor interrupts.  For example any read at $xx:FFFF that follows a read whose data has $F
+   in its low four bits, such as the IRQ/BRK vector's high byte at $00:FFFF after its low byte, shows $FFFFF for a few
+   nanoseconds; so can address changes like $xF:7FFF to $xF:8000, if the rising bits get there before the falling
+   ones.  The LVC74's ~SD responds to pulses of a few ns.  (This comes on top of the hosts' Bank Latch phase fault,
+   Coprocessor Board - Main Faults.txt fault 2, which makes CA16-CA19 the data byte.)
+
+   Fix: only let ~{CATOP} reach ~SD during PHI2 high with VDA high: ~SD = ~{CATOP} OR ~PHI2 OR ~VDA (IC7's spare
+   NAND can make ~(PHI2.VDA), and a third OR input is needed).  The address and the latched bank are stable by then.
+   The connector has no spare pin, so PHI2 and VDA need two more pins, and the Minimal would have to bring VDA out.

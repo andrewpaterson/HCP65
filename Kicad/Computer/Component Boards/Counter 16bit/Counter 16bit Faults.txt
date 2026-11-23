@@ -1,0 +1,33 @@
+HCP65 Counter 16bit - schematic faults
+======================================
+
+From the review of 2026-11-23.
+
+What the board does: four 74LVC161s (IC1 C0-C3, IC2 C4-C7, IC3 C8-C11, IC4 C12-C15) make a synchronous 16 bit
+counter on CLK, cleared by ~{Reset} on ~MR.  Latch Low and Latch High, inverted by IC6 (74LVC2G04), drive ~PE of the
+low pair (IC1, IC2) and the high pair (IC3, IC4), so each byte is loaded from D0-D7 on a rising CLK while its strobe
+is high.  The upper stages take TC_{0..3} on CEP and the stage below's TC on CET.  TC_{0..3} and TC_{12..15} are on
+the socket (pins 19 and 20).  No host board uses this board at present.
+
+1. The upper 12 bits count whether or not Count Enable is high (IC1)
+
+   The same fault as the Counter 24bit's fault 1.  IC1 has Count Enable on CEP (pin 7) and CET (pin 10) tied to
+   3.3V.  The 74LVC161's TC is high when CET is high and the counter is at $F, whatever CEP is, so TC_{0..3} is high
+   whenever C0-C3 is $F, and IC2-IC4 (CEP = TC_{0..3}) count on every clock then.
+
+   Effect: with Count Enable low the counter isn't held.  Whenever the low nibble is $F the upper 12 bits go up by
+   one each clock.  TC_{0..3} on pin 19 is also high while the count is stopped.
+
+   Fix: put Count Enable on IC1's CET (pin 10) too.
+
+2. TC_{12..15} ignores the low nibble (IC2 pin 10)
+
+   IC2's CET (pin 10) is tied to 3.3V, so the CET chain IC2 -> IC3 -> IC4 starts at C4.  TC_{12..15} (IC4 pin 15,
+   socket pin 20) is high whenever C4-C15 is $FFF, whatever C0-C3 and Count Enable are.
+
+   Effect: TC_{12..15} is high for 16 clocks, not one, at the top of the count, so a second counter cascaded from it
+   (its Count Enable or CET on TC_{12..15}) counts 16 times, not once.
+
+   Fix: feed IC2's CET from TC_{0..3} in place of 3.3V (after fault 1's fix TC_{0..3} carries Count Enable too), so
+   that TC_{12..15} is high only at $FFFF while counting.  The CET chain is then four stages, about 4 x 7.5ns
+   worst case, well inside a clock.

@@ -27,3 +27,16 @@ HCP65 Clock Hold Standard - schematic faults
    Every board with a Clock Hold Standard has this: Audio Board, Blitter
    Board, Coprocessor Board - Main, Graphics Board, LCD Board, Default Board
    (Main), PS2 Board, SD Card Board, UART Board and Video Board - Signals.
+
+Found in the review of 2026-11-23
+---------------------------------
+
+2. Possible: one decoupling capacitor short on 3.3V
+
+   There are three ICs on 3.3V (IC2, IC3, IC5) but only two 1uF capacitors (C1, C2) beside C11 (10uF) at the
+   regulator.  IC4 (5V) has C4.  There is no C3 on the sheet, which looks like the missing one.
+
+   Effect: one of the 244s has no local decoupling; with both halves switching three lines at once that adds
+   ground bounce on the hold code.
+
+   Fix: add C3, 1uF from 3.3V to GND beside whichever of IC2 or IC5 has none.

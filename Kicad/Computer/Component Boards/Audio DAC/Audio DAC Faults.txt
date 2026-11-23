@@ -13,3 +13,24 @@ From the symbol library review of 2026-11-23.  The rest of this board hasn't bee
 
    Fix: rename the symbol's pins 2 = L, 3 = R, 4 = LN, 5 = RN (see Symbols/Symbol Faults.txt, item 4), update the
    symbol here and re-route, or swap the two channels where they reach the jack.
+
+Found in the review of 2026-11-23
+---------------------------------
+
+What the board does: IC6 (MAX5102, dual 8 bit DAC at 5V) takes D0-D7 and A0 on ~{WR}, with a 2.06V reference from
+R1/R2.  Each output is AC coupled (C5, C12, 100uF, with 1M to GND), filtered by three 100R/0.1uF RC sections, and
+buffered by IC7 (AS358A) running from 5V and the -5V that IC1 (TC7660) makes, then through 540R to the jack.
+
+2. The TC7660's LV pin is grounded at 5V (IC1 pin 6)
+
+   The TC7660 datasheet says LV should be connected to GND only for supplies below 3.5V and otherwise left to
+   float; its absolute maximum ratings limit the current into LV to 20uA above 3.5V.  Here V+ is 5V and LV is on
+   GND.
+
+   Effect: the converter is used outside its ratings; it may draw excess current through LV, run its oscillator
+   wrongly or latch up, losing the -5V rail for IC7.
+
+   Fix: leave pin 6 unconnected.
+
+Checked and not a fault: IC6 pin 3 (SHDN) is active high ("Connect SHDN to GND for normal operation"; a high
+shuts the DACs down, from the local MAX5102 datasheet), so driving it from ~{Enable} is right.

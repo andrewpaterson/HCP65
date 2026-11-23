@@ -1,0 +1,20 @@
+Selector 12bit - schematic faults
+=================================
+
+From the review of 2026-11-23.
+
+What the board does: IC4, IC6 and IC7 (74LVC157, 3.3V, pinout checked) pick A0-A11 (S low) or B0-B11 (S high) onto
+Q0-Q11, with a common active-low ~{E}; with ~{E} high the outputs go low, not Hi-Z.  Every host ties ~{E} to ground,
+so the outputs are always driven, and none of them shares the Q nets with another driver.  Bit order is straight
+through.
+
+1. Possible: one ground pin for the whole board (J1.40)
+
+   J1 has a single GND pin (40) and a single 5V pin (20).  All twelve outputs, three ICs and the regulator return
+   through that one pin.
+
+   Effect: ground bounce when many outputs switch at once.  On the Audio Board the selector drives memory addresses
+   and the SRAMs' ~{WE} and ~{OE} (B5, Q6, Q7, Q10, Q11), where a glitch can corrupt a write.
+
+   Fix: give the board more ground pins (the hosts' sockets would need them too), or keep this in mind if writes
+   through the Audio Board's selectors prove unreliable.

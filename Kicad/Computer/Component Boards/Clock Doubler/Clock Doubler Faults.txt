@@ -1,0 +1,35 @@
+HCP65 Clock Doubler - schematic faults
+======================================
+
+From the review of 2026-11-23.
+
+What the board does: Fast CLK (J1.5) is squared up by IC4 (74LVC1G17) into Clean Fast CLK.  R1 (750R) and C1 (16pF)
+delay it, and IC2 (MAX9010 comparator) compares the delayed copy on IN- with 1.65V from R2/R3 on IN+, so IC2's output
+is the delayed clock inverted.  IC3 (74LVC2G86) XORs Clean Fast CLK with it to give 2x Fast CLK (J1.20).  No host
+board uses this board yet.
+
+1. The comparator runs from 3.3V (IC2)
+
+   IC2's VCC (pins 5, 6) is the board's 3.3V.  The MAX9010 datasheet gives a supply range of 4.5V to 5.5V, and an
+   input common mode range of -0.2V to VCC - 1.9V, which at 3.3V is 1.4V, below the 1.65V reference on IN+.
+
+   Effect: IC2 is outside its supply range and its inputs are outside the common mode range at the switching point,
+   so the delayed clock, and with it 2x Fast CLK, may be missing, late or erratic.
+
+   Fix: power IC2 from 5V (J1.1) with its own decoupling capacitor.  Its TTL output (2.4V minimum high) is fine into
+   IC3's 5V tolerant input.  IN- still swings to 3.3V, a little above 5V - 1.9V; the datasheet says the output
+   doesn't reverse when overdriven, so that is acceptable, or drop the RC's swing with a divider.
+
+2. Possible: the doubled clock's duty cycle depends on the input frequency
+
+   Because IC2 inverts, 2x Fast CLK is XNOR of the clock and its delayed copy: it falls at every edge of Fast CLK
+   and rises again one delay later.  The delay is about 0.69 x R1 x C1 (8ns) plus IC2's propagation delay (5ns
+   typical, 9ns maximum), so roughly 13ns to 17ns, and it changes with the parts' tolerances and temperature.
+
+   Effect: the low time is fixed at about 13ns to 17ns and the high time is whatever is left of each half period.
+   At 25MHz in (20ns half period) the output is high for only 3ns to 7ns; above about 30MHz in the high pulse
+   becomes a runt or vanishes.  Any difference between IC2's rising and falling delays, or a Fast CLK duty cycle
+   other than 50%, makes alternate output periods unequal.
+
+   Fix: size R1 and C1 for a delay of about a quarter of Fast CLK's period, so the output is near 50%, and state
+   on the sheet which input frequency the board is for.

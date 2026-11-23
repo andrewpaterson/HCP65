@@ -1,0 +1,31 @@
+HCP65 Clock Hold Select - schematic faults
+==========================================
+
+From the review of 2026-11-23.
+
+What the board does: it is the switch selectable form of Clock Hold Standard.  IC3 and IC6 (74LVC32, OR) make
+~{RAM}+~{RD}, ~{RAM}+~{WD}, ~{REG}+~{RD}, ~{REG}+~{WD}, ~{ROM}+~{RD} and ~{ROM}+~{WD} from the device selects and
+the strobes; each enables one half of IC2, IC4 or IC5 (74LVC244), which drives a 3 bit hold code, set on DIP
+switches S1-S3 with 10K pull-downs (RN1-RN6), onto H0-H2 (J1.29-31).  The OR gates are right here.  No host board
+uses this board yet.
+
+1. Possible: H0-H2 float when no device cycle is under way (IC2, IC4, IC5)
+
+   H0-H2 are driven only while one of the six enables is low.  There are no pull-ups or pull-downs on H0-H2, and
+   unlike Clock Hold Standard there is no output buffer gated by ~{Device Select}: the 244s drive J1 directly.
+
+   Effect: between device cycles (and on any host without its own resistors) the hold code floats, so whatever
+   reads it can see a random hold, and its CMOS inputs draw extra current.  Clock Hold Standard pulls the lines to
+   111 with RN1.
+
+   Fix: a 4K7 pull-up network on H0-H2 to 3.3V, as on Clock Hold Standard, or whatever idle code the host expects.
+   If the host needs 5V levels or a buffer released by ~{Device Select}, add the 74ABT245 that Clock Hold Standard
+   has.
+
+2. IC7 (74LVC04) is placed but not connected
+
+   None of IC7's pins, not even VCC (pin 14) and GND (pin 7), is connected.
+
+   Effect: nothing electrically, as it has no supply; it is a part to buy and fit for no purpose.
+
+   Fix: remove IC7, or connect its supply and tie its unused inputs to GND if it is meant for later.

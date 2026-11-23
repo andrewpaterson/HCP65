@@ -1,0 +1,18 @@
+State Reader 8bit - schematic faults
+====================================
+
+From the review of 2026-11-23.
+
+What the board does: IC2 (74LVC574) clocks S0-S7 in on the rising edge of Read State and IC3 (74LVC1G04) inverts
+Read State into IC2's ~{OE}, so the state is captured at the start of the read and held on D0-D7 only while Read
+State is high.  On the PS2 Board Read State is Y4+R, the decoded read strobe, so the drive window is right and bit
+order is straight through.
+
+1. IC3 has no supply
+
+   IC3 pin 5 (VCC) is unconnected; only pin 3 (GND) is wired.
+
+   Effect: the inverter is unpowered, so ~{Read State} (IC2 pin 1) is undefined, in effect a floating CMOS input.
+   IC2 may drive D0-D7 all the time, fighting every other read on the bus, or never drive it at all.
+
+   Fix: connect IC3 pin 5 to 3.3V, with its own decoupling capacitor.

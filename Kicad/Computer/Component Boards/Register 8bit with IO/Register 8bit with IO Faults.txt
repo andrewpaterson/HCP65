@@ -1,0 +1,22 @@
+HCP65 Register 8bit with IO - schematic faults
+==============================================
+
+From the review of 2026-11-23.
+
+What the board does: IC1 (74LVC573) holds D0-D7, transparent while Latch is high, so it latches as the write
+strobe ends.  ~{OE} (socket pin 32) enables its outputs Q0-Q7.  IC4 (74LVC245, DIR tied high, A to B) reads Q0-Q7
+back onto the data bus while Read is high (inverted by IC2, 74LVC1G04, onto ~OE), and only then.  The pinouts, the
+read buffer's direction and enable, and the decoupling are right.  Used on the Coprocessor Board - Main (B33) for
+CAccess0-3 and CRun0-3.
+
+1. Possible: the outputs follow the data bus for the whole write (IC1)
+
+   The 74LVC573 is transparent while LE (Latch) is high, so Q0-Q7 copy D0-D7 from the start of the write strobe,
+   before the W65C816's write data is valid, and settle only once it is.
+
+   Effect: every write to the register can glitch its outputs for some tens of ns, including bits that aren't
+   changing.  On the Coprocessor Board these are CAccess0-3 (CAccess0 is a transceiver's ~DE) and CRun0-3, so a
+   write can briefly hand a coprocessor's bus over or start or stop it.
+
+   Fix: use a 74LVC574 clocked at the end of the write (CP = inverted Latch, which rises as Latch falls), or a
+   74LVC377 with a clock enable, so the outputs change once, to the written value.

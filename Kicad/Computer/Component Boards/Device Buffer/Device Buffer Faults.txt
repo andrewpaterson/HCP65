@@ -1,0 +1,35 @@
+Device Buffer - schematic faults
+================================
+
+From the review of 2026-11-23.
+
+What the board does: it sits between the device bus and one device board's own parts.  IC1 and IC2 (74ABT245, 5V,
+DIR high) drive A0-A15 onto the device board while Device ~{CS} is low.  IC3 (74ABT245, OE tied low, DIR high) is
+always on and passes ~{RD}, ~{WD}, S (Device CLK), Device ~{CS} and A16 through; its unused inputs are grounded.  IC4
+(74ABT245) is the data buffer: A side on the device bus (DD0-DD7), B side on the device board's D0-D7, with DIR =
+the buffered ~{RD} and OE = the buffered Device ~{CS}.  The board's A0-A15 and D0-D7 have 10k pull-ups to 3.3V.
+Bit order is straight through on every channel.
+
+1. IC4 fights the board's device at the end of every read
+
+   IC4 DIR (pin 1) is the local ~{RD} and its ~{OE} (pin 19) is the local Device ~{CS}.  When ~{RD} rises at the end
+   of a read, DIR flips IC4 to A to B (device bus to the board) straight away, while Device ~{CS} is still low.  IC4
+   then drives D0-D7 while the board's device (for example the Memory Board's IC5, whose ~{OE} is the same ~{RD}) is
+   still turning its outputs off.  There are no series resistors on this board to limit it.  This is the same fault
+   as Data and Signal Buffer's fault 1, on the device side of the bus; both buffers turn round together.
+
+   Effect: a short fight on D0-D7 at the end of each device read: supply noise and ground bounce on the device board,
+   and on fast parts a corrupted read hold time.
+
+   Fix: take DIR from a signal that doesn't change while IC4 is enabled, and enable IC4 only during a strobe.  For
+   example DIR = local ~{WD} (B to A except during a write) and ~{OE} = Device ~{CS} OR (~{RD} AND ~{WD}), one small
+   gate on this board.  With that, ~{RD} rising disables IC4 without changing its direction.
+
+2. Possible: ABT high levels onto 3.3V device boards (IC1-IC4)
+
+   The B sides of IC1-IC4 drive the device board's address, data and strobes at ABT levels: about 3.4V typical with
+   no maximum given (the 10k pull-ups to 3.3V don't clamp it).  The 5V device boards are fine.  A device board whose
+   parts are 3.3V-only (absolute maximum VCC + 0.5V) would be marginal, as in Data and Signal Buffer's fault 5.
+
+   Fix: where a host's devices are 3.3V-only, use 74LVC245s at 3.3V on that side (5V tolerant inputs), or check each
+   host's parts are 5V tolerant.

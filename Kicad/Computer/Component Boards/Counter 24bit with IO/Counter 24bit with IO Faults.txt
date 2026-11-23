@@ -1,0 +1,46 @@
+HCP65 Counter 24bit with IO - schematic faults
+==============================================
+
+From the review of 2026-11-23.
+
+What the board does: six 74LVC161s (IC7 C0-C3, IC8 C4-C7, IC9 C8-C11, IC10 C12-C15, IC6 C16-C19, IC13 C20-C23) make
+a synchronous 24 bit counter on CLK, cleared by ~{Reset} on ~MR and loaded from the start address on a rising CLK
+while ~{Load Count Start} is low.  The start address is held in three 74LVC573s, IC2 (low), IC1 (high, wired bit
+reversed but consistently) and IC14 (bank), transparent while Write Start Low/High/Bank is high, so they latch at
+the end of the write.  The count is read back through three 74LVC574s, IC11, IC12 and IC3, clocked together by
+Latch Read Count = AND(Enable Latch Read Count, Read Count Low) (IC15) and enabled by the inverted Read Count
+Low/High/Bank (IC4, 74LVC3G04); they only drive the bus during their read.  No host board uses this board at
+present.
+
+1. The upper 20 bits count whether or not Count Enable is high (IC7)
+
+   The same fault as the Counter 24bit's fault 1.  IC7 has Count Enable on CEP (pin 7) and CET (pin 10) tied to
+   3.3V, so TC_{0..3} is high whenever C0-C3 is $F, and every other stage (CEP = TC_{0..3}) counts on every clock
+   then.
+
+   Effect: with Count Enable low the upper 20 bits still go up by one each clock while the low nibble is $F.
+
+   Fix: put Count Enable on IC7's CET (pin 10) too.
+
+2. TC_{20..23} ignores the low nibble (IC8 pin 10)
+
+   IC8's CET (pin 10) is tied to 3.3V, so TC_{20..23} (IC13 pin 15, socket pin 63) is high whenever C4-C23 is
+   $FFFFF, whatever C0-C3 and Count Enable are.
+
+   Effect: a counter cascaded from TC_{20..23} would count 16 times at the top of this one's count, not once.
+
+   Fix: feed IC8's CET from TC_{0..3} in place of 3.3V (with fault 1's fix), so that TC_{20..23} is high only at
+   $FFFFFF while counting.  The CET chain is then six stages, about 6 x 7.5ns worst case: check it against the
+   clock rate of whatever host uses it.
+
+3. Possible: the read-back snapshot races the counter (IC15, IC11, IC12, IC3)
+
+   Nothing keeps IC15's snapshot edge away from CLK.  If Enable Latch Read Count is the counter's clock (as the
+   Blitter and Graphics Boards wire the Counter 16bit with IO), each CLK rising edge clocks the counter and, one AND
+   gate later, the snapshot, while the 74LVC161's outputs are still changing (1.5-7.3ns after CP, against the
+   74LVC574's 1.5ns hold).  If it is held high, the snapshot is on Read Count Low rising, asynchronous to CLK.
+
+   Effect: now and then a read gives a mix of the old and new count.
+
+   Fix: take the snapshot on the other edge of the counter's clock, e.g. AND(~CLK, Read Count Low), or hold the
+   counter still while it is read.

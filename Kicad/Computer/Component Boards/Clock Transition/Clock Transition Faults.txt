@@ -1,0 +1,36 @@
+HCP65 Clock Transition - schematic faults
+=========================================
+
+From the review of 2026-11-23.
+
+What the board does: it switches Clock (J1.11) between Fast Clock (J1.5) and Slow Clock (J1.2) under ~{Select Fast}
+(J1.9).  The fast enable is NOR(~{Select Fast}, Clock2_Q), synchronised by two flip-flops (IC4, 74LVC74) clocked by
+Fast Clock into Clock1_Q; the slow enable is AND(~{Clock1}_Q, ~{Select Fast}), synchronised by IC7 clocked by Slow
+Clock into Clock2_Q.  Each enable waits for the other clock to be off, and Clock = OR(Fast AND Clock1_Q, Slow AND
+Clock2_Q) (IC5, IC1).  ~{Reset} clears all four flip-flops.  The cross-coupled break-before-make is right.  It is
+used by the Speed project.
+
+1. The enables change while their own clock is high, so the output gets runt pulses (IC4B, IC7B, IC5A, IC5B)
+
+   The 74LVC74 is rising edge triggered, so Clock1_Q (IC4 pin 9) changes a clock-to-Q delay after Fast Clock rises,
+   while Fast Clock is high, and it is ANDed with that same Fast Clock in IC5A.  The same is true of Clock2_Q (IC7
+   pin 9) and Slow Clock in IC5B.
+
+   Effect: when a clock is switched off, its gate passes a high pulse only a clock-to-Q delay wide (a few ns) on
+   the last rising edge: a runt pulse on Clock.  When a clock is switched on, its first high phase is shortened by
+   the same delay.  A runt can clock some flip-flops and not others downstream.
+
+   Fix: change each final enable while its clock is low: clock the second flip-flop of each pair (IC4B, IC7B) from
+   the inverted clock (a 74LVC1G04 or the spare gate of a 74LVC2G04 on each clock), or keep the flip-flops and
+   gate with the clock inverted (enable AND NOT clock, then invert the output), the usual glitch free clock mux.
+
+2. Possible: no clock at all while ~{Reset} is low
+
+   ~{Reset} clears all four flip-flops, so both enables are off and Clock is held low for the whole reset and for
+   two cycles of the chosen clock after it.
+
+   Effect: if Clock is PHI2 to a W65C816, the processor needs clock cycles while RESB is low to reset; with no
+   clock during reset it may not start properly.
+
+   Fix: if Clock must run during reset, preset the slow pair instead of clearing it (IC7 ~{SD} from ~{Reset},
+   ~{RD} to 3.3V) so Slow Clock is selected during reset.

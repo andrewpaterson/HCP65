@@ -1,0 +1,22 @@
+Main Data Buffer - schematic faults
+===================================
+
+From the review of 2026-11-23.
+
+What the board does: IC6 (74LVC245, 3.3V) joins the main data bus (DM0-DM7, A side) to the memory side (DS0-DS7,
+B side).  DIR is ~{Main RD}, so a read goes B to A (memory to the main bus) and anything else A to B.  IC7
+(74LVC1G08) ANDs ~{Memory A} and ~{Memory B} into ~{Memory A•B}, which enables IC6 when either memory is selected
+and also goes back out on J5.30.  Bit order is straight through.
+
+1. IC6 fights the memory at the end of every read
+
+   IC6 DIR (pin 1) is ~{Main RD} and ~{OE} (pin 19) is ~{Memory A•B}.  When ~{Main RD} rises at the end of a read,
+   DIR flips IC6 to A to B at once, while the memory select is still low (the address is held past the end of the
+   strobe).  IC6 then drives DS0-DS7 while the selected memory is still turning its outputs off.  It also stops
+   driving the main bus at the same moment, so the processor's read hold time relies on the bus capacitance alone.
+
+   Effect: a short output fight on DS0-DS7 at the end of each memory read, with supply noise and ground bounce.
+
+   Fix: DIR from a signal that is stable for the whole cycle (R/~{W}) or one that only changes while IC6 is
+   disabled, and enable IC6 only while a strobe is active, as in Data and Signal Buffer's fault 1.  That needs
+   ~{Main WD} or R/~{W} on the connector (J5.3, 6, 16, 27, 29 and 31 are free).

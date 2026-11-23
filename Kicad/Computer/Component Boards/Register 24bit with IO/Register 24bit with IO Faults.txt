@@ -14,3 +14,13 @@ From the socket review of 2026-11-23.  The board's own circuit hasn't been revie
    random.  See Graphics Board Faults.txt, fault 4.
 
    Fix: move the six strobes to pins 22-27 in the symbol and update the Graphics Board.
+
+
+Found in the review of 2026-11-23
+---------------------------------
+
+The board's own circuit was reviewed and has no faults of its own.  The three 74LVC573s (IC1-IC3) latch D0-D7 at
+the end of each write (LE falls as the strobe ends), ~{OE} enables all three, and the three 74LVC245s (IC4, IC7,
+IC8, DIR tied high, A to B) drive the bus only while their Read strobe is high (inverted by IC6, 74LVC3G04).  The
+pinouts and the decoupling are right.  Like any 573, its outputs follow the data bus during the write; on the
+Graphics Board they are the source address, which is harmless unless a copy is running.

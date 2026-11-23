@@ -21,3 +21,42 @@ HCP65 Flags Enable Interrupt - schematic faults
    Every board with a Flags & Interrupt has this, each with its own Faults
    file: Audio Board, Blitter Board, Coprocessor Board - Main, Graphics
    Board, PS2 Board, SD Card Board and Video Board - Signals.
+
+Found in the review of 2026-11-23
+---------------------------------
+
+2. Possible: Enable is set and cleared asynchronously from D6 for the whole of Write Flags (IC7, IC2B)
+
+   ~{Set Enable} = NAND(Write Flags, D6) and ~{Set Disable} = NOT NAND(~{Reset}, NAND(Write Flags, NOT D6)) go
+   straight to IC2B's ~{SD} and ~{RD}.  They respond to D6 at every moment Write Flags is high, not only to its
+   value at the end, and when Write Flags ends the result depends on D6 holding until the gates see Write Flags
+   low.
+
+   Effect: if Write Flags rises before the write data is valid, Enable (J1.27) and ~{Enable} (J1.26) can pulse to
+   the wrong state at the start of the write, and while Enable briefly goes high IC1 releases IC2A's ~{SD}, so a
+   CLK edge with ~{Set Interrupt on CLK} low can raise ~{Interrupt}.  If D6 changes before the end of Write Flags
+   is seen (the W65C816 holds write data for only 10ns) a write of D6=1 can end in a clear.  How bad it is depends
+   on how each host makes Write Flags.
+
+   Fix: latch D6 in IC8 (Q6 is spare) and take the set and clear from IC8 Q6, or clock IC2B from the end of Write
+   Flags with D = D6 and keep ~{RD} for reset only.
+
+3. Possible: the F flags and Interrupt Enable aren't reset (IC8)
+
+   IC8 (74LVC573) has no reset, so F0-F5 and F_{Interrupt Enable} power up random and stay so until the first write
+   of the flags.  On the Audio Board F0 and F1 are Clock Select S0 and S1.
+
+   Effect: the device's mode bits (the audio clock select, for one) are random from power-up until software writes
+   the flags.  Interrupts stay off as long as Enable is reset (see fault 1).
+
+   Fix: accept it and have the driver write the flags before enabling the device, or replace IC8 with a register
+   that has a clear (for example a 74LVC273 clocked at the end of Write Flags, with ~{MR} from ~{Reset}).
+
+4. Possible: one decoupling capacitor short on 3.3V
+
+   Six ICs run on 3.3V (IC1, IC2, IC3, IC6, IC7, IC8) and there are five 1uF capacitors (C1, C2, C7, C8, C9) beside
+   C5 (10uF) at the regulator.
+
+   Effect: one IC has no local decoupling.
+
+   Fix: add a sixth 1uF beside the IC that has none.

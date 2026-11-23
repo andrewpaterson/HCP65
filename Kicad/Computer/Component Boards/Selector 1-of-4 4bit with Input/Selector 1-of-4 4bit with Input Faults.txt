@@ -1,0 +1,31 @@
+Selector 1-of-4 4bit with Input - schematic faults
+==================================================
+
+From the review of 2026-11-23.
+
+What the board does: IC1 and IC6 (QS3253, 5V bus switches, pinout checked) pick one of four 4-bit inputs (A, B, C
+and E) onto Y0-Y3.  IC3 (74VHCT573, 5V, ~{OE} tied low) is a transparent latch on D0-D7, enabled by Write Select;
+Q0 and Q1 are S0 and S1 and Q7 is ~{E} for both switches.  On the Video Board's Signals sheet it picks which
+counter's sync and blank signals become the final ones, and Write Select is Device Decode stage B's Y7+W.
+
+1. Possible: the selection and enable are random at power-up (IC3)
+
+   IC3 has no reset, so Q0, Q1 and Q7 come up in any state until software writes the latch.
+
+   Effect: the final sync and blank signals either come from an arbitrary counter or, with Q7 high, float (the
+   QS3253 outputs are Hi-Z) until the first write.  The monitor may see garbage or no sync during boot.
+
+   Fix: pull-ups or pull-downs on Y0-Y3 on the host, or a reset on the latch (for example a 74LVC/VHCT273 with ~{MR}
+   from ~{Reset}, clocked at the end of the write).
+
+2. Possible: the selection follows the data bus during the write (IC3)
+
+   IC3 is transparent while Write Select is high, so if Write Select is high for the whole write strobe, Q0, Q1 and
+   Q7 follow D0, D1 and D7 while the processor's write data is still settling at the start of the strobe.  The
+   QS3253 also breaks before it makes when the selection changes.
+
+   Effect: a write that leaves the selection unchanged can still give short glitches on the final sync and blank
+   lines, which can upset the monitor's sync for a line or frame.
+
+   Fix: use an edge-triggered register (74VHCT574 or '273) clocked as Write Select ends, so the outputs only change
+   once, with settled data.

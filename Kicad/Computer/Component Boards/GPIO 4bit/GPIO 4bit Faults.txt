@@ -1,0 +1,24 @@
+HCP65 GPIO 4bit - schematic faults
+==================================
+
+From the review of 2026-11-23.
+
+What the board does: IC1 (74VHCT573, 5V) latches the data bus on Write GD: D0-D3 are the four pin values (GD0-3) and
+D4-D7 their output enables (OE0-3).  IC6 (74AHCT132) NANDs each OE with Enable to drive the active low ~{OE}s of IC4
+(74AHC125, 5V), so a pin is driven only when its OE bit and Enable are both high; that polarity is right.  IC2
+(74LVC573, 3.3V) reads GPIO0-3 back onto D0-D3 (D4-D7 read 0) while Read GD is high, through IC3 (74LVC1G04).  The
+bit order through the board is consistent.  Used on the PS2 Board and the SD Card Board.
+
+1. Possible: the pins are driven at 5V, which the SD Card Board passes to the card (IC4)
+
+   IC4 runs from 5V, so a driven high is 5V.  On the SD Card Board GPIO0-3 are SD CLK, SD CMD, DAT0 and DAT3, which
+   reach the card through the SD Card Full Socket's CBT3244 bus switch.  That switch is powered from 5V, so it
+   doesn't clamp a high to 3.3V; the card is a 3.3V device with its pull-ups to 3.3V.
+
+   Effect: the SD card's inputs see well above its 3.6V maximum, which can damage the card or latch it up.  (On the
+   PS2 Board the 5V level is right, as long as the driver only ever drives low and uses the OE bits to release the
+   open collector lines.)
+
+   Fix: for the SD Card Board, run IC4 from 3.3V (the 74AHC125 works from 2V and its inputs take 5.5V at any VCC),
+   for example with a supply jumper or a 3.3V build of this board; or power the CBT3244 so it limits the swing to
+   3.3V.

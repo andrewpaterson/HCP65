@@ -1,0 +1,24 @@
+HCP65 Memory 32KB with Output - schematic faults
+================================================
+
+From the review of 2026-11-23.
+
+What the board does: IC1 (IS61C256AL, 32K x 8 SRAM at 5V) has its address M0-M14, M~{OE} and M~{WE} from the host
+and ~{CE} tied low, so it is always selected and the host's ~{OE} and ~{WE} do all the selecting.  IC2 (74LVC245,
+3.3V) joins the memory's data DM0-7 to the bus D0-7 under T~{OE} and TDIR (DIR high reads the memory onto the bus).
+IC3 (74LVC573) latches DM0-7 on LLE and drives LQ0-7 under L~{OE}, the output for audio or video.  The SRAM's 2.2V
+VIH takes IC2's 3.3V writes, and its 5V reads are within the LVC parts' 5V tolerance.  The board itself looks right;
+one point to check:
+
+1. Possible: ISSI numbers the TSOP pins differently from the footprint (IC1)
+
+   The symbol and footprint use the usual numbering, with pin 1 (~{OE}) at a corner of the package.  ISSI's
+   IS61C256AL datasheet numbers the 28-pin TSOP from A14, in the middle of that row, as pin 1 (its ~{OE} is pin 22,
+   VDD 28), and draws its pin 1 dot beside A14.  The positions of the signals match, so the footprint is right if
+   the part is placed by its corner, not by a mark next to A14.
+
+   Effect: if the chip's pin 1 mark is where ISSI's drawing puts it and the part is fitted to the footprint's pin 1,
+   it is placed wrongly and every pin is on the wrong signal.
+
+   Fix: check the marking on a real part (or ISSI's package drawing) before assembly, and add a note on the
+   silkscreen showing which corner ~{OE} is.
