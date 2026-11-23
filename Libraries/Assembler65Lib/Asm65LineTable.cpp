@@ -53,7 +53,7 @@ static int CompareAsm65Lines(const void* pvLeft, const void* pvRight)
 void CAsm65LineTable::Init(void)
 {
 	maszFiles.Init();
-	mcFileIndices.Init(true, true);
+	mcFileIndices.Init();
 	masLines.Init();
 	masFingerprints.Init();
 }

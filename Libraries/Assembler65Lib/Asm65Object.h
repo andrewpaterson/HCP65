@@ -23,7 +23,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/ArrayUint8.h"
 #include "BaseLib/ArrayChars.h"
-#include "BaseLib/MapStringTemplate.h"
+#include "BaseLib/HashMapString.h"
 #include "BaseLib/Chars.h"
 #include "BaseLib/AbstractFile.h"
 #include "BaseLib/ChunkFile.h"
@@ -161,7 +161,7 @@ protected:
 	CChars						mszName;
 	CArrayAsm65Sections			mcSections;
 	CArrayAsm65ObjectSymbols	mcSymbols;
-	CMapStringTemplate<uint32>	mcSymbolIndices;
+	CHashMapString<uint32, SArrayLargeSize>	mcSymbolIndices;
 	CArrayAsm65Relocations		mcRelocations;
 	CArrayChars					maszSourceFiles;
 	CArrayAsm65SourceLines		mcSourceLines;

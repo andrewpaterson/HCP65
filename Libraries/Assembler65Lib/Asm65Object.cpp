@@ -129,7 +129,7 @@ void CAsm65Object::Init(const char* szName)
 	mszName.Init(szName);
 	mcSections.Init();
 	mcSymbols.Init();
-	mcSymbolIndices.Init(true, true);
+	mcSymbolIndices.Init();
 	mcRelocations.Init();
 	maszSourceFiles.Init();
 	mcSourceLines.Init();

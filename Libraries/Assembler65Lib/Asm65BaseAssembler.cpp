@@ -294,8 +294,7 @@ void CAsm65BaseAssembler::Pass(void)
 	miLabelShift = 0;
 	mcPendingLabels.Clear();
 	mcUndefined.Clear();
-	mcUndefinedNames.Kill();
-	mcUndefinedNames.Init();
+	mcUndefinedNames.ReInit();
 	if (mbObject)
 	{
 		muiSection = 0;
@@ -389,16 +388,13 @@ void CAsm65BaseAssembler::MakeExternal(SAsm65Symbol* psSymbol, SAsm65Token* psNa
 //////////////////////////////////////////////////////////////////////////
 void CAsm65BaseAssembler::AddUndefined(SAsm65Token* psToken)
 {
-	CChars	szName;
+	bool	bAdded;
 
-	szName.Init();
-	szName.Append(psToken->szText, psToken->uiLength);
-	if (mcUndefinedNames.Get(szName.Text(), -1) == -1)
+	mcUndefinedNames.FindOrAdd(psToken->szText, psToken->uiLength, &bAdded);
+	if (bAdded)
 	{
-		mcUndefinedNames.Put(szName.Text(), 0);
 		mcUndefined.Add(psToken);
 	}
-	szName.Kill();
 }
 
 
@@ -411,7 +407,7 @@ void CAsm65BaseAssembler::AddUndefined(SAsm65Token* psToken)
 void CAsm65BaseAssembler::BuildObjectSymbols(void)
 {
 	size				i;
-	char*				szName;
+	const char*			szName;
 	SAsm65Symbol*		psSymbol;
 	SAsm65ObjectSymbol*	psObjectSymbol;
 	EAsm65Binding		eBinding;
@@ -1488,7 +1484,7 @@ void CAsm65BaseAssembler::UseTerm(void)
 void CAsm65BaseAssembler::RecordRelocation(SAsm65Value* psValue, uint32 uiOffset, uint8 uiBytes, bool bSigned, bool bRelative, uint32 uiFieldToNext, SAsm65Token* psToken)
 {
 	SAsm65Relocation*	psRelocation;
-	char*				szTerm;
+	const char*			szTerm;
 	SAsm65Symbol*		psSymbol;
 	CChars				szName;
 
@@ -1676,7 +1672,7 @@ void CAsm65BaseAssembler::ReportTerm(size uiTerm, const char* szMessage)
 {
 	SAsm65Token		sToken;
 	SAsm65Symbol*	psTerm;
-	char*			szName;
+	const char*		szName;
 
 	szName = mcSymbols.GetName(uiTerm);
 	psTerm = mcSymbols.Get(szName, strlen(szName));

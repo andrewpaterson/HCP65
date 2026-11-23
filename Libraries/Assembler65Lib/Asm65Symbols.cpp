@@ -23,18 +23,13 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65Symbols.h"
 
 
-//Names shorter than this are looked up from a copy on the stack.
-#define ASM65_SYMBOLS_SHORT_NAME	256
-
-
 //////////////////////////////////////////////////////////////////////////
 //
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65Symbols::Init(void)
 {
-	mcSymbols.Init(true, true);
-	maszNames.Init();
+	mcSymbols.Init();
 }
 
 
@@ -44,7 +39,6 @@ void CAsm65Symbols::Init(void)
 //////////////////////////////////////////////////////////////////////////
 void CAsm65Symbols::Kill(void)
 {
-	maszNames.Kill();
 	mcSymbols.Kill();
 }
 
@@ -55,55 +49,36 @@ void CAsm65Symbols::Kill(void)
 //////////////////////////////////////////////////////////////////////////
 SAsm65Symbol* CAsm65Symbols::Get(const char* szName, size uiLength)
 {
-	CChars			szKey;
-	SAsm65Symbol*	psSymbol;
-	char			szShort[ASM65_SYMBOLS_SHORT_NAME];
-
-	//Most names fit on the stack (looking up allocates nothing).
-	if (uiLength < ASM65_SYMBOLS_SHORT_NAME)
-	{
-		memcpy(szShort, szName, uiLength);
-		szShort[uiLength] = '\0';
-		return mcSymbols.Get(szShort);
-	}
-	szKey.Init();
-	szKey.Append(szName, uiLength);
-	psSymbol = mcSymbols.Get(szKey.Text());
-	szKey.Kill();
-	return psSymbol;
+	return mcSymbols.Get(szName, uiLength);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Returns the existing symbol or a new one that is not yet resolved.
+// Returns the existing symbol or a new one that is not yet resolved.  The
+// pointer lasts until the next Put.
 //
 //////////////////////////////////////////////////////////////////////////
 SAsm65Symbol* CAsm65Symbols::Put(const char* szName, size uiLength)
 {
-	CChars			szKey;
 	SAsm65Symbol*	psSymbol;
+	bool			bAdded;
 
-	psSymbol = Get(szName, uiLength);
-	if (psSymbol == NULL)
+	psSymbol = mcSymbols.FindOrAdd(szName, uiLength, &bAdded);
+	if (bAdded)
 	{
-		szKey.Init();
-		szKey.Append(szName, uiLength);
-		psSymbol = mcSymbols.Put(szKey.Text());
 		psSymbol->iValue = 0;
 		psSymbol->uiPass = 0;
 		psSymbol->bResolved = false;
 		psSymbol->iSection = ASM65_SECTION_ABSOLUTE;
 		psSymbol->uiTerm = 0;
-		psSymbol->uiIndex = maszNames.NumElements();
+		psSymbol->uiIndex = (size)(mcSymbols.NumElements() - 1);
 		psSymbol->uiNamedLine = 0;
 		psSymbol->uiNamedColumn = 0;
 		psSymbol->bExternal = false;
 		psSymbol->bGlobal = false;
 		psSymbol->bWeak = false;
 		psSymbol->bLabel = false;
-		maszNames.Add(szKey.Text());
-		szKey.Kill();
 	}
 	return psSymbol;
 }
@@ -123,7 +98,7 @@ size CAsm65Symbols::NumSymbols(void)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-char* CAsm65Symbols::GetName(size uiIndex)
+const char* CAsm65Symbols::GetName(size uiIndex)
 {
-	return maszNames.GetText(uiIndex);
+	return mcSymbols.GetKey(uiIndex);
 }

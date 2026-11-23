@@ -78,13 +78,11 @@ void CAsm65Linker::Init(void)
 	masObjects.Init();
 	masSections.Init();
 	masSymbols.Init();
-	mcSymbolIndices.Init(true, true);
-	mcReferences.Init(true, true);
-	maszReferenced.Init();
-	mcUsedReferences.Init(true, true);
-	maszUsedReferenced.Init();
+	mcSymbolIndices.Init();
+	mcReferences.Init();
+	mcUsedReferences.Init();
 	maiRelocations.Init();
-	mcGroups.Init(true, true);
+	mcGroups.Init();
 	maszMissing.Init();
 	maiPlacement.Init();
 	muiNumAtPlacements = 0;
@@ -159,9 +157,7 @@ void CAsm65Linker::Kill(void)
 	maszMissing.Kill();
 	mcGroups.Kill();
 	maiRelocations.Kill();
-	maszUsedReferenced.Kill();
 	mcUsedReferences.Kill();
-	maszReferenced.Kill();
 	mcReferences.Kill();
 	mcSymbolIndices.Kill();
 	for (i = 0; i < masSymbols.NumElements(); i++)
@@ -369,12 +365,12 @@ bool CAsm65Linker::Link(void)
 			MarkUsed();
 		}
 		while (PullLibraries(&mcUsedReferences));
-		FindMissing(&mcUsedReferences, &maszUsedReferenced);
+		FindMissing(&mcUsedReferences);
 	}
 	else
 	{
 		PullLibraries(&mcReferences);
-		FindMissing(&mcReferences, &maszReferenced);
+		FindMissing(&mcReferences);
 	}
 	AddStubs();
 	if (mcErrors.NumErrors() != 0)
@@ -459,7 +455,7 @@ void CAsm65Linker::Include(CAsm65Object* pcObject)
 		psSymbol = pcObject->GetSymbol(i);
 		if (psSymbol->iSection == ASM65_SECTION_UNDEFINED)
 		{
-			AddReference(&mcReferences, &maszReferenced, psSymbol->szName.Text(), psSymbol->eBinding != AB65_Weak, uiObject);
+			AddReference(&mcReferences, psSymbol->szName.Text(), psSymbol->eBinding != AB65_Weak, uiObject);
 			continue;
 		}
 		if (psSymbol->eBinding == AB65_Local)
@@ -518,7 +514,7 @@ bool CAsm65Linker::IsIncluded(CAsm65Object* pcObject)
 // weakly) and that nothing defines yet.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65Linker::Wanted(CAsm65Object* pcObject, CMapStringTemplate<SAsm65LinkReference>* pcReferences)
+bool CAsm65Linker::Wanted(CAsm65Object* pcObject, CAsm65LinkReferences* pcReferences)
 {
 	size					i;
 	SAsm65ObjectSymbol*		psSymbol;
@@ -548,7 +544,7 @@ bool CAsm65Linker::Wanted(CAsm65Object* pcObject, CMapStringTemplate<SAsm65LinkR
 // included.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65Linker::PullLibraries(CMapStringTemplate<SAsm65LinkReference>* pcReferences)
+bool CAsm65Linker::PullLibraries(CAsm65LinkReferences* pcReferences)
 {
 	bool			bChanged;
 	bool			bIncluded;
@@ -628,16 +624,16 @@ bool CAsm65Linker::IsLinkerSymbol(const char* szName)
 // Names needed (not only weakly) that nothing defines.
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65Linker::FindMissing(CMapStringTemplate<SAsm65LinkReference>* pcReferences, CArrayChars* paszReferenced)
+void CAsm65Linker::FindMissing(CAsm65LinkReferences* pcReferences)
 {
 	size					i;
-	char*					szName;
+	const char*				szName;
 	SAsm65LinkReference*	psReference;
 
-	for (i = 0; i < paszReferenced->NumElements(); i++)
+	for (i = 0; i < pcReferences->NumElements(); i++)
 	{
-		szName = paszReferenced->GetText(i);
-		psReference = pcReferences->Get(szName);
+		szName = pcReferences->GetKey(i);
+		psReference = pcReferences->GetValue(i);
 		if (!psReference->bStrong || GetGlobal(szName) || IsLinkerSymbol(szName))
 		{
 			continue;
@@ -656,18 +652,16 @@ void CAsm65Linker::FindMissing(CMapStringTemplate<SAsm65LinkReference>* pcRefere
 // Notes that uiObject needs szName (bStrong when not only weakly).
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65Linker::AddReference(CMapStringTemplate<SAsm65LinkReference>* pcReferences, CArrayChars* paszReferenced, const char* szName, bool bStrong, size uiObject)
+void CAsm65Linker::AddReference(CAsm65LinkReferences* pcReferences, const char* szName, bool bStrong, size uiObject)
 {
 	SAsm65LinkReference*	psReference;
-	SAsm65LinkReference		sReference;
+	bool					bAdded;
 
-	psReference = pcReferences->Get(szName);
-	if (psReference == NULL)
+	psReference = pcReferences->FindOrAdd(szName, (size)strlen(szName), &bAdded);
+	if (bAdded)
 	{
-		sReference.bStrong = bStrong;
-		sReference.uiObject = uiObject;
-		pcReferences->Put(szName, &sReference);
-		paszReferenced->Add(szName);
+		psReference->bStrong = bStrong;
+		psReference->uiObject = uiObject;
 	}
 	else if (bStrong)
 	{
@@ -753,9 +747,7 @@ void CAsm65Linker::MarkUsed(void)
 	{
 		masSections.Get(i)->bUsed = false;
 	}
-	mcUsedReferences.Kill();
-	mcUsedReferences.Init(true, true);
-	maszUsedReferenced.ReInit();
+	mcUsedReferences.ReInit();
 
 	aiWork.Init();
 	for (i = 0; i < masObjects.NumElements(); i++)
@@ -869,7 +861,7 @@ void CAsm65Linker::UseTarget(size uiObject, SAsm65Relocation* psRelocation, CArr
 	psGlobal = GetGlobal(psSymbol->szName.Text());
 	if (psGlobal == NULL)
 	{
-		AddReference(&mcUsedReferences, &maszUsedReferenced, psSymbol->szName.Text(), psSymbol->eBinding != AB65_Weak, uiObject);
+		AddReference(&mcUsedReferences, psSymbol->szName.Text(), psSymbol->eBinding != AB65_Weak, uiObject);
 		return;
 	}
 	if (psGlobal->iObject >= 0)

@@ -23,7 +23,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/ArrayChars.h"
 #include "BaseLib/ArrayUint32.h"
-#include "BaseLib/MapStringTemplate.h"
+#include "BaseLib/HashMapString.h"
 #include "BaseLib/AbstractFile.h"
 #include "BaseLib/ChunkFile.h"
 
@@ -63,7 +63,7 @@ class CAsm65LineTable
 {
 protected:
 	CArrayChars					maszFiles;
-	CMapStringTemplate<uint32>	mcFileIndices;
+	CHashMapString<uint32, SArrayLargeSize>	mcFileIndices;
 	CArrayAsm65LineEntries		masLines;
 	CArrayAsm65LineFingerprints	masFingerprints;
 

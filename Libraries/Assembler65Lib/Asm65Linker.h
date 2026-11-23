@@ -22,7 +22,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define __ASM65_LINKER_H__
 #include "BaseLib/ArrayTemplate.h"
 #include "BaseLib/ArrayTemplatePtr.h"
-#include "BaseLib/MapStringTemplate.h"
+#include "BaseLib/HashMapString.h"
 #include "BaseLib/ArrayChars.h"
 #include "BaseLib/ArraySize.h"
 #include "Asm65Object.h"
@@ -113,6 +113,9 @@ struct SAsm65LinkReference
 };
 
 
+typedef CHashMapString<SAsm65LinkReference, SArrayLargeSize>	CAsm65LinkReferences;
+
+
 //A field a relocatable link (SetRelocatable) leaves for its loader to write, at uiAddress as linked: the target plus
 //the addend, in the form, size and sign of the relocation it came from.  The target is a place in the link (iImport
 //-1: iValue is its linked address, which the loader moves by as much as it moves the link) or an import (iImport, a
@@ -153,13 +156,11 @@ protected:
 	CArrayTemplate<SAsm65LinkObject>		masObjects;
 	CArrayTemplate<SAsm65LinkSection>		masSections;
 	CArrayTemplate<SAsm65LinkSymbol>		masSymbols;
-	CMapStringTemplate<uint32>				mcSymbolIndices;
-	CMapStringTemplate<SAsm65LinkReference>	mcReferences;
-	CArrayChars								maszReferenced;
-	CMapStringTemplate<SAsm65LinkReference>	mcUsedReferences;
-	CArrayChars								maszUsedReferenced;
+	CHashMapString<uint32, SArrayLargeSize>	mcSymbolIndices;
+	CAsm65LinkReferences					mcReferences;		//In the order first referenced.
+	CAsm65LinkReferences					mcUsedReferences;
 	CArraySize								maiRelocations;
-	CMapStringTemplate<uint32>				mcGroups;
+	CHashMapString<uint32, SArrayLargeSize>	mcGroups;
 	CArrayChars								maszMissing;
 	CArraySize								maiPlacement;
 	size									muiNumAtPlacements;	//The sections with an address (at) are maiPlacement's first ones.
@@ -236,11 +237,11 @@ public:
 protected:
 	void				Include(CAsm65Object* pcObject);
 	bool				IsIncluded(CAsm65Object* pcObject);
-	bool				Wanted(CAsm65Object* pcObject, CMapStringTemplate<SAsm65LinkReference>* pcReferences);
-	bool				PullLibraries(CMapStringTemplate<SAsm65LinkReference>* pcReferences);
+	bool				Wanted(CAsm65Object* pcObject, CAsm65LinkReferences* pcReferences);
+	bool				PullLibraries(CAsm65LinkReferences* pcReferences);
 	bool				IsLinkerSymbol(const char* szName);
-	void				FindMissing(CMapStringTemplate<SAsm65LinkReference>* pcReferences, CArrayChars* paszReferenced);
-	void				AddReference(CMapStringTemplate<SAsm65LinkReference>* pcReferences, CArrayChars* paszReferenced, const char* szName, bool bStrong, size uiObject);
+	void				FindMissing(CAsm65LinkReferences* pcReferences);
+	void				AddReference(CAsm65LinkReferences* pcReferences, const char* szName, bool bStrong, size uiObject);
 	void				IndexRelocations(void);
 	void				MarkUsed(void);
 	void				UseSection(size uiSection, CArraySize* paiWork);

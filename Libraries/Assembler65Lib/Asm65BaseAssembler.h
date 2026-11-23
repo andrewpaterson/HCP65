@@ -25,7 +25,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/ArrayUint32.h"
 #include "BaseLib/ArrayTemplatePtr.h"
 #include "BaseLib/ArrayChars.h"
-#include "BaseLib/MapStringInt.h"
+#include "BaseLib/HashMapString.h"
 #include "BaseLib/IntelHex.h"
 #include "Asm65Tokeniser.h"
 #include "Asm65Symbols.h"
@@ -105,7 +105,7 @@ protected:
 	uint32				muiSection;
 	CArrayUint32		mcSectionAddresses;
 	CAsm65KeptTokens	mcUndefined;
-	CMapStringInt		mcUndefinedNames;
+	CHashMapString<bool, SArrayLargeSize>	mcUndefinedNames;
 	CArraySize			mcAssociatedSections;
 	CAsm65KeptTokens	mcAssociations;
 	int					miExpressionDepth;

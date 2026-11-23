@@ -20,8 +20,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 ** ------------------------------------------------------------------------ **/
 #ifndef __ASM65_SYMBOLS_H__
 #define __ASM65_SYMBOLS_H__
-#include "BaseLib/MapStringTemplate.h"
-#include "BaseLib/ArrayChars.h"
+#include "BaseLib/HashMapString.h"
 
 
 //A label or a constant.  uiPass is the pass that last defined it.  In an object
@@ -52,8 +51,7 @@ struct SAsm65Symbol
 class CAsm65Symbols
 {
 protected:
-	CMapStringTemplate<SAsm65Symbol>	mcSymbols;
-	CArrayChars							maszNames;
+	CHashMapString<SAsm65Symbol, SArrayLargeSize>	mcSymbols;	//In the order named: a symbol's uiIndex is its index.
 
 public:
 	void			Init(void);
@@ -62,7 +60,7 @@ public:
 	SAsm65Symbol*	Get(const char* szName, size uiLength);
 	SAsm65Symbol*	Put(const char* szName, size uiLength);
 	size			NumSymbols(void);
-	char*			GetName(size uiIndex);
+	const char*		GetName(size uiIndex);
 };
 
 
