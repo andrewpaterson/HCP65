@@ -1112,7 +1112,7 @@ void TestAsm65LinkerDebugRecords(void)
 	LinkTestObject(&sTest,
 		"	.global Other\n"
 		"Other:\n"
-		"	.dfunction \"CShape::Area\", short\n"
+		"	.dfunction \"CShape::Area\", short, 1\n"
 		"	ret\n"
 		"	.dend\n"
 		"	.global Stray\n"
@@ -1159,6 +1159,7 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertInt((uint32)iStart, psFunction->sStart.uiOffset);
 	AssertInt((uint32)iBody, psFunction->uiBody);
 	AssertInt(ADE_Long, psFunction->uiEntry);
+	AssertInt(ASM65_DEBUG_NONE, psFunction->uiResult);
 	AssertInt(ADL_Frame, psFunction->uiLink);
 	AssertInt(6, psFunction->iLink);
 	AssertTrue(pcRecords->FindFunction((uint32)iBody + 1) == psFunction);
@@ -1170,6 +1171,7 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertInt(ADL_None, psFunction->uiLink);
 	AssertInt((uint32)iOther, psFunction->uiBody);
 	AssertInt((uint32)LinkedSymbol(&sTest, "Stray"), psFunction->uiEnd);
+	AssertString("int", pcRecords->GetType(psFunction->uiResult)->szKey.Text());
 	AssertTrue(pcRecords->FindFunction(0) == NULL);
 
 	//Stray's code, after .dend, has none; Handler's starts again.
@@ -1261,6 +1263,7 @@ void TestAsm65LinkerDebugRecords(void)
 	psFunction = pcRecords->FindFunction((uint32)iOther);
 	AssertString("CShape::Area", psFunction->szName.Text());
 	AssertInt(ADE_Short, psFunction->uiEntry);
+	AssertString("int", pcRecords->GetType(psFunction->uiResult)->szKey.Text());
 	AssertInt(ADL_User, pcRecords->FindFunction((uint32)iHandler)->uiLink);
 	AssertString("int", pcRecords->GetType(pcRecords->GetVariable(pcRecords->FindFunction((uint32)iStart), 0)->uiType)->szKey.Text());
 	AssertTrue(pcRecords->FindType("EKind") != NULL);
@@ -1272,6 +1275,58 @@ void TestAsm65LinkerDebugRecords(void)
 	cRead.Kill();
 	SafeKill(pcMemoryFile);
 	LinkTestKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The variables a function's code sees at a line: those in scope, an
+// inner one hiding an outer one of its name, as a debugger's Locals and
+// watches find them; this listed first.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerDebugVisible(void)
+{
+	CAsm65DebugRecords		cRecords;
+	SAsm65DebugFunction*	psFunction;
+	CArrayUint32			auiVisible;
+
+	cRecords.Init();
+	AssertTrue(cRecords.AddType("int", "int", ADT_Integer, ADTF_Signed, 2, ASM65_DEBUG_NONE, 0));
+	psFunction = cRecords.AddFunction("CShape::Grow", 0, 0, ADE_Long, 0);
+	AssertTrue(cRecords.AddVariable("iBy", 0, ADW_Frame, true, 1, 10, 30));
+	AssertTrue(cRecords.AddVariable("this", 0, ADW_Frame, true, 3, 10, 30));
+	AssertTrue(cRecords.AddVariable("i", 0, ADW_Frame, false, 5, 12, 30));
+	AssertTrue(cRecords.AddVariable("i", 0, ADW_Frame, false, 7, 15, 20));
+	AssertTrue(cRecords.AddVariable("iLast", 0, ADW_Frame, false, 9, 25, 30));
+	AssertTrue(cRecords.IsValid());
+
+	AssertTrue(cRecords.FindVariable(psFunction, "i", 11) == NULL);
+	AssertTrue(cRecords.FindVariable(psFunction, "i", 12) == cRecords.GetVariable(psFunction, 2));
+	AssertTrue(cRecords.FindVariable(psFunction, "i", 15) == cRecords.GetVariable(psFunction, 3));
+	AssertTrue(cRecords.FindVariable(psFunction, "i", 21) == cRecords.GetVariable(psFunction, 2));
+	AssertTrue(cRecords.FindVariable(psFunction, "i", 0) == cRecords.GetVariable(psFunction, 3));
+	AssertFalse(cRecords.IsVisible(psFunction, cRecords.GetVariable(psFunction, 2), 18));
+	AssertTrue(cRecords.IsVisible(psFunction, cRecords.GetVariable(psFunction, 2), 22));
+
+	//this first, then as declared, the outer i hidden.
+	auiVisible.Init();
+	AssertSize(3, cRecords.FindVisible(psFunction, 18, &auiVisible));
+	AssertInt(1, auiVisible.GetValue(0));
+	AssertInt(0, auiVisible.GetValue(1));
+	AssertInt(3, auiVisible.GetValue(2));
+	auiVisible.ReInit();
+	AssertSize(4, cRecords.FindVisible(psFunction, 26, &auiVisible));
+	AssertInt(1, auiVisible.GetValue(0));
+	AssertInt(0, auiVisible.GetValue(1));
+	AssertInt(2, auiVisible.GetValue(2));
+	AssertInt(4, auiVisible.GetValue(3));
+	auiVisible.Kill();
+
+	//A result of a type the records haven't makes them invalid.
+	cRecords.AddFunction("Bad", 0, 4, ADE_Long, 7);
+	AssertFalse(cRecords.IsValid());
+	cRecords.Kill();
 }
 
 
@@ -1359,6 +1414,7 @@ void TestAsm65Linker(void)
 	TestAsm65LinkerPrograms();
 	TestAsm65LinkerLineTable();
 	TestAsm65LinkerDebugRecords();
+	TestAsm65LinkerDebugVisible();
 	TestAsm65LinkerDebugErrors();
 	TestAsm65LinkerRelocatable();
 

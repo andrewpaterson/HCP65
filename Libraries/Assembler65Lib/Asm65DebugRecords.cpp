@@ -90,13 +90,13 @@ void CAsm65DebugRecords::Clear(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A function starting at the place, got to as eEntry says, with no frame
-// (its body is all of it) until SetFrame, running to its section's end
-// unless EndFunction ends it first.  Its variables are the ones added
-// after it.
+// A function starting at the place, got to as eEntry says and returning
+// uiResult, with no frame (its body is all of it) until SetFrame, running
+// to its section's end unless EndFunction ends it first.  Its variables
+// are the ones added after it.
 //
 //////////////////////////////////////////////////////////////////////////
-SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset, EAsm65DebugEntry eEntry)
+SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset, EAsm65DebugEntry eEntry, uint32 uiResult)
 {
 	SAsm65DebugFunction*	psFunction;
 
@@ -109,6 +109,7 @@ SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 
 	psFunction->uiEntry = (uint8)eEntry;
 	psFunction->uiLink = ADL_None;
 	psFunction->iLink = 0;
+	psFunction->uiResult = uiResult;
 	psFunction->uiFirstVariable = (uint32)masVariables.NumElements();
 	psFunction->uiNumVariables = 0;
 	return psFunction;
@@ -299,6 +300,13 @@ bool CAsm65DebugRecords::IsValid(void)
 {
 	size	ui;
 
+	for (ui = 0; ui < masFunctions.NumElements(); ui++)
+	{
+		if (!IsTypeOrNone(masFunctions.Get(ui)->uiResult))
+		{
+			return false;
+		}
+	}
 	for (ui = 0; ui < masVariables.NumElements(); ui++)
 	{
 		if (!IsTypeOrNone(masVariables.Get(ui)->uiType))
@@ -428,7 +436,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 			continue;
 		}
 		auiFunctions.Add((uint32)masFunctions.NumElements());
-		psFunction = AddFunction(psSourceFunction->szName.Text(), ASM65_DEBUG_ABSOLUTE, uiAddress + psSourceFunction->sStart.uiOffset, (EAsm65DebugEntry)psSourceFunction->uiEntry);
+		psFunction = AddFunction(psSourceFunction->szName.Text(), ASM65_DEBUG_ABSOLUTE, uiAddress + psSourceFunction->sStart.uiOffset, (EAsm65DebugEntry)psSourceFunction->uiEntry, MapType(psSourceFunction->uiResult, &auiTypes));
 		psFunction->uiEnd = uiAddress + psSourceFunction->uiEnd;
 		psFunction->uiBody = uiAddress + psSourceFunction->uiBody;
 		psFunction->uiLink = psSourceFunction->uiLink;
@@ -659,6 +667,91 @@ SAsm65DebugVariable* CAsm65DebugRecords::GetVariable(SAsm65DebugFunction* psFunc
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The variable named szName that the function's code sees at line uiLine
+// of its file (0 for any line): of those in scope there, the innermost
+// (the last to come into scope).  NULL if none is.
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugVariable* CAsm65DebugRecords::FindVariable(SAsm65DebugFunction* psFunction, const char* szName, uint32 uiLine)
+{
+	size					ui;
+	SAsm65DebugVariable*	psVariable;
+	SAsm65DebugVariable*	psFound;
+
+	psFound = NULL;
+	for (ui = 0; ui < psFunction->uiNumVariables; ui++)
+	{
+		psVariable = GetVariable(psFunction, ui);
+		if (psVariable->IsInScope(uiLine) && psVariable->szName.Equals(szName) && (!psFound || (psVariable->uiFirstLine >= psFound->uiFirstLine)))
+		{
+			psFound = psVariable;
+		}
+	}
+	return psFound;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the function's code sees the variable at line uiLine: it is in
+// scope, and no inner one of its name hides it (see FindVariable).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::IsVisible(SAsm65DebugFunction* psFunction, SAsm65DebugVariable* psVariable, uint32 uiLine)
+{
+	return FindVariable(psFunction, psVariable->szName.Text(), uiLine) == psVariable;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The function's variables its code sees at line uiLine (IsVisible), as
+// a debugger's Locals lists them: in the order they were declared, this
+// first.  Each is its index in the function's (GetVariable), appended to
+// pauiVariables.  Returns how many.
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsm65DebugRecords::FindVisible(SAsm65DebugFunction* psFunction, uint32 uiLine, CArrayUint32* pauiVariables)
+{
+	size					ui;
+	size					uiFirst;
+	SAsm65DebugVariable*	psVariable;
+
+	uiFirst = pauiVariables->NumElements();
+	for (ui = 0; ui < psFunction->uiNumVariables; ui++)
+	{
+		psVariable = GetVariable(psFunction, ui);
+		if (!IsVisible(psFunction, psVariable, uiLine))
+		{
+			continue;
+		}
+		if (psVariable->szName.Equals("this"))
+		{
+			pauiVariables->InsertAt((uint32)ui, uiFirst);
+		}
+		else
+		{
+			pauiVariables->Add((uint32)ui);
+		}
+	}
+	return pauiVariables->NumElements() - uiFirst;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Whether the variable is in scope at line uiLine of its function's file,
+// any line for 0.
+//
+//////////////////////////////////////////////////////////////////////////
+bool SAsm65DebugVariable::IsInScope(uint32 uiLine)
+{
+	return (uiLine == 0) || ((uiLine >= uiFirstLine) && (uiLine <= uiLastLine));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 size CAsm65DebugRecords::NumGlobals(void) const
@@ -842,6 +935,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt8(psFunction->uiEntry);
 		bResult &= pcChunkFile->WriteInt8(psFunction->uiLink);
 		bResult &= pcChunkFile->WriteInt32(psFunction->iLink);
+		bResult &= pcChunkFile->WriteInt32(psFunction->uiResult);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiFirstVariable);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiNumVariables);
 	}
@@ -939,7 +1033,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 		psFunction->szName.Init();
 		if (!Asm65ReadText(pcChunkFile, &psFunction->szName) || !Asm65ReadPlace(pcChunkFile, &psFunction->sStart) || !pcChunkFile->ReadInt32(&psFunction->uiEnd) ||
 			!pcChunkFile->ReadInt32(&psFunction->uiBody) || !pcChunkFile->ReadInt8(&psFunction->uiEntry) || !pcChunkFile->ReadInt8(&psFunction->uiLink) || !pcChunkFile->ReadInt32(&psFunction->iLink) ||
-			!pcChunkFile->ReadInt32(&psFunction->uiFirstVariable) || !pcChunkFile->ReadInt32(&psFunction->uiNumVariables))
+			!pcChunkFile->ReadInt32(&psFunction->uiResult) || !pcChunkFile->ReadInt32(&psFunction->uiFirstVariable) || !pcChunkFile->ReadInt32(&psFunction->uiNumVariables))
 		{
 			return false;
 		}

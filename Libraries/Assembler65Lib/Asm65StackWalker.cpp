@@ -151,6 +151,19 @@ void SAsm65StackRegisters::Init(CFastW65C816* pcFast, EAsm65StackSpace eSpace)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The address whose source line the frame is at: the instruction it runs
+// next for the innermost frame (the first of a walk), else its call's,
+// just before where the call returns to.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 SAsm65StackFrame::GetLineAddress(bool bInnermost)
+{
+	return bInnermost ? uiPC : uiPC - 1;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65StackWalker::Init(CAsm65StackMemory* pcMemory)

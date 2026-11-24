@@ -74,6 +74,8 @@ struct SAsm65StackFrame
 	uint8					uiSpace;	//EAsm65StackSpace.
 	SAsm65DebugFunction*	psFunction;
 	CAsm65DebugRecords*		pcRecords;
+
+	uint32	GetLineAddress(bool bInnermost);
 };
 
 

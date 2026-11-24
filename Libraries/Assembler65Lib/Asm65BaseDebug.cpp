@@ -36,9 +36,10 @@ static const char*	gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enume
 // types for a debugger (CAsm65DebugRecords, kept in the object).  Each is
 // only allowed in an object, and adds its record in the final pass:
 //
-//   .dfunction "name"[, entry]         A function starts here, got to by
+//   .dfunction "name"[, entry[, type]] A function starts here, got to by
 //                                      entry: long (jsl, as when left out),
-//                                      short (jsr) or interrupt.
+//                                      short (jsr) or interrupt, returning
+//                                      type (none when left out).
 //   .dframe link, offset               Its prologue ends here: link is
 //                                      none, frame, saved or user
 //                                      (EAsm65DebugLink).
@@ -124,18 +125,24 @@ bool CAsm65BaseAssembler::DebugFunction(SAsm65Token* psDirective)
 {
 	CChars	szName;
 	int		iEntry;
+	uint32	uiResult;
 	bool	bResult;
 
 	iEntry = ADE_Long;
+	uiResult = ASM65_DEBUG_NONE;
 	szName.Init();
 	bResult = DebugText(&szName, "a function's name");
 	if (bResult && Accept(AP65_Comma))
 	{
 		bResult = DebugWord(gaszAsm65DebugEntries, &iEntry, "long, short or interrupt");
+		if (bResult && Accept(AP65_Comma))
+		{
+			bResult = DebugTypeIndex(&uiResult);
+		}
 	}
 	if (bResult && mbFinal)
 	{
-		mpcObject->GetDebug()->AddFunction(szName.Text(), muiSection, muiAddress, (EAsm65DebugEntry)iEntry);
+		mpcObject->GetDebug()->AddFunction(szName.Text(), muiSection, muiAddress, (EAsm65DebugEntry)iEntry, uiResult);
 	}
 	szName.Kill();
 	return bResult;
