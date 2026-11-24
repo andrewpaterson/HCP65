@@ -1420,7 +1420,8 @@ void TestAsm65LinkerDebugRanges(void)
 //
 // A function's inlined calls (.dinline, .dinspan): Area inlined into
 // main, and Mul inlined into Area there; the innermost inline an address
-// is in; linked to addresses, written and read back, moved.
+// is in; a variable of an inline (.dvariable's inline), seen only by its
+// code; linked to addresses, written and read back, moved.
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65LinkerDebugInlines(void)
@@ -1460,8 +1461,11 @@ void TestAsm65LinkerDebugInlines(void)
 		"	ret\n"
 		"	.dinline -1, \"Area\", \"Test.cpp\", 25\n"
 		"	.dinspan Area, After\n"
+		"	.dvariable local, \"i\", 0, frame, 2, 20, 30\n"
+		"	.dvariable parameter, \"i\", 0, frame, 4, 5, 10, 0\n"
 		"	.dinline 0, \"Mul\", \"Test.cpp\", 9\n"
-		"	.dinspan Mul, MulEnd\n");
+		"	.dinspan Mul, MulEnd\n"
+		"	.dtype 0, \"int\", \"int\", integer, 1, 4, -1, 0\n");
 	AssertTrue(sTest.cLinker.Link());
 	AssertString("", sTest.cLinker.GetErrors());
 	uiStart = (uint32)LinkedSymbol(&sTest, "Start");
@@ -1481,6 +1485,13 @@ void TestAsm65LinkerDebugInlines(void)
 	AssertTrue(pcRecords->GetSpan(psInline, 1) == NULL);
 	AssertTrue(pcRecords->GetInline(psFunction, 2) == NULL);
 
+	//Area's i is its inline's alone: main's code doesn't see it, nor Area's code main's.
+	AssertInt(0, pcRecords->GetVariable(psFunction, 1)->iInline);
+	AssertTrue(pcRecords->FindVariable(psFunction, "i", 25) == pcRecords->GetVariable(psFunction, 0));
+	AssertTrue(pcRecords->FindVariable(psFunction, "i", 9, 0) == pcRecords->GetVariable(psFunction, 1));
+	AssertTrue(pcRecords->FindVariable(psFunction, "i", 9) == NULL);
+	AssertTrue(pcRecords->FindVariable(psFunction, "i", 25, 1) == NULL);
+
 	//The innermost an address is in.
 	AssertInt(-1, pcRecords->FindInline(psFunction, uiStart));
 	AssertInt(0, pcRecords->FindInline(psFunction, uiArea));
@@ -1497,6 +1508,8 @@ void TestAsm65LinkerDebugInlines(void)
 	psFunction = cObject.GetDebug()->GetFunction(0);
 	AssertInt(2, psFunction->uiNumInlines);
 	AssertString("Area", cObject.GetDebug()->GetInline(psFunction, 0)->szName.Text());
+	AssertInt(0, cObject.GetDebug()->GetVariable(psFunction, 1)->iInline);
+	AssertInt(-1, cObject.GetDebug()->GetVariable(psFunction, 0)->iInline);
 	AssertInt(uiMul - uiStart, cObject.GetDebug()->GetSpan(cObject.GetDebug()->GetInline(psFunction, 1), 0)->uiFrom);
 	cObject.Kill();
 	SafeKill(pcMemoryFile);

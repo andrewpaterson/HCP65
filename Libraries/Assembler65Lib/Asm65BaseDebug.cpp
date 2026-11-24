@@ -57,11 +57,12 @@ static const char*				gaszAsm65DebugMembers[] = { "base", "field", "vtable", "en
 //                                      its frame address (as when left out).
 //   .dend                              It ends here, before code with no
 //                                      records (else at its section's end).
-//   .dvariable local|parameter, "name", type, where, offset, first, last
-//                                      A variable of the function: where is
-//                                      none, frame, indirect or ranges (the
-//                                      .dranges after it), in scope from line
-//                                      first to last.
+//   .dvariable local|parameter, "name", type, where, offset, first, last[, inline]
+//                                      A variable of the function (or of its
+//                                      inline): where is none, frame,
+//                                      indirect or ranges (the .dranges
+//                                      after it), in scope from line first
+//                                      to last.
 //   .drange from, to, frame, offset    Where the last variable (of ranges) is
 //   .drange from, to, register, R      from the label from up to the label
 //   .drange from, to, memory, R, offset  to: at the base + offset, in
@@ -322,10 +323,12 @@ bool CAsm65BaseAssembler::DebugVariable(SAsm65Token* psDirective)
 	int64		iOffset;
 	int64		iFirst;
 	int64		iLast;
+	int64		iInline;
 	bool		bResult;
 
 	iKind = 0;
 	iWhere = ADW_None;
+	iInline = -1;
 	szName.Init();
 	bResult = DebugWord(gaszAsm65DebugVariableKinds, &iKind, "local or parameter") && Expect(AP65_Comma, "','") &&
 			  DebugText(&szName, "a variable's name") && Expect(AP65_Comma, "','") &&
@@ -334,7 +337,11 @@ bool CAsm65BaseAssembler::DebugVariable(SAsm65Token* psDirective)
 			  DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset") && Expect(AP65_Comma, "','") &&
 			  DebugNumber(&iFirst, 0, 0x7FFFFFFFll, "a line") && Expect(AP65_Comma, "','") &&
 			  DebugNumber(&iLast, iFirst, 0x7FFFFFFFll, "a line no earlier than the first");
-	if (bResult && mbFinal && !mpcObject->GetDebug()->AddVariable(szName.Text(), uiType, (EAsm65DebugWhere)iWhere, iKind == 1, (int32)iOffset, (uint32)iFirst, (uint32)iLast))
+	if (bResult && Accept(AP65_Comma))
+	{
+		bResult = DebugNumber(&iInline, 0, 0x7FFFFFFFll, "an inline");
+	}
+	if (bResult && mbFinal && !mpcObject->GetDebug()->AddVariable(szName.Text(), uiType, (EAsm65DebugWhere)iWhere, iKind == 1, (int32)iOffset, (uint32)iFirst, (uint32)iLast, (int32)iInline))
 	{
 		bResult = Error(psDirective, ".dvariable must follow a .dfunction");
 	}

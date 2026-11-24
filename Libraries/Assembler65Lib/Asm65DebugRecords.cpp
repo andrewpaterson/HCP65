@@ -270,13 +270,13 @@ void CAsm65DebugRecords::EndFunctions(uint32 uiSection, uint32 uiEnd)
 // A variable of the last function.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65DebugRecords::AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine)
+bool CAsm65DebugRecords::AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine, int32 iInline)
 {
 	SAsm65DebugFunction*	psFunction;
 	SAsm65DebugVariable*	psVariable;
 
 	psFunction = LastFunction();
-	if (!psFunction || (uiFirstLine > uiLastLine))
+	if (!psFunction || (uiFirstLine > uiLastLine) || (iInline < -1))
 	{
 		return false;
 	}
@@ -290,6 +290,7 @@ bool CAsm65DebugRecords::AddVariable(const char* szName, uint32 uiType, EAsm65De
 	psVariable->uiLastLine = uiLastLine;
 	psVariable->uiFirstRange = (uint32)masRanges.NumElements();
 	psVariable->uiNumRanges = 0;
+	psVariable->iInline = iInline;
 	psFunction->uiNumVariables++;
 	return true;
 }
@@ -629,7 +630,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 		{
 			psSourceVariable = pcSource->GetVariable(psSourceFunction, uiMember);
 			AddVariable(psSourceVariable->szName.Text(), MapType(psSourceVariable->uiType, &auiTypes), (EAsm65DebugWhere)psSourceVariable->uiWhere, psSourceVariable->bParameter,
-						psSourceVariable->iOffset, psSourceVariable->uiFirstLine, psSourceVariable->uiLastLine);
+						psSourceVariable->iOffset, psSourceVariable->uiFirstLine, psSourceVariable->uiLastLine, psSourceVariable->iInline);
 			for (uiRange = 0; uiRange < psSourceVariable->uiNumRanges; uiRange++)
 			{
 				psRange = pcSource->GetRange(psSourceVariable, uiRange);
@@ -877,11 +878,12 @@ SAsm65DebugVariable* CAsm65DebugRecords::GetVariable(SAsm65DebugFunction* psFunc
 //////////////////////////////////////////////////////////////////////////
 //
 // The variable named szName that the function's code sees at line uiLine
-// of its file (0 for any line): of those in scope there, the innermost
-// (the last to come into scope).  NULL if none is.
+// of its file (0 for any line), or with iInline the code of that inline
+// sees: of those in scope there, the innermost (the last to come into
+// scope).  NULL if none is.
 //
 //////////////////////////////////////////////////////////////////////////
-SAsm65DebugVariable* CAsm65DebugRecords::FindVariable(SAsm65DebugFunction* psFunction, const char* szName, uint32 uiLine)
+SAsm65DebugVariable* CAsm65DebugRecords::FindVariable(SAsm65DebugFunction* psFunction, const char* szName, uint32 uiLine, int32 iInline)
 {
 	size					ui;
 	SAsm65DebugVariable*	psVariable;
@@ -891,7 +893,7 @@ SAsm65DebugVariable* CAsm65DebugRecords::FindVariable(SAsm65DebugFunction* psFun
 	for (ui = 0; ui < psFunction->uiNumVariables; ui++)
 	{
 		psVariable = GetVariable(psFunction, ui);
-		if (psVariable->IsInScope(uiLine) && psVariable->szName.Equals(szName) && (!psFound || (psVariable->uiFirstLine >= psFound->uiFirstLine)))
+		if ((psVariable->iInline == iInline) && psVariable->IsInScope(uiLine) && psVariable->szName.Equals(szName) && (!psFound || (psVariable->uiFirstLine >= psFound->uiFirstLine)))
 		{
 			psFound = psVariable;
 		}
@@ -908,19 +910,19 @@ SAsm65DebugVariable* CAsm65DebugRecords::FindVariable(SAsm65DebugFunction* psFun
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65DebugRecords::IsVisible(SAsm65DebugFunction* psFunction, SAsm65DebugVariable* psVariable, uint32 uiLine)
 {
-	return FindVariable(psFunction, psVariable->szName.Text(), uiLine) == psVariable;
+	return FindVariable(psFunction, psVariable->szName.Text(), uiLine, psVariable->iInline) == psVariable;
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The function's variables its code sees at line uiLine (IsVisible), as
-// a debugger's Locals lists them: in the order they were declared, this
-// first.  Each is its index in the function's (GetVariable), appended to
-// pauiVariables.  Returns how many.
+// The function's variables its code sees at line uiLine (IsVisible), or
+// with iInline that inline's, as a debugger's Locals lists them: in the
+// order they were declared, this first.  Each is its index in the
+// function's (GetVariable), appended to pauiVariables.  Returns how many.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65DebugRecords::FindVisible(SAsm65DebugFunction* psFunction, uint32 uiLine, CArrayUint32* pauiVariables)
+size CAsm65DebugRecords::FindVisible(SAsm65DebugFunction* psFunction, uint32 uiLine, CArrayUint32* pauiVariables, int32 iInline)
 {
 	size					ui;
 	size					uiFirst;
@@ -930,7 +932,7 @@ size CAsm65DebugRecords::FindVisible(SAsm65DebugFunction* psFunction, uint32 uiL
 	for (ui = 0; ui < psFunction->uiNumVariables; ui++)
 	{
 		psVariable = GetVariable(psFunction, ui);
-		if (!IsVisible(psFunction, psVariable, uiLine))
+		if ((psVariable->iInline != iInline) || !IsVisible(psFunction, psVariable, uiLine))
 		{
 			continue;
 		}
@@ -1299,6 +1301,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psVariable->iOffset);
 		bResult &= pcChunkFile->WriteInt32(psVariable->uiFirstLine);
 		bResult &= pcChunkFile->WriteInt32(psVariable->uiLastLine);
+		bResult &= pcChunkFile->WriteInt32(psVariable->iInline);
 		bResult &= pcChunkFile->WriteInt32(psVariable->uiFirstRange);
 		bResult &= pcChunkFile->WriteInt32(psVariable->uiNumRanges);
 	}
@@ -1453,7 +1456,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 		psVariable->szName.Init();
 		if (!Asm65ReadText(pcChunkFile, &psVariable->szName) || !pcChunkFile->ReadInt32(&psVariable->uiType) || !pcChunkFile->ReadInt8(&psVariable->uiWhere) ||
 			!pcChunkFile->ReadBool(&psVariable->bParameter) || !pcChunkFile->ReadInt32(&psVariable->iOffset) || !pcChunkFile->ReadInt32(&psVariable->uiFirstLine) ||
-			!pcChunkFile->ReadInt32(&psVariable->uiLastLine) || !pcChunkFile->ReadInt32(&psVariable->uiFirstRange) || !pcChunkFile->ReadInt32(&psVariable->uiNumRanges))
+			!pcChunkFile->ReadInt32(&psVariable->uiLastLine) || !pcChunkFile->ReadInt32(&psVariable->iInline) || !pcChunkFile->ReadInt32(&psVariable->uiFirstRange) || !pcChunkFile->ReadInt32(&psVariable->uiNumRanges))
 		{
 			return false;
 		}
@@ -1598,6 +1601,7 @@ bool CAsm65DebugRecords::IsWhole(void)
 {
 	size					ui;
 	size					uiInline;
+	size					uiVariable;
 	SAsm65DebugFunction*	psFunction;
 	SAsm65DebugInline*		psInline;
 	SAsm65DebugType*		psType;
@@ -1610,6 +1614,13 @@ bool CAsm65DebugRecords::IsWhole(void)
 			((size)psFunction->uiFirstInline + psFunction->uiNumInlines > masInlines.NumElements()))
 		{
 			return false;
+		}
+		for (uiVariable = 0; uiVariable < psFunction->uiNumVariables; uiVariable++)
+		{
+			if (masVariables.Get(psFunction->uiFirstVariable + uiVariable)->iInline >= (int32)psFunction->uiNumInlines)
+			{
+				return false;
+			}
 		}
 		for (uiInline = 0; uiInline < psFunction->uiNumInlines; uiInline++)
 		{

@@ -28,7 +28,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 #define ASM65_DEBUG_RECORDS_MAGIC	"Asm65DebugRecords"
-#define ASM65_DEBUG_RECORDS_VERSION	6
+#define ASM65_DEBUG_RECORDS_VERSION	7
 
 #define ASM65_DEBUG_NONE		0xFFFFFFFF		//No type, function or section.
 #define ASM65_DEBUG_ABSOLUTE	0xFFFFFFFE		//A place's section once linked: its offset is its address.
@@ -199,7 +199,8 @@ struct SAsm65DebugSaved
 };
 
 
-//A parameter or local of a function, in scope from uiFirstLine to uiLastLine of its function's file.
+//A parameter or local of a function, in scope from uiFirstLine to uiLastLine of its function's file; or, iInline not
+//-1, of a function inlined into it (one of its inlines: DebuggerFPlan.txt F2-2), in that one's file.
 struct SAsm65DebugVariable
 {
 	CChars	szName;
@@ -211,6 +212,7 @@ struct SAsm65DebugVariable
 	uint32	uiLastLine;
 	uint32	uiFirstRange;	//ADW_Ranges: its ranges.
 	uint32	uiNumRanges;
+	int32	iInline;
 
 	bool	IsInScope(uint32 uiLine);
 };
@@ -318,7 +320,7 @@ public:
 	bool					AddSaved(uint32 uiWhat, bool bMemory, uint8 uiBytes, int32 iOffset);
 	bool					EndFunction(uint32 uiEnd);
 	void					EndFunctions(uint32 uiSection, uint32 uiEnd);
-	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine);
+	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine, int32 iInline = -1);
 	bool					AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset);
 	bool					AddInline(const char* szName, int32 iParent, const char* szFile, uint32 uiLine);
 	bool					AddInlineSpan(uint32 uiSection, uint32 uiFrom, uint32 uiTo);
@@ -337,9 +339,9 @@ public:
 	size					NumVariables(void) const;
 	SAsm65DebugVariable*	GetVariable(size uiIndex);
 	SAsm65DebugVariable*	GetVariable(SAsm65DebugFunction* psFunction, size uiIndex);
-	SAsm65DebugVariable*	FindVariable(SAsm65DebugFunction* psFunction, const char* szName, uint32 uiLine);
+	SAsm65DebugVariable*	FindVariable(SAsm65DebugFunction* psFunction, const char* szName, uint32 uiLine, int32 iInline = -1);
 	bool					IsVisible(SAsm65DebugFunction* psFunction, SAsm65DebugVariable* psVariable, uint32 uiLine);
-	size					FindVisible(SAsm65DebugFunction* psFunction, uint32 uiLine, CArrayUint32* pauiVariables);
+	size					FindVisible(SAsm65DebugFunction* psFunction, uint32 uiLine, CArrayUint32* pauiVariables, int32 iInline = -1);
 	size					NumGlobals(void) const;
 	SAsm65DebugGlobal*		GetGlobal(size uiIndex);
 	SAsm65DebugGlobal*		FindGlobal(const char* szName, SAsm65DebugFunction* psFunction);
