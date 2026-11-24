@@ -22,8 +22,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 //The words the debug directives take for their kinds, in each enum's order.
-static const char*	gaszAsm65DebugEntries[] = { "long", "short", "interrupt", NULL };
-static const char*	gaszAsm65DebugLinks[] = { "none", "frame", "saved", "user", NULL };
+static const char*	gaszAsm65DebugEntries[] = { "long", "short", "interrupt", "userinterrupt", NULL };
 static const char*	gaszAsm65DebugWheres[] = { "none", "frame", "indirect", NULL };
 static const char*	gaszAsm65DebugVariableKinds[] = { "local", "parameter", NULL };
 static const char*	gaszAsm65DebugTypes[] = { "void", "bool", "integer", "float", "enum", "pointer", "reference", "array", "class", "function", NULL };
@@ -38,11 +37,22 @@ static const char*	gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enume
 //
 //   .dfunction "name"[, entry[, type]] A function starts here, got to by
 //                                      entry: long (jsl, as when left out),
-//                                      short (jsr) or interrupt, returning
-//                                      type (none when left out).
-//   .dframe link, offset               Its prologue ends here: link is
-//                                      none, frame, saved or user
-//                                      (EAsm65DebugLink).
+//                                      short (jsr), interrupt or
+//                                      userinterrupt (a kernel's from user
+//                                      mode), returning type (none when left
+//                                      out).
+//   .dframe none                       Its prologue ends here, and its frame
+//   .dframe R, offset                  address (S before its call) is found
+//   .dframe [R + offset], adjust       by following its instructions, or is
+//                                      register R plus offset, or the address
+//                                      held there plus adjust
+//                                      (EAsm65DebugFrame).  R is one of the
+//                                      processor's registers (S, D, ... ).
+//   .dsaved R, offset                  It saved register R (or bytes at an
+//   .dsaved [address], bytes, offset   address) for its caller at its frame
+//                                      address plus offset.
+//   .dbase R | frame                   Its variables are from register R, or
+//                                      its frame address (as when left out).
 //   .dend                              It ends here, before code with no
 //                                      records (else at its section's end).
 //   .dvariable local|parameter, "name", type, where, offset, first, last
@@ -70,6 +80,14 @@ bool CAsm65BaseAssembler::DebugDirective(SAsm65Token* psDirective, bool* pbResul
 	else if (psDirective->IsIdentifierIgnoreCase(".dframe"))
 	{
 		*pbResult = DebugObject(psDirective) && DebugFrame(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dsaved"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugSaved(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dbase"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugBase(psDirective);
 	}
 	else if (psDirective->IsIdentifierIgnoreCase(".dend"))
 	{
@@ -113,6 +131,7 @@ bool CAsm65BaseAssembler::DebugObject(SAsm65Token* psDirective)
 	{
 		return Error(psDirective, "Debug directives are only allowed when assembling an object");
 	}
+	mpcObject->GetDebug()->SetProcessor(DebugProcessor());
 	return true;
 }
 
@@ -134,7 +153,7 @@ bool CAsm65BaseAssembler::DebugFunction(SAsm65Token* psDirective)
 	bResult = DebugText(&szName, "a function's name");
 	if (bResult && Accept(AP65_Comma))
 	{
-		bResult = DebugWord(gaszAsm65DebugEntries, &iEntry, "long, short or interrupt");
+		bResult = DebugWord(gaszAsm65DebugEntries, &iEntry, "long, short, interrupt or userinterrupt");
 		if (bResult && Accept(AP65_Comma))
 		{
 			bResult = DebugTypeIndex(&uiResult);
@@ -155,17 +174,97 @@ bool CAsm65BaseAssembler::DebugFunction(SAsm65Token* psDirective)
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65BaseAssembler::DebugFrame(SAsm65Token* psDirective)
 {
-	int		iLink;
-	int64	iOffset;
+	EAsm65DebugFrame	eFrame;
+	uint8				uiRegister;
+	int64				iOffset;
+	int64				iAdjust;
+	bool				bResult;
 
-	iLink = ADL_None;
-	if (!DebugWord(gaszAsm65DebugLinks, &iLink, "none, frame, saved or user") || !Expect(AP65_Comma, "','") || !DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset"))
+	uiRegister = ASM65_DEBUG_S;
+	iOffset = 0;
+	iAdjust = 0;
+	if (Peek()->IsIdentifierIgnoreCase("none"))
+	{
+		Next();
+		eFrame = ADF_FollowS;
+		bResult = true;
+	}
+	else if (Accept(AP65_LeftSquare))
+	{
+		eFrame = ADF_Memory;
+		bResult = DebugRegisterPlace(&uiRegister, &iOffset) && Expect(AP65_RightSquare, "']'") && Expect(AP65_Comma, "','") &&
+				  DebugNumber(&iAdjust, -0x7FFFFFFFll, 0x7FFFFFFFll, "an adjustment");
+	}
+	else
+	{
+		eFrame = ADF_Register;
+		bResult = DebugRegister(&uiRegister) && Expect(AP65_Comma, "','") && DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset");
+	}
+	if (bResult && mbFinal && !mpcObject->GetDebug()->SetFrame(muiAddress, eFrame, uiRegister, (int32)iOffset, (int32)iAdjust))
+	{
+		return Error(psDirective, ".dframe must follow a .dfunction");
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// .dsaved: a register (or memory) the function saved for its caller.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugSaved(SAsm65Token* psDirective)
+{
+	uint8	uiRegister;
+	int64	iAddress;
+	int64	iBytes;
+	int64	iOffset;
+	bool	bMemory;
+	bool	bResult;
+
+	iAddress = 0;
+	iBytes = 0;
+	bMemory = Accept(AP65_LeftSquare);
+	if (bMemory)
+	{
+		bResult = DebugNumber(&iAddress, 0, 0xFFFFFFFFll, "an address") && Expect(AP65_RightSquare, "']'") && Expect(AP65_Comma, "','") &&
+				  DebugNumber(&iBytes, 1, 8, "the bytes saved");
+	}
+	else
+	{
+		bResult = DebugRegister(&uiRegister);
+		iAddress = bResult ? uiRegister : 0;
+	}
+	bResult = bResult && Expect(AP65_Comma, "','") && DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset");
+	if (bResult && mbFinal && !mpcObject->GetDebug()->AddSaved((uint32)iAddress, bMemory, (uint8)iBytes, (int32)iOffset))
+	{
+		return Error(psDirective, ".dsaved must follow a .dfunction");
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// .dbase: what the function's variables' offsets are from.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugBase(SAsm65Token* psDirective)
+{
+	uint8	uiRegister;
+
+	if (Peek()->IsIdentifierIgnoreCase("frame"))
+	{
+		Next();
+		uiRegister = ASM65_DEBUG_FRAME;
+	}
+	else if (!DebugRegister(&uiRegister))
 	{
 		return false;
 	}
-	if (mbFinal && !mpcObject->GetDebug()->SetFrame(muiAddress, (EAsm65DebugLink)iLink, (int32)iOffset))
+	if (mbFinal && !mpcObject->GetDebug()->SetBase(uiRegister))
 	{
-		return Error(psDirective, ".dframe must follow a .dfunction");
+		return Error(psDirective, ".dbase must follow a .dfunction");
 	}
 	return true;
 }
@@ -406,6 +505,57 @@ bool CAsm65BaseAssembler::DebugWord(const char** aszWords, int* piIndex, const c
 //////////////////////////////////////////////////////////////////////////
 //
 // A type's index in the unit's types, -1 for none.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugRegister(uint8* puiRegister)
+{
+	const char*	aszNames[ASM65_DEBUG_REGISTERS + 1];
+	size		ui;
+	int			iRegister;
+
+	for (ui = 0; ui < Asm65DebugNumRegisters(DebugProcessor()); ui++)
+	{
+		aszNames[ui] = Asm65DebugRegisterName(DebugProcessor(), ui);
+	}
+	aszNames[ui] = NULL;
+	if (!DebugWord(aszNames, &iRegister, "one of the processor's registers"))
+	{
+		return false;
+	}
+	*puiRegister = (uint8)iRegister;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A register and an offset from it, "R + offset" or "R - offset".
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugRegisterPlace(uint8* puiRegister, int64* piOffset)
+{
+	bool	bMinus;
+
+	if (!DebugRegister(puiRegister))
+	{
+		return false;
+	}
+	bMinus = Peek()->Is(AP65_Minus);
+	if (!Accept(AP65_Plus) && !Accept(AP65_Minus))
+	{
+		return ErrorExpected(Peek(), "'+' or '-'");
+	}
+	if (!DebugNumber(piOffset, 0, 0x7FFFFFFFll, "an offset"))
+	{
+		return false;
+	}
+	*piOffset = bMinus ? -*piOffset : *piOffset;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65BaseAssembler::DebugTypeIndex(uint32* puiType)

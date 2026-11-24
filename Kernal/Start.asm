@@ -79,7 +79,8 @@ KernalAbort:
 		;
 		; For a debugger (DebuggerPlan.txt, decision 6) each way is described from where it is known (.dfunction,
 		; Assembler65Lib's CAsm65StackWalker): from kernel mode its caller is found from the pushes; from user mode
-		; the process's S and D are pushed on the kernal's stack (.dframe user) until the call returns (.dend).
+		; (userinterrupt) the process's S and D are pushed on the kernal's stack, kept there (.dsaved) until the call
+		; returns (.dend): its frame address there is S + 4.
 KernalIrq:
 		rep (m, x)
 		sta [_gauiKernalIrqSave + 0]:24
@@ -109,7 +110,7 @@ KernalIrq:
 		pla
 		rti
 KernalIrqFromUser:
-		.dfunction "[Interrupt]", interrupt
+		.dfunction "[Interrupt]", userinterrupt
 		.width (A, X), 16
 		txa
 		sta [_gauiKernalIrqSave + 2]:24
@@ -127,7 +128,9 @@ KernalIrqFromUser:
 		lda [_gauiKernalIrqSave + 6]:24
 		pha
 		phd
-		.dframe user, 0
+		.dframe S, 4
+		.dsaved D, -3
+		.dsaved S, -1
 		lda 0
 		tcd
 		jsl _KernalIrqDispatch
@@ -152,7 +155,7 @@ KernalIrqFromUser:
 		; the other's).  KernalCopCall (C++) reads the signature byte through the remap table.  The exit call goes back
 		; to whoever ran the process (KernalEnterUser's caller); every other call returns to the process.
 KernalCop:
-		.dfunction "[Kernal call]", interrupt
+		.dfunction "[Kernal call]", userinterrupt
 		rep (m, x)
 		sta [_gsKernalCall + 0]:24
 		txa
@@ -176,7 +179,9 @@ KernalCop:
 		lda [_gsKernalCall + 6]:24
 		pha
 		phd
-		.dframe user, 0
+		.dframe S, 4
+		.dsaved D, -3
+		.dsaved S, -1
 		lda 0
 		tcd
 		jsl _KernalCopCall

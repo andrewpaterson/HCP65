@@ -11,7 +11,7 @@
 #include "BaseLib/ConstructorCall.h"
 #include "BaseLib/DataMemory.h"
 #include "Assembler65Lib/Asm65Object.h"
-#include "Assembler65Lib/Asm65StackWalker.h"
+#include "Assembler65Lib/AsmW65C816StackWalker.h"
 #include "StandardLib/Objects.h"
 #include "SupportLib/MODReader.h"
 #include "SupportLib/ModPlayer.h"
@@ -2617,7 +2617,7 @@ void TestHCP65KernalWalk(STestKernal* psKernal)
 	CTestKernalStackMemory	cMemory;
 	CAsm65DebugInfo			cKernal;
 	CAsm65DebugInfo			cProgram;
-	CAsm65StackWalker		cWalker;
+	CAsmW65C816StackWalker	cWalker;
 	CArrayAsm65StackFrames	asFrames;
 	SAsm65StackRegisters	sRegisters;
 	SAsm65StackFrame*		psFrame;
@@ -2693,7 +2693,7 @@ void TestHCP65KernalWalk(STestKernal* psKernal)
 			//mode's memory at the same address isn't.
 			if (uiCalls == 1)
 			{
-				uiAddress = (uint32)psFrame->uiS - 16;
+				uiAddress = psFrame->GetS() - 16;
 				uiCop = 0xA5;
 				AssertSize(1, cTarget.PokeSpaceMemory(1, uiAddress, &uiCop, 1));
 				AssertIntHex(0xA5, *cHCP65.MemoryAt(uiAddress, false));

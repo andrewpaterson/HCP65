@@ -108,6 +108,9 @@
     <ClCompile Include="Asm65StackWalker.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="AsmW65C816StackWalker.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="Asm65Symbols.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -198,6 +201,9 @@
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65StackWalker.h">
+      <Filter>Header</Filter>
+    </ClInclude>
+    <ClInclude Include="AsmW65C816StackWalker.h">
       <Filter>Header</Filter>
     </ClInclude>
     <ClInclude Include="Asm65Symbols.h">

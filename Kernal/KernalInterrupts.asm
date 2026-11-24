@@ -45,7 +45,8 @@ _KernalIrqDispatch:
 		sbc L_SIZE
 		tcs
 		tcd
-		.dframe frame, L_SIZE
+		.dframe D, L_SIZE + 5
+		.dsaved D, -4
 		sep m
 		lda [REGISTER_INTERRUPTS_LOW]:24
 		eor 0xFF

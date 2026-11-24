@@ -28,10 +28,52 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 #define ASM65_DEBUG_RECORDS_MAGIC	"Asm65DebugRecords"
-#define ASM65_DEBUG_RECORDS_VERSION	3
+#define ASM65_DEBUG_RECORDS_VERSION	4
 
 #define ASM65_DEBUG_NONE		0xFFFFFFFF		//No type, function or section.
 #define ASM65_DEBUG_ABSOLUTE	0xFFFFFFFE		//A place's section once linked: its offset is its address.
+#define ASM65_DEBUG_FRAME		0xFF			//A function's variables are from its frame address (SAsm65DebugFunction::uiBase).
+#define ASM65_DEBUG_REGISTERS	8				//The most registers a processor has for a debugger.
+
+
+//The processor a program's records are for.
+enum EAsm65DebugProcessor
+{
+	ADP_None,
+	ADP_W65C816,
+	ADP_65C64,
+};
+
+
+//The registers the records name (a frame's register, a saved register, the variables' base), by each processor's own
+//names (Asm65DebugRegisterName), S first for every processor.
+enum EAsmW65C816DebugRegister
+{
+	AW65DR_S,
+	AW65DR_D,
+	AW65DR_C,
+	AW65DR_X,
+	AW65DR_Y,
+	AW65DR_P,
+	AW65DR_Count,
+};
+
+
+enum EAsm65C64DebugRegister
+{
+	A65DR_S,
+	A65DR_V,
+	A65DR_W,
+	A65DR_A,
+	A65DR_B,
+	A65DR_X,
+	A65DR_Y,
+	A65DR_P,
+	A65DR_Count,
+};
+
+
+#define ASM65_DEBUG_S	0		//S is each processor's first register.
 
 
 //How a function is got to, so what is above S as it starts: where its caller goes on.
@@ -40,26 +82,27 @@ enum EAsm65DebugEntry
 	ADE_Long,		//jsl: the return address less one, three bytes.
 	ADE_Short,		//jsr: the return address less one, two bytes, in the function's own bank.
 	ADE_Interrupt,	//An interrupt (or cop, brk): P, then the address it goes back to, three bytes.
+	ADE_UserInterrupt,	//A kernel's interrupt (or call) from user mode: as ADE_Interrupt, its caller in user mode's memory.
 };
 
 
-//How a function's caller is found from the D its body runs on (the stack walker's rule, CAsm65StackWalker).
-enum EAsm65DebugLink
+//How a function's frame address (S as its caller had it just before the call: the return address is just below it) is
+//found while its body runs (DebuggerPlan.txt's frame model).  Its saved registers are at places from it.  Before its
+//body (the prologue), and after its epilogue starts, a stack walker follows its instructions instead.
+enum EAsm65DebugFrame
 {
-	ADL_None,		//No frame: D is the caller's, and the return address is on top of the stack as the body starts.
-	ADL_Frame,		//S after phd is D + iLink: the caller's D is at D + iLink + 1, the return address after it.
-	ADL_SavedS,		//The word at D + iLink is S as it was after phd (an aligned frame).
-	ADL_User,		//A kernel's interrupt from user mode, run on the kernel's own stack: the word at S + iLink + 1 is the
-					//interrupted D and the one after it its S, where the interrupt's frame is in user mode's memory.
+	ADF_FollowS,	//From S, following its instructions from its start: it has no frame register.
+	ADF_Register,	//A register plus iFrameOffset.
+	ADF_Memory,		//The address held at a register plus iFrameOffset, plus iFrameAdjust (an aligned frame's kept S).
 };
 
 
-//Where a variable is while its function runs.
+//Where a variable is while its function runs, from its function's base (a register, or the frame address).
 enum EAsm65DebugWhere
 {
 	ADW_None,		//Not kept anywhere the debugger can read (optimised away).
-	ADW_Frame,		//At D + iOffset.
-	ADW_Indirect,	//At the address held at D + iOffset (an object passed by address).
+	ADW_Frame,		//At the base + iOffset.
+	ADW_Indirect,	//At the address held at the base + iOffset (an object passed by address).
 };
 
 
@@ -104,8 +147,8 @@ struct SAsm65DebugPlace
 
 
 //A function the compiler wrote: its code is from sStart to uiEnd (exclusive, in sStart's section), its prologue
-//ends at uiBody, its variables are uiNumVariables from uiFirstVariable.  uiResult is the type it returns,
-//ASM65_DEBUG_NONE for void (or code that doesn't say).
+//ends at uiBody, its variables are uiNumVariables from uiFirstVariable and its saved registers uiNumSaved from
+//uiFirstSaved.  uiResult is the type it returns, ASM65_DEBUG_NONE for void (or code that doesn't say).
 struct SAsm65DebugFunction
 {
 	CChars				szName;			//As C++ writes it (CShape::Area).
@@ -113,11 +156,27 @@ struct SAsm65DebugFunction
 	uint32				uiEnd;
 	uint32				uiBody;
 	uint8				uiEntry;		//EAsm65DebugEntry.
-	uint8				uiLink;			//EAsm65DebugLink.
-	int32				iLink;
+	uint8				uiFrame;		//EAsm65DebugFrame,
+	uint8				uiFrameRegister;	//from this register,
+	int32				iFrameOffset;
+	int32				iFrameAdjust;
+	uint8				uiBase;			//The register its variables are from, ASM65_DEBUG_FRAME for its frame address.
 	uint32				uiResult;
 	uint32				uiFirstVariable;
 	uint32				uiNumVariables;
+	uint32				uiFirstSaved;
+	uint32				uiNumSaved;
+};
+
+
+//What a function saved for its caller, at its frame address plus iOffset once its body runs: a register (its width
+//the processor's) or uiBytes of memory at an address (a pseudo register a function keeps).
+struct SAsm65DebugSaved
+{
+	uint32	uiWhat;			//A register, or with bMemory an address.
+	bool	bMemory;
+	uint8	uiBytes;
+	int32	iOffset;
 };
 
 
@@ -176,6 +235,7 @@ typedef CArrayTemplate<SAsm65DebugVariable>	CArrayAsm65DebugVariables;
 typedef CArrayTemplate<SAsm65DebugGlobal>	CArrayAsm65DebugGlobals;
 typedef CArrayTemplate<SAsm65DebugType>		CArrayAsm65DebugTypes;
 typedef CArrayTemplate<SAsm65DebugMember>	CArrayAsm65DebugMembers;
+typedef CArrayTemplate<SAsm65DebugSaved>	CArrayAsm65DebugSaved;
 
 
 //What a debugger knows of a program beyond its lines: its functions' frames and variables, its globals and their
@@ -191,6 +251,8 @@ protected:
 	CArrayAsm65DebugGlobals		masGlobals;
 	CArrayAsm65DebugTypes		masTypes;
 	CArrayAsm65DebugMembers		masMembers;
+	CArrayAsm65DebugSaved		masSaved;
+	uint8						muiProcessor;	//EAsm65DebugProcessor.
 	CHashMapString<uint32>		mcTypeKeys;		//Each type's index by its key.
 	CArrayUint32				mauiFunctionOrder;	//The functions' indices in address order (Sort), for FindFunction.
 
@@ -200,7 +262,11 @@ public:
 	void					Clear(void);
 
 	SAsm65DebugFunction*	AddFunction(const char* szName, uint32 uiSection, uint32 uiOffset, EAsm65DebugEntry eEntry, uint32 uiResult = ASM65_DEBUG_NONE);
-	bool					SetFrame(uint32 uiBody, EAsm65DebugLink eLink, int32 iLink);
+	void					SetProcessor(EAsm65DebugProcessor eProcessor);
+	EAsm65DebugProcessor	GetProcessor(void) const;
+	bool					SetFrame(uint32 uiBody, EAsm65DebugFrame eFrame, uint8 uiRegister, int32 iOffset, int32 iAdjust);
+	bool					SetBase(uint8 uiRegister);
+	bool					AddSaved(uint32 uiWhat, bool bMemory, uint8 uiBytes, int32 iOffset);
 	bool					EndFunction(uint32 uiEnd);
 	void					EndFunctions(uint32 uiSection, uint32 uiEnd);
 	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine);
@@ -230,6 +296,7 @@ public:
 	SAsm65DebugType*		FindType(const char* szKey);
 	uint32					FindTypeIndex(const char* szKey);
 	SAsm65DebugMember*		GetMember(SAsm65DebugType* psType, size uiIndex);
+	SAsm65DebugSaved*		GetSaved(SAsm65DebugFunction* psFunction, size uiIndex);
 
 	bool					WriteChunks(CChunkFile* pcChunkFile);
 	bool					ReadChunks(CChunkFile* pcChunkFile);
@@ -244,6 +311,12 @@ protected:
 	void					AddMemberTo(SAsm65DebugMember* psSource, uint32 uiType);
 	void					AddGlobalTo(const char* szName, uint32 uiType, uint32 uiAddress, uint32 uiFunction);
 };
+
+
+EAsm65DebugProcessor	Asm65DebugProcessorNamed(const char* szName);
+const char*		Asm65DebugRegisterName(EAsm65DebugProcessor eProcessor, size uiRegister);
+size			Asm65DebugNumRegisters(EAsm65DebugProcessor eProcessor);
+uint8			Asm65DebugRegisterBytes(EAsm65DebugProcessor eProcessor, size uiRegister);
 
 
 #endif // __ASM65_DEBUG_RECORDS_H__

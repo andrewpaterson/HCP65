@@ -29,7 +29,7 @@ class CFastW65C816;
 
 //The memories a walk reads.  A computer with a user mode sees other memory there at the same addresses (the HCP65's
 //processes, each its own); one without has only the kernel's.  A kernel's interrupt from user mode is called from user
-//mode's code (EAsm65DebugLink's ADL_User).
+//mode's code (EAsm65DebugEntry's ADE_UserInterrupt).
 enum EAsm65StackSpace
 {
 	ASS_Kernel,
@@ -37,7 +37,7 @@ enum EAsm65StackSpace
 };
 
 
-//The memory of a W65C816 that has stopped, as a stack walker reads it: its code and its stacks.
+//The memory of a processor that has stopped, as a stack walker reads it: its code and its stacks.
 class CAsm65StackMemory
 {
 public:
@@ -45,35 +45,36 @@ public:
 };
 
 
-//The registers a walk starts from, and the space the code runs in.  A, X and Y find the frame of a function caught
-//while its prologue makes it (an aligned frame's S is in a register before it is kept); P's m and x say how wide what
-//it pulls before it returns is.
+//A stopped processor's registers as a walk knows them, by the processor's own register names (Asm65DebugRecords.h's
+//EAsmW65C816DebugRegister or EAsm65C64DebugRegister, S first), with the program address and the space its code runs
+//in.  A caller's registers are those its callee saved for it, and those calls keep; the rest aren't known.
 struct SAsm65StackRegisters
 {
 	uint32	uiPC;
-	uint16	uiS;
-	uint16	uiD;
-	uint16	uiC;
-	uint16	uiX;
-	uint16	uiY;
-	uint8	uiP;
-	uint8	uiSpace;	//EAsm65StackSpace.
+	uint8	uiSpace;		//EAsm65StackSpace.
+	uint32	uiKnown;		//A bit for each register known.
+	uint64	auiValues[ASM65_DEBUG_REGISTERS];
 
+	void	Init(uint32 uiPCIn, EAsm65StackSpace eSpace);
 	void	Init(CFastW65C816* pcFast, EAsm65StackSpace eSpace);
+	void	Set(size uiRegister, uint64 uiValue);
+	void	Forget(size uiRegister);
+	bool	IsKnown(size uiRegister) const;
+	uint64	Get(size uiRegister) const;
+	uint32	GetS(void) const;
 };
 
 
 //A function on the stack: where it is (uiPC, the instruction it runs next, or for a caller the one its call returns
-//to), S as it was before the call it made (its own S for the first), its D, and the space its code and stack are in.
-//psFunction is NULL for code the debug records don't describe: the walk stops there.
-struct SAsm65StackFrame
+//to), its registers (S as it was before the call it made; the first frame's are the processor's), the space its code
+//and stack are in, and its frame address (S before its own call, bFrame once a walk has found it).  psFunction is NULL
+//for code the debug records don't describe: the walk stops there.
+struct SAsm65StackFrame : public SAsm65StackRegisters
 {
-	uint32					uiPC;
-	uint16					uiS;
-	uint16					uiD;
-	uint8					uiSpace;	//EAsm65StackSpace.
 	SAsm65DebugFunction*	psFunction;
 	CAsm65DebugRecords*		pcRecords;
+	uint32					uiFrame;
+	bool					bFrame;
 
 	uint32	GetLineAddress(bool bInnermost);
 };
@@ -91,10 +92,15 @@ typedef CArrayTemplate<SAsm65StackFrame>	CArrayAsm65StackFrames;
 typedef CArrayTemplate<SAsm65StackRecords>	CArrayAsm65StackRecords;
 
 
-//Finds the calls a stopped W65C816 is in from its registers, its memory and the debug records of the programs loaded
-//(a program's, the kernal's): each function's caller from how its frame was made (SAsm65DebugFunction's link), or
-//while it makes it or takes it apart, from the instructions it runs (DebuggerPlan.txt B2).  How the function was got
-//to (its entry: jsl, jsr or an interrupt) says what is above its entry S.
+//Finds the calls a stopped processor is in from its registers, its memory and the debug records of the programs
+//loaded (a program's, the kernal's), by the frame model (DebuggerPlan.txt, Debugger65C64Plan.txt): each function's
+//frame address (S before its call) found as its records say once its body runs (a register plus an offset, or the
+//address kept there), or while it makes or takes apart its frame by following its instructions; the registers it
+//saved read back from their places; the return address below the frame address.
+//
+//What isn't a processor's is here: the records, the walk, the rules, the saved registers, the return.  A processor's
+//walker (CAsmW65C816StackWalker, CAsm65C64StackWalker) gives what the rules can't: how to follow its instructions in
+//a prologue, an epilogue or code with no rule, how its calls push their return, and its addresses' widths.
 class CAsm65StackWalker
 {
 protected:
@@ -102,25 +108,40 @@ protected:
 	CAsm65StackMemory*		mpcMemory;
 
 public:
-	void	Init(CAsm65StackMemory* pcMemory);
-	void	Kill(void);
+	void					Init(CAsm65StackMemory* pcMemory);
+	virtual void			Kill(void);
 
-	void	AddRecords(CAsm65DebugRecords* pcRecords, EAsm65StackSpace eSpace);
-	size	Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames);
-	bool	Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, uint32* puiAddress);
+	void					AddRecords(CAsm65DebugRecords* pcRecords, EAsm65StackSpace eSpace);
+	void					ClearRecords(void);
+	size					Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames);
+	bool					Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, uint32* puiAddress);
+	virtual EAsm65DebugProcessor	GetProcessor(void) = 0;
 
 protected:
-	bool	Find(uint32 uiPC, EAsm65StackSpace eSpace, SAsm65StackFrame* psFrame);
-	bool	Caller(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psRegisters, SAsm65StackFrame* psCaller);
-	bool	Returning(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psRegisters, SAsm65StackFrame* psCaller);
-	bool	Entering(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psRegisters, SAsm65StackFrame* psCaller);
-	bool	Linked(SAsm65StackFrame* psFrame, SAsm65StackFrame* psCaller);
-	bool	ReturnTo(SAsm65StackFrame* psFrame, uint16 uiEntryS, uint16 uiD, EAsm65DebugEntry eEntry, EAsm65StackSpace eSpace, SAsm65StackFrame* psCaller);
-	bool	IsIndirectCall(EAsm65StackSpace eSpace, uint32 uiAddress, uint16 uiS);
-	bool	ReadWord(EAsm65StackSpace eSpace, uint32 uiAddress, uint16* puiWord);
-	size	Instruction(EAsm65StackSpace eSpace, uint32 uiAddress, uint8* puiBytes, bool bIndex8, bool bMemory8);
+	bool					Find(uint32 uiPC, EAsm65StackSpace eSpace, SAsm65StackFrame* psFrame);
+	bool					Caller(SAsm65StackFrame* psFrame, SAsm65StackFrame* psCaller);
+	bool					FrameAddress(SAsm65StackFrame* psFrame, uint32* puiFrame);
+	bool					ReadSaved(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psCaller, uint32* puiEntryS);
+	bool					ReturnTo(SAsm65StackFrame* psFrame, uint32 uiEntryS, SAsm65StackRegisters* psCallerRegisters, SAsm65StackFrame* psCaller);
+	bool					ReadValue(EAsm65StackSpace eSpace, uint32 uiAddress, size uiBytes, uint64* puiValue);
+	EAsm65StackSpace		CallerSpace(SAsm65StackFrame* psFrame);
+	uint32					EntryBytes(EAsm65DebugEntry eEntry);
+
+	//The processor's: S at entry (S below the call's pushes) and the caller's registers, from following the
+	//function's instructions from its start (its prologue, or code with no rule), or to its return (its epilogue:
+	//false if it isn't taking its frame apart).
+	virtual bool			Follow(SAsm65StackFrame* psFrame, uint32* puiEntryS, SAsm65StackRegisters* psCaller) = 0;
+	virtual bool			Returning(SAsm65StackFrame* psFrame, uint32* puiEntryS, SAsm65StackRegisters* psCaller) = 0;
+	//How a call got to as eEntry says pushed its return: P's bytes below the return address's, and where it goes on.
+	virtual void			CallBytes(EAsm65DebugEntry eEntry, uint32* puiPBytes, uint32* puiReturnBytes) = 0;
+	virtual uint32			ReturnAddress(EAsm65DebugEntry eEntry, uint64 uiPushed, uint32 uiCalleePC) = 0;
+	virtual uint32			PreservedRegisters(void) = 0;
+	virtual uint32			StackAddress(int64 iAddress) = 0;
+	virtual size			PointerBytes(void) = 0;
 };
 
 
-#endif // __ASM65_STACK_WALKER_H__
+CAsm65StackWalker*	Asm65NewStackWalker(EAsm65DebugProcessor eProcessor, CAsm65StackMemory* pcMemory);
 
+
+#endif // __ASM65_STACK_WALKER_H__

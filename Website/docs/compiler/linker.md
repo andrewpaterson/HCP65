@@ -103,10 +103,12 @@ they have).  The compiler writes them into the assembly with these directives:
 |---|---|
 | `.line "file", line` | The code from here is for this line of this file. |
 | `.fingerprint "label", hash, time` | The function's code hashed, so a debugger can tell whether the function changed since the line table was made. |
-| `.dfunction "name"[, entry[, type]]` | A function starts here (its name as C++ writes it), got to by `entry`: `long` (jsl, when left out), `short` (jsr) or `interrupt` (an interrupt, cop or brk), returning `type` (none when left out, as for void): a debugger shows what it returned. |
-| `.dframe link, offset` | Its prologue ends here; `link` (`none`, `frame`, `saved` or `user`) and `offset` say where its caller's D and return address are.  `user` is a kernel's interrupt from user mode, on the kernel's own stack: the interrupted D and S are the words at S + `offset` + 1 and + 3. |
+| `.dfunction "name"[, entry[, type]]` | A function starts here (its name as C++ writes it), got to by `entry`: `long` (jsl, when left out), `short` (jsr), `interrupt` (an interrupt, cop or brk) or `userinterrupt` (a kernel's interrupt from user mode, its caller in user mode's memory), returning `type` (none when left out, as for void): a debugger shows what it returned. |
+| `.dframe none`, `.dframe R, offset`, `.dframe [R + offset], adjust` | Its prologue ends here, and from here its frame address (S as its caller had it just before the call: the return address is just below it) is found by following its instructions (`none`), or is register `R` plus `offset`, or the address held at `R` + `offset` plus `adjust` (an aligned frame's kept S).  `R` is one of the processor's registers: `S`, `D`, `C`, `X`, `Y`, `P` on the W65C816; `S`, `V`, `W`, `A`, `B`, `X`, `Y`, `P` on the 65C64. |
+| `.dsaved R, offset`, `.dsaved [address], bytes, offset` | It saved register `R` (or `bytes` of memory at `address`, a pseudo register it keeps) for its caller at its frame address plus `offset`.  A saved `S` is S at its entry, on another stack (a kernel's interrupt from user mode). |
+| `.dbase R` or `.dbase frame` | Its variables' offsets are from register `R`, or from its frame address (when left out). |
 | `.dend` | The function ends here, before code with no records (otherwise at its section's end, or where the next function starts). |
-| `.dvariable local\|parameter, "name", type, where, offset, first, last` | A variable of the function, `where` (`none`, `frame` or `indirect`) at D + `offset`, in scope from line `first` to `last`. |
+| `.dvariable local\|parameter, "name", type, where, offset, first, last` | A variable of the function, `where` (`none`, `frame` or `indirect`) at its function's base (`.dbase`) + `offset`, in scope from line `first` to `last`. |
 | `.dglobal "name", type, label` | A global at the label. |
 | `.dstatic "name", type, label` | A static local of the function, at the label. |
 | `.dtype index, "key", "name", kind, flags, bytes, target, count` | The unit's `index`'th type. |

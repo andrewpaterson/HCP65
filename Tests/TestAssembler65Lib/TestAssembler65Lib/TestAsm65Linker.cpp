@@ -1073,6 +1073,7 @@ void TestAsm65LinkerDebugRecords(void)
 	SAsm65DebugType*		psType;
 	SAsm65DebugType*		psInt;
 	SAsm65DebugMember*		psMember;
+	SAsm65DebugSaved*		psSaved;
 	int64					iStart;
 	int64					iBody;
 	int64					iOther;
@@ -1087,7 +1088,10 @@ void TestAsm65LinkerDebugRecords(void)
 		"	psh V\n"
 		"	.global Body\n"
 		"Body:\n"
-		"	.dframe frame, 6\n"
+		"	.dframe V, 14\n"
+		"	.dsaved V, -7\n"
+		"	.dsaved [0x80], 4, -11\n"
+		"	.dbase V\n"
 		"	jsr Other\n"
 		"	jsr Shared\n"
 		"	ret\n"
@@ -1098,6 +1102,7 @@ void TestAsm65LinkerDebugRecords(void)
 		"	.global Shared\n"
 		"Shared:\n"
 		"	.dfunction \"Shared\"\n"
+		"	.dframe [V - 4], 8\n"
 		"	ret\n"
 		"	.section data\n"
 		"	.global Count\n"
@@ -1120,13 +1125,15 @@ void TestAsm65LinkerDebugRecords(void)
 		"	ret\n"
 		"	.global Handler\n"
 		"Handler:\n"
-		"	.dfunction \"[Interrupt]\", interrupt\n"
-		"	.dframe user, 2\n"
+		"	.dfunction \"[Interrupt]\", userinterrupt\n"
+		"	.dframe S, 4\n"
+		"	.dsaved S, -1\n"
 		"	ret\n"
 		"	.section text.Shared, comdat\n"
 		"	.global Shared\n"
 		"Shared:\n"
 		"	.dfunction \"Shared\"\n"
+		"	.dframe [V - 4], 8\n"
 		"	ret\n"
 		"	.dtype 0, \"CShape\", \"CShape\", class, 0, 8, -1, 0\n"
 		"	.dmember vtable, \"\", -1, 0, 0, 0\n"
@@ -1160,15 +1167,32 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertInt((uint32)iBody, psFunction->uiBody);
 	AssertInt(ADE_Long, psFunction->uiEntry);
 	AssertInt(ASM65_DEBUG_NONE, psFunction->uiResult);
-	AssertInt(ADL_Frame, psFunction->uiLink);
-	AssertInt(6, psFunction->iLink);
+	AssertInt(ADF_Register, psFunction->uiFrame);
+	AssertInt(A65DR_V, psFunction->uiFrameRegister);
+	AssertInt(14, psFunction->iFrameOffset);
+	AssertInt(A65DR_V, psFunction->uiBase);
+	AssertInt(2, psFunction->uiNumSaved);
+	psSaved = pcRecords->GetSaved(psFunction, 0);
+	AssertInt(A65DR_V, psSaved->uiWhat);
+	AssertFalse(psSaved->bMemory);
+	AssertInt(4, psSaved->uiBytes);
+	AssertInt(-7, psSaved->iOffset);
+	psSaved = pcRecords->GetSaved(psFunction, 1);
+	AssertInt(0x80, psSaved->uiWhat);
+	AssertTrue(psSaved->bMemory);
+	AssertInt(4, psSaved->uiBytes);
+	AssertInt(-11, psSaved->iOffset);
+	AssertTrue(pcRecords->GetSaved(psFunction, 2) == NULL);
+	AssertInt(ADP_65C64, pcRecords->GetProcessor());
 	AssertTrue(pcRecords->FindFunction((uint32)iBody + 1) == psFunction);
 	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd - 1) == psFunction);
 	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd) != psFunction);
 	psFunction = pcRecords->FindFunction((uint32)iOther);
 	AssertString("CShape::Area", psFunction->szName.Text());
 	AssertInt(ADE_Short, psFunction->uiEntry);
-	AssertInt(ADL_None, psFunction->uiLink);
+	AssertInt(ADF_FollowS, psFunction->uiFrame);
+	AssertInt(ASM65_DEBUG_FRAME, psFunction->uiBase);
+	AssertInt(0, psFunction->uiNumSaved);
 	AssertInt((uint32)iOther, psFunction->uiBody);
 	AssertInt((uint32)LinkedSymbol(&sTest, "Stray"), psFunction->uiEnd);
 	AssertString("int", pcRecords->GetType(psFunction->uiResult)->szKey.Text());
@@ -1178,9 +1202,20 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertTrue(pcRecords->FindFunction(psFunction->uiEnd) == NULL);
 	psFunction = pcRecords->FindFunction((uint32)iHandler);
 	AssertString("[Interrupt]", psFunction->szName.Text());
-	AssertInt(ADE_Interrupt, psFunction->uiEntry);
-	AssertInt(ADL_User, psFunction->uiLink);
-	AssertInt(2, psFunction->iLink);
+	AssertInt(ADE_UserInterrupt, psFunction->uiEntry);
+	AssertInt(ADF_Register, psFunction->uiFrame);
+	AssertInt(A65DR_S, psFunction->uiFrameRegister);
+	AssertInt(4, psFunction->iFrameOffset);
+	AssertInt(1, psFunction->uiNumSaved);
+	AssertInt(A65DR_S, pcRecords->GetSaved(psFunction, 0)->uiWhat);
+	AssertInt(-1, pcRecords->GetSaved(psFunction, 0)->iOffset);
+
+	//Shared's frame address is the address held at V - 4, plus 8.
+	psFunction = pcRecords->FindFunction((uint32)LinkedSymbol(&sTest, "Shared"));
+	AssertInt(ADF_Memory, psFunction->uiFrame);
+	AssertInt(A65DR_V, psFunction->uiFrameRegister);
+	AssertInt(-4, psFunction->iFrameOffset);
+	AssertInt(8, psFunction->iFrameAdjust);
 
 	//Start's variables, typed by the linked types.
 	psFunction = pcRecords->FindFunction((uint32)iStart);
@@ -1264,7 +1299,10 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertString("CShape::Area", psFunction->szName.Text());
 	AssertInt(ADE_Short, psFunction->uiEntry);
 	AssertString("int", pcRecords->GetType(psFunction->uiResult)->szKey.Text());
-	AssertInt(ADL_User, pcRecords->FindFunction((uint32)iHandler)->uiLink);
+	AssertInt(ADE_UserInterrupt, pcRecords->FindFunction((uint32)iHandler)->uiEntry);
+	AssertInt(A65DR_S, pcRecords->GetSaved(pcRecords->FindFunction((uint32)iHandler), 0)->uiWhat);
+	AssertInt(0x80, pcRecords->GetSaved(pcRecords->FindFunction((uint32)iStart), 1)->uiWhat);
+	AssertInt(ADP_65C64, pcRecords->GetProcessor());
 	AssertString("int", pcRecords->GetType(pcRecords->GetVariable(pcRecords->FindFunction((uint32)iStart), 0)->uiType)->szKey.Text());
 	AssertTrue(pcRecords->FindType("EKind") != NULL);
 	cRead.Move(-iStart);
@@ -1343,7 +1381,7 @@ void TestAsm65LinkerDebugErrors(void)
 	cAssembler.Init();
 	cObject.Init("errors");
 	AssertFalse(cAssembler.AssembleObject(
-		"	.dframe frame, 2\n"
+		"	.dframe V, 2\n"
 		"	.dvariable local, \"i\", -1, frame, 2, 1, 2\n"
 		"Start:\n"
 		"	.dfunction \"Start\"\n"
@@ -1357,7 +1395,7 @@ void TestAsm65LinkerDebugErrors(void)
 	AssertString(
 		"1:2: .dframe must follow a .dfunction '.dframe'\n"
 		"2:2: .dvariable must follow a .dfunction '.dvariable'\n"
-		"5:10: Expected none, frame, saved or user 'up'\n"
+		"5:10: Expected one of the processor's registers 'up'\n"
 		"6:42: Expected a line no earlier than the first '4'\n"
 		"7:9: A .dtype's index must be the number of types before it '1'\n"
 		"8:26: Expected a kind of type 'number'\n"
@@ -1367,7 +1405,7 @@ void TestAsm65LinkerDebugErrors(void)
 	cObject.Kill();
 	cAssembler.Kill();
 
-	//.dend ends a function, once; an entry is one of three.
+	//.dend ends a function, once; an entry is one of four; a frame, a saved register and a base name registers.
 	cAssembler.Init();
 	cObject.Init("errors");
 	AssertFalse(cAssembler.AssembleObject(
@@ -1376,11 +1414,19 @@ void TestAsm65LinkerDebugErrors(void)
 		"	.dfunction \"Start\", far\n"
 		"	.dfunction \"Next\"\n"
 		"	.dend\n"
-		"	.dend\n", &cObject));
+		"	.dend\n"
+		"	.dframe [V * 2], 1\n"
+		"	.dsaved Q, 2\n"
+		"	.dsaved [0x80], 9, 2\n"
+		"	.dbase R\n", &cObject));
 	AssertString(
 		"1:2: .dend must follow a .dfunction not yet ended '.dend'\n"
-		"3:22: Expected long, short or interrupt 'far'\n"
-		"6:2: .dend must follow a .dfunction not yet ended '.dend'\n", cAssembler.GetErrors());
+		"3:22: Expected long, short, interrupt or userinterrupt 'far'\n"
+		"6:2: .dend must follow a .dfunction not yet ended '.dend'\n"
+		"7:13: Expected '+' or '-' '*'\n"
+		"8:10: Expected one of the processor's registers 'Q'\n"
+		"9:18: Expected the bytes saved '9'\n"
+		"10:9: Expected one of the processor's registers 'R'\n", cAssembler.GetErrors());
 	cObject.Kill();
 	cAssembler.Kill();
 

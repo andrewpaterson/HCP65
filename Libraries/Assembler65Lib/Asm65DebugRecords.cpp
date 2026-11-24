@@ -18,6 +18,7 @@ You should have received a copy of the GNU Lesser General Public License
 along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>.
 
 ** ------------------------------------------------------------------------ **/
+#include "BaseLib/StringHelper.h"
 #include "Asm65Object.h"
 #include "Asm65DebugRecords.h"
 
@@ -33,8 +34,10 @@ void CAsm65DebugRecords::Init(void)
 	masGlobals.Init();
 	masTypes.Init();
 	masMembers.Init();
+	masSaved.Init();
 	mcTypeKeys.Init();
 	mauiFunctionOrder.Init();
+	muiProcessor = ADP_None;
 }
 
 
@@ -69,6 +72,7 @@ void CAsm65DebugRecords::Kill(void)
 	}
 	mauiFunctionOrder.Kill();
 	mcTypeKeys.Kill();
+	masSaved.Kill();
 	masMembers.Kill();
 	masTypes.Kill();
 	masGlobals.Kill();
@@ -107,8 +111,13 @@ SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 
 	psFunction->uiEnd = ASM65_DEBUG_NONE;
 	psFunction->uiBody = uiOffset;
 	psFunction->uiEntry = (uint8)eEntry;
-	psFunction->uiLink = ADL_None;
-	psFunction->iLink = 0;
+	psFunction->uiFrame = ADF_FollowS;
+	psFunction->uiFrameRegister = ASM65_DEBUG_S;
+	psFunction->iFrameOffset = 0;
+	psFunction->iFrameAdjust = 0;
+	psFunction->uiBase = ASM65_DEBUG_FRAME;
+	psFunction->uiFirstSaved = (uint32)masSaved.NumElements();
+	psFunction->uiNumSaved = 0;
 	psFunction->uiResult = uiResult;
 	psFunction->uiFirstVariable = (uint32)masVariables.NumElements();
 	psFunction->uiNumVariables = 0;
@@ -118,11 +127,25 @@ SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The last function's body starts at uiBody (its section's offset): its
-// frame is made, as eLink and iLink say.
+// The processor the records are for: the assembler's, the linker's from
+// its objects.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65DebugRecords::SetFrame(uint32 uiBody, EAsm65DebugLink eLink, int32 iLink)
+void CAsm65DebugRecords::SetProcessor(EAsm65DebugProcessor eProcessor)
+{
+	muiProcessor = (uint8)eProcessor;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The last function's body starts at uiBody (its section's offset): from
+// there its frame address is found as eFrame says, from register
+// uiRegister plus iOffset (and for ADF_Memory, the address held there
+// plus iAdjust).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::SetFrame(uint32 uiBody, EAsm65DebugFrame eFrame, uint8 uiRegister, int32 iOffset, int32 iAdjust)
 {
 	SAsm65DebugFunction*	psFunction;
 
@@ -132,8 +155,56 @@ bool CAsm65DebugRecords::SetFrame(uint32 uiBody, EAsm65DebugLink eLink, int32 iL
 		return false;
 	}
 	psFunction->uiBody = uiBody;
-	psFunction->uiLink = (uint8)eLink;
-	psFunction->iLink = iLink;
+	psFunction->uiFrame = (uint8)eFrame;
+	psFunction->uiFrameRegister = uiRegister;
+	psFunction->iFrameOffset = iOffset;
+	psFunction->iFrameAdjust = iAdjust;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The last function's variables are from register uiRegister
+// (ASM65_DEBUG_FRAME: its frame address).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::SetBase(uint8 uiRegister)
+{
+	SAsm65DebugFunction*	psFunction;
+
+	psFunction = LastFunction();
+	if (!psFunction)
+	{
+		return false;
+	}
+	psFunction->uiBase = uiRegister;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// What the last function saved for its caller, at its frame address plus
+// iOffset: register uiWhat, or (bMemory) uiBytes at address uiWhat.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::AddSaved(uint32 uiWhat, bool bMemory, uint8 uiBytes, int32 iOffset)
+{
+	SAsm65DebugFunction*	psFunction;
+	SAsm65DebugSaved*		psSaved;
+
+	psFunction = LastFunction();
+	if (!psFunction)
+	{
+		return false;
+	}
+	psSaved = masSaved.Add();
+	psSaved->uiWhat = uiWhat;
+	psSaved->bMemory = bMemory;
+	psSaved->uiBytes = bMemory ? uiBytes : Asm65DebugRegisterBytes((EAsm65DebugProcessor)muiProcessor, uiWhat);
+	psSaved->iOffset = iOffset;
+	psFunction->uiNumSaved++;
 	return true;
 }
 
@@ -377,6 +448,11 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 	SAsm65DebugGlobal*		psSourceGlobal;
 	uint32					uiAddress;
 
+	if (muiProcessor == ADP_None)
+	{
+		muiProcessor = pcSource->muiProcessor;
+	}
+
 	//Each of the source's types is one of these, by its key: an existing one, or one added to be described next.
 	auiTypes.Init();
 	abDescribe.Init();
@@ -439,8 +515,16 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 		psFunction = AddFunction(psSourceFunction->szName.Text(), ASM65_DEBUG_ABSOLUTE, uiAddress + psSourceFunction->sStart.uiOffset, (EAsm65DebugEntry)psSourceFunction->uiEntry, MapType(psSourceFunction->uiResult, &auiTypes));
 		psFunction->uiEnd = uiAddress + psSourceFunction->uiEnd;
 		psFunction->uiBody = uiAddress + psSourceFunction->uiBody;
-		psFunction->uiLink = psSourceFunction->uiLink;
-		psFunction->iLink = psSourceFunction->iLink;
+		psFunction->uiFrame = psSourceFunction->uiFrame;
+		psFunction->uiFrameRegister = psSourceFunction->uiFrameRegister;
+		psFunction->iFrameOffset = psSourceFunction->iFrameOffset;
+		psFunction->iFrameAdjust = psSourceFunction->iFrameAdjust;
+		psFunction->uiBase = psSourceFunction->uiBase;
+		for (uiMember = 0; uiMember < psSourceFunction->uiNumSaved; uiMember++)
+		{
+			masSaved.Add(pcSource->GetSaved(psSourceFunction, uiMember));
+			psFunction->uiNumSaved++;
+		}
 		for (uiMember = 0; uiMember < psSourceFunction->uiNumVariables; uiMember++)
 		{
 			psSourceVariable = pcSource->GetVariable(psSourceFunction, uiMember);
@@ -865,6 +949,20 @@ SAsm65DebugMember* CAsm65DebugRecords::GetMember(SAsm65DebugType* psType, size u
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The function's uiIndex'th saved register or memory.
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugSaved* CAsm65DebugRecords::GetSaved(SAsm65DebugFunction* psFunction, size uiIndex)
+{
+	return (uiIndex < psFunction->uiNumSaved) ? masSaved.SafeGet(psFunction->uiFirstSaved + uiIndex) : NULL;
+}
+
+
+EAsm65DebugProcessor CAsm65DebugRecords::GetProcessor(void) const { return (EAsm65DebugProcessor)muiProcessor; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 SAsm65DebugFunction* CAsm65DebugRecords::LastFunction(void)
@@ -917,10 +1015,12 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 	SAsm65DebugGlobal*		psGlobal;
 	SAsm65DebugType*		psType;
 	SAsm65DebugMember*		psMember;
+	SAsm65DebugSaved*		psSaved;
 	bool					bResult;
 
 	bResult = pcChunkFile->WriteChunkBegin();
 	bResult &= Asm65WriteMagic(pcChunkFile, ASM65_DEBUG_RECORDS_MAGIC, ASM65_DEBUG_RECORDS_VERSION);
+	bResult &= pcChunkFile->WriteInt8(muiProcessor);
 	bResult &= pcChunkFile->WriteChunkEnd("DebugHeader");
 
 	bResult &= pcChunkFile->WriteChunkBegin();
@@ -933,8 +1033,13 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiEnd);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiBody);
 		bResult &= pcChunkFile->WriteInt8(psFunction->uiEntry);
-		bResult &= pcChunkFile->WriteInt8(psFunction->uiLink);
-		bResult &= pcChunkFile->WriteInt32(psFunction->iLink);
+		bResult &= pcChunkFile->WriteInt8(psFunction->uiFrame);
+		bResult &= pcChunkFile->WriteInt8(psFunction->uiFrameRegister);
+		bResult &= pcChunkFile->WriteInt32(psFunction->iFrameOffset);
+		bResult &= pcChunkFile->WriteInt32(psFunction->iFrameAdjust);
+		bResult &= pcChunkFile->WriteInt8(psFunction->uiBase);
+		bResult &= pcChunkFile->WriteInt32(psFunction->uiFirstSaved);
+		bResult &= pcChunkFile->WriteInt32(psFunction->uiNumSaved);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiResult);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiFirstVariable);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiNumVariables);
@@ -998,6 +1103,18 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt8(psMember->uiBits);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Members");
+
+	bResult &= pcChunkFile->WriteChunkBegin();
+	bResult &= pcChunkFile->WriteInt32((uint32)masSaved.NumElements());
+	for (ui = 0; ui < masSaved.NumElements(); ui++)
+	{
+		psSaved = masSaved.Get(ui);
+		bResult &= pcChunkFile->WriteInt32(psSaved->uiWhat);
+		bResult &= pcChunkFile->WriteBool(psSaved->bMemory);
+		bResult &= pcChunkFile->WriteInt8(psSaved->uiBytes);
+		bResult &= pcChunkFile->WriteInt32(psSaved->iOffset);
+	}
+	bResult &= pcChunkFile->WriteChunkEnd("Saved");
 	return bResult;
 }
 
@@ -1017,8 +1134,9 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 	SAsm65DebugGlobal*		psGlobal;
 	SAsm65DebugType*		psType;
 	SAsm65DebugMember*		psMember;
+	SAsm65DebugSaved*		psSaved;
 
-	if (!pcChunkFile->ReadChunkBegin("DebugHeader") || !Asm65ReadMagic(pcChunkFile, ASM65_DEBUG_RECORDS_MAGIC, ASM65_DEBUG_RECORDS_VERSION) || !pcChunkFile->ReadChunkEnd())
+	if (!pcChunkFile->ReadChunkBegin("DebugHeader") || !Asm65ReadMagic(pcChunkFile, ASM65_DEBUG_RECORDS_MAGIC, ASM65_DEBUG_RECORDS_VERSION) || !pcChunkFile->ReadInt8(&muiProcessor) || !pcChunkFile->ReadChunkEnd())
 	{
 		return false;
 	}
@@ -1032,7 +1150,9 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 		psFunction = masFunctions.Add();
 		psFunction->szName.Init();
 		if (!Asm65ReadText(pcChunkFile, &psFunction->szName) || !Asm65ReadPlace(pcChunkFile, &psFunction->sStart) || !pcChunkFile->ReadInt32(&psFunction->uiEnd) ||
-			!pcChunkFile->ReadInt32(&psFunction->uiBody) || !pcChunkFile->ReadInt8(&psFunction->uiEntry) || !pcChunkFile->ReadInt8(&psFunction->uiLink) || !pcChunkFile->ReadInt32(&psFunction->iLink) ||
+			!pcChunkFile->ReadInt32(&psFunction->uiBody) || !pcChunkFile->ReadInt8(&psFunction->uiEntry) || !pcChunkFile->ReadInt8(&psFunction->uiFrame) ||
+			!pcChunkFile->ReadInt8(&psFunction->uiFrameRegister) || !pcChunkFile->ReadInt32(&psFunction->iFrameOffset) || !pcChunkFile->ReadInt32(&psFunction->iFrameAdjust) ||
+			!pcChunkFile->ReadInt8(&psFunction->uiBase) || !pcChunkFile->ReadInt32(&psFunction->uiFirstSaved) || !pcChunkFile->ReadInt32(&psFunction->uiNumSaved) ||
 			!pcChunkFile->ReadInt32(&psFunction->uiResult) || !pcChunkFile->ReadInt32(&psFunction->uiFirstVariable) || !pcChunkFile->ReadInt32(&psFunction->uiNumVariables))
 		{
 			return false;
@@ -1118,6 +1238,23 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 			return false;
 		}
 	}
+	if (!pcChunkFile->ReadChunkEnd())
+	{
+		return false;
+	}
+
+	if (!pcChunkFile->ReadChunkBegin("Saved") || !pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		psSaved = masSaved.Add();
+		if (!pcChunkFile->ReadInt32(&psSaved->uiWhat) || !pcChunkFile->ReadBool(&psSaved->bMemory) || !pcChunkFile->ReadInt8(&psSaved->uiBytes) || !pcChunkFile->ReadInt32(&psSaved->iOffset))
+		{
+			return false;
+		}
+	}
 	return pcChunkFile->ReadChunkEnd() && IsWhole();
 }
 
@@ -1137,7 +1274,7 @@ bool CAsm65DebugRecords::IsWhole(void)
 	for (ui = 0; ui < masFunctions.NumElements(); ui++)
 	{
 		psFunction = masFunctions.Get(ui);
-		if ((size)psFunction->uiFirstVariable + psFunction->uiNumVariables > masVariables.NumElements())
+		if (((size)psFunction->uiFirstVariable + psFunction->uiNumVariables > masVariables.NumElements()) || ((size)psFunction->uiFirstSaved + psFunction->uiNumSaved > masSaved.NumElements()))
 		{
 			return false;
 		}
@@ -1159,4 +1296,79 @@ bool CAsm65DebugRecords::IsWhole(void)
 		}
 	}
 	return IsValid();
+}
+
+
+//The registers' names, as the debug directives write them, in EAsmW65C816DebugRegister's and EAsm65C64DebugRegister's
+//orders, and their widths in bytes.
+static const char*	gaszAsmW65C816DebugRegisters[AW65DR_Count] = { "S", "D", "C", "X", "Y", "P" };
+static const uint8	gauiAsmW65C816DebugRegisterBytes[AW65DR_Count] = { 2, 2, 2, 2, 2, 1 };
+static const char*	gaszAsm65C64DebugRegisters[A65DR_Count] = { "S", "V", "W", "A", "B", "X", "Y", "P" };
+static const uint8	gauiAsm65C64DebugRegisterBytes[A65DR_Count] = { 4, 4, 4, 8, 8, 8, 8, 2 };
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The processor an emulator names szName ("W65C816", "65C64"), ADP_None
+// for one with no debug records.
+//
+//////////////////////////////////////////////////////////////////////////
+EAsm65DebugProcessor Asm65DebugProcessorNamed(const char* szName)
+{
+	if (StringCompare(szName, "W65C816") == 0)
+	{
+		return ADP_W65C816;
+	}
+	if (StringCompare(szName, "65C64") == 0)
+	{
+		return ADP_65C64;
+	}
+	return ADP_None;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// How many registers the processor has for a debugger.
+//
+//////////////////////////////////////////////////////////////////////////
+size Asm65DebugNumRegisters(EAsm65DebugProcessor eProcessor)
+{
+	switch (eProcessor)
+	{
+	case ADP_W65C816:	return AW65DR_Count;
+	case ADP_65C64:		return A65DR_Count;
+	default:			return 0;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The processor's uiRegister's name, NULL past its last.
+//
+//////////////////////////////////////////////////////////////////////////
+const char* Asm65DebugRegisterName(EAsm65DebugProcessor eProcessor, size uiRegister)
+{
+	if (uiRegister >= Asm65DebugNumRegisters(eProcessor))
+	{
+		return NULL;
+	}
+	return (eProcessor == ADP_W65C816) ? gaszAsmW65C816DebugRegisters[uiRegister] : gaszAsm65C64DebugRegisters[uiRegister];
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// How many bytes the processor's uiRegister is, as it is saved; 0 for
+// none.
+//
+//////////////////////////////////////////////////////////////////////////
+uint8 Asm65DebugRegisterBytes(EAsm65DebugProcessor eProcessor, size uiRegister)
+{
+	if (uiRegister >= Asm65DebugNumRegisters(eProcessor))
+	{
+		return 0;
+	}
+	return (eProcessor == ADP_W65C816) ? gauiAsmW65C816DebugRegisterBytes[uiRegister] : gauiAsm65C64DebugRegisterBytes[uiRegister];
 }

@@ -129,6 +129,7 @@ public:
 protected:
 	bool			Instruction(SAsm65Token* psMnemonic) override;
 	bool			IsRegisterName(SAsm65Token* psToken) override;
+	EAsm65DebugProcessor	DebugProcessor(void) override;
 	uint32			InstructionAlignment(void) override;
 	bool			ProcessorDirective(SAsm65Token* psDirective, bool* pbResult) override;
 	void			SectionStarted(void) override;

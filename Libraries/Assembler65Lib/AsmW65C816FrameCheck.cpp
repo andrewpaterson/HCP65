@@ -305,7 +305,7 @@ size CAsmW65C816FrameCheck::WrongFrame(CArrayAsm65StackFrames* pasFrames)
 	{
 		psFrame = pasFrames->Get(ui);
 		psCall = (ui <= uiCalls) ? masCalls.Get(uiCalls - ui) : NULL;
-		if (!psCall || (psFrame->uiPC != psCall->uiReturnTo) || (psFrame->uiS != psCall->uiS) || (psFrame->uiD != psCall->uiD))
+		if (!psCall || (psFrame->uiPC != psCall->uiReturnTo) || (psFrame->GetS() != psCall->uiS) || !psFrame->IsKnown(AW65DR_D) || (psFrame->Get(AW65DR_D) != psCall->uiD))
 		{
 			return ui;
 		}

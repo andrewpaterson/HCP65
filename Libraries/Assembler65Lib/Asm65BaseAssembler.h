@@ -141,6 +141,7 @@ protected:
 	//Provided by each processor's assembler.
 	virtual bool	Instruction(SAsm65Token* psMnemonic) =0;
 	virtual bool	IsRegisterName(SAsm65Token* psToken) =0;
+	virtual EAsm65DebugProcessor	DebugProcessor(void) =0;
 	virtual uint32	InstructionAlignment(void) =0;
 	virtual bool	ProcessorDirective(SAsm65Token* psDirective, bool* pbResult);
 	virtual void	SectionStarted(void);
@@ -176,6 +177,8 @@ protected:
 	bool			DebugObject(SAsm65Token* psDirective);
 	bool			DebugFunction(SAsm65Token* psDirective);
 	bool			DebugFrame(SAsm65Token* psDirective);
+	bool			DebugSaved(SAsm65Token* psDirective);
+	bool			DebugBase(SAsm65Token* psDirective);
 	bool			DebugEnd(SAsm65Token* psDirective);
 	bool			DebugVariable(SAsm65Token* psDirective);
 	bool			DebugGlobal(SAsm65Token* psDirective, bool bStatic);
@@ -185,6 +188,8 @@ protected:
 	bool			DebugNumber(int64* piValue, int64 iMin, int64 iMax, const char* szWhat);
 	bool			DebugWord(const char** aszWords, int* piIndex, const char* szWhat);
 	bool			DebugTypeIndex(uint32* puiType);
+	bool			DebugRegister(uint8* puiRegister);
+	bool			DebugRegisterPlace(uint8* puiRegister, int64* piOffset);
 	void			SwitchSection(uint32 uiSection);
 	bool			InBss(SAsm65Token* psToken);
 	void			MarkExternals(void);
