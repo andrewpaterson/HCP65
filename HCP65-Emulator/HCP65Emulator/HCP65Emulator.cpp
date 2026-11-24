@@ -257,7 +257,11 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 		//the window and logs where they differ, for finding a component that changes without being invalidated.
 		mpWindow->SetPartialRedraw(true);
 		mpWindow->SetVerifyRedraw(getenv("HCP65_EMULATOR_VERIFY_REDRAW") != NULL);
-		mpWindow->GetSoundMixer()->AddVoice(mpSoundVoice);
+		if (mpWindow->GetSoundMixer().IsNotNull())
+		{
+			//Heard, unless the emulator has no sound (HCP65EmulatorRef).
+			mpWindow->GetSoundMixer()->AddVoice(mpSoundVoice);
+		}
 
 		//The font is white and coloured as it is drawn.
 		pWhite = GenerateFont("Resources/InterVariable.ttf", "Inter 13px", 13.0f, mpWindow->GetColourOrder());
@@ -716,9 +720,15 @@ void CHCP65EmulatorApp::ChangeBoards(const char** aszTypes, const uint8* auiBrea
 	}
 	szError.Kill();
 
-	mpWindow->GetSoundMixer()->Lock();
+	if (mpWindow->GetSoundMixer().IsNotNull())
+	{
+		mpWindow->GetSoundMixer()->Lock();
+	}
 	mpTick->SetAudio((CHCP65Audio*)mcMainboard.FindBoard(HCP65_AUDIO_NAME));
-	mpWindow->GetSoundMixer()->Unlock();
+	if (mpWindow->GetSoundMixer().IsNotNull())
+	{
+		mpWindow->GetSoundMixer()->Unlock();
+	}
 	mcRunner.Reset();
 	mcRunner.Resume();
 }

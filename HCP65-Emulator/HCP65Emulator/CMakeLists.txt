@@ -1,7 +1,8 @@
 # Linux build of the HCP65 Emulator: the HCP65 (HCP65Lib on MicroprocessorLib's W65C816, debuggable through EmulatorDebugLib
 # and ThreadLib's channels: --debug-shm <name> or --debug-tcp <port>, --debug-wait) in an X11 window (WindowLib +
 # X11Lib), its sound board played through the window's sound mixer on PulseAudio (PulseAudioLib, which loads it at run
-# time: only libpulse-simple.so.0 is needed).
+# time: only libpulse-simple.so.0 is needed).  HCP65EmulatorRef is the same emulator on WinRefLib's reference screen, drawn
+# in memory with no display and no sound, for the IDE's checks to debug in (HCP65_IDE_EMULATOR names it).
 #
 # 64-bit only: there is no 32-bit libX11 installed.  Needs libx11-dev.
 #
@@ -44,6 +45,7 @@ set(RASTERRENDERLIB_DIR "${COMMON_DIR}/RasterRenderLib")
 set(INPUTLIB_DIR "${COMMON_DIR}/InputLib")
 set(WINDOWLIB_DIR "${COMMON_DIR}/WindowLib")
 set(X11LIB_DIR "${COMMON_DIR}/X11Lib")
+set(WINREFLIB_DIR "${COMMON_DIR}/WinRefLib")
 set(PULSEAUDIOLIB_DIR "${COMMON_DIR}/PulseAudioLib")
 set(MICROPROCESSORLIB_DIR "${COMMON_DIR}/MicroprocessorLib")
 set(THREADLIB_DIR "${COMMON_DIR}/ThreadLib")
@@ -113,6 +115,8 @@ vcxproj_sources(WINDOWLIB_SOURCES "${WINDOWLIB_DIR}/WindowLib.vcxproj")
 
 vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
 
+vcxproj_sources(WINREFLIB_SOURCES "${WINREFLIB_DIR}/WinRefLib.vcxproj")
+
 vcxproj_sources(PULSEAUDIOLIB_SOURCES "${PULSEAUDIOLIB_DIR}/PulseAudioLib.vcxproj")
 
 vcxproj_sources(MICROPROCESSORLIB_SOURCES "${MICROPROCESSORLIB_DIR}/MicroprocessorLib.vcxproj")
@@ -129,9 +133,8 @@ vcxproj_sources(DEVICEROMLIB_SOURCES "${DEVICEROMLIB_DIR}/DeviceRomLib.vcxproj")
 
 vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 
-# The emulator's sources but its WinMain.
+# The emulator's sources but its WinMain, in a library the X11 and the reference screen's mains share.
 vcxproj_sources(EMULATOR_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj" EXCLUDE "HCP65EmulatorWindows.cpp")
-list(APPEND EMULATOR_SOURCES "${EMULATOR_DIR}/HCP65EmulatorLinux.cpp")
 
 
 # Matches the Visual Studio configurations, except BREAK_ON_ERROR and
@@ -197,6 +200,9 @@ target_link_libraries(InputLib PUBLIC StandardLib BaseLib)
 add_library(WindowLib STATIC ${WINDOWLIB_SOURCES})
 target_link_libraries(WindowLib PUBLIC InputLib SupportLib StandardLib BaseLib)
 
+add_library(WinRefLib STATIC ${WINREFLIB_SOURCES})
+target_link_libraries(WinRefLib PUBLIC WindowLib InputLib SupportLib StandardLib BaseLib)
+
 add_library(X11Lib STATIC ${X11LIB_SOURCES})
 target_link_libraries(X11Lib PUBLIC WindowLib InputLib SupportLib StandardLib BaseLib X11::X11 X11::Xext)
 
@@ -225,6 +231,12 @@ add_library(HCP65Lib STATIC ${HCP65LIB_SOURCES})
 target_include_directories(HCP65Lib PUBLIC "${EMULATOR_ROOT}")
 target_link_libraries(HCP65Lib PUBLIC DeviceRomLib EmulatorDebugLib Assembler65Lib MicroprocessorLib StandardLib BaseLib)
 
-add_executable(HCP65Emulator ${EMULATOR_SOURCES})
-target_include_directories(HCP65Emulator PRIVATE "${EMULATOR_DIR}")
-target_link_libraries(HCP65Emulator PRIVATE HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib X11Lib PulseAudioLib WindowLib InputLib RasterRenderLib RenderLib RasterLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
+add_library(HCP65EmulatorLib STATIC ${EMULATOR_SOURCES})
+target_include_directories(HCP65EmulatorLib PUBLIC "${EMULATOR_DIR}")
+target_link_libraries(HCP65EmulatorLib PUBLIC HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib WindowLib InputLib RasterRenderLib RenderLib RasterLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
+
+add_executable(HCP65Emulator "${EMULATOR_DIR}/HCP65EmulatorLinux.cpp")
+target_link_libraries(HCP65Emulator PRIVATE HCP65EmulatorLib X11Lib PulseAudioLib)
+
+add_executable(HCP65EmulatorRef "${EMULATOR_DIR}/HCP65EmulatorRef.cpp")
+target_link_libraries(HCP65EmulatorRef PRIVATE HCP65EmulatorLib WinRefLib)
