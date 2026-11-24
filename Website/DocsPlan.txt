@@ -179,6 +179,33 @@ B. Pages move next to their code
        hcp65 hardware pages        HCP65/HCP65-Emulator/HCP65Lib/Docs (HCP65Lib.vcxproj; decision 9)
        hcp65 kernal, boot pages    HCP65/Kernal, HCP65/OperatingSystem
   Check: the site's URLs are unchanged (compare the built site's file list before and after); strict build passes.
+  Built 2026-11-24, one commit per owner in each repository (the owner's first, then HCP65's removal and map entry).
+  Each project's Docs folder is laid out as the site's paths (HCP65IDE/Docs/ide/editor.md is the site's
+  ide/editor.md), so every extra.sources entry has site "" and a page's URL reads off its path.  As built:
+       ide (25)                               HCP65-IDE/HCP65IDE/HCP65IDE/Docs (HCP65IDE.vcxproj)
+       compiler/building.md (hcp65build)      HCP65-IDE/HCP65Build/Docs
+       compiler: index, language, inside, ir, w65c816, 65c64, testing; 65c64/calling-convention.md
+                                              CommonLibraries/Libraries/CppCompilerLib/Docs
+       65c64/emulator.md (the simulators)     CommonLibraries/Libraries/MicroprocessorLib/Docs
+       compiler: assembler-w65c816, linker; 65c64: assembler, linking, examples
+                                              HCP65/Libraries/Assembler65Lib/Docs
+       compiler/libc65.md, hcp65/runtime/*    HCP65/Libraries/Libc65/Docs (the runtime routines are Libc65's)
+       65c64: the architecture, instructions/*, images/*
+                                              HCP65/X65C64-Proposal/Docs (X65C64-Proposal.vcxproj, new, in Website.sln)
+       hcp65: memory-map, registers, devices  HCP65/HCP65-Emulator/HCP65Lib/Docs
+       hcp65/emulator.md                      HCP65/HCP65-Emulator/HCP65Emulator/Docs
+       hcp65: memory, kernel-calls, screen, sprites
+                                              HCP65/Kernal/Docs
+       hcp65/boot.md, hcp65/console.md        HCP65/Boot/Docs, HCP65/Shell/Docs
+       index.md, libraries/index.md, hcp65/index.md, stylesheets
+                                              stay in HCP65/Website/docs (Website.vcxproj)
+  Within HCP65 the pages were git mv'd (history kept); into CommonLibraries and HCP65-IDE they were copied, the
+  commit message naming where from.  Followed: the checks and TestAsm65C64Website find pages through the map
+  (tools/site_sources.py; CYAMLFile in the test), the generator writes the Opcode Encoding page into
+  X65C64-Proposal/Docs, and the comments, notes and CLAUDE.md files that cited a page say where it is now.  Dated
+  log entries in other plans that name the old paths were left as written.  Verified after every move: byte-identical
+  site (169 files), both checks, and at the end TestAssembler65Lib (its website test reaches every 65c64 page; a
+  broken example in a moved page fails it).
 
 C. The 65C64 derived from the spreadsheet
   1. Generators read the xlsx (openpyxl) on every build: the Instructions sheet becomes the instruction index and each
