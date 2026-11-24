@@ -20,9 +20,9 @@ instruction's signature byte, says which call it is.
 | 4 | File size | A path |
 | 5 | File load | A path, where to and the most to read |
 | 11 | File read | A path, an offset, where to and how many |
-| 12 | Device call | A block (`SKernalDeviceCall`) |
-| 13 | System call | A block (`SKernalSystemCall`) |
-| 14 | Screen call | A block (`SKernalScreenCall`) |
+| 12 | Device call | A block ([`SKernalDeviceCall`]) |
+| 13 | System call | A block ([`SKernalSystemCall`]) |
+| 14 | Screen call | A block ([`SKernalScreenCall`]) |
 
 Calls 6 to 10 were the sound board's, before it had a driver; they are no longer used.
 
@@ -67,12 +67,12 @@ The program, file and memory calls return a `KERNAL_RESULT_*`:
 | `KERNAL_RESULT_BAD_FILE` | 2 | Not an executable, or a file that couldn't be read or written |
 | `KERNAL_RESULT_NO_MEMORY` | 3 | Not the memory: for a program to run, or a bank to map |
 | `KERNAL_RESULT_NO_ENTRY` | 4 | An executable without `UserStart` |
-| `KERNAL_RESULT_EXITED` | 5 | `KernalExecute`: the program ran and exited |
-| `KERNAL_RESULT_NO_PROCESS` | 6 | `KernalExecute`: all four process IDs are in use |
+| `KERNAL_RESULT_EXITED` | 5 | [`KernalExecute`]: the program ran and exited |
+| `KERNAL_RESULT_NO_PROCESS` | 6 | [`KernalExecute`]: all four process IDs are in use |
 | `KERNAL_RESULT_BAD_ADDRESS` | 7 | Memory the program hasn't, or an executable with code where its stack or heap goes |
-| `KERNAL_RESULT_END` | 8 | `KernalDirectoryEntry`: there are no more entries |
-| `KERNAL_RESULT_STACK_OVERFLOW` | 9 | `KernalExecute`: the program's stack grew past its room |
-| `KERNAL_RESULT_NULL_WRITE` | 10 | `KernalExecute`: the program wrote through a NULL pointer |
+| `KERNAL_RESULT_END` | 8 | [`KernalDirectoryEntry`]: there are no more entries |
+| `KERNAL_RESULT_STACK_OVERFLOW` | 9 | [`KernalExecute`]: the program's stack grew past its room |
+| `KERNAL_RESULT_NULL_WRITE` | 10 | [`KernalExecute`]: the program wrote through a NULL pointer |
 
 The device and screen calls return a `KERNAL_DEVICE_*`:
 
@@ -85,11 +85,11 @@ The device and screen calls return a `KERNAL_DEVICE_*`:
 | `KERNAL_DEVICE_NOT_OPEN` | 4 | A screen call that needs the picture, from a program that hasn't it |
 | `KERNAL_DEVICE_BAD_ARGUMENT` | 5 | |
 | `KERNAL_DEVICE_FAILED` | 6 | The board didn't do it |
-| `KERNAL_DEVICE_TIMEOUT` | 7 | `KernalDeviceWait`: what it waited for didn't happen in time |
+| `KERNAL_DEVICE_TIMEOUT` | 7 | [`KernalDeviceWait`]: what it waited for didn't happen in time |
 | `KERNAL_DEVICE_NOT_FOUND` | 8 | No such board, no driver for it, or no board at that index (a scaled blit's Graphics Board) |
 | `KERNAL_DEVICE_NO_HANDLES` | 9 | The kernel has no handles left (device handles, or images) |
 | `KERNAL_DEVICE_BAD_HANDLE` | 10 | Not a handle of this program's |
-| `KERNAL_DEVICE_NO_MEMORY` | 11 | `SFTImageMake`: not the memory for the image |
+| `KERNAL_DEVICE_NO_MEMORY` | 11 | [`SFTImageMake`]: not the memory for the image |
 
 ## Programs
 
@@ -100,16 +100,16 @@ A program is an executable on the SD card, made by the linker
 | Call | What it does |
 |---|---|
 | `KernalExecute(path, argument, &exitCode)` | Runs the executable at `path` as a new process and waits for it to end.  `KERNAL_RESULT_EXITED` with its exit code, or why it couldn't run (or that the kernel ended it). |
-| `KernalGetArgument()` | The argument the program was run with: the start up program's is the number after its path in `\OS\STARTUP.TXT`, the shell gives the number after a program's name. |
-| Exit | Returning from `main`, or `exit` (Libc65), with the exit code. |
+| [`KernalGetArgument()`] | The argument the program was run with: the start up program's is the number after its path in `\OS\STARTUP.TXT`, the shell gives the number after a program's name. |
+| Exit | Returning from `main`, or [`exit`] (Libc65), with the exit code. |
 | `KernalPutValue(value)` | Gives the kernel a word it keeps in its status, for tests to read. |
 
-A process runs while the one that ran it waits in its `KernalExecute`: processes are nested, not run
+A process runs while the one that ran it waits in its [`KernalExecute`]: processes are nested, not run
 side by side.  The start up program is process `$FF`, and a process run by another gets the next ID
 down, to `$FC`: four at once.  Each has its own memory ([Memory Management](memory.md)).
 
 The kernel loads the executable into banks of the new process's own, maps its heap, puts its
-argument where `KernalGetArgument` finds it, and starts it at `UserStart` in user mode.  When it
+argument where [`KernalGetArgument`] finds it, and starts it at `UserStart` in user mode.  When it
 ends, everything it had goes back: its memory, its device handles (and the boards it had open), the
 screen if it had the picture, and its images.  The emulator's debugger is told of each process
 starting and ending.
@@ -123,15 +123,15 @@ The SD card's first FAT32 volume.  A path is from the volume's root, with backsl
 |---|---|
 | `KernalFileSize(path)` | The file's size in bytes, or `KERNAL_FILE_NOT_FOUND` (`$FFFFFFFF`). |
 | `KernalFileLoad(path, dest, maxSize)` | Reads the file to `dest`, up to `maxSize` bytes.  `KERNAL_RESULT_SUCCESS` if it read the whole file. |
-| `KernalFileRead(path, offset, dest, size)` | Reads `size` bytes of the file from `offset`.  `KERNAL_RESULT_BAD_FILE` if the file hasn't them all. |
+| `KernalFileRead(path, offset, dest, size)` | Reads `#!text size` bytes of the file from `offset`.  `KERNAL_RESULT_BAD_FILE` if the file hasn't them all. |
 | `KernalFileWrite(path, source, size)` | Writes the file whole: made if it isn't there, emptied first if it is. |
 | `KernalFileDelete(path)` | Deletes the file. |
 | `KernalDirectoryEntry(path, index, &entry)` | The `index`th entry (from 0, without `.` and `..`) of the directory: its name, size and attributes (`KERNAL_FILE_*`).  `KERNAL_RESULT_END` after the last. |
 | `KernalMakeDirectory(path)` | Makes the directory. |
 
-Reading a whole file at once wants the memory for it: `KernalFileSize`, then `malloc` that much and
-`KernalFileLoad`.  `KernalFileRead` reads a part of one, so a program can take a big file a piece at
-a time.  The last four calls are system calls (`COP 13`, `SKernalSystemCall`).
+Reading a whole file at once wants the memory for it: [`KernalFileSize`], then [`malloc`] that much and
+[`KernalFileLoad`].  [`KernalFileRead`] reads a part of one, so a program can take a big file a piece at
+a time.  The last four calls are system calls (`COP 13`, [`SKernalSystemCall`]).
 
 ## Memory
 
@@ -141,15 +141,15 @@ a time.  The last four calls are system calls (`COP 13`, `SKernalSystemCall`).
 | `KernalMapBanks(bank, count)` | Gives the program `count` banks of its heap from `bank`, all or none. |
 | `KernalUnmapBanks(bank, count)` | Takes those of them it has back. |
 
-Libc65's `malloc` makes the mapping calls itself as its heap grows and shrinks, so a program seldom
+Libc65's [`malloc`] makes the mapping calls itself as its heap grows and shrinks, so a program seldom
 does.  [Memory Management](memory.md) says how a program's memory is arranged and what the calls
 do.  They are system calls too.
 
 ## Devices
 
-The boards in the device sockets, through their drivers: `KernalDeviceInfo`, `KernalDeviceIsOpen`,
-`KernalDeviceOpen`, `KernalDeviceClose`, `KernalDeviceRead`, `KernalDeviceWrite`,
-`KernalDeviceControl` and `KernalDeviceWait` ([Devices and Main Memory](devices.md#using-a-board-from-a-program)).
+The boards in the device sockets, through their drivers: [`KernalDeviceInfo`], [`KernalDeviceIsOpen`],
+[`KernalDeviceOpen`], [`KernalDeviceClose`], [`KernalDeviceRead`], [`KernalDeviceWrite`],
+[`KernalDeviceControl`] and [`KernalDeviceWait`] ([Devices and Main Memory](devices.md#using-a-board-from-a-program)).
 A program opens a unit of a board and gets a handle, which the other calls take; the kernel has 32
 handles for all the programs together.  Waits are in ticks, 256 to a second.
 
@@ -164,4 +164,4 @@ frames, palettes, writing and reading pixels, blits of SFTs and images, and imag
 
 UserLib's `HCP65SFT.h` has what isn't a call but works with them: finding an image or a palette in
 an SFT container, the palette of the colours an SFT pixel is, a palette's hash, and making an image
-from an SFT (`SFTImageMake`, which allocates and unpacks it, then gives the kernel a handle to it).
+from an SFT ([`SFTImageMake`], which allocates and unpacks it, then gives the kernel a handle to it).

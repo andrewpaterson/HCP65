@@ -32,15 +32,15 @@ heap may need it.  A mapping that would take it fails with `KERNAL_RESULT_NO_MEM
 
 The kernel has two heaps.
 
-**MPU RAM's heap** is bank 6, `$060000`–`$06FFFF`, below the remap table: the kernel's own `malloc`
-(Libc65's, over that one bank), which is always there.  `KernalMemoryInfo` gives its size and how
+**MPU RAM's heap** is bank 6, `$060000`–`$06FFFF`, below the remap table: the kernel's own [`malloc`]
+(Libc65's, over that one bank), which is always there.  [`KernalMemoryInfo`] gives its size and how
 much of it is used.  The drivers the kernel loads go in MPU RAM from the end of its own data up to it, and the
 remap table is bank 7.
 
 **The main memory heap** is for what must be in main memory: what a board reads or writes there (the
 SD Card Board's DMA, the Blitter Board's copies), and what a driver keeps that is too big for MPU
 RAM (the Video Board's driver's font).  Drivers have it as `KernalMainMalloc(bytes, oneBank)` and
-`KernalMainFree`.  It is BaseLib's `CBankMallocator`: when it hasn't room it takes free banks from
+[`KernalMainFree`].  It is BaseLib's [`CBankMallocator`]: when it hasn't room it takes free banks from
 the top of main memory, and when a bank has nothing in it any more it gives it back, but for one it
 keeps as a spare.  What is asked for with `KERNAL_MAIN_ONE_BANK` is all in one bank, for a board or
 a 16 bit index that doesn't count past one; anything else may cross banks, and more than a bank is
@@ -66,21 +66,21 @@ Banks aren't cleared before a process has them; a program's start up clears its 
 
 ### The heap
 
-Libc65's `malloc` (on the W65C816, BaseLib's `CBankMallocator`) runs the heap inside the program.
+Libc65's [`malloc`] (on the W65C816, BaseLib's [`CBankMallocator`]) runs the heap inside the program.
 Every bank of the heap is a region of its own, so no block crosses a bank.  Small blocks come from
-the banks at the bottom of the heap.  A block too big for a bank (from `malloc32`, or `malloc`'s
-largest sizes) is whole neighbouring banks from the top, rounded up to 64KB.  `free` and `realloc`
+the banks at the bottom of the heap.  A block too big for a bank (from [`malloc32`], or [`malloc`]'s
+largest sizes) is whole neighbouring banks from the top, rounded up to 64KB.  [`free`] and [`realloc`]
 take both kinds.
 
-The heap is mapped as it is used.  At its first `malloc`, Libc65 reads the heap block the kernel
-wrote at `$FF0300` (`SKernalHeapInfo`: what was mapped at load, the `HEAP` marker, and the heap's
+The heap is mapped as it is used.  At its first [`malloc`], Libc65 reads the heap block the kernel
+wrote at `$FF0300` ([`SKernalHeapInfo`]: what was mapped at load, the `HEAP` marker, and the heap's
 first byte and the byte past its last), and from then on:
 
-- a bank is mapped (`KernalMapBanks`) the first time the heap puts a block in it;
-- a bank is given back (`KernalUnmapBanks`) when its last block is freed, but one empty bank is kept
+- a bank is mapped ([`KernalMapBanks`]) the first time the heap puts a block in it;
+- a bank is given back ([`KernalUnmapBanks`]) when its last block is freed, but one empty bank is kept
   for what comes next;
 - the maths tables' banks are never used;
-- `malloc` returns NULL when main memory has no free bank left but the one the kernel keeps.
+- [`malloc`] returns NULL when main memory has no free bank left but the one the kernel keeps.
 
 Only taking or giving back a bank is a kernel call; every other allocation is as fast as anywhere
 else.  A program run without the kernel (on the compiler's test machine, which has no heap block) has its
@@ -117,7 +117,7 @@ were in its heap, so they went with it.  The process ID is free for the next.
 The kernel catches two common ones, with the [canaries](memory-map.md#a-processs-bank-0) in a
 process's bank 0: a write through a NULL pointer, and a stack that grows past its room.  Each kernel
 call looks at them (about 200 cycles of the call); a changed one ends the program, and
-`KernalExecute` returns `KERNAL_RESULT_NULL_WRITE` or `KERNAL_RESULT_STACK_OVERFLOW` to the program
+[`KernalExecute`] returns `KERNAL_RESULT_NULL_WRITE` or `KERNAL_RESULT_STACK_OVERFLOW` to the program
 that ran it.  They are noticed at the next call, not when they happen.
 
 What nothing catches is a pointer into a bank the program hasn't.  Its remap entry is 0, which is

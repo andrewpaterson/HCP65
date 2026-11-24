@@ -186,7 +186,7 @@ instructions, told apart by an *extend* or *sub instruction* field.  The
 | 11 | `ret`, `rti`, `pul P`, `sep`, `cep`, `wth`, `wtth`, `gwth`, `wthx`, `brk`, `stp` |
 | 12 | `bras`, `brac`, `brasa`, `braso`, `brae`, `brane`, the one word `bra`, `nop`, `cpyx` |
 | 13 | `psh`, `pul` |
-| 14 | `mul`, `div`, `neg`, `abs`, the finds, `shl`, `shr` |
+| 14 | `mul`, `div`, `neg`, `#!text abs`, the finds, `shl`, `shr` |
 | 15 | `hws`, `hwg`, `hwsp`, `hwcp`, `bist`, `stab`, `stat`, the sign extending `cpyx` |
 
 An opcode that isn't an instruction is *illegal*.  The simulator runs it as a one cycle

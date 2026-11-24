@@ -1,6 +1,6 @@
 # Assembler
 
-The 65C64 assembler (`CAsm65C64Assembler` in Assembler65Lib) turns 65C64 source into bytes.  This
+The 65C64 assembler ([`CAsm65C64Assembler`] in Assembler65Lib) turns 65C64 source into bytes.  This
 page is the source format: lines, labels, numbers, expressions and directives.  The instructions
 themselves are on the [instruction pages](instructions/index.md), and their operands in
 [Operands and Addressing](operands.md).
@@ -240,6 +240,6 @@ cAssembler.GetWarnings();		//The same format.  Warnings don't stop assembly.
 cAssembler.Kill();
 ```
 
-`Assemble` is absolute mode.  `AssembleObject(szSource, &cObject)` writes a `CAsm65Object`
+`Assemble` is absolute mode.  `AssembleObject(szSource, &cObject)` writes a [`CAsm65Object`]
 for the [linker](linking.md) instead.  `GetSymbol(szName, &iValue)` gives a label's or a
 constant's value after assembly.

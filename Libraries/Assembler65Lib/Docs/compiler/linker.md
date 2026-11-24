@@ -1,7 +1,7 @@
 # Linker and Outputs
 
-Both processors' assemblers write the same object format (`CAsm65Object`), and one linker
-(`CAsm65Linker`) links them.  Sections, symbols, relocations, COMDAT, libraries, removing unused
+Both processors' assemblers write the same object format ([`CAsm65Object`]), and one linker
+([`CAsm65Linker`]) links them.  Sections, symbols, relocations, COMDAT, libraries, removing unused
 sections and lazy loading are described in [Objects and Linking](../65c64/linking.md); they work
 the same for the W65C816.  This page is how the compiler uses the linker, what is different for
 the W65C816, and the files a link writes.

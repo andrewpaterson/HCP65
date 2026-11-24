@@ -157,7 +157,7 @@ puts it in free MPU RAM after its own code and data, within one bank, and fills 
 in it.  A driver calls the kernel by name: the kernel's *exports* (`Kernal/KernalExports.asm`) are
 the names a driver may use, and a driver that uses any other name isn't loaded.  The kernel then
 runs the driver's constructors and calls its `KernalCreateDriver(index)`, which returns the driver
-(a `CKernalDriver`) the kernel starts for the board.  A driver file is loaded once however many
+(a [`CKernalDriver`]) the kernel starts for the board.  A driver file is loaded once however many
 boards use it: each board gets the next index (the sound board's driver drives up to four, the UART
 Board's, the VIA Board's and the PS2 Board's up to two).  A driver has up to eight units.  The ROM drives up to two SD Card Boards.
 
@@ -177,7 +177,7 @@ A program uses a board through its driver with the device calls (`HCP65User.h`):
   drivers give the program the whole board while it has any unit open, so no other program can
   open one; a driver whose units are separate gives each unit its own program (the UART Board's two
   ports, the VIA Board's eight VIAs, the PS2 Board's two ports).
-- `KernalDeviceRead`, `KernalDeviceWrite`, `KernalDeviceControl` and `KernalDeviceWait` take the
+- [`KernalDeviceRead`], [`KernalDeviceWrite`], [`KernalDeviceControl`] and [`KernalDeviceWait`] take the
   handle.  Read and write say how many bytes they moved: a unit that is a stream (a UART port) reads
   what has arrived, which may be nothing.  What a unit, an offset, a control code or a wait value
   means is the driver's: `HCP65SoundBoard.h` has the sound board's, `HCP65UARTBoard.h` the UART

@@ -50,7 +50,7 @@ and runs the start up program.
 ## STARTUP.TXT
 
 `\OS\STARTUP.TXT`'s first line names the start up program and, after spaces, its argument as a
-decimal number (what `KernalGetArgument` gives it, 0 if there isn't one):
+decimal number (what [`KernalGetArgument`] gives it, 0 if there isn't one):
 
 ```text
 \boottest.exe 1
@@ -73,7 +73,7 @@ Without the file the kernel runs `\OS\INIT.EXE` with argument 0, which keeps the
 
 ## The status
 
-Both stages keep what they found in one block at `$00C000` (`SKernalStatus` in
+Both stages keep what they found in one block at `$00C000` ([`SKernalStatus`] in
 `Kernal/Kernal.h`), which tests and debuggers read.  Each clears it as it starts, so a reader
 needn't know which stage is running.  Its state is one of:
 

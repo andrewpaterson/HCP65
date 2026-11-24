@@ -9,7 +9,7 @@
 | `cmp` | Unsigned | O1 - O2 | n, v, z, c |
 | | Signed | O1 - O2:s | n, v, z, c |
 | `neg` | | 0 - R2:s → R1 | n, z |
-| `abs` | | abs(R2:s) → R1 | n, z |
+| `#!text abs` | | abs(R2:s) → R1 | n, z |
 
 `add` and `sub` add the second operand to the first or subtract it from the first.  `cmp`
 subtracts without writing the result, only setting the flags.
@@ -93,11 +93,11 @@ These are the operands of [`cpy`](cpy.md#forms), with these differences:
 	abs R
 ```
 
-`neg` puts 0 - R2 into R1, and `abs` puts the absolute value of R2 into R1.  R2 is sign extended
+`neg` puts 0 - R2 into R1, and `#!text abs` puts the absolute value of R2 into R1.  R2 is sign extended
 to R1's width.  With one register, R is both.  R1 and R2 are any of A, B, S, V, W, X and Y.  One
 word, one cycle.
 
-n and z are set from R1, except that `abs` sets n when R2 was negative.
+n and z are set from R1, except that `#!text abs` sets n when R2 was negative.
 
 ```asm
 	neg A, B
@@ -105,11 +105,11 @@ n and z are set from R1, except that `abs` sets n when R2 was negative.
 	abs Y, B		; n set if B was negative
 ```
 
-`neg` and `abs` are support for signed [multiply and divide](multiply-divide.md), which are
+`neg` and `#!text abs` are support for signed [multiply and divide](multiply-divide.md), which are
 unsigned.
 
 ## Encoding
 
-`add` is instruction code 5, `sub` 6 and `cmp` 7.  `neg` and `abs` are instruction code 14, extend
+`add` is instruction code 5, `sub` 6 and `cmp` 7.  `neg` and `#!text abs` are instruction code 14, extend
 0.  See [Opcode Encoding](../opcode-encoding.md) for the bits, and [Sizes and
 Timing](../timing.md) for the words and cycles.

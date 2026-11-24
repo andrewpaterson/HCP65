@@ -55,17 +55,17 @@ palette = SFTContainedPalette(puiMaki, uiSize, 3);             // The palette be
 ```
 
 An image with no palette before it has pixels that are colours themselves, three bits of red, three
-of green and two of blue; `SFTColours` makes the palette that shows them as they are.
+of green and two of blue; [`SFTColours`] makes the palette that shows them as they are.
 
 ## Palettes
 
 `KernalScreenSetColours(palette, record)` loads a palette record's colours into one of the board's
 palettes, at the record's own indices, and leaves the other entries as they were.  Every pixel in a
 frame has its palette's number beside its index, so pictures in different palettes show side by side.
-An SFT blit's pixels take the palette set with `KernalScreenSetPalette`.  An image made with a
+An SFT blit's pixels take the palette set with [`KernalScreenSetPalette`].  An image made with a
 palette is drawn in it whatever is set, and the one set is put back after.
 
-A palette record has a hash of its colours and where they go (`SFTPaletteHash`).  Two records with
+A palette record has a hash of its colours and where they go ([`SFTPaletteHash`]).  Two records with
 the same hash are almost certainly the same, so a program loading many files can load a palette into
 the board once and use it for all of them.
 
@@ -90,7 +90,7 @@ flower and the picture it scales.
 ### Images
 
 `SFTImageMake(sft, size, palette, &image)` makes an image of an SFT image: it allocates the image's
-width times height bytes with `malloc`, unpacks the SFT into them and gives the kernel a handle to
+width times height bytes with [`malloc`], unpacks the SFT into them and gives the kernel a handle to
 them, to be drawn with `palette` (`KERNAL_SCREEN_NO_PALETTE` for the one set).  The SFT can be freed
 then.  `SFTImageFree(image)` takes the handle back and frees the pixels.
 
@@ -109,8 +109,8 @@ draws whatever is there.
 ## Drawing a frame
 
 The picture is two frames.  The program draws into the one that isn't shown, then
-`KernalScreenFlip` shows it at the next vertical blank and the other becomes the one drawn into.
-`KernalScreenWaitBlank` waits for that blank, so a program that draws a frame each time it returns
+[`KernalScreenFlip`] shows it at the next vertical blank and the other becomes the one drawn into.
+[`KernalScreenWaitBlank`] waits for that blank, so a program that draws a frame each time it returns
 draws as many frames as the screen shows, 60 a second, if it can draw one in time.
 
 A sprite has to be taken away from where it was before it is drawn where it is.  The frame being
@@ -121,7 +121,7 @@ the place the frame being drawn had.  Each frame:
 1. Draw the background again where the sprite was in this frame.
 2. Draw the sprite where it is now, and anything in front of it (`sprites`' flower).
 3. Remember where it was drawn in this frame.
-4. `KernalScreenFlip()`, `KernalScreenWaitBlank(ticks)`.
+4. [`KernalScreenFlip()`], `KernalScreenWaitBlank(ticks)`.
 
 Drawing the whole background each frame is simplest but slowest: `sprites`' stage takes about
 3,400,000 cycles, about 140ms.  Drawing only the sprite's rectangle again is far less, and
@@ -192,7 +192,7 @@ What is drawn is the same with or without them.
 `HCP65/Sprites/Sprites.cpp` puts this together:
 
 - It loads the console's font for its text, an SFT container of 256 glyphs, which it blits as SFTs.
-- It makes images of the stage and the flower in palette 0, which it loads with `SFTColours`, and
+- It makes images of the stage and the flower in palette 0, which it loads with [`SFTColours`], and
   frees their SFTs.
 - It loads Maki's container, puts her palette in palette 1, and keeps her frames as SFTs, each in
   one bank of its memory so the driver's quickest path draws it; it works out her spans, and makes

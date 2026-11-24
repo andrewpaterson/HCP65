@@ -1,8 +1,8 @@
 # Objects and Linking
 
 A program of more than one source file is assembled into *objects* and joined by the *linker*.
-An object (`CAsm65Object`) holds one source file's sections, symbols and relocations.  The
-linker (`CAsm65Linker`) places the sections at addresses, resolves the symbols between objects
+An object ([`CAsm65Object`]) holds one source file's sections, symbols and relocations.  The
+linker ([`CAsm65Linker`]) places the sections at addresses, resolves the symbols between objects
 and writes the bytes.
 
 The same object format and linker serve the W65C816 assembler.
@@ -188,7 +188,7 @@ a local label is an error.
 
 ## Libraries
 
-A library (`CAsm65Library`) is a set of objects.  The linker links a library's object only when
+A library ([`CAsm65Library`]) is a set of objects.  The linker links a library's object only when
 it defines a name that's needed, where objects added directly are always linked.
 
 ## Lazy loading
@@ -244,5 +244,5 @@ cObject.Kill();
 | `SetLazy(codeEnd, sectorSize, firstSector)` | Lazy loading: units load below `codeEnd` from the drive's sectors |
 | `SetBankSize(size)` | Keep sections from crossing a bank (for the W65C816) |
 
-An object is saved and loaded with `CAsm65Object::Write` and `Read`, and a library with
-`CAsm65Library::Write` and `Read`.
+An object is saved and loaded with [`CAsm65Object::Write`] and `Read`, and a library with
+[`CAsm65Library::Write`] and `Read`.

@@ -9,7 +9,7 @@ open the Video Board itself.
 The screen shows the [console](console.md)'s text until a program sets a mode.
 
 - `KernalScreenSetMode(mode)` makes the picture the program's: 640x480, 800x600 or 1024x768.
-- `KernalScreenSetText()` gives it back, and the console's text starts again, blank.
+- [`KernalScreenSetText()`] gives it back, and the console's text starts again, blank.
 - The picture also goes back to the console when the program ends.
 
 While a program has the picture, what is written to the console isn't shown.  The keyboard still
@@ -26,7 +26,7 @@ The picture is two frames: one is shown while the other is drawn.
 | `KernalScreenBlit(&blit)` | Draws an image: see [Blits](#blits). |
 | `KernalScreenWrite(offset, source, length)` | Pixels into the frame being drawn.  The pixel at (x, y) is at y x width + x. |
 | `KernalScreenRead(offset, dest, length)` | Pixels back from it. |
-| `KernalScreenFlip()` | Shows the frame that was drawn, at the next vertical blank. |
+| [`KernalScreenFlip()`] | Shows the frame that was drawn, at the next vertical blank. |
 | `KernalScreenWaitBlank(ticks)` | Waits for the next vertical blank. |
 | `KernalScreenSetColours(palette, record)` | A palette's colours from an SFT palette record (below): its colours at its indices, the rest left as they were. |
 | `KernalScreenSetPalette(palette)` | The palette each pixel drawn from now on takes. |
@@ -73,11 +73,11 @@ them.  Every record starts with the same four bytes: the magic number `SF`, the 
 - **Palettes** are a first index and a count of colours (1 to 256, none past index 255), a hash,
   then that many reds, greens and blues.  Most palettes are smaller than 256: several small ones
   can share one of the board's palettes at different indices.  The hash is FNV-1a of the first
-  index, the count and the colours (`SFTPaletteHash`): palettes with the same hash are very likely
+  index, the count and the colours ([`SFTPaletteHash`]): palettes with the same hash are very likely
   the same, so images that use them can share one of the board's palettes.
 - **Containers** hold many records in one file.  A palette is the palette of the images after it,
-  up to the next.  `SFTContainedImage` finds an image by its number (palettes aren't counted) and
-  `SFTContainedPalette` its palette.
+  up to the next.  [`SFTContainedImage`] finds an image by its number (palettes aren't counted) and
+  [`SFTContainedPalette`] its palette.
 
 `PNGToSFT` (CommonLibraries' `Tools/PNGToSFT`) makes a container from pictures on the computer
 the HCP65 is programmed from (PNG, BMP and the others SupportLib reads): one palette for all of
@@ -93,7 +93,7 @@ across.
 PNGToSFT --merge 8 MAKI.SFT MakiStand.png MakiWalk.png
 ```
 
-What the blit takes (`SKernalBlit`):
+What the blit takes ([`SKernalBlit`]):
 
 | Field | What |
 |---|---|
@@ -107,7 +107,7 @@ The spans are how a sprite's old place is drawn again from a picture: of each of
 its first pixel to its last, one copy a row rather than the sprite's whole rectangle.
 
 An SFT pixel is an index into its palette.  An image with no palette before it has pixels that are
-colours, with red in bits 0 to 2, green in bits 3 to 5 and blue in bits 6 and 7: `SFTColours` makes
+colours, with red in bits 0 to 2, green in bits 3 to 5 and blue in bits 6 and 7: [`SFTColours`] makes
 the palette record that shows them as they are.
 
 What isn't an image, or is cut short, is `KERNAL_DEVICE_BAD_ARGUMENT`.
@@ -128,21 +128,21 @@ screen, a line at a time from a line of zeros the driver keeps in main memory.
 ## Images
 
 An image is a picture of a width by a height of pixels, a byte each, a row after another, in the
-program's own memory.  The program gives the kernel a handle to it (`KernalScreenAddImage`) and
+program's own memory.  The program gives the kernel a handle to it ([`KernalScreenAddImage`]) and
 blits it by the handle: `KERNAL_BLIT_IMAGE` in the blit's flags, the handle in `uiImage`.  Its rows
 are flat, which is what the boards copy from: a row inside the clip rectangle is one copy.  Clipping
 and spans are as for an SFT image.
 
-`SFTImageMake` (`HCP65SFT.h`) makes one from an SFT image: it allocates the image's bytes, unpacks
+[`SFTImageMake`] (`HCP65SFT.h`) makes one from an SFT image: it allocates the image's bytes, unpacks
 the SFT into them and gives the kernel the handle.  The program can free the SFT then, and blits
-from the image from then on.  `SFTImageFree` takes the handle back and frees the image.
+from the image from then on.  [`SFTImageFree`] takes the handle back and frees the image.
 
 | Flag | What |
 |---|---|
 | `KERNAL_IMAGE_TRANSPARENT` | Its pixels that are 0 aren't drawn (an SFT's transparent image's undrawn pixels are 0). |
 
 An image has the palette its pixels are drawn with, or `KERNAL_SCREEN_NO_PALETTE` for the one set
-by `KernalScreenSetPalette`, which a blit of an image with its own palette puts back after it.
+by [`KernalScreenSetPalette`], which a blit of an image with its own palette puts back after it.
 
 The image stays the program's memory: the kernel only keeps where it is, its size, its flags and its
 palette.  It is found again at each blit, so its rows can cross from one of the program's banks to

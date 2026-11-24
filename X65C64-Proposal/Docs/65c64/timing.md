@@ -74,7 +74,7 @@ A 64 bit `add [$40], A` is 10 cycles: the opcode, the offset, four to read and f
 | Instruction | Example | Words | Cycles |
 |---|---|---|---|
 | `cpyx` | `cpyx A, [$40]:8` | As `cpy` with memory | As `cpy`, with d for the width of the value in memory |
-| `neg`, `abs` | `neg A` | 1 | 1 |
+| `neg`, `#!text abs` | `neg A` | 1 | 1 |
 | `scp`, `scb` | `scp (A, 0), (B, 1), 1` | 2 | 2 |
 | The finds | `fsbi A, X` | 1 | 1 |
 | `mul` | `mul` | 1 | 1 a step: 1 for each byte of B |

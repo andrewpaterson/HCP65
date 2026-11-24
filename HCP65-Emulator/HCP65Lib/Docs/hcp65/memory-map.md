@@ -108,7 +108,7 @@ The kernel writes the two canaries, eight bytes of a pattern, when it loads the 
 at them at each kernel call the program makes.  A NULL pointer's reads and writes land at the bottom
 of the bank, so a write through one changes the first; a stack that grows past its room writes over
 the second before anything else.  Either way the kernel ends the program at its next call, and
-`KernalExecute` returns `KERNAL_RESULT_NULL_WRITE` or `KERNAL_RESULT_STACK_OVERFLOW` (with an exit
+[`KernalExecute`] returns `KERNAL_RESULT_NULL_WRITE` or `KERNAL_RESULT_STACK_OVERFLOW` (with an exit
 code of 0) instead of `KERNAL_RESULT_EXITED`.  It doesn't say which instruction did it, only that it
 happened since the program's last call; and a write past a canary that misses its eight bytes, or a
 NULL pointer's read, isn't noticed.  The direct page starts above the NULL canary so that nothing a
@@ -127,16 +127,16 @@ A program's banks, as it sees them:
 | `$40`–`$43` | The maths tables, when it is built with them |
 | `$FF` | The heap block, at `$FF0300` |
 
-The heap block (`SKernalHeapInfo` in `HCP65User.h`) says where the heap is: the end of what was
+The heap block ([`SKernalHeapInfo`] in `HCP65User.h`) says where the heap is: the end of what was
 mapped before the program started (its `UserHeapSize`), the `HEAP` marker, and the heap's first
-byte and the byte past its last.  Libc65's `malloc` reads it and maps and unmaps the heap's banks
+byte and the byte past its last.  Libc65's [`malloc`] reads it and maps and unmaps the heap's banks
 itself ([Memory Management](memory.md#the-heap)), so a program rarely calls these:
 
 | Call | What it does |
 |---|---|
 | `KernalMapBanks(bank, count)` | Gives the program `count` banks of the heap from the one at `bank` (the address of its first byte), all or none.  Banks it already has are left as they are. |
 | `KernalUnmapBanks(bank, count)` | Takes back those of the `count` banks from `bank` that the program has. |
-| `KernalMemoryInfo(&info)` | Main memory's banks (`SKernalMemoryInfo`): all of them, those programs can have, those no program has, and the kernel's own heap's size and use. |
+| `KernalMemoryInfo(&info)` | Main memory's banks ([`SKernalMemoryInfo`]): all of them, those programs can have, those no program has, and the kernel's own heap's size and use. |
 
 `KERNAL_RESULT_BAD_ADDRESS` is a bank that isn't the heap's.  `KERNAL_RESULT_NO_MEMORY` is a
 mapping that would take main memory's last free bank: the kernel keeps one for its own heap, which

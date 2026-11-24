@@ -83,11 +83,11 @@ current directory unless they start with `/`, and case doesn't matter.
 | `mkdir <directory>` | Makes a directory |
 | `lsdev` | The boards in the device sockets, their drivers and units |
 | `lsmod` | The drivers loaded from `\OS\Drivers`, and the boards each drives |
-| `free` | Main memory, what programs can have, and the kernel's heap |
+| `#!text free` | Main memory, what programs can have, and the kernel's heap |
 | `mode [0\|1\|2]` | The console's size, or the Video Board's mode |
 | `clear` | Clears the screen |
 | `uname` | The shell's version |
-| `exit` | Ends the shell (`INIT.EXE` starts it again) |
+| `#!text exit` | Ends the shell (`INIT.EXE` starts it again) |
 
 Anything else is a program to run.  It is looked for as given and then in `\OS`, with `.EXE` added
 if it has no extension.  A number after it is its argument.  The shell waits for it to exit, and
