@@ -123,4 +123,26 @@
       <Filter>Source</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{98824658-e13e-44a8-8b60-04962acfbc2a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{6835e5b9-bdf6-475c-9538-f383096c21ef}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\memory.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+    <None Include="Docs\hcp65\kernel-calls.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+    <None Include="Docs\hcp65\screen.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+    <None Include="Docs\hcp65\sprites.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
 </Project>

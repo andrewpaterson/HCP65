@@ -148,18 +148,6 @@
     <None Include="docs\hcp65\index.md">
       <Filter>docs\hcp65</Filter>
     </None>
-    <None Include="docs\hcp65\kernel-calls.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
-    <None Include="docs\hcp65\memory.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
-    <None Include="docs\hcp65\screen.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
-    <None Include="docs\hcp65\sprites.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
     <None Include="docs\libraries\index.md">
       <Filter>docs\libraries</Filter>
     </None>

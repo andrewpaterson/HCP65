@@ -123,5 +123,5 @@ Stage C: the Sprites demo and the docs (done)
 The stage and the flower are images; Maki's frames stay SFT blits (her palette in palette 1), as without a Blitter
 Board her transparent frame is 455000 cycles as an image and 144000 as an SFT (the user chose to keep the SFT); with a
 Graphics Board she is drawn small, scaled and mirrored, from an image.  memory-map.md has a program's memory.
-Sprites draws a palettised sheet through images, a sprite of it scaled.  Website/docs/hcp65/screen.md gets images and
+Sprites draws a palettised sheet through images, a sprite of it scaled.  Docs/hcp65/screen.md gets images and
 scaled blits, and the kernal's memory calls are documented with them.  Measured: an image blit against an SFT blit.
