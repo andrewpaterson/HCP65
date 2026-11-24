@@ -166,9 +166,6 @@
     <None Include="docs\compiler\assembler-w65c816.md">
       <Filter>docs\compiler</Filter>
     </None>
-    <None Include="docs\compiler\building.md">
-      <Filter>docs\compiler</Filter>
-    </None>
     <None Include="docs\compiler\index.md">
       <Filter>docs\compiler</Filter>
     </None>
