@@ -326,6 +326,9 @@
       <Project>{915816c6-71a5-4cd1-b751-70560ebb840e}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\emulator.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

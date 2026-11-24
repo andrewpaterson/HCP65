@@ -84,7 +84,6 @@
     <None Include="docs\65c64\instructions\width.md" />
     <None Include="docs\hcp65\boot.md" />
     <None Include="docs\hcp65\console.md" />
-    <None Include="docs\hcp65\emulator.md" />
     <None Include="docs\hcp65\index.md" />
     <None Include="docs\hcp65\kernel-calls.md" />
     <None Include="docs\hcp65\memory.md" />

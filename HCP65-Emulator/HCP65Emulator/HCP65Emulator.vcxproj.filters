@@ -96,4 +96,17 @@
       <UniqueIdentifier>{8D2F4A61-3B7C-4E19-A5D0-6C1E2F3A4B5C}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{ae904f28-581b-49d5-98e0-c7ef2c8fbb66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{d38941df-d0a9-41df-b3c7-0640422c2b1d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\emulator.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
 </Project>
