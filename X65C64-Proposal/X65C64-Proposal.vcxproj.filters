@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include="65C64 Instruction Architecture.xlsx" />
+    <None Include="65C64 Proposal.odt" />
+    <Image Include="Address Absolute Mode - heading.png" />
+    <Image Include="Addressing Modes.png" />
+    <Image Include="Immediate Mode - heading.png" />
+    <Image Include="Instruction Set - sample.png" />
+    <Image Include="Instruction Set.png" />
+    <Image Include="Opcode Encoding.png" />
+    <Image Include="Operand Mode Encoding.png" />
+    <Image Include="Partial Multiplication.png" />
+    <Image Include="Pin Functions.png" />
+    <Image Include="Register and Constant modes - heading.png" />
+    <Image Include="Registers.png" />
+    <Image Include="Schematic Symbol.png" />
+    <None Include="System Block Diagram.odg" />
+    <Image Include="System Block Diagram.png" />
+  </ItemGroup>
+</Project>
