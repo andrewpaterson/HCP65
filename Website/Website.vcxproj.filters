@@ -58,9 +58,6 @@
     <None Include="docs\65c64\bus.md">
       <Filter>docs\65c64</Filter>
     </None>
-    <None Include="docs\65c64\calling-convention.md">
-      <Filter>docs\65c64</Filter>
-    </None>
     <None Include="docs\65c64\emulator.md">
       <Filter>docs\65c64</Filter>
     </None>
@@ -160,34 +157,13 @@
     <None Include="docs\65c64\instructions\width.md">
       <Filter>docs\65c64\instructions</Filter>
     </None>
-    <None Include="docs\compiler\65c64.md">
-      <Filter>docs\compiler</Filter>
-    </None>
     <None Include="docs\compiler\assembler-w65c816.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\index.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\inside.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\ir.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\language.md">
       <Filter>docs\compiler</Filter>
     </None>
     <None Include="docs\compiler\libc65.md">
       <Filter>docs\compiler</Filter>
     </None>
     <None Include="docs\compiler\linker.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\testing.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\w65c816.md">
       <Filter>docs\compiler</Filter>
     </None>
     <None Include="docs\hcp65\boot.md">

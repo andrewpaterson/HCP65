@@ -53,7 +53,6 @@
     <None Include="docs\index.md" />
     <None Include="docs\65c64\assembler.md" />
     <None Include="docs\65c64\bus.md" />
-    <None Include="docs\65c64\calling-convention.md" />
     <None Include="docs\65c64\emulator.md" />
     <None Include="docs\65c64\examples.md" />
     <None Include="docs\65c64\index.md" />
@@ -87,16 +86,9 @@
     <None Include="docs\65c64\instructions\subcopy.md" />
     <None Include="docs\65c64\instructions\vector.md" />
     <None Include="docs\65c64\instructions\width.md" />
-    <None Include="docs\compiler\65c64.md" />
     <None Include="docs\compiler\assembler-w65c816.md" />
-    <None Include="docs\compiler\index.md" />
-    <None Include="docs\compiler\inside.md" />
-    <None Include="docs\compiler\ir.md" />
-    <None Include="docs\compiler\language.md" />
     <None Include="docs\compiler\libc65.md" />
     <None Include="docs\compiler\linker.md" />
-    <None Include="docs\compiler\testing.md" />
-    <None Include="docs\compiler\w65c816.md" />
     <None Include="docs\hcp65\boot.md" />
     <None Include="docs\hcp65\console.md" />
     <None Include="docs\hcp65\devices.md" />

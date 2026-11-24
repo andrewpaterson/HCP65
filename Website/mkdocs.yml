@@ -164,3 +164,6 @@ extra:
     - folder: HCP65-IDE/HCP65Build/Docs
       site: ""
       branch: main
+    - folder: CommonLibraries/Libraries/CppCompilerLib/Docs
+      site: ""
+      branch: master
