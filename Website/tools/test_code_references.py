@@ -32,6 +32,8 @@ Its kind is [`EK_Square`] or [`EKind::EK_Square`]; its header [`Shapes/Shape.h`]
 Broken: [`CShape::Kill`], [`CShape::Init(float)`], [`Shape.h`] and [`Missing.h`].
 Plain: `CShape`, `CShape::Init` and `CTank`, `x = 1`, `main`, `X`, `#!text abs`, `abs`, `Shape.h`.
 Already links: [`CShape`](shapes.md), [`CShape`][shape], ![`CShape`](shape.png) and \\[`CShape`].
+[`CShape`]: shapes.md
+A colon after a reference isn't a definition: [`CShape`]: a shape.
 
 ```cpp
 CShape cShape;   // [`Missing`] in a fence is code
@@ -56,7 +58,7 @@ PROBLEMS = [
     (5, 7, 'warning', '`CShape` names class CShape (Lib/Shapes/Shape.h:5): write [`CShape`] to link to it'),
     (5, 17, 'warning', '`CShape::Init` names function CShape::Init(int) (Lib/Shapes/Shape.h:11): write [`CShape::Init`] to link to it'),
     (5, 81, 'warning', '`abs` names function abs(int) (Lib/Shapes/Shape.h:31): write [`abs`] to link to it'),
-    (13, 25, 'warning', '`CShape::GetSides` names function CShape::GetSides() const (Lib/Shapes/Shape.h:13): write [`CShape::GetSides`] to link to it'),
+    (15, 25, 'warning', '`CShape::GetSides` names function CShape::GetSides() const (Lib/Shapes/Shape.h:13): write [`CShape::GetSides`] to link to it'),
 ]
 
 
@@ -66,7 +68,9 @@ class TestCodeReferences(unittest.TestCase):
 
     def test_page(self):
         linked, problems = code_references.convert(PAGE, self.table, LINKS)
-        self.assertEqual(PAGE.split('\n')[5:], linked.split('\n')[5:])
+        self.assertEqual(PAGE.split('\n')[5:8], linked.split('\n')[5:8])
+        self.assertEqual('A colon after a reference isn\'t a definition: [`CShape`](https://github.com/someone/Lib/blob/main/Shapes/Shape.h#L5): a shape.', linked.split('\n')[8])
+        self.assertEqual(PAGE.split('\n')[9:], linked.split('\n')[9:])
         self.assertEqual(LINKED.split('\n'), linked.split('\n')[:4] + [''])
         self.assertEqual(PROBLEMS, problems)
 

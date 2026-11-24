@@ -95,7 +95,9 @@ def bracketing(line, span):
     start, end = span.start(), span.end()
     if start == 0 or line[start - 1] != '[' or line[end:end + 1] != ']':
         return None
-    if line[end + 1:end + 2] in ('(', '[', ':') or (start >= 2 and line[start - 2] == '!'):
+    if line[end + 1:end + 2] in ('(', '[') or (start >= 2 and line[start - 2] == '!'):
+        return 'link'
+    if line[end + 1:end + 2] == ':' and not line[:start - 1].strip() and start - 1 <= 3:
         return 'link'
     if start >= 2 and line[start - 2] == '\\':
         return 'escaped'
