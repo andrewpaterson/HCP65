@@ -50,6 +50,8 @@ Byte, bit, crumb and nybble 0 are the least significant.
 | - | Subtraction |
 | ∧ | Bitwise AND |
 | ∨ | Bitwise OR |
+| ∧Q | AND of all of Q's bits: 1 if every bit is set |
+| ∨Q | OR of all of Q's bits: 1 if any bit is set |
 | ⊻ | Bitwise XOR |
 | ! | Bitwise NOT, or of a flag, the flag clear |
 | × | Multiplication |

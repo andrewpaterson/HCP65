@@ -44,11 +44,17 @@ width (8, 16, 32 or 64 bits) between memory and A, B, X or Y.
 | [`fsbi`](find.md) | Find set bit | if c {N+1 → N}; while R:b[N] = 0, N+1 → N | v, c | |
 | [`fcbi`](find.md) | Find clear bit | if c {N+1 → N}; while R:b[N] = 1, N+1 → N | v, c | |
 | [`fscr`](find.md) | Find non-zero crumb | if c {N+1 → N}; while ∨R:c[N] = 0, N+1 → N | v, c | |
-| [`fccr`](find.md) | Find zero crumb | if c {N+1 → N}; while ∧R:c[N] = 1, N+1 → N | v, c | |
+| [`fccr`](find.md) | Find non-full crumb | if c {N+1 → N}; while ∧R:c[N] = 1, N+1 → N | v, c | |
 | [`fsny`](find.md) | Find non-zero nybble | if c {N+1 → N}; while ∨R:n[N] = 0, N+1 → N | v, c | |
-| [`fcny`](find.md) | Find zero nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c | |
+| [`fcny`](find.md) | Find non-full nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c | |
 | [`fsby`](find.md) | Find non-zero byte | if c {N+1 → N}; while ∨R:[N] = 0, N+1 → N | v, c | |
-| [`fcby`](find.md) | Find zero byte | if c {N+1 → N}; while ∧R:[N] = 1, N+1 → N | v, c | |
+| [`fcby`](find.md) | Find non-full byte | if c {N+1 → N}; while ∧R:[N] = 1, N+1 → N | v, c | |
+| [`fzcr`](find.md) | Find zero crumb | if c {N+1 → N}; while ∨R:c[N] = 1, N+1 → N | v, c | |
+| [`fzny`](find.md) | Find zero nybble | if c {N+1 → N}; while ∨R:n[N] = 1, N+1 → N | v, c | |
+| [`fzby`](find.md) | Find zero byte | if c {N+1 → N}; while ∨R:[N] = 1, N+1 → N | v, c | |
+| [`ffcr`](find.md) | Find full crumb | if c {N+1 → N}; while ∧R:c[N] = 0, N+1 → N | v, c | |
+| [`ffny`](find.md) | Find full nybble | if c {N+1 → N}; while ∧R:n[N] = 0, N+1 → N | v, c | |
+| [`ffby`](find.md) | Find full byte | if c {N+1 → N}; while ∧R:[N] = 0, N+1 → N | v, c | |
 
 `mul` does a byte of B a step and `div` a nybble of Y.  They do one step each time they run
 and leave C on their opcode until the result is done (v set), so they repeat on their own and
