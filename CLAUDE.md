@@ -19,23 +19,32 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 
 ## Documentation
 
-- `Website/docs`: `65c64/`, `compiler/`, `hcp65/`, `ide/`, `libraries/`.  `Website/web.sh build` runs the
-  checks and a strict build; `Website/web.sh` builds and serves it.  `Website/DocsPlan.txt` is the plan for
-  the documentation (pages moving beside their code, references to code checked by the C++ index).
-- 65C64 pages: `opcode-encoding.md` is generated from the spreadsheet (`Website/README.md` has the command);
+- Pages live beside the code they describe, in each project's `Docs` folder, laid out as the site's paths and
+  listed as items of the project: `X65C64-Proposal/Docs` (the 65C64's architecture and instructions, beside the
+  spreadsheet), `Libraries/Assembler65Lib/Docs`, `Libraries/Libc65/Docs`, `Kernal/Docs`, `Boot/Docs`,
+  `Shell/Docs`, `HCP65-Emulator/HCP65Lib/Docs` (the hardware), `HCP65-Emulator/HCP65Emulator/Docs`.  Other
+  repositories' projects have theirs (the compiler's in CommonLibraries' CppCompilerLib, the IDE's in HCP65-IDE).
+  `Website/docs` keeps only the home page, the overviews and the stylesheet.
+- `Website/` builds the site: `mkdocs.yml`'s `extra.sources` lists every `Docs` folder, `Website/web.sh build`
+  gathers them, runs the generators and checks, then a strict build; `Website/web.sh` builds and serves it.
+  `Website/Website.sln` is the site as a Visual Studio project.  `Website/DocsPlan.txt` is the plan for the
+  documentation.  A new page goes in its project's `Docs` folder and `.vcxproj` (the build checks it is in
+  exactly one project); a new `Docs` folder goes in `extra.sources`.
+- 65C64 pages: `opcode-encoding.md` is generated from the spreadsheet by `web.sh`;
   `Website/tools/check_instruction_tables.py` checks the instruction index against the instruction pages;
-  TestAssembler65Lib assembles every ```` ```asm ```` block under `docs/65c64` (```` ```text ```` for syntax).
+  TestAssembler65Lib assembles every ```` ```asm ```` block in the site's `65c64` pages (```` ```text ```` for
+  syntax).
 - Notes beside code: `Libraries/Assembler65Lib/Assembler65C64Syntax.txt`, `AssemblerW65C816Syntax.txt`,
   `W65C816Names.txt`; `Kernal/KernalInterrupts.txt`, `Kernal/ImagesPlan.txt`.
 
 ## Building and testing
 
 - Programs: `hcp65build` (built with HCP65-IDE, at `../build/HCP65IDERelease/hcp65build`), for example
-  `hcp65build Kernal/HCP65Kernal.hcp65build -config "Release|W65C816"`.  See
-  `Website/docs/compiler/building.md` and `Website/docs/compiler/testing.md`.
+  `hcp65build Kernal/HCP65Kernal.hcp65build -config "Release|W65C816"`.  See the site's `compiler/building.md`
+  (`../HCP65-IDE/HCP65Build/Docs`) and `compiler/testing.md` (`../CommonLibraries/Libraries/CppCompilerLib/Docs`).
 - Test suites build with CMake as in CommonLibraries (`cmake -S Tests/TestAssembler65Lib -B
   ../build/TestAssembler65Lib64 -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).
-  TestAssembler65Lib reads `Website/docs`.
+  TestAssembler65Lib reads `Website/mkdocs.yml` and the `Docs` folders it lists.
 
 ## Rules for the code
 
