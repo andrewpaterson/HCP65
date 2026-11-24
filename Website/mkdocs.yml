@@ -29,6 +29,7 @@ theme:
 
 hooks:
   - tools/gather_sources.py
+  - tools/code_references.py
 plugins:
   - search
   - privacy
@@ -200,3 +201,16 @@ extra:
     - folder: HCP65-IDE/HCP65Build/Docs
       site: ""
       branch: main
+  # References to code (DocsPlan.txt D): [`CTextArea::ReplaceRanges`] and [`BaseLib/Chars.h`] link to their line on
+  # GitHub (tools/code_references.py).  The repositories they can be in, by folder, with where each is on GitHub;
+  # each one's branch is its extra.sources entries'.
+  repositories:
+    CommonLibraries: https://github.com/andrewpaterson/Codaphela.Library
+    HCP65: https://github.com/andrewpaterson/HCP65
+    HCP65-IDE: https://github.com/andrewpaterson/HCP65-IDE
+  # The solutions hcp65index indexes together for them (tools/symbol_table.py): a reference names what these
+  # declare.  Their symbol table is kept in .symbols until a repository's HEAD changes.
+  solutions:
+    - HCP65-IDE/HCP65IDE/HCP65IDE.sln
+    - HCP65/HCP65-Emulator/HCP65Emulator.sln
+    - HCP65/Kernal/HCP65Kernal.sln

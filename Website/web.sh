@@ -5,11 +5,15 @@
 #   ./web.sh live        serve with live reload while editing the pages
 #   ./web.sh build       build only (Website.vcxproj's build)
 #   ./web.sh rebuild     clean, then build
-#   ./web.sh clean       remove site/ and .staging/
+#   ./web.sh clean       remove site/ and .staging/ (not .symbols/: the symbol table is still right)
+#   ./web.sh index       make the symbol table for the references to code again now (it is made again by itself
+#                        when a repository's HEAD changes; see tools/symbol_table.py)
 #
 # A build runs the generators, then the checks, then a strict MkDocs build of the pages gathered from the folders
 # mkdocs.yml's extra.sources maps (tools/gather_sources.py).  The checks print problems as "<file>:<line>:1: error:"
-# lines, which the IDE's Build pane opens.  The port defaults to 8000; set PORT to change it, e.g. PORT=8080 ./web.sh
+# lines, which the IDE's Build pane opens.  References to code ([`CTextArea`]) need hcp65index (HCP65-IDE's
+# HCP65Index, built in ../../build/HCP65IDERelease, or $HCP65INDEX) and are checked by the build itself
+# (tools/code_references.py).  The port defaults to 8000; set PORT to change it, e.g. PORT=8080 ./web.sh
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -34,6 +38,7 @@ generate() {
 check() {
     .venv/bin/python tools/check_instruction_tables.py
     .venv/bin/python tools/check_project_items.py
+    .venv/bin/python tools/test_code_references.py -q
 }
 
 build() {
@@ -61,13 +66,16 @@ case "${1:-serve}" in
     clean)
         clean
         ;;
+    index)
+        .venv/bin/python tools/symbol_table.py
+        ;;
     serve)
         build
         echo "Serving site/ on http://127.0.0.1:${PORT}/ (Ctrl+C to stop)"
         exec python3 -m http.server "${PORT}" --bind 127.0.0.1 --directory site
         ;;
     *)
-        echo "Usage: $0 [serve|live|build|rebuild|clean]" >&2
+        echo "Usage: $0 [serve|live|build|rebuild|clean|index]" >&2
         exit 1
         ;;
 esac

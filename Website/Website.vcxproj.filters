@@ -28,6 +28,9 @@
     <None Include="tools\check_project_items.py">
       <Filter>tools</Filter>
     </None>
+    <None Include="tools\code_references.py">
+      <Filter>tools</Filter>
+    </None>
     <None Include="tools\gather_sources.py">
       <Filter>tools</Filter>
     </None>
@@ -35,6 +38,12 @@
       <Filter>tools</Filter>
     </None>
     <None Include="tools\site_sources.py">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="tools\symbol_table.py">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="tools\test_code_references.py">
       <Filter>tools</Filter>
     </None>
     <None Include="docs\index.md">

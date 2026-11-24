@@ -28,11 +28,16 @@ class Loader(yaml.SafeLoader):
 Loader.add_multi_constructor('tag:yaml.org,2002:python/', lambda loader, suffix, node: suffix)
 
 
-def read_entries():
-    """extra.sources, as mkdocs.yml has it."""
+def read_extra():
+    """mkdocs.yml's extra."""
     with open(os.path.join(WEBSITE, 'mkdocs.yml'), encoding='utf-8') as file:
         config = yaml.load(file, Loader=Loader)
-    return (config.get('extra') or {}).get('sources')
+    return config.get('extra') or {}
+
+
+def read_entries():
+    """extra.sources, as mkdocs.yml has it."""
+    return read_extra().get('sources')
 
 
 def sources(entries=None):
