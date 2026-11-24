@@ -50,10 +50,10 @@ These pages are written from:
 
 In the HCP65 repository:
 
-- `W65C64/65C64 Instruction Architecture.xlsx` (V0.1 Prelim), the architecture spreadsheet.
-- `W65C64/65C64 Instruction Architecture - Copy.pdf`, the draft instruction reference for
+- `X65C64-Proposal/65C64 Instruction Architecture.xlsx` (V0.1 Prelim), the architecture spreadsheet.
+- `X65C64-Proposal/65C64 Instruction Architecture - Copy.pdf`, the draft instruction reference for
   `cpy`.
-- `W65C64/65C64 Proposal.odt`, the original proposal.
+- `X65C64-Proposal/65C64 Proposal.odt`, the original proposal.
 
 Every example on these pages assembles with the assembler: a test (TestAssembler65Lib)
 assembles them all.

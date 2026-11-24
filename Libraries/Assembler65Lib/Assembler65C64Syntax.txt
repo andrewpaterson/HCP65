@@ -1,7 +1,7 @@
 65C64 assembler
 ===============
 
-Assembles 65C64 source (HCP65/W65C64/65C64 Instruction Architecture.xlsx)
+Assembles 65C64 source (HCP65/X65C64-Proposal/65C64 Instruction Architecture.xlsx)
 into bytes.  Encodings follow the Opcode encoding sheet as decoded by Decode65C64
 in MicroprocessorLib.  Usage:
 

@@ -5,7 +5,7 @@ Keeps the sheet's merged cells, fill colours, thin borders, alignment and line b
 spreadsheet layout (such as the 65C64 opcode encoding) can be reproduced on the website.  Formula
 cells show the value the spreadsheet last calculated.
 
-    .venv/bin/python tools/sheet_to_html.py "../W65C64/65C64 Instruction Architecture.xlsx" \
+    .venv/bin/python tools/sheet_to_html.py "../X65C64-Proposal/65C64 Instruction Architecture.xlsx" \
         "Opcode encoding" B8:AJ364 docs/65c64/opcode-encoding.md --title "Opcode Encoding"
 
 Requires openpyxl (.venv/bin/pip install openpyxl).

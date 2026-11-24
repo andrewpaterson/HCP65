@@ -71,7 +71,7 @@ Serious, but the symbol isn't used yet
    - Pin 6 is defined twice (GND and 3.3V); it should be VSS.
    - Pin 9 (VDD) is missing.
    - Pins 35 and 36 are named A28/A29, repeating pins 32/33; they should be A30 and A31.
-   Checked against W65C64/Pin Functions.png.
+   Checked against X65C64-Proposal/Pin Functions.png.
 
 8. Bourns:CAY16-000J2LF - pin "7" should be pin 3
    The symbol's pins are 1, 2, 7, 4, but the 4-pad footprint has pads 1-4 (R1 is 1-4, R2 is 2-3), so pad 3 is never
@@ -84,7 +84,7 @@ Serious, but the symbol isn't used yet
 Minor: names, fields and drawings (pin numbers right)
 -----------------------------------------------------
 
-- W65C64:W65C64BusFull (used in W65C64/W65C64.kicad_sch): pins 31 and 78 are named VSS; the pin table says VSSIO.
+- W65C64:W65C64BusFull (used in X65C64/W65C64.kicad_sch): pins 31 and 78 are named VSS; the pin table says VSSIO.
   That only matters if the IO and core grounds are meant to be kept apart.  (The pin table itself labels pins 11-16
   "A8 - A14"; they are A10-A15, as the symbol has them.)
 - Diodes_Inc:AP7365-33WG-7 (122 schematics): pin 4 is named ADJ; on the fixed 3.3V part it is NC.
