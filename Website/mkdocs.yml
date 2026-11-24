@@ -170,3 +170,6 @@ extra:
     - folder: CommonLibraries/Libraries/MicroprocessorLib/Docs
       site: ""
       branch: master
+    - folder: HCP65/Libraries/Assembler65Lib/Docs
+      site: ""
+      branch: main

@@ -239,4 +239,32 @@
     <Text Include="AssemblerW65C816Syntax.txt" />
     <Text Include="W65C816Names.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{5ee08605-8759-47b0-b66d-eb663b1a93c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\65c64">
+      <UniqueIdentifier>{554191e8-fd48-472a-b7a9-4ed258c61ea6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\compiler">
+      <UniqueIdentifier>{b21d8328-bb2b-4909-b414-9c1b692cc8f4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\assembler-w65c816.md">
+      <Filter>Docs\compiler</Filter>
+    </None>
+    <None Include="Docs\compiler\linker.md">
+      <Filter>Docs\compiler</Filter>
+    </None>
+    <None Include="Docs\65c64\assembler.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\linking.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\examples.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+  </ItemGroup>
 </Project>

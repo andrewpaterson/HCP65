@@ -51,12 +51,9 @@
     <None Include="tools\gather_sources.py" />
     <None Include="tools\sheet_to_html.py" />
     <None Include="docs\index.md" />
-    <None Include="docs\65c64\assembler.md" />
     <None Include="docs\65c64\bus.md" />
-    <None Include="docs\65c64\examples.md" />
     <None Include="docs\65c64\index.md" />
     <None Include="docs\65c64\interrupts.md" />
-    <None Include="docs\65c64\linking.md" />
     <None Include="docs\65c64\memory-map.md" />
     <None Include="docs\65c64\notation.md" />
     <None Include="docs\65c64\opcode-encoding.md" />
@@ -85,9 +82,7 @@
     <None Include="docs\65c64\instructions\subcopy.md" />
     <None Include="docs\65c64\instructions\vector.md" />
     <None Include="docs\65c64\instructions\width.md" />
-    <None Include="docs\compiler\assembler-w65c816.md" />
     <None Include="docs\compiler\libc65.md" />
-    <None Include="docs\compiler\linker.md" />
     <None Include="docs\hcp65\boot.md" />
     <None Include="docs\hcp65\console.md" />
     <None Include="docs\hcp65\devices.md" />

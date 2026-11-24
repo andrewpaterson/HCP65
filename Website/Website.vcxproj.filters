@@ -52,22 +52,13 @@
     <None Include="docs\index.md">
       <Filter>docs</Filter>
     </None>
-    <None Include="docs\65c64\assembler.md">
-      <Filter>docs\65c64</Filter>
-    </None>
     <None Include="docs\65c64\bus.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\examples.md">
       <Filter>docs\65c64</Filter>
     </None>
     <None Include="docs\65c64\index.md">
       <Filter>docs\65c64</Filter>
     </None>
     <None Include="docs\65c64\interrupts.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\linking.md">
       <Filter>docs\65c64</Filter>
     </None>
     <None Include="docs\65c64\memory-map.md">
@@ -154,13 +145,7 @@
     <None Include="docs\65c64\instructions\width.md">
       <Filter>docs\65c64\instructions</Filter>
     </None>
-    <None Include="docs\compiler\assembler-w65c816.md">
-      <Filter>docs\compiler</Filter>
-    </None>
     <None Include="docs\compiler\libc65.md">
-      <Filter>docs\compiler</Filter>
-    </None>
-    <None Include="docs\compiler\linker.md">
       <Filter>docs\compiler</Filter>
     </None>
     <None Include="docs\hcp65\boot.md">

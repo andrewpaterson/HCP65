@@ -265,6 +265,13 @@
     <Text Include="AssemblerW65C816Syntax.txt" />
     <Text Include="W65C816Names.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\assembler-w65c816.md" />
+    <None Include="Docs\compiler\linker.md" />
+    <None Include="Docs\65c64\assembler.md" />
+    <None Include="Docs\65c64\linking.md" />
+    <None Include="Docs\65c64\examples.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
