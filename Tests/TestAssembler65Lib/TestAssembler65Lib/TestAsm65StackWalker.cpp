@@ -361,7 +361,8 @@ static void TestAsm65StackWalkerRegisters(STestAsm65StackWalker* psTest)
 // Runs the program to its stp, its walk at every step the calls being
 // run (CAsm65FrameCheck) to the start up's code, whose records it
 // hasn't; or, with the program address from iShortFrom to iShortTo, the
-// walk may end early at a function described.  Returns the deepest walk.
+// walk may end early at a function described.  Every call with a caller
+// has its frame address.  Returns the deepest walk.
 //
 //////////////////////////////////////////////////////////////////////////
 static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortFrom, int64 iShortTo)
@@ -371,10 +372,13 @@ static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortF
 	size					uiWrong;
 	size					uiWrongFrame;
 	size					uiDeepest;
+	size					uiNoFrame;
+	size					ui;
 	uint32					uiFirstWrong;
 	bool					bShort;
 
 	psRegisters = &psTest->sRegisters;
+	uiNoFrame = 0;
 	uiWrong = 0;
 	uiFirstWrong = 0;
 	uiDeepest = 0;
@@ -390,6 +394,11 @@ static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortF
 			uiWrong++;
 		}
 		uiDeepest = (psTest->asFrames.NumElements() > uiDeepest) ? psTest->asFrames.NumElements() : uiDeepest;
+		for (ui = 0; ui + 1 < psTest->asFrames.NumElements(); ui++)
+		{
+			//A call with a caller had its frame address found.
+			uiNoFrame += psTest->asFrames.Get(ui)->bFrame ? 0 : 1;
+		}
 		psTest->pcCheck->Run(1);
 	}
 	AssertTrue(psTest->pcCheck->IsStopped());
@@ -399,6 +408,7 @@ static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortF
 	}
 	AssertInt(0, (int)uiWrong);
 	AssertInt(0, (int)uiFirstWrong);
+	AssertInt(0, (int)uiNoFrame);
 	return uiDeepest;
 }
 

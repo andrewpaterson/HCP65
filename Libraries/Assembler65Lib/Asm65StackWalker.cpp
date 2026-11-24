@@ -163,6 +163,7 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 {
 	SAsm65StackFrame	sFrame;
 	SAsm65StackFrame	sCaller;
+	bool				bCaller;
 
 	pasFrames->ReInit();
 	if (uiMaxFrames == 0)
@@ -173,16 +174,17 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 	*(SAsm65StackRegisters*)&sFrame = *psRegisters;
 	Find(psRegisters->uiPC, (EAsm65StackSpace)psRegisters->uiSpace, &sFrame);
 	sFrame.bInnermost = true;
-	AddFrame(pasFrames, &sFrame, bInlines);
-	while ((pasFrames->NumElements() < uiMaxFrames) && sFrame.psFunction)
+	for (;;)
 	{
-		if (!Caller(&sFrame, &sCaller) || ((sCaller.uiSpace == sFrame.uiSpace) && (sCaller.GetS() <= sFrame.GetS())))
+		//Its caller first: that finds its frame address, which its variables may be from.
+		bCaller = sFrame.psFunction && Caller(&sFrame, &sCaller) && ((sCaller.uiSpace != sFrame.uiSpace) || (sCaller.GetS() > sFrame.GetS()));
+		AddFrame(pasFrames, &sFrame, bInlines);
+		if (!bCaller || (pasFrames->NumElements() >= uiMaxFrames))
 		{
 			break;
 		}
 		sCaller.bInnermost = false;
 		sFrame = sCaller;
-		AddFrame(pasFrames, &sFrame, bInlines);
 	}
 	return pasFrames->NumElements();
 }
