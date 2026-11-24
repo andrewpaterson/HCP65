@@ -331,13 +331,11 @@ E. The IDE treats docs as code (HCP65-IDE)
   warning, the page's colours, Website.sln built.
   Order: 1 (it changes D, so first, while D is fresh), 2 (independent), 3, 4, 5, 6.
   Decided (the user, 2026-11-24): resolving moves into C++ (step 1), one implementation for the IDE and the site.
-  A reference to a symbol the open workspace doesn't have is resolved from the
-  site's symbol table (Website/.symbols) when there is one: Go to Definition works and it isn't an error; Rename
-  and Find Usages only cover the open workspace.
+  A reference to a symbol the open workspace doesn't have is resolved from the site's symbol table
+  (Website/.symbols) when there is one: Go to Definition works and it isn't an error; Rename and Find Usages only
+  cover the open workspace.  Rename changes the pages that are items of the open workspace's projects, as it
+  changes code; a page outside it that names the old name fails the next site build, with its line.
   Still to ask (one at a time):
-    - Which pages Rename changes.  Recommended: the pages that are items of the open workspace's projects, as code;
-      a page outside it that names the old name fails the next site build, with its line.  Otherwise: also every
-      page under mkdocs.yml's mapped folders.
     - How the IDE finds mkdocs.yml (to resolve links between pages, whose folders it maps).  Recommended: the
       mkdocs.yml that is an item of a workspace project (Website.vcxproj has it), else
       ../HCP65/Website/mkdocs.yml beside the solution's repository; without one, links aren't resolved and only
