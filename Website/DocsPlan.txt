@@ -215,6 +215,8 @@ G. Designs
 H. Claude
   1. A CLAUDE.md per repository (CommonLibraries, HCP65, HCP65-IDE, LogiCim, HCP65-Sculpt): a short map to the
      Docs folders, design pages, plans, and the build and test commands.  Independent of A-G: can go first.
+     Built 2026-11-24: CommonLibraries, HCP65, HCP65-IDE, LogiCim and HCP65-Sculpt each have one (relative paths
+     only; they point at the website and the plan files rather than repeating them).
   2. The IDE's Claude tab sets CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 so the --add-dir repositories' CLAUDE.md
      files load too.
   3. Memory notes move into the repositories (decision 16): design rulings to design pages and decision lists,
