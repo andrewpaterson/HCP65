@@ -236,6 +236,12 @@ void TestAsm65EncodingState(void)
 	AssertAsm("abs X", "0xc6ce");
 	AssertAsm("fsbi A, X", "0x391e");
 	AssertAsm("fcby B, Y, -1", "0x5ede");
+	AssertAsm("fzby A, X", "0x3b0e");
+	AssertAsm("fzny A, X, +1", "0x3a0e");
+	AssertAsm("fzcr S, V", "0x710e");
+	AssertAsm("ffcr B, Y", "0x5d4e");
+	AssertAsm("ffby Y, A", "0xe74e");
+	AssertAsm("fzcr A, X, -1", "ERRORS 2:12: The zero and full finds (fz, ff) only scan upward '-'\n");
 	AssertAsm("psh (A, B), S", "0x60cd");
 	AssertAsm("psh A", "0x604d");
 	AssertAsm("pul (A, V, W), S", "0x666d");
@@ -279,8 +285,8 @@ void TestAsm65EncodingBlockVector(void)
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65EncodingDecode(void)
 {
-	static const char*	aszLines[] = { "cpy A, [[$1234] + Y]", "add A, [V + X]", "shl [$10 + X], 3", "shr [V + Y], B", "jsr [V + X]", "brsr X", "vpxor W, V, +1, A, 32", "bpcpy Y, V, -1, A, !z", "fccr A, X", "scb (X, Y), (A, 63), B", "brae (c, z), 8", "brane (c, z), 100", "cpyx A, [$10]:32" };
-	static const E65Instruction	aeInstructions[] = { I65_Cpy, I65_Add, I65_Shl, I65_Shr, I65_Jsr, I65_Brsr, I65_Vpxor, I65_Bpcpy, I65_Fccr, I65_Scb, I65_Brae, I65_Brane, I65_Cpyx };
+	static const char*	aszLines[] = { "cpy A, [[$1234] + Y]", "add A, [V + X]", "shl [$10 + X], 3", "shr [V + Y], B", "jsr [V + X]", "brsr X", "vpxor W, V, +1, A, 32", "bpcpy Y, V, -1, A, !z", "fccr A, X", "scb (X, Y), (A, 63), B", "brae (c, z), 8", "brane (c, z), 100", "cpyx A, [$10]:32", "mul", "div", "fzcr A, X", "fzny A, X", "fzby A, X", "ffcr B, Y", "ffny B, Y", "ffby B, Y" };
+	static const E65Instruction	aeInstructions[] = { I65_Cpy, I65_Add, I65_Shl, I65_Shr, I65_Jsr, I65_Brsr, I65_Vpxor, I65_Bpcpy, I65_Fccr, I65_Scb, I65_Brae, I65_Brane, I65_Cpyx, I65_Mul, I65_Div, I65_Fzcr, I65_Fzny, I65_Fzby, I65_Ffcr, I65_Ffny, I65_Ffby };
 	size				i;
 	CAsm65C64Assembler		cAssembler;
 	CChars				szSource;

@@ -216,6 +216,7 @@ Instructions
 	mul div
 	neg abs  R1 {, R2}
 	fsbi fcbi fscr fccr fsny fcny fsby fcby  R, index {, +1|-1}
+	fzcr fzny fzby ffcr ffny ffby  R, index {, +1}	all bits clear (zero) or set (full), upward only
 	scp scb  (source, index), (destination, index), count
 	bist flag, (R, index)
 	stab (R, index {, repeat {, +1|-1}}), flag

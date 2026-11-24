@@ -115,6 +115,12 @@ static const SAsm65C64Mnemonic gasMnemonics[] =
 	{ "fcny",	AK65C64_Find,				2 },
 	{ "fsby",	AK65C64_Find,				7 },
 	{ "fcby",	AK65C64_Find,				3 },
+	{ "fzcr",	AK65C64_Find,				9 },
+	{ "fzny",	AK65C64_Find,				10 },
+	{ "fzby",	AK65C64_Find,				11 },
+	{ "ffcr",	AK65C64_Find,				13 },
+	{ "ffny",	AK65C64_Find,				14 },
+	{ "ffby",	AK65C64_Find,				15 },
 	{ "scp",	AK65C64_Subcopy,			0 },
 	{ "scb",	AK65C64_Subcopy,			1 },
 	{ "bist",	AK65C64_BitToStatus,		0 },
@@ -305,7 +311,7 @@ bool CAsm65C64Assembler::Instruction(SAsm65Token* psMnemonic)
 		case AK65C64_NegateAbsolute:
 			return NegateAbsolute(psEntry->uiParameter);
 		case AK65C64_Find:
-			return Find((psEntry->uiParameter & 4) != 0, psEntry->uiParameter & 3);
+			return Find((psEntry->uiParameter & 4) != 0, psEntry->uiParameter & 3, (psEntry->uiParameter & 8) != 0);
 		case AK65C64_Subcopy:
 			return Subcopy(psEntry->uiParameter != 0);
 		case AK65C64_BitToStatus:
@@ -2098,26 +2104,46 @@ bool CAsm65C64Assembler::NegateAbsolute(uint16 uiSub)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// fsbi R, I {, +1|-1} ...: scan R from the unit at index I up (or down).
+// fsbi R, I {, +1|-1} ...: scan R from the unit at index I up (or down).  The all-bits
+// finds (bAll: fzcr ... ffby) scan up only, and are in multiply's and divide's bits
+// 15-8: the unit in bits 9-8 (never 0, which is multiply or divide), bSet as the sub
+// instruction.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65C64Assembler::Find(bool bSet, uint16 uiUnit)
+bool CAsm65C64Assembler::Find(bool bSet, uint16 uiUnit, bool bAll)
 {
 	SAsm65C64Instruction	sInstruction;
 	E65Register			eRegister;
 	E65Register			eIndex;
 	bool				bDecrement;
+	SAsm65Token*		psToken;
 
 	if (!Register(&eRegister, "a register") || !Expect(AP65_Comma, "','") || !Register(&eIndex, "an index register"))
 	{
 		return false;
 	}
 	bDecrement = false;
-	if (Accept(AP65_Comma) && !Direction(&bDecrement))
+	if (Accept(AP65_Comma))
 	{
-		return false;
+		psToken = Peek();
+		if (!Direction(&bDecrement))
+		{
+			return false;
+		}
+		if (bAll && bDecrement)
+		{
+			return Error(psToken, "The zero and full finds (fz, ff) only scan upward");
+		}
 	}
-	StartInstruction(&sInstruction, (uint16)((eRegister << 13) | (eIndex << 10) | (bDecrement << 9) | (bSet << 8) | (uiUnit << 6) | (1 << 4) | 14));
+
+	if (bAll)
+	{
+		StartInstruction(&sInstruction, (uint16)((eRegister << 13) | (eIndex << 10) | (uiUnit << 8) | (bSet << 6) | (0 << 4) | 14));
+	}
+	else
+	{
+		StartInstruction(&sInstruction, (uint16)((eRegister << 13) | (eIndex << 10) | (bDecrement << 9) | (bSet << 8) | (uiUnit << 6) | (1 << 4) | 14));
+	}
 	Emit(&sInstruction);
 	return true;
 }

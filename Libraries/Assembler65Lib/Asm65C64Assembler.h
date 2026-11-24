@@ -165,7 +165,7 @@ protected:
 	bool			NoOperation(void);
 	bool			MultiplyDivide(uint16 uiSub);
 	bool			NegateAbsolute(uint16 uiSub);
-	bool			Find(bool bSet, uint16 uiUnit);
+	bool			Find(bool bSet, uint16 uiUnit, bool bAll);
 	bool			Subcopy(bool bBits);
 	bool			SubcopyPair(E65Register* peRegister, uint16* puiIndexField, bool bBits);
 	bool			BitToStatus(void);
