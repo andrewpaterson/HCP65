@@ -45,6 +45,7 @@ selected in a form on the right:
 | Warn when a string literal becomes a char* | Unticked to begin with.  Ticked writes `WarnStringToPointer="true"`: each string literal given to a `char*` is a warning in the Build tab. |
 | Accept casts like unsigned int(3) | Unticked to begin with: a cast written as a type of more than one word and brackets is an error.  Ticked writes `MultiWordCasts="true"`, and it is accepted as the Microsoft compiler accepts it. |
 | C sources: void* and numbers convert as in C | Unticked to begin with.  Ticked writes `CConversions="true"` for a project written in C: a `void*` becomes any object's pointer and a number an enum's value with no cast. |
+| A missing function stops the program instead of failing the build | Unticked to begin with: a function used but defined by no unit is an error in the Build tab, naming it.  Ticked writes `StubMissing="true"`: it is a warning, and the program stops if it gets there. |
 | Built for the debugger | Unticked to begin with.  Ticked writes `Debug="true"`: every variable is kept where the [debugger](debugging.md) reads it, nothing is inlined and every function has a frame of its own, the rest still optimised. |
 | Projects not optimised | Projects (by name, separated by commas) built for the debugger without the optimiser, so stepping follows every line.  Written as `Unoptimised`. |
 | Card | The emulator's SD card image the program is written onto. |

@@ -49,6 +49,7 @@ A change to an instruction is made in both simulators, and tests hold them toget
 | `0000:0000`–`001F:FFFF` | 2MB of memory (the size can be set) |
 | `00FF:0000` | A storage drive's registers |
 | `00FF:0100` | A console: each byte written is appended to a string |
+| `00FF:0104` | The console's input: write `00FF:0104` to take the next byte; `00FF:0105` is then 1 with the byte in `00FF:0106`, or 0 when the input has ended |
 | `00FF:0300` | The size of the memory, read only |
 | `FFFF:F000`–`FFFF:FFFF` | The 4KB [vector](interrupts.md#vectors) page |
 
@@ -57,6 +58,11 @@ An access anywhere else reads 0 and is counted as a bad access, which the tests 
 The drive copies whole sectors between a file drive and memory.  A program writes the first
 sector, the address in memory and the number of sectors to its registers, and then a command (1
 to read, 2 to write).  The [lazy loader](linking.md#lazy-loading) uses it.
+
+The console's input comes from a string or a callback (`SetConsoleInput`); with neither, the input
+has ended.  Taking a byte is a write, so reading the registers (as a debugger does) changes nothing.
+The X65C64 Emulator gives a program its standard input, showing what the program has written
+first, so a prompt appears before it waits.  Libc65's `stdin` reads it on both processors.
 
 ## Running a program
 

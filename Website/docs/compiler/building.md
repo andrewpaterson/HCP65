@@ -70,6 +70,7 @@ configuration whose files and settings it builds, and what to link.  This is
 | `WarnStringToPointer="true"` | Warn when a string literal, which is `const`, becomes a `char*`.  C++14 has no such conversion; the compiler still makes it, as code written before is full of it, and says nothing unless a configuration asks. |
 | `MultiWordCasts="true"` | Accept `unsigned int(3)`, a cast written as a type of more than one word and brackets, as the Microsoft compiler does.  Without it that is an error, as C++14 has it: write `unsigned(3)` or `(unsigned int)3`. |
 | `CConversions="true"` | The sources are C: a `void*` becomes a pointer to any object and a number an enum's value with no cast, an enum is incremented, and a pointer is compared with `0` by `<` and `>`.  C++ refuses each of these. |
+| `StubMissing="true"` | A function used but defined by no unit is a warning, and the program stops if it gets there.  Without it the build fails naming each one.  A module (a driver) is never checked: what it doesn't define is imported from the kernal when it is loaded. |
 | `Debug="true"` | Built for the debugger: each variable, parameters too, is kept in its frame where the debugger reads it, nothing is inlined, and every function has a frame of its own.  The rest is still optimised, so the kernal still fits.  Usually set on the `Debug\|W65C816` configuration. |
 | `Unoptimised="Init, Shell"` | These projects (by name, separated by commas) are built for the debugger without the optimiser at all, so stepping follows every line as it is written: for a program that fits and needn't be fast. |
 | `BreakpointSpace` | The emulator's address space (`Kernel` or `User`) that the IDE's breakpoints go in. |
@@ -127,6 +128,7 @@ units are linked only when something uses them.  Sources can be `.cpp` or `.asm`
 | `-warn-string-to-pointer` | Warn when a string literal becomes a `char*`. |
 | `-multi-word-casts` | Accept `unsigned int(3)`, a cast whose type is more than one word. |
 | `-c-conversions` | The sources are C: a `void*` and a number convert as C has them. |
+| `-stub-missing` | As `StubMissing="true"`: a missing function stops the program instead of failing the build. |
 | `-debug` | As `Debug="true"`: built for the debugger. |
 | `-unoptimised <project>` | As `Unoptimised`: the project isn't optimised.  Give it again for each project. |
 | `-exe <file> -entry <symbol> [-limit <n>] [-symbol <name>=<n>]...` | Link an executable. |
