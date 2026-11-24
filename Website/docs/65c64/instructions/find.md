@@ -4,15 +4,16 @@
 |---|---|---|---|
 | `fsbi` | Find set bit | if c {N+1 → N}; while R:b[N] = 0, N+1 → N | v, c |
 | `fcbi` | Find clear bit | if c {N+1 → N}; while R:b[N] = 1, N+1 → N | v, c |
-| `fscr` | Find set crumb | As `fsbi`, for 2 bit crumbs with any bit set | v, c |
-| `fccr` | Find clear crumb | As `fcbi`, for 2 bit crumbs with any bit clear | v, c |
+| `fscr` | Find non-zero crumb | if c {N+1 → N}; while ∨R:c[N] = 0, N+1 → N | v, c |
+| `fccr` | Find zero crumb | if c {N+1 → N}; while ∧R:c[N] = 1, N+1 → N | v, c |
 | `fsny` | Find non-zero nybble | if c {N+1 → N}; while ∨R:n[N] = 0, N+1 → N | v, c |
 | `fcny` | Find zero nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c |
 | `fsby` | Find non-zero byte | if c {N+1 → N}; while ∨R:[N] = 0, N+1 → N | v, c |
 | `fcby` | Find zero byte | if c {N+1 → N}; while ∧R:[N] = 1, N+1 → N | v, c |
 
-Scan a register for a unit (bit, crumb, nybble or byte) with any bit set (the *find set*
-forms) or any bit clear (the *find clear* forms).  The scan starts at the unit indexed by N and
+Scan a register for a unit (bit, crumb, nybble or byte) with any bit set (*find set* for a
+bit, *find non-zero* for wider units) or any bit clear (*find clear* for a bit, *find zero*
+for wider units).  The scan starts at the unit indexed by N and
 moves up or down.  N is left at the unit found.
 
 ## Width and flags

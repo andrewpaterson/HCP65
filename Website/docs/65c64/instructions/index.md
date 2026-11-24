@@ -43,8 +43,8 @@ width (8, 16, 32 or 64 bits) between memory and A, B, X or Y.
 | [`div`](multiply-divide.md#div) | Divide (partial) | Y ÷ A → Y, remainder B | v, z, c | |
 | [`fsbi`](find.md) | Find set bit | if c {N+1 → N}; while R:b[N] = 0, N+1 → N | v, c | |
 | [`fcbi`](find.md) | Find clear bit | if c {N+1 → N}; while R:b[N] = 1, N+1 → N | v, c | |
-| [`fscr`](find.md) | Find set crumb | As `fsbi`, for 2 bit crumbs with any bit set | v, c | |
-| [`fccr`](find.md) | Find clear crumb | As `fcbi`, for 2 bit crumbs with any bit clear | v, c | |
+| [`fscr`](find.md) | Find non-zero crumb | if c {N+1 → N}; while ∨R:c[N] = 0, N+1 → N | v, c | |
+| [`fccr`](find.md) | Find zero crumb | if c {N+1 → N}; while ∧R:c[N] = 1, N+1 → N | v, c | |
 | [`fsny`](find.md) | Find non-zero nybble | if c {N+1 → N}; while ∨R:n[N] = 0, N+1 → N | v, c | |
 | [`fcny`](find.md) | Find zero nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c | |
 | [`fsby`](find.md) | Find non-zero byte | if c {N+1 → N}; while ∨R:[N] = 0, N+1 → N | v, c | |

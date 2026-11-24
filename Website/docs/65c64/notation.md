@@ -36,9 +36,10 @@ spreadsheet.
 | [Q] | The contents of memory at address Q |
 | R:[q] | Byte q of register R |
 | R:b[q] | Bit q of register R |
+| R:c[q] | Crumb (2 bits) q of register R |
 | R:n[q] | Nybble q of register R |
 
-Byte, bit and nybble 0 are the least significant.
+Byte, bit, crumb and nybble 0 are the least significant.
 
 ## Operators
 
