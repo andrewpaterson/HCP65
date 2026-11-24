@@ -9,7 +9,8 @@
 
 
 //Functions as the compiler makes them, and as it doesn't: pushes of both widths and pea round a call in a function
-//with no frame, a frame of its own, an aligned frame that keeps S, and a leaf that pushes and pulls.  Start has no
+//with no frame, a frame of its own, an aligned frame that keeps S (and copies D back to A, which X's copy of S
+//outlives), and a leaf that pushes and pulls.  Start has no
 //records: a walk stops there.
 static const char* gszTestAsm65StackWalker =
 	".org $8000\n"
@@ -63,6 +64,7 @@ static const char* gszTestAsm65StackWalker =
 	"\tand $FFF0\n"
 	"\ttcs\n"
 	"\ttcd\n"
+	"\ttdc\n"
 	"\tstx [D + 6]\n"
 	"AlignedBody:\n"
 	"\tjsl Leaf\n"

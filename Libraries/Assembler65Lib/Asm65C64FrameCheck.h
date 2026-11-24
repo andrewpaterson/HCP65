@@ -41,6 +41,7 @@ public:
 	void	AfterStep(uint16 uiOpcode);
 
 	bool	IsStopped(void) override;
+	void	GetRegisters(SAsm65StackRegisters* psRegisters) override;
 
 protected:
 	void	Step(void) override;

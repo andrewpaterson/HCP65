@@ -47,6 +47,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #define OP_TSC	0x3B
 #define OP_TCS	0x1B
 #define OP_TCD	0x5B
+#define OP_TDC	0x7B
 #define OP_TSX	0xBA
 #define OP_TXS	0x9A
 #define OP_TAX	0xAA
@@ -343,6 +344,7 @@ bool CAsmW65C816StackWalker::Follow(SAsm65StackFrame* psFrame, uint32* puiEntryS
 			sS.iBelow -= 1;
 			break;
 		case OP_TSC: sA = sS; break;
+		case OP_TDC: sA.Forget(); break;
 		case OP_TSX: sX = sS; break;
 		case OP_TCS: sS = sA; break;
 		case OP_TXS: sS = sX; break;

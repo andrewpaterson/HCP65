@@ -21,6 +21,10 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65FrameCheck.h"
 
 
+#define ASM65_FRAME_CHECK_FRAMES	64		//The most frames RunWalking walks.
+#define ASM65_FRAME_CHECK_WRONG		4		//The wrong walks RunWalking tells of: the first ones.
+
+
 //////////////////////////////////////////////////////////////////////////
 //
 //
@@ -56,6 +60,46 @@ size CAsm65FrameCheck::Run(size uiMaxSteps)
 	{
 		Step();
 	}
+	return uiSteps;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Runs up to uiMaxSteps instructions, or until the processor stops, the
+// stack walked (pcWalker, with the program's records) before each step in
+// code the records describe, and each walk checked (WrongFrame).  The
+// first few wrong ones are appended to pszWrong: where, and the frame.
+// Returns the steps run.
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsm65FrameCheck::RunWalking(size uiMaxSteps, CAsm65StackWalker* pcWalker, CChars* pszWrong)
+{
+	CArrayAsm65StackFrames	asFrames;
+	SAsm65StackRegisters	sRegisters;
+	SAsm65StackFrame*		psFrame;
+	size					uiSteps;
+	size					uiWrong;
+	size					uiFrame;
+
+	asFrames.Init();
+	uiWrong = 0;
+	for (uiSteps = 0; (uiSteps < uiMaxSteps) && !IsStopped(); uiSteps++)
+	{
+		GetRegisters(&sRegisters);
+		if ((pcWalker->Walk(&sRegisters, &asFrames, ASM65_FRAME_CHECK_FRAMES) > 0) && asFrames.Get(0)->psFunction)
+		{
+			uiFrame = WrongFrame(&asFrames);
+			if ((uiFrame != 0) && (uiWrong++ < ASM65_FRAME_CHECK_WRONG))
+			{
+				psFrame = asFrames.Get(0);
+				pszWrong->Append("0x")->AppendHexHiLo(&psFrame->uiPC, 4)->Append(" in ")->Append(psFrame->psFunction->szName)->Append(": frame ")->Append((int)uiFrame);
+				pszWrong->Append(" of ")->Append((int)NumCalls() + 1)->AppendNewLine();
+			}
+		}
+		Step();
+	}
+	asFrames.Kill();
 	return uiSteps;
 }
 

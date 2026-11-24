@@ -21,6 +21,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #ifndef __ASM65_FRAME_CHECK_H__
 #define __ASM65_FRAME_CHECK_H__
 #include "BaseLib/ArrayTemplate.h"
+#include "BaseLib/Chars.h"
 #include "Asm65StackWalker.h"
 
 
@@ -37,8 +38,9 @@ struct SAsm65FrameCall
 
 //Follows the calls a program runs, a step at a time, as the truth a stack walker's walk is checked against
 //(WrongFrame): each caller where its call returns to, with S as it was before the call and the register calls keep.
-//What isn't a processor's is here: the calls, their ends, the check.  A processor's (CAsmW65C816FrameCheck,
-//CAsm65C64FrameCheck) says which instructions call and return, and runs the processor.
+//What isn't a processor's is here: the calls, their ends, the check, and a run that walks the stack at every step
+//(RunWalking).  A processor's (CAsmW65C816FrameCheck, CAsm65C64FrameCheck) says which instructions call and return,
+//runs the processor and reads its registers.
 class CAsm65FrameCheck
 {
 protected:
@@ -50,7 +52,9 @@ public:
 	virtual void		Kill(void);
 
 	size				Run(size uiMaxSteps);
+	size				RunWalking(size uiMaxSteps, CAsm65StackWalker* pcWalker, CChars* pszWrong);
 	virtual bool		IsStopped(void) = 0;
+	virtual void		GetRegisters(SAsm65StackRegisters* psRegisters) = 0;
 
 	size				NumCalls(void) const;
 	SAsm65FrameCall*	GetCall(size uiIndex);

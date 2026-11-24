@@ -66,6 +66,7 @@ public:
 	static void				AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest);
 
 	bool	IsStopped(void) override;
+	void	GetRegisters(SAsm65StackRegisters* psRegisters) override;
 
 protected:
 	void	Step(void) override;
