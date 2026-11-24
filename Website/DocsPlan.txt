@@ -236,9 +236,9 @@ D. References to code
   4. Convert the existing pages from the warnings list.
   Check: a fixture page with good, bad and plain references gives exactly the expected errors and warnings.
   Decided (the user, 2026-11-24): D1 indexes the solutions listed beside extra.sources in mkdocs.yml, and only
-  those; the symbol table is kept until a repository changes.
-  Still to ask (one at a time): which plain code spans warn (recommended: only
-  those naming a real symbol, so made-up example names like CTank never do); where a reference to a class or an
+  those; the symbol table is kept until a repository changes.  A plain code span warns only when it names a
+  symbol D1 indexed (made-up example names like CTank, and code like `x = 1`, never do).
+  Still to ask: where a reference to a class or an
   overloaded function links (recommended: its declaration in the header).
 
 E. The IDE treats docs as code (HCP65-IDE)
