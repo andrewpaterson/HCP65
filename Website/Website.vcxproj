@@ -1,0 +1,143 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- The documentation website: a Makefile project whose build is web.sh (generators, checks, then a strict MkDocs
+       build of the pages gathered from the folders mkdocs.yml's extra.sources maps).  Its items are the site's own
+       files and the pages that describe no one project; a page about a project's code is an item of that project
+       (DocsPlan.txt decisions 2 and 10; tools/check_project_items.py checks each is in exactly one project). -->
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{554A1014-4E79-4257-A130-329C48FD7540}</ProjectGuid>
+    <RootNamespace>Website</RootNamespace>
+    <Keyword>MakeFileProj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeBuildCommandLine>bash web.sh build</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>bash web.sh rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>bash web.sh clean</NMakeCleanCommandLine>
+    <NMakeOutput>site\index.html</NMakeOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeBuildCommandLine>bash web.sh build</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>bash web.sh rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>bash web.sh clean</NMakeCleanCommandLine>
+    <NMakeOutput>site\index.html</NMakeOutput>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="mkdocs.yml" />
+    <None Include="web.sh" />
+    <None Include="README.md" />
+    <None Include="DocsPlan.txt" />
+    <None Include="tools\check_instruction_tables.py" />
+    <None Include="tools\check_project_items.py" />
+    <None Include="tools\gather_sources.py" />
+    <None Include="tools\sheet_to_html.py" />
+    <None Include="docs\index.md" />
+    <None Include="docs\65c64\assembler.md" />
+    <None Include="docs\65c64\bus.md" />
+    <None Include="docs\65c64\calling-convention.md" />
+    <None Include="docs\65c64\emulator.md" />
+    <None Include="docs\65c64\examples.md" />
+    <None Include="docs\65c64\index.md" />
+    <None Include="docs\65c64\interrupts.md" />
+    <None Include="docs\65c64\linking.md" />
+    <None Include="docs\65c64\memory-map.md" />
+    <None Include="docs\65c64\notation.md" />
+    <None Include="docs\65c64\opcode-encoding.md" />
+    <None Include="docs\65c64\operands.md" />
+    <None Include="docs\65c64\registers.md" />
+    <None Include="docs\65c64\timing.md" />
+    <Image Include="docs\65c64\images\partial-multiplication.png" />
+    <Image Include="docs\65c64\images\schematic-symbol.png" />
+    <Image Include="docs\65c64\images\system-block-diagram.png" />
+    <None Include="docs\65c64\instructions\arithmetic.md" />
+    <None Include="docs\65c64\instructions\block.md" />
+    <None Include="docs\65c64\instructions\branch.md" />
+    <None Include="docs\65c64\instructions\control.md" />
+    <None Include="docs\65c64\instructions\cpy.md" />
+    <None Include="docs\65c64\instructions\cpyx.md" />
+    <None Include="docs\65c64\instructions\find.md" />
+    <None Include="docs\65c64\instructions\hardware.md" />
+    <None Include="docs\65c64\instructions\index.md" />
+    <None Include="docs\65c64\instructions\jump.md" />
+    <None Include="docs\65c64\instructions\logical.md" />
+    <None Include="docs\65c64\instructions\multiply-divide.md" />
+    <None Include="docs\65c64\instructions\return.md" />
+    <None Include="docs\65c64\instructions\shift.md" />
+    <None Include="docs\65c64\instructions\stack.md" />
+    <None Include="docs\65c64\instructions\status.md" />
+    <None Include="docs\65c64\instructions\subcopy.md" />
+    <None Include="docs\65c64\instructions\vector.md" />
+    <None Include="docs\65c64\instructions\width.md" />
+    <None Include="docs\compiler\65c64.md" />
+    <None Include="docs\compiler\assembler-w65c816.md" />
+    <None Include="docs\compiler\building.md" />
+    <None Include="docs\compiler\index.md" />
+    <None Include="docs\compiler\inside.md" />
+    <None Include="docs\compiler\ir.md" />
+    <None Include="docs\compiler\language.md" />
+    <None Include="docs\compiler\libc65.md" />
+    <None Include="docs\compiler\linker.md" />
+    <None Include="docs\compiler\testing.md" />
+    <None Include="docs\compiler\w65c816.md" />
+    <None Include="docs\hcp65\boot.md" />
+    <None Include="docs\hcp65\console.md" />
+    <None Include="docs\hcp65\devices.md" />
+    <None Include="docs\hcp65\emulator.md" />
+    <None Include="docs\hcp65\index.md" />
+    <None Include="docs\hcp65\kernel-calls.md" />
+    <None Include="docs\hcp65\memory-map.md" />
+    <None Include="docs\hcp65\memory.md" />
+    <None Include="docs\hcp65\registers.md" />
+    <None Include="docs\hcp65\screen.md" />
+    <None Include="docs\hcp65\sprites.md" />
+    <None Include="docs\hcp65\runtime\index.md" />
+    <None Include="docs\hcp65\runtime\w65c816.md" />
+    <None Include="docs\ide\building.md" />
+    <None Include="docs\ide\checks.md" />
+    <None Include="docs\ide\claude-tab.md" />
+    <None Include="docs\ide\debugging.md" />
+    <None Include="docs\ide\editor.md" />
+    <None Include="docs\ide\git.md" />
+    <None Include="docs\ide\index.md" />
+    <None Include="docs\ide\navigation.md" />
+    <None Include="docs\ide\settings.md" />
+    <None Include="docs\ide\solutions.md" />
+    <None Include="docs\ide\templates.md" />
+    <None Include="docs\ide\refactoring\change-signature.md" />
+    <None Include="docs\ide\refactoring\convert.md" />
+    <None Include="docs\ide\refactoring\definitions.md" />
+    <None Include="docs\ide\refactoring\extract.md" />
+    <None Include="docs\ide\refactoring\includes.md" />
+    <None Include="docs\ide\refactoring\index.md" />
+    <None Include="docs\ide\refactoring\inline.md" />
+    <None Include="docs\ide\refactoring\introduce.md" />
+    <None Include="docs\ide\refactoring\members.md" />
+    <None Include="docs\ide\refactoring\move.md" />
+    <None Include="docs\ide\refactoring\namespaces.md" />
+    <None Include="docs\ide\refactoring\rename.md" />
+    <None Include="docs\ide\refactoring\safe-delete.md" />
+    <None Include="docs\ide\refactoring\templates.md" />
+    <None Include="docs\libraries\index.md" />
+    <None Include="docs\stylesheets\extra.css" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
