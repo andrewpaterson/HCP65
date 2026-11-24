@@ -238,8 +238,9 @@ D. References to code
   Decided (the user, 2026-11-24): D1 indexes the solutions listed beside extra.sources in mkdocs.yml, and only
   those; the symbol table is kept until a repository changes.  A plain code span warns only when it names a
   symbol D1 indexed (made-up example names like CTank, and code like `x = 1`, never do).
-  Still to ask: where a reference to a class or an
-  overloaded function links (recommended: its declaration in the header).
+  A reference links to the declaration in the header: a class's definition, a function's declaration (its comment
+  and signature); an overloaded name without parameters links to its first declaration, and
+  [`CShape::Init(int)`] picks one overload.  D has no questions left.
 
 E. The IDE treats docs as code (HCP65-IDE)
   1. BuildLib: a Makefile project with a build command is built by running it (a CCommandBuild subclass), whatever
