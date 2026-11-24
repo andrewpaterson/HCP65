@@ -218,10 +218,16 @@ H. Claude
      Built 2026-11-24: CommonLibraries, HCP65, HCP65-IDE, LogiCim and HCP65-Sculpt each have one (relative paths
      only; they point at the website and the plan files rather than repeating them).
   2. The IDE's Claude tab sets CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 so the --add-dir repositories' CLAUDE.md
-     files load too.
+     files load too.  Built 2026-11-24 (HCP65-IDE a658f46): ClaudeLib sets it in the IDE's environment before starting
+     Claude Code; the checks' stand-in reports it and claude-request expects it (the old build fails that check).
   3. Memory notes move into the repositories (decision 16): design rulings to design pages and decision lists,
      recipes and how Claude should work to CLAUDE.md and testing pages, status and handoffs to the plans; memory
      keeps pointers, machine fixes and session history.
+     Part built 2026-11-24: how to work (a section the same in all five CLAUDE.md files), the code rules and the
+     recipes are in the CLAUDE.md files (CommonLibraries e93836692, HCP65 405d4d0, HCP65-IDE 748f477, LogiCim
+     b7cfdbd, HCP65-Sculpt 934a570); the 40 memory notes they came from were deleted.  Left: 156 notes, mostly how
+     components were designed (to design pages, stage G, which don't exist yet), status and handoffs (to the plan
+     files), and machine fixes and history (they stay).
   4. Later: the IDE serves its live index over MCP (find definition, find usages including Documentation, the pages
      that cover a symbol), so Claude asks the index instead of grepping (decision 18: the running IDE only).
   5. Only if the site is published: llms.txt (mkdocs-llmstxt) at the site root.
