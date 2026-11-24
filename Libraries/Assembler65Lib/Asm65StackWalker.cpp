@@ -271,15 +271,26 @@ bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* p
 //////////////////////////////////////////////////////////////////////////
 //
 // The value of uiBase in psFrame: a register's, or its frame address
-// (ASM65_DEBUG_FRAME).  False if it isn't known.
+// (ASM65_DEBUG_FRAME).  The register its frame rule is from (.dframe R,
+// k: frame address R + k) is taken from the frame address, which the walk
+// finds in its prologue and epilogue too, where R is still or again its
+// caller's (DebuggerFixesPlan.txt G3).  False if it isn't known.
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65StackWalker::Base(SAsm65StackFrame* psFrame, uint8 uiBase, uint64* puiValue)
 {
+	SAsm65DebugFunction*	psFunction;
+
+	psFunction = psFrame->psFunction;
 	if (uiBase == ASM65_DEBUG_FRAME)
 	{
 		*puiValue = psFrame->uiFrame;
 		return psFrame->bFrame;
+	}
+	if (psFrame->bFrame && (psFunction->uiFrame == ADF_Register) && (psFunction->uiFrameRegister == uiBase))
+	{
+		*puiValue = (uint64)((int64)psFrame->uiFrame - psFunction->iFrameOffset);
+		return true;
 	}
 	if (!psFrame->IsKnown(uiBase))
 	{
