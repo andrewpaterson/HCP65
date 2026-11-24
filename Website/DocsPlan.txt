@@ -152,6 +152,18 @@ A. The site build (HCP65/Website)
   5. Website.vcxproj (+ .filters, + Website.sln): a Makefile project.  Items: mkdocs.yml, the cross-cutting
      pages, stylesheets, tools, DocsPlan.txt.  NMakeBuildCommandLine = web.sh build (Rebuild and Clean too).
   Check: the site builds byte-identically before and after A with nothing moved.
+  Built 2026-11-24.  The gathering is an MkDocs hook (tools/gather_sources.py, listed under hooks: in mkdocs.yml), so
+  `mkdocs build`, `mkdocs serve` (it watches the mapped folders) and the IDE's build all use it; staging is
+  Website/.staging; two folders landing a file in one place, or a mapped folder that isn't there, is an error.  The
+  map's paths are relative to the folder holding the repositories (two up from mkdocs.yml); today it has one entry,
+  HCP65/Website/docs at the top.  The item check (tools/check_project_items.py) covers every file under a mapped
+  folder, not only pages and images, against every .vcxproj in the repositories.  MkDocs's own warnings about a page
+  are repeated as "<real path>:1:1: warning:" (it gives no line).  The snippets base_path didn't need the map: it is
+  relative to the Website folder, not to the pages, so gathering doesn't change it; look again in B if a moved page
+  includes snippets.  Verified: byte-identical site (169 files), web.sh rebuild, live editing through mkdocs serve,
+  the hook's four error cases, a broken table row and a broken link reported with their real paths, and
+  CYAMLParser reading the new mkdocs.yml as PyYAML does.  Not tried: opening Website.sln in the IDE, which can't yet
+  run a Makefile project's command (E1).
 
 B. Pages move next to their code
   1. `git mv` per repository, a Docs folder beside the owning project, the pages added to its .vcxproj as None items
