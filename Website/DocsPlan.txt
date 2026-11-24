@@ -107,6 +107,9 @@ Decided (the user's, 2026-11-24)
     page names the last commit that had it.  Only a fully finished plan: its open items move to the design page's
     "not done" list first (a plan kept as a gap list, like Navigation.txt, stays until then), and what points at it
     (other plans, notes, memory) is changed to point at the design page.
+18. MCP tools for Claude (find definition, find usages including Documentation, the pages that cover a symbol) are
+    served by the running IDE only, for now (question 10): its index is live and has unsaved edits.  A headless
+    server (the decision 14 program) is not planned; add it only if sessions without the IDE need it.
 
 
 Proposed (my recommendations, not decided)
@@ -218,7 +221,7 @@ H. Claude
      recipes and how Claude should work to CLAUDE.md and testing pages, status and handoffs to the plans; memory
      keeps pointers, machine fixes and session history.
   4. Later: the IDE serves its live index over MCP (find definition, find usages including Documentation, the pages
-     that cover a symbol), so Claude asks the index instead of grepping.  question 10.
+     that cover a symbol), so Claude asks the index instead of grepping (decision 18: the running IDE only).
   5. Only if the site is published: llms.txt (mkdocs-llmstxt) at the site root.
   Check: a fresh `claude -p` in each repository answers "where is X documented and how is it built" from CLAUDE.md
   alone (the claude-request IDE check's stand-in for the tab).
@@ -265,7 +268,7 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
     Claude should work, and status and handoffs; not machine fixes or session history, and not only the rulings.
  9. A finished plan once its design page exists.  Decided 2026-11-24 (decision 17): superseded and deleted, the page
     naming its last commit; not kept beside the code as history.
-10. MCP: served by the running IDE (recommended: the index is already live there), or a separate headless program.
+10. MCP.  Decided 2026-11-24 (decision 18): served by the running IDE only, for now; not a headless program.
 11. Test data in Input/Output folders.  Decided 2026-11-24 (decision 11): owned by its test project by where it is,
     not as items; not hand-listed like pages.
 
