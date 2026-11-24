@@ -232,6 +232,11 @@
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\memory-map.md" />
+    <None Include="Docs\hcp65\registers.md" />
+    <None Include="Docs\hcp65\devices.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

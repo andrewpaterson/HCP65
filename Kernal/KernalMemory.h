@@ -4,7 +4,7 @@
 
 
 //The kernal's memory.  Its heap (malloc) is MPU RAM's bank 6, below the remap table: it is always there.  Drivers go in
-//MPU RAM from the end of the kernal's bss up to it.  Main memory is the memory boards' (Website docs/hcp65/devices.md,
+//MPU RAM from the end of the kernal's bss up to it.  Main memory is the memory boards' (HCP65Lib/Docs/hcp65/devices.md,
 //Main memory): each one found gets the next window, 1, 2, 3 then 0, through the main memory channel's registers.  Of
 //the banks they give, the kernal keeps KERNAL_NUM_TABLE_BANKS for the maths tables and banks for its main memory heap
 //(KernalMainMalloc: what the SD Card Board's DMA must reach, and a driver's memory that is too big for MPU RAM), from

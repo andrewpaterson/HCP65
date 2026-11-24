@@ -7,7 +7,7 @@ class CMarkupTag;
 class CChars;
 
 
-//The device ROM: the first 1KB of an HCP65 device's slot describes the board (HCP65 Website docs/hcp65/devices.md, Device
+//The device ROM: the first 1KB of an HCP65 device's slot describes the board (HCP65's HCP65-Emulator/HCP65Lib/Docs/hcp65/devices.md, Device
 //ROM).  The kernal reads the same layout (Kernal/KernalDevices.h).  Words are little endian.
 #define DEVICE_ROM_SIZE					0x400
 #define DEVICE_ROM_MAGIC				0xC0DAFE1A

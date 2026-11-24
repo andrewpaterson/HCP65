@@ -9,7 +9,7 @@
 #define KERNAL_SMALL_SLOT_SIZE		0x8000
 #define KERNAL_LARGE_SLOT_SIZE		0x20000
 
-//The device ROM: the first 1KB of a device's slot describes the board (Website docs/hcp65/devices.md, Device ROM).  Its
+//The device ROM: the first 1KB of a device's slot describes the board (HCP65Lib/Docs/hcp65/devices.md, Device ROM).  Its
 //layout is DeviceRomLib's (DEVICE_ROM_*), which the emulator's boards build theirs with.  An empty socket's bus is pulled
 //high, so it reads $FF.
 #define KERNAL_DEVICE_ROM_EMPTY			0xFFFFFFFF	//The magic as an empty socket reads it.

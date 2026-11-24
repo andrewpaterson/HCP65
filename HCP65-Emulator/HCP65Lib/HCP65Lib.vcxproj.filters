@@ -123,4 +123,23 @@
       <UniqueIdentifier>{2B7E9C14-6F3A-4D85-B0C2-9E1A7D4F3C68}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{23409129-1d14-4cb7-bed3-dacb3021dabc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{76898fad-0a67-43bd-9d59-463ba295f867}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\memory-map.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+    <None Include="Docs\hcp65\registers.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+    <None Include="Docs\hcp65\devices.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
 </Project>

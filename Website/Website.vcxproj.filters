@@ -145,9 +145,6 @@
     <None Include="docs\hcp65\console.md">
       <Filter>docs\hcp65</Filter>
     </None>
-    <None Include="docs\hcp65\devices.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
     <None Include="docs\hcp65\emulator.md">
       <Filter>docs\hcp65</Filter>
     </None>
@@ -157,13 +154,7 @@
     <None Include="docs\hcp65\kernel-calls.md">
       <Filter>docs\hcp65</Filter>
     </None>
-    <None Include="docs\hcp65\memory-map.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
     <None Include="docs\hcp65\memory.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
-    <None Include="docs\hcp65\registers.md">
       <Filter>docs\hcp65</Filter>
     </None>
     <None Include="docs\hcp65\screen.md">

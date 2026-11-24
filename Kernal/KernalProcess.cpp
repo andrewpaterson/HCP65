@@ -640,7 +640,7 @@ static uint16 KernalLoadExecutableObject(CAsm65Object* pcObject, CFatFile* pcFil
 
 	//The kernal's vectors in the process's bank 0 too.  An interrupt's vector pull is what puts the board in kernel
 	//mode, and the rest of the processor board sees that from the cycle after the first one of it: the first vector
-	//byte comes from the process's bank 0 (Website docs/hcp65/memory-map.md).  A program that overwrites them breaks
+	//byte comes from the process's bank 0 (HCP65Lib/Docs/hcp65/memory-map.md).  A program that overwrites them breaks
 	//only itself.
 	if (!KernalCopyToUser(KERNAL_VECTORS, (const uint8*)KERNAL_VECTORS, KERNAL_VECTORS_SIZE) ||
 		!KernalCopyToUser(KERNAL_USER_NULL_CANARY, gauiKernalCanary, KERNAL_CANARY_SIZE) ||

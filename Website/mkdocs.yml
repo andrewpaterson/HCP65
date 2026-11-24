@@ -176,3 +176,6 @@ extra:
     - folder: HCP65/Libraries/Libc65/Docs
       site: ""
       branch: main
+    - folder: HCP65/HCP65-Emulator/HCP65Lib/Docs
+      site: ""
+      branch: main
