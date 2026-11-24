@@ -22,12 +22,6 @@
     <Filter Include="docs\hcp65\runtime">
       <UniqueIdentifier>{8b7d25ad-24cd-4bcc-9998-5ee2d8da1f08}</UniqueIdentifier>
     </Filter>
-    <Filter Include="docs\ide">
-      <UniqueIdentifier>{dca80bfe-9b53-4c29-96a3-2e6d9021ea18}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="docs\ide\refactoring">
-      <UniqueIdentifier>{89cd21eb-40fa-4edc-bc38-a87b392d2cd8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="docs\libraries">
       <UniqueIdentifier>{4f354b51-d507-442a-9d11-6c3f502da45e}</UniqueIdentifier>
     </Filter>
@@ -237,81 +231,6 @@
     </None>
     <None Include="docs\hcp65\runtime\w65c816.md">
       <Filter>docs\hcp65\runtime</Filter>
-    </None>
-    <None Include="docs\ide\building.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\checks.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\claude-tab.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\debugging.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\editor.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\git.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\index.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\navigation.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\settings.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\solutions.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\templates.md">
-      <Filter>docs\ide</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\change-signature.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\convert.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\definitions.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\extract.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\includes.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\index.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\inline.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\introduce.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\members.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\move.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\namespaces.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\rename.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\safe-delete.md">
-      <Filter>docs\ide\refactoring</Filter>
-    </None>
-    <None Include="docs\ide\refactoring\templates.md">
-      <Filter>docs\ide\refactoring</Filter>
     </None>
     <None Include="docs\libraries\index.md">
       <Filter>docs\libraries</Filter>

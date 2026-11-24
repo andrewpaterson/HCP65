@@ -158,3 +158,6 @@ extra:
     - folder: HCP65/Website/docs
       site: ""
       branch: main
+    - folder: HCP65-IDE/HCP65IDE/HCP65IDE/Docs
+      site: ""
+      branch: main
