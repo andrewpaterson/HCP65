@@ -235,8 +235,9 @@ D. References to code
   3. The checks: unresolved reference = error; plain `CName` spans = warnings.
   4. Convert the existing pages from the warnings list.
   Check: a fixture page with good, bad and plain references gives exactly the expected errors and warnings.
-  Still to ask (one at a time): which solutions D1 indexes (recommended: a short list beside extra.sources in
-  mkdocs.yml, the symbol table cached until a repository changes); which plain code spans warn (recommended: only
+  Decided (the user, 2026-11-24): D1 indexes the solutions listed beside extra.sources in mkdocs.yml, and only
+  those; the symbol table is kept until a repository changes.
+  Still to ask (one at a time): which plain code spans warn (recommended: only
   those naming a real symbol, so made-up example names like CTank never do); where a reference to a class or an
   overloaded function links (recommended: its declaration in the header).
 
