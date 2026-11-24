@@ -324,7 +324,7 @@ E. The IDE treats docs as code (HCP65-IDE)
      name (class, function...) or as an error when unresolved.  The Structure view shows the headings.
   6. Open with the system's program: an item that isn't text (PDF, .xlsx, .odt, .kicad_sch, .kicad_pcb, images)
      opens in the program the system has for it (xdg-open on Linux, ShellExecute on Windows), from Solution
-     Explorer.
+     Explorer's context menu (Open with System Program).
   Check: IDE checks on a fixture solution (Checks/Input/Docs: a library, its page, a second page linking to it):
   go to definition from a page, find usages listing the page, rename a class and a function changing the page's
   references, rename a page changing the link to it, a broken reference in Problems and underlined, a plain span's
@@ -339,9 +339,9 @@ E. The IDE treats docs as code (HCP65-IDE)
   has it), otherwise where a configurable setting in the project says (the user: "the otherwise must be a
   configurable setting in the project"; taken as a property of the page's project, kept in its .vcxproj and set in
   the IDE's project properties); without either, links between pages aren't checked and references still are.
-  Still to ask (one at a time):
-    - Opening a non-text item: double-click opens it in the system's program (recommended, as Visual Studio does)
-      or only a context menu command.
+  An item that isn't text opens in the system's program only from a context menu command in Solution Explorer
+  (Open with System Program; not my recommendation, double-click); double-click does what it does now.  E has no
+  questions left.
 
 F. Examples as tests
   1. Every ```cpp block compiles, check only, through the semantic pass's front end (decision 15): statements inside
