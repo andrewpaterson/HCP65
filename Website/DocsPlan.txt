@@ -334,12 +334,12 @@ E. The IDE treats docs as code (HCP65-IDE)
   A reference to a symbol the open workspace doesn't have is resolved from the site's symbol table
   (Website/.symbols) when there is one: Go to Definition works and it isn't an error; Rename and Find Usages only
   cover the open workspace.  Rename changes the pages that are items of the open workspace's projects, as it
-  changes code; a page outside it that names the old name fails the next site build, with its line.
+  changes code; a page outside it that names the old name fails the next site build, with its line.  The IDE finds
+  mkdocs.yml (to resolve links between pages) as the one that is an item of a workspace project (Website.vcxproj
+  has it), otherwise where a configurable setting in the project says (the user: "the otherwise must be a
+  configurable setting in the project"; taken as a property of the page's project, kept in its .vcxproj and set in
+  the IDE's project properties); without either, links between pages aren't checked and references still are.
   Still to ask (one at a time):
-    - How the IDE finds mkdocs.yml (to resolve links between pages, whose folders it maps).  Recommended: the
-      mkdocs.yml that is an item of a workspace project (Website.vcxproj has it), else
-      ../HCP65/Website/mkdocs.yml beside the solution's repository; without one, links aren't resolved and only
-      references are.
     - Opening a non-text item: double-click opens it in the system's program (recommended, as Visual Studio does)
       or only a context menu command.
 
