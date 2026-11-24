@@ -1,4 +1,4 @@
-//Files and formatted output (stdio.cpp).  stdout and stderr are the console; files are the host's (host.h).
+//Files and formatted output (stdio.cpp).  stdin, stdout and stderr are the console; files are the host's (host.h).
 #ifndef __LIBC65_STDIO_H__
 #define __LIBC65_STDIO_H__
 #include <stddef.h>
@@ -32,6 +32,8 @@ long	ftell(FILE* pcFile) noexcept;
 int		fflush(FILE* pcFile) noexcept;
 int		feof(FILE* pcFile) noexcept;
 int		fgetc(FILE* pcFile) noexcept;
+int		getchar(void) noexcept;
+char*	fgets(char* sz, int iSize, FILE* pcFile) noexcept;
 int		fputc(int c, FILE* pcFile) noexcept;
 int		fputs(const char* sz, FILE* pcFile) noexcept;
 int		puts(const char* sz) noexcept;

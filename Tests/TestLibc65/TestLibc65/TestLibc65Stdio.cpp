@@ -103,6 +103,70 @@ void TestLibc65StdioLargeReadWrite(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// stdin reads the console's input (CAsm65Memory's SetConsoleInput):
+// getchar, and fgets to a new line, to the buffer's size and to the
+// input's end; then EOF.  With no input the first read is EOF.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestLibc65StdioConsoleInput(void)
+{
+	static const char*	aszUnits[] = { "stdio.cpp", "host.cpp", "stdlib.cpp", "string.cpp", "string.asm", "ctype.cpp", "softfloat.cpp", "softfloat.asm", NULL };
+	static const int32	aiExpected[] = { 0, 'a', 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1 };
+	static const char*	szSource =
+		"#include <stdio.h>\n"
+		"#include <string.h>\n"
+		"int main()\n"
+		"{\n"
+		"	long*	p = (long*)0x100000;\n"
+		"	char	sz[8];\n"
+		"	*p++ = feof(stdin);\n"
+		"	*p++ = getchar();\n"
+		"	*p++ = fgets(sz, 8, stdin) == sz;\n"
+		"	*p++ = strcmp(sz, \"b\\n\") == 0;\n"
+		"	*p++ = fgets(sz, 5, stdin) == sz;\n"
+		"	*p++ = strcmp(sz, \"line\") == 0;\n"
+		"	*p++ = fgets(sz, 8, stdin) == sz;\n"
+		"	*p++ = strcmp(sz, \" two\\n\") == 0;\n"
+		"	*p++ = fgets(sz, 8, stdin) == sz;\n"
+		"	*p++ = strcmp(sz, \"xyz\") == 0;\n"
+		"	*p++ = feof(stdin) != 0;\n"
+		"	*p++ = fgets(sz, 8, stdin) == NULL;\n"
+		"	*p++ = getchar();\n"
+		"	return 0;\n"
+		"}\n";
+	STestLibc65Run		sRun;
+	CChars				szInput;
+	size				i;
+
+	szInput.Init("ab\nline two\nxyz");
+	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "", szSource));
+	sRun.pcMemory->SetConsoleInput(&szInput);
+	AssertTrue(TestLibc65Run(&sRun, 10000000));
+	for (i = 0; i < sizeof(aiExpected) / sizeof(int32); i++)
+	{
+		AssertInt(aiExpected[i], TestLibc65Result(&sRun, i));
+	}
+	TestLibc65End(&sRun);
+	szInput.Kill();
+
+	AssertTrue(TestLibc65Begin(&sRun, aszUnits, "",
+		"#include <stdio.h>\n"
+		"int main()\n"
+		"{\n"
+		"	long*	p = (long*)0x100000;\n"
+		"	*p++ = getchar();\n"
+		"	*p++ = feof(stdin) != 0;\n"
+		"	return 0;\n"
+		"}\n"));
+	AssertTrue(TestLibc65Run(&sRun, 10000000));
+	AssertInt(-1, TestLibc65Result(&sRun, 0));
+	AssertInt(1, TestLibc65Result(&sRun, 1));
+	TestLibc65End(&sRun);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestLibc65Stdio(void)
@@ -110,6 +174,7 @@ void TestLibc65Stdio(void)
 	BeginTests();
 
 	TestLibc65StdioLargeReadWrite();
+	TestLibc65StdioConsoleInput();
 
 	TestStatistics();
 }

@@ -90,6 +90,9 @@
     <ClCompile Include="TestAsm65Linker.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="TestAsm65C64Console.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="TestAsm65C64Drive.cpp">
       <Filter>Source</Filter>
     </ClCompile>

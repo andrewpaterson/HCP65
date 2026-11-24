@@ -1,5 +1,6 @@
 //Formatted output and files for the 65C64, in C++ for the 65C64 generator.  stdout and stderr write to the
-//console at 00FF:0100 (each byte stored there is printed).  Files are the host's (host.h).
+//console at 00FF:0100 (each byte stored there is printed); stdin reads the console's input at 00FF:0104.  Files are
+//the host's (host.h).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,12 @@
 
 //The console: a byte stored here is printed.
 #define CONSOLE_ADDRESS		0x00FF0100
+
+//The console's input (CAsm65Memory's ASM65_CONSOLE_INPUT): storing to CONSOLE_INPUT takes the next byte (the host
+//may wait for it), then CONSOLE_STATUS is 1 with the byte in CONSOLE_DATA, or 0 when the input has ended.
+#define CONSOLE_INPUT		0x00FF0104
+#define CONSOLE_STATUS		0x00FF0105
+#define CONSOLE_DATA		0x00FF0106
 
 
 struct FILE
@@ -24,7 +31,7 @@ struct FILE
 #define FILE_HOST		2
 
 
-static FILE		gsStdin = { FILE_CLOSED, 0, 0, 1 };
+static FILE		gsStdin = { FILE_CONSOLE, 0, 0, 0 };
 static FILE		gsStdout = { FILE_CONSOLE, 0, 0, 0 };
 static FILE		gsStderr = { FILE_CONSOLE, 0, 0, 0 };
 
@@ -46,6 +53,24 @@ struct SFormatOutput
 static void ConsoleWrite(char c)
 {
 	*(volatile char*)CONSOLE_ADDRESS = c;
+}
+
+
+//Up to uiBytes of the console's input, fewer if it ends.
+static uint32_t ConsoleRead(char* pc, uint32_t uiBytes)
+{
+	uint32_t	i;
+
+	for (i = 0; i < uiBytes; i++)
+	{
+		*(volatile unsigned char*)CONSOLE_INPUT = 0;
+		if (*(volatile unsigned char*)CONSOLE_STATUS == 0)
+		{
+			break;
+		}
+		pc[i] = *(volatile char*)CONSOLE_DATA;
+	}
+	return i;
 }
 
 
@@ -156,12 +181,19 @@ static uint32_t FileRead(void* pv, uint32_t uiSize, uint32_t uiCount, FILE* pcFi
 	uint32_t	uiBytes;
 	uint32_t	uiRead;
 
-	if (!pcFile || (pcFile->iKind != FILE_HOST) || (uiSize == 0) || (uiCount == 0) || (uiCount > 0xFFFFFFFF / uiSize))
+	if (!pcFile || (pcFile->iKind == FILE_CLOSED) || (uiSize == 0) || (uiCount == 0) || (uiCount > 0xFFFFFFFF / uiSize))
 	{
 		return 0;
 	}
 	uiBytes = uiSize * uiCount;
-	uiRead = HostRead(pcFile->iHandle, pv, uiBytes);
+	if (pcFile->iKind == FILE_CONSOLE)
+	{
+		uiRead = ConsoleRead((char*)pv, uiBytes);
+	}
+	else
+	{
+		uiRead = HostRead(pcFile->iHandle, pv, uiBytes);
+	}
 	if (uiRead < uiBytes)
 	{
 		pcFile->iEnd = 1;
@@ -271,6 +303,45 @@ int fgetc(FILE* pcFile) noexcept
 		return EOF;
 	}
 	return c;
+}
+
+
+int getchar(void) noexcept
+{
+	return fgetc(stdin);
+}
+
+
+//Up to iSize - 1 characters, to and with a new line; NULL if the input ended before any.
+char* fgets(char* sz, int iSize, FILE* pcFile) noexcept
+{
+	int		i;
+	int		c;
+
+	if (iSize <= 0)
+	{
+		return NULL;
+	}
+	for (i = 0; i < iSize - 1; i++)
+	{
+		c = fgetc(pcFile);
+		if (c == EOF)
+		{
+			break;
+		}
+		sz[i] = (char)c;
+		if (c == '\n')
+		{
+			i++;
+			break;
+		}
+	}
+	if (i == 0)
+	{
+		return NULL;
+	}
+	sz[i] = '\0';
+	return sz;
 }
 
 

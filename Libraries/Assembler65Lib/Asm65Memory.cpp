@@ -52,6 +52,7 @@ void CAsm65Memory::Init(uint32 uiLowSize)
 	memset(mauiDrive, 0, sizeof(mauiDrive));
 	muiDriveReads = 0;
 	mpszConsole = NULL;
+	SetConsoleInput(NULL, NULL);
 	mpcHostFiles = NULL;
 	memset(mauiHost, 0, sizeof(mauiHost));
 }
@@ -79,6 +80,7 @@ void CAsm65Memory::CopyFrom(CAsm65Memory* pcSource)
 	memcpy(mpuiLow, pcSource->mpuiLow, (muiLowSize < pcSource->muiLowSize) ? muiLowSize : pcSource->muiLowSize);
 	memcpy(mauiHigh, pcSource->mauiHigh, sizeof(mauiHigh));
 	memcpy(mauiDrive, pcSource->mauiDrive, sizeof(mauiDrive));
+	memcpy(mauiConsoleInput, pcSource->mauiConsoleInput, sizeof(mauiConsoleInput));
 	muiBadAccesses = pcSource->muiBadAccesses;
 	muiCycles = pcSource->muiCycles;
 	muiDriveReads = pcSource->muiDriveReads;
@@ -122,6 +124,10 @@ uint8* CAsm65Memory::Byte(uint32 uiAddress)
 	if ((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + ASM65_MEMORY_SIZE_BYTES))
 	{
 		return &mauiMemorySize[uiAddress - ASM65_MEMORY_SIZE_REGISTER];
+	}
+	if ((uiAddress >= ASM65_CONSOLE_INPUT) && (uiAddress < ASM65_CONSOLE_INPUT + ASM65_CONSOLE_INPUT_SIZE))
+	{
+		return &mauiConsoleInput[uiAddress - ASM65_CONSOLE_INPUT];
 	}
 	return NULL;
 }
@@ -185,7 +191,13 @@ void CAsm65Memory::SetByte(uint32 uiAddress, uint8 uiValue)
 		}
 		return;
 	}
-	if ((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + ASM65_MEMORY_SIZE_BYTES))
+	if (uiAddress == ASM65_CONSOLE_INPUT + ASM65_CONSOLE_READ)
+	{
+		ConsoleRead();
+		return;
+	}
+	if (((uiAddress >= ASM65_MEMORY_SIZE_REGISTER) && (uiAddress < ASM65_MEMORY_SIZE_REGISTER + ASM65_MEMORY_SIZE_BYTES)) ||
+		((uiAddress > ASM65_CONSOLE_INPUT) && (uiAddress < ASM65_CONSOLE_INPUT + ASM65_CONSOLE_INPUT_SIZE)))
 	{
 		//Read only.
 		muiBadAccesses++;
@@ -486,6 +498,69 @@ void CAsm65Memory::SetDrive(CFileDrive* pcDrive)
 void CAsm65Memory::SetConsole(CChars* pszConsole)
 {
 	mpszConsole = pszConsole;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's input is pszInput's characters, then its end (NULL: no
+// input, so the input has ended).  It belongs to the caller.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Memory::SetConsoleInput(CChars* pszInput)
+{
+	SetConsoleInput(pszInput ? ReadConsoleChars : NULL, this);
+	mpszConsoleInput = pszInput;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's input is fRead's (NULL: no input, so the input has
+// ended), called with pvContext each time the program takes a byte.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Memory::SetConsoleInput(Asm65ConsoleRead fRead, void* pvContext)
+{
+	mfConsoleRead = fRead;
+	mpvConsoleRead = pvContext;
+	mpszConsoleInput = NULL;
+	muiConsoleInput = 0;
+	memset(mauiConsoleInput, 0, sizeof(mauiConsoleInput));
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The program wrote ASM65_CONSOLE_READ: the next byte of input into the
+// data register, the status saying whether there was one.
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65Memory::ConsoleRead(void)
+{
+	int		iByte;
+
+	iByte = mfConsoleRead ? mfConsoleRead(mpvConsoleRead) : -1;
+	mauiConsoleInput[ASM65_CONSOLE_STATUS] = (iByte >= 0) ? 1 : 0;
+	mauiConsoleInput[ASM65_CONSOLE_DATA] = (iByte >= 0) ? (uint8)iByte : 0;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// SetConsoleInput(CChars*)'s reader: the CChars' next character.
+//
+//////////////////////////////////////////////////////////////////////////
+int CAsm65Memory::ReadConsoleChars(void* pvMemory)
+{
+	CAsm65Memory*	pcMemory;
+
+	pcMemory = (CAsm65Memory*)pvMemory;
+	if (pcMemory->muiConsoleInput >= pcMemory->mpszConsoleInput->Length())
+	{
+		return -1;
+	}
+	return (uint8)pcMemory->mpszConsoleInput->GetChar(pcMemory->muiConsoleInput++);
 }
 
 

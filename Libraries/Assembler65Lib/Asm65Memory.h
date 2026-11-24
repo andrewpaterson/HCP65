@@ -32,6 +32,10 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "Asm65StackWalker.h"
 
 
+//The console's input from the host: the next byte (0 to 255), or -1 when the input has ended.  It may wait for one.
+typedef int (*Asm65ConsoleRead)(void* pvContext);
+
+
 #define ASM65_MEMORY_LOW_SIZE		0x200000
 #define ASM65_MEMORY_HIGH_BASE		0xFFFFF000
 #define ASM65_MEMORY_HIGH_SIZE		0x1000
@@ -62,6 +66,15 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //A console at 00FF:0100: each byte written to it is appended to the CChars given to SetConsole.
 #define ASM65_CONSOLE				0x00FF0100
 
+//The console's input (SetConsoleInput), at 00FF:0104.  Write the read register to take the next byte of input (the
+//host may wait for it): the status register is then 1 with the byte in the data register, or 0 when the input has
+//ended (or there is none).  Reading the registers changes nothing, so a debugger can look at them.
+#define ASM65_CONSOLE_INPUT			0x00FF0104
+#define ASM65_CONSOLE_READ			0x00		//Writing it takes the next byte.
+#define ASM65_CONSOLE_STATUS		0x01		//1 when the data register holds a byte, 0 at the input's end.
+#define ASM65_CONSOLE_DATA			0x02		//The byte taken.
+#define ASM65_CONSOLE_INPUT_SIZE	0x04		//With a byte reading 0, so a word read of the data register is good.
+
 #define ASM65_DRIVE_READ			1			//Copies the sectors to memory.
 #define ASM65_DRIVE_WRITE			2			//Copies memory to the sectors.
 
@@ -71,7 +84,8 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //callbacks, with the memory as their context.  InitFast65C64
 //connects a CFast65C64 instead: it reads and writes the low memory directly and everything else through ReadWord and
 //WriteByte.  A CFileDrive (such as a CMemoryDrive) can be attached as a storage device (see ASM65_DRIVE_BASE), a
-//CChars as the console (ASM65_CONSOLE) and a CAsm65HostFiles as the host file device (ASM65_HOST_BASE).
+//CChars as the console (ASM65_CONSOLE), a CChars or a callback as its input (ASM65_CONSOLE_INPUT) and a
+//CAsm65HostFiles as the host file device (ASM65_HOST_BASE).
 //
 //It is the W65C816's test memory too: the devices' page 00FF:0000 is the W65C816's bank $FF, so the memory at 0000:0000
 //can be up to $FF0000 bytes.  TickHighW65C816 and TickLowW65C816 are CW65C816Meta's callbacks; InitFast65816 connects a
@@ -89,6 +103,11 @@ protected:
 	uint8				mauiDrive[ASM65_DRIVE_SIZE];
 	size				muiDriveReads;
 	CChars*				mpszConsole;
+	Asm65ConsoleRead	mfConsoleRead;
+	void*				mpvConsoleRead;
+	CChars*				mpszConsoleInput;
+	size				muiConsoleInput;
+	uint8				mauiConsoleInput[ASM65_CONSOLE_INPUT_SIZE];
 	CAsm65HostFiles*	mpcHostFiles;
 	uint8				mauiHost[ASM65_HOST_SIZE];
 
@@ -114,6 +133,8 @@ public:
 
 	void			SetDrive(CFileDrive* pcDrive);
 	void			SetConsole(CChars* pszConsole);
+	void			SetConsoleInput(CChars* pszInput);
+	void			SetConsoleInput(Asm65ConsoleRead fRead, void* pvContext);
 	void			SetHostFiles(CAsm65HostFiles* pcHostFiles);
 	size			NumDriveReads(void) const;
 
@@ -134,6 +155,8 @@ protected:
 	void			SetDriveRegister(uint32 uiRegister, uint32 uiValue);
 	void			DriveCommand(uint8 uiCommand);
 	void			HostCommand(uint8 uiCommand);
+	void			ConsoleRead(void);
+	static int		ReadConsoleChars(void* pvMemory);
 };
 
 

@@ -34,7 +34,7 @@ along with Codaphela X65C64Emulator.  If not, see <http://www.gnu.org/licenses/>
 
 
 //A 65C64 with nothing but memory (CAsm65Memory: 2MB at 0000:0000 and the vector page), its console (00FF:0100, to
-//standard output) and the host file device (00FF:0200, files in a directory of the host's): what the 65C64's tests
+//standard output, and its input from standard input) and the host file device (00FF:0200, files in a directory of the host's): what the 65C64's tests
 //run programs on, as a console program a debugger can start (EmulatorDebugLib's launch arguments).  The program is
 //the file the command line names, loaded at --load's address (0001:0000 if not given), or what the debugger loads;
 //reset starts it at that address.  It runs until it stops (stp), or, with a debugger attached, until the debugger
@@ -61,6 +61,8 @@ protected:
 	bool	ParseArguments(int argc, char* argv[], const char** pszProgram);
 	bool	LoadProgram(const char* szProgram);
 	void	ShowConsole(void);
+
+	static int	ReadConsole(void* pvEmulator);
 };
 
 

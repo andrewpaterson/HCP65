@@ -28,6 +28,7 @@ void TestAsm65C64Quicksort(void);
 void TestAsm65Object(void);
 void TestAsm65Linker(void);
 void TestAsm65C64Drive(void);
+void TestAsm65C64Console(void);
 void TestAsm65Lazy(void);
 void TestAsm65C64Fast(void);
 void TestAsm65C64Website(void);
@@ -76,6 +77,7 @@ int __cdecl main(void)
 	TestAsm65Object();
 	TestAsm65Linker();
 	TestAsm65C64Drive();
+	TestAsm65C64Console();
 	TestAsm65Lazy();
 	TestAsm65C64Fast();
 	TestAsm65C64Website();

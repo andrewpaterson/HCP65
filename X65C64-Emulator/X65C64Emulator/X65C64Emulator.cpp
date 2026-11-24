@@ -43,6 +43,7 @@ bool CX65C64Emulator::Init(int argc, char* argv[])
 	mcMemory.Init();
 	mszConsole.Init();
 	mcMemory.SetConsole(&mszConsole);
+	mcMemory.SetConsoleInput(ReadConsole, this);
 	mcHostFiles.Init();
 	mcMemory.SetHostFiles(&mcHostFiles);
 	mcTarget.Init(mcMemory.Byte(0), mcMemory.GetLowSize());
@@ -74,6 +75,7 @@ void CX65C64Emulator::Kill(void)
 	mcTarget.Kill();
 	mcMemory.SetHostFiles(NULL);
 	mcHostFiles.Kill();
+	mcMemory.SetConsoleInput(NULL, NULL);
 	mcMemory.SetConsole(NULL);
 	mszConsole.Kill();
 	mcMemory.Kill();
@@ -204,5 +206,21 @@ void CX65C64Emulator::ShowConsole(void)
 		fflush(stdout);
 		mszConsole.Clear();
 	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The console's input: standard input's next byte, waited for, once what
+// the program wrote before asking is shown (a prompt).  -1 at its end.
+//
+//////////////////////////////////////////////////////////////////////////
+int CX65C64Emulator::ReadConsole(void* pvEmulator)
+{
+	int		iByte;
+
+	((CX65C64Emulator*)pvEmulator)->ShowConsole();
+	iByte = getchar();
+	return (iByte == EOF) ? -1 : iByte;
 }
 

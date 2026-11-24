@@ -256,6 +256,7 @@
     <ClCompile Include="TestAsm65C64Quicksort.cpp" />
     <ClCompile Include="TestAsm65Object.cpp" />
     <ClCompile Include="TestAsm65Linker.cpp" />
+    <ClCompile Include="TestAsm65C64Console.cpp" />
     <ClCompile Include="TestAsm65C64Drive.cpp" />
     <ClCompile Include="TestAsm65Lazy.cpp" />
   </ItemGroup>
