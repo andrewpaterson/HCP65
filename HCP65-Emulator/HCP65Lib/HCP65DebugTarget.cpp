@@ -105,7 +105,7 @@ void CHCP65DebugTarget::SetProgramAddress(uint32 uiAddress)
 bool CHCP65DebugTarget::Step(void)
 {
 	mpcHCP65->Run(1);
-	return !mpcHCP65->IsStopped() && !mpcHCP65->IsAtBreakpoint();
+	return !mpcHCP65->IsStopped() && !mpcHCP65->IsAtBreakpoint() && !IsAtWatch();
 }
 
 
@@ -223,6 +223,57 @@ const char* CHCP65DebugTarget::GetBreakpointSpaceName(size uiSpace)
 CBreakpoints* CHCP65DebugTarget::GetSpaceBreakpoints(size uiSpace)
 {
 	return (uiSpace < 2) ? mpcHCP65->GetModeBreakpoints(uiSpace == 0) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Each mode's data watches (the server's, for every process: it tells a
+// process's own apart when one is hit).
+//
+//////////////////////////////////////////////////////////////////////////
+CDataWatches* CHCP65DebugTarget::GetSpaceWatches(size uiSpace)
+{
+	return (uiSpace < 2) ? mpcHCP65->GetModeDataWatches(uiSpace == 0) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+void CHCP65DebugTarget::WatchesChanged(void)
+{
+	mpcHCP65->GetMPU()->WatchesChanged();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+const SDataWatchHit* CHCP65DebugTarget::GetWatchHit(void) const
+{
+	return mpcHCP65->GetMPU()->GetWatchHit();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A process's user mode address is kernel mode's physical one (the kernal
+// writing a buffer it was given): kernel mode watches that too.  Not for
+// every process (DEBUG_PROCESS_ANY): each sees different memory there.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CHCP65DebugTarget::GetWatchAlias(size uiSpace, uint32 uiProcess, uint32 uiAddress, size* puiAliasSpace, uint32* puiAlias)
+{
+	if ((uiSpace != 1) || (uiProcess >= HCP65_NUM_PROCESSES))
+	{
+		return false;
+	}
+	*puiAliasSpace = 0;
+	*puiAlias = mpcHCP65->ProcessUserAddress((uint8)uiProcess, uiAddress);
+	return true;
 }
 
 

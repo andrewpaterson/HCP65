@@ -22,7 +22,8 @@ runs the emulator with a shared memory channel to it, or attaches to one already
 | Step Out | Shift+F11 | Runs until the function returns. |
 | Toggle Breakpoint | F9 | A breakpoint on the caret's line, or at the disassembly's instruction under the caret. |
 | New Breakpoint at Address... | | A breakpoint at an address typed in hexadecimal (a leading `$` is allowed). |
-| Delete All Breakpoints | | Takes them all away. |
+| New Data Breakpoint... | | A [data breakpoint](#data-breakpoints) on an expression's value or at an address. |
+| Delete All Breakpoints | | Takes them all away, data breakpoints too. |
 | Edit Configurations... | | The [run configurations](building.md#run-configurations). |
 | Windows > | | Call Stack, Locals, Autos, Watch 1-4, and Hexadecimal Display (see [The debugger's windows](#the-debuggers-windows)). |
 | QuickWatch... | Shift+F9 | The expression at the caret, in a dialog (see [QuickWatch](#quickwatch)). |
@@ -99,7 +100,8 @@ An object, an array or a pointer opens to its members, elements or what it point
 opened.  A value is shown as its type has it: an `int` in decimal (hexadecimal with Hexadecimal Display),
 a `char` as `99 'c'`, an enum by its enumerators (`EF_A | EF_C`), a `char*` with its string, an object
 through a base class pointer with its own class (`CShape* {CSquare}`).  A value that changed since the
-last stop is red.  Typing into a Value writes it, if what is typed fits its type.
+last stop is red.  Typing into a Value writes it, if what is typed fits its type.  A row's context menu
+has Break When Value Changes, a [data breakpoint](#data-breakpoints) on it.
 
 Watch expressions are evaluated with the program's types (an `int` is 16 bits on the W65C816, 32 on the
 65C64): names (locals, then
@@ -136,6 +138,24 @@ program (`<program>.debug`), whose line table binds a line's breakpoint to the a
 
 A breakpoint waits unbound while its program hasn't been built, or isn't running.  Source breakpoints are
 kept when debugging stops and saved in `<workspace>.hcp65user`, yours alone.
+
+### Data breakpoints
+
+A data breakpoint stops the program after an instruction writes a value, as Visual Studio's do: Break
+When Value Changes on a Locals, Autos or Watch row (again on the same row, Remove Data Breakpoint), or New
+Data Breakpoint... in the Debug menu, which takes an expression (`cCounter.miCount`, `gaiValues[2]`,
+evaluated in the call shown) or an address (`$12:3400`, with how many bytes).  Its tick makes reads stop
+too.  It watches a value of 1 to 8 bytes in memory; one in a register can't be watched.
+
+The program stops after the instruction, which has done its write, and the Debug tab says what changed:
+"Data breakpoint: cCounter.miCount changed from 0 to 3 at $01:0141".  Only the processor's own reads and
+writes are watched: a device's (the SD card's DMA, the blitter, the drive and host file commands of the
+X65C64 Emulator) aren't.  Instructions fetched never stop one.
+
+Data breakpoints last until removed or until debugging stops; they aren't saved.  One on a local stays
+after its function returns, watching the same bytes.  On the HCP65 a data breakpoint on a program's
+value is in user mode for that program's process; the kernal writing the same memory (a buffer it was
+given) stops it too.
 
 ### Breakpoint spaces
 

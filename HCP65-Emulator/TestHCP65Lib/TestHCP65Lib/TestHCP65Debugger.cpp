@@ -150,6 +150,7 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	AssertInt(1, cTarget.GetCurrentSpace());
 	AssertIntHex(DEBUG_PROCESS_ANY, cTarget.GetCurrentProcess());
 	AssertTrue(cHCP65.GetMPU()->GetUsedBreakpoints() == cHCP65.GetModeBreakpoints(true));
+	AssertTrue(cHCP65.GetMPU()->GetUsedWatches() == cHCP65.GetModeDataWatches(true));
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == NULL);
 	pcThree = cHCP65.GetProcessBreakpoints(3);
 	AssertTrue(pcThree->Add(0x012345, true));
@@ -163,6 +164,7 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	AssertFalse(cHCP65.IsKernelMode());
 	AssertTrue(cHCP65.GetMPU()->GetUsedBreakpoints() == cHCP65.GetModeBreakpoints(false));
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == pcThree);
+	AssertTrue(cHCP65.GetMPU()->GetUsedWatches() == cHCP65.GetModeDataWatches(false));
 	AssertInt(2, cTarget.GetCurrentSpace());
 	AssertInt(3, cTarget.GetCurrentProcess());
 	cHCP65.SetProcessID(4);
@@ -175,6 +177,38 @@ static void TestHCP65DebugProcessBreakpoints(void)
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == NULL);
 	AssertSize(0, cHCP65.GetProcessBreakpoints(3)->NumBreakpoints());
 	AssertTrue(cHCP65.GetMPU()->GetMoreUsedBreakpoints() == cHCP65.GetProcessBreakpoints(3));
+
+	cTarget.Kill();
+	cHCP65.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The data watches of each space, and a process's user mode address seen
+// by kernel mode through the remap table (for every process, none).
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestHCP65DebugDataWatches(void)
+{
+	CHCP65				cHCP65;
+	CHCP65DebugTarget	cTarget;
+	size				uiSpace;
+	uint32				uiAlias;
+
+	cHCP65.Init(TEST_HCP65_DEBUG_CLOCK_RATE);
+	cTarget.Init(&cHCP65);
+	AssertTrue(cTarget.CanWatch());
+	AssertTrue(cTarget.GetSpaceWatches(0) == cHCP65.GetModeDataWatches(true));
+	AssertTrue(cTarget.GetSpaceWatches(1) == cHCP65.GetModeDataWatches(false));
+	AssertNull(cTarget.GetSpaceWatches(2));
+
+	cHCP65.GetMPURAM()[HCP65_REMAP_TABLE + 3 * 256 + 0x01] = 0x25;
+	AssertTrue(cTarget.GetWatchAlias(1, 3, 0x011234, &uiSpace, &uiAlias));
+	AssertSize(0, uiSpace);
+	AssertIntHex(0x251234, uiAlias);
+	AssertFalse(cTarget.GetWatchAlias(1, DEBUG_PROCESS_ANY, 0x011234, &uiSpace, &uiAlias));
+	AssertFalse(cTarget.GetWatchAlias(0, 3, 0x011234, &uiSpace, &uiAlias));
 
 	cTarget.Kill();
 	cHCP65.Kill();
@@ -452,6 +486,9 @@ void TestHCP65Debugger(void)
 	uint32					uiInstructions;
 	uint32					uiKernel;
 	uint32					uiUser;
+	uint32					uiStack;
+	SDebugBreakpoint		sUserWatch;
+	SDebugBreakpoint		sKernelWatch;
 	uint8					uiByte;
 	uint8					auiRead[16];
 	int						i;
@@ -461,6 +498,7 @@ void TestHCP65Debugger(void)
 	BeginTests();
 
 	TestHCP65DebugProcessBreakpoints();
+	TestHCP65DebugDataWatches();
 	TestHCP65DebugWDMStopRun();
 	TestHCP65DebugWDMIgnored();
 	TestHCP65DebugWDMUserMode();
@@ -570,6 +608,25 @@ void TestHCP65Debugger(void)
 	AssertTrue(cClient.Continue());
 	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
 	AssertLongLongIntHex(12, cClient.GetRegisterValue(DW65C816R_X));
+
+	//A data breakpoint on the stack where the jsr pushes: in user mode it isn't kernel mode's memory, so only the
+	//kernel's stops it, after the jsr.
+	AssertTrue(cClient.CanWatch());
+	uiStack = (uint32)cClient.GetRegisterValue(DW65C816R_S);
+	sUserWatch.Init(uiStack, true, uiUser, DEBUG_PROCESS_ANY, DBK_Write, 1);
+	AssertTrue(cClient.ChangeBreakpoint(DM_AddBreakpoint, &sUserWatch));
+	AssertTrue(cClient.Continue());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
+	sKernelWatch.Init(uiStack, true, uiKernel, DEBUG_PROCESS_ANY, DBK_Write, 1);
+	AssertTrue(cClient.ChangeBreakpoint(DM_AddBreakpoint, &sKernelWatch));
+	AssertTrue(cClient.Continue());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_DataBreakpoint, 0x8010);
+	AssertIntHex(uiStack, cClient.GetStopDataAddress());
+	AssertTrue(cClient.ChangeBreakpoint(DM_RemoveBreakpoint, &sKernelWatch));
+	AssertTrue(cClient.ChangeBreakpoint(DM_RemoveBreakpoint, &sUserWatch));
+	AssertTrue(cClient.Continue());
+	TestHCP65DebugWaitForStop(&cServer, &cClient, DS_Breakpoint, 0x8006);
+	AssertSize(0, cClient.NumErrors());
 
 	//Processes: the kernal tells the debug port of one started while running.  It stops (DS_Process), and the
 	//debugger is told its ID and program.

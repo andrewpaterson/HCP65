@@ -38,7 +38,9 @@
 //
 //Breakpoints are kept for each mode (GetModeBreakpoints): kernel mode and user mode see different memory at the same
 //address, so the MPU stops only at those of the mode it is in.  User mode's can be for one process too
-//(GetProcessBreakpoints): the MPU stops at those only while that process is running in user mode.
+//(GetProcessBreakpoints): the MPU stops at those only while that process is running in user mode.  Data watches are
+//kept for each mode the same way (GetModeDataWatches): user mode's at the addresses the process sees, kernel mode's at
+//the processor's (main memory's physical addresses, ProcessUserAddress).
 //
 //StopRun (from a device, during an instruction) makes Run return after the instruction.
 //
@@ -72,6 +74,8 @@ protected:
 	CBreakpoints		mcKernelBreakpoints;
 	CBreakpoints		mcUserBreakpoints;
 	CBreakpoints*		mapcProcessBreakpoints[HCP65_NUM_PROCESSES];	//User mode's for a process, NULL until it has any.
+	CDataWatches		mcKernelDataWatches;
+	CDataWatches		mcUserDataWatches;
 	bool				mbStopRun;
 	bool				mbContention;
 	bool				mbFill;
@@ -105,6 +109,8 @@ public:
 	void				ClearProcessBreakpoints(uint8 uiProcess);
 	void				ClearBreakpoints(void);
 	void				EnableAllBreakpoints(bool bEnabled);
+	CDataWatches*		GetModeDataWatches(bool bKernel);
+	uint32				ProcessUserAddress(uint8 uiProcess, uint32 uiAddress);
 	void				StopRun(void);
 	void				SetBreak(int iBreak);
 

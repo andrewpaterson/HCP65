@@ -47,6 +47,11 @@ public:
 	void			ClearBreakpoints(void) override;
 	void			EnableAllBreakpoints(bool bEnabled) override;
 
+	CDataWatches*			GetSpaceWatches(size uiSpace) override;
+	void					WatchesChanged(void) override;
+	const SDataWatchHit*	GetWatchHit(void) const override;
+	bool					GetWatchAlias(size uiSpace, uint32 uiProcess, uint32 uiAddress, size* puiAliasSpace, uint32* puiAlias) override;
+
 	bool			HasProcesses(void) const override;
 	size			NumProcesses(void) const override;
 	bool			GetProcess(size uiIndex, SDebugProcess* psDest) override;

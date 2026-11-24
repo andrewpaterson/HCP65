@@ -27,6 +27,8 @@ void CHCP65::Init(uint64 uiClockRate)
 	mcKernelBreakpoints.Init();
 	mcUserBreakpoints.Init();
 	memset(mapcProcessBreakpoints, 0, sizeof(mapcProcessBreakpoints));
+	mcKernelDataWatches.Init();
+	mcUserDataWatches.Init();
 	mbStopRun = false;
 	mbContention = false;
 	muiMainBusyUntil = 0;
@@ -84,6 +86,8 @@ void CHCP65::Kill(void)
 	}
 	mcUserBreakpoints.Kill();
 	mcKernelBreakpoints.Kill();
+	mcUserDataWatches.Kill();
+	mcKernelDataWatches.Kill();
 	SafeFree(mpuiROM);
 	SafeFree(mpuiRAM);
 }
@@ -304,6 +308,18 @@ bool CHCP65::IsAtBreakpoint(void) const
 CBreakpoints* CHCP65::GetModeBreakpoints(bool bKernel)
 {
 	return bKernel ? &mcKernelBreakpoints : &mcUserBreakpoints;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The data watches of kernel mode (bKernel) or user mode.  Change them at
+// any time, then call the MPU's WatchesChanged.
+//
+//////////////////////////////////////////////////////////////////////////
+CDataWatches* CHCP65::GetModeDataWatches(bool bKernel)
+{
+	return bKernel ? &mcKernelDataWatches : &mcUserDataWatches;
 }
 
 
@@ -735,14 +751,28 @@ void CHCP65::HearWDM(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A user mode address's physical main memory address.
+// A user mode address's physical main memory address, for the running
+// process.
 //
 //////////////////////////////////////////////////////////////////////////
 uint32 CHCP65::UserAddress(uint32 uiAddress)
 {
+	return ProcessUserAddress(muiProcessID, uiAddress);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The physical main memory address the process uiProcess sees at
+// uiAddress in user mode (by its page of the remap table as it is now),
+// which kernel mode sees at the same address.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CHCP65::ProcessUserAddress(uint8 uiProcess, uint32 uiAddress)
+{
 	uint8	uiBank;
 
-	uiBank = mpuiRAM[HCP65_REMAP_TABLE + ((uint32)muiProcessID << 8) + (uiAddress >> 16)];
+	uiBank = mpuiRAM[HCP65_REMAP_TABLE + ((uint32)uiProcess << 8) + ((uiAddress >> 16) & 0xFF)];
 	return ((uint32)uiBank << 16) | (uiAddress & 0xFFFF);
 }
 
@@ -951,7 +981,7 @@ uint8* CHCP65::MemoryAt(uint32 uiAddress, bool bKernel)
 //////////////////////////////////////////////////////////////////////////
 //
 // The MPU looks at the mode's breakpoints, and in user mode the running
-// process's too.
+// process's too, and at the mode's data watches.
 //
 //////////////////////////////////////////////////////////////////////////
 void CHCP65::UseModeBreakpoints(void)
@@ -964,6 +994,7 @@ void CHCP65::UseModeBreakpoints(void)
 	{
 		mcMPU.UseBreakpoints(&mcUserBreakpoints, mapcProcessBreakpoints[muiProcessID]);
 	}
+	mcMPU.UseWatches(GetModeDataWatches(mbKernel));
 }
 
 
