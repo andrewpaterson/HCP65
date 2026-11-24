@@ -23,6 +23,8 @@ runs the emulator with a shared memory channel to it, or attaches to one already
 | New Breakpoint at Address... | | A breakpoint at an address typed in hexadecimal (a leading `$` is allowed). |
 | Delete All Breakpoints | | Takes them all away. |
 | Edit Configurations... | | The [run configurations](building.md#run-configurations). |
+| Windows > | | Call Stack, Locals, Autos, Watch 1-4, and Hexadecimal Display (see [The debugger's windows](#the-debuggers-windows)). |
+| QuickWatch... | Shift+F9 | The expression at the caret, in a dialog (see [QuickWatch](#quickwatch)). |
 
 A step is one instruction when the disassembly has the keys, and one source line in a source file.
 
@@ -56,6 +58,60 @@ The Debug tab under the editor shows the **disassembly** beside the **registers*
 
 F9 in the disassembly toggles a breakpoint at the instruction the caret is on.  When it stops at code a
 built program has a line for, that file is opened with its line marked.
+
+## The debugger's windows
+
+Visual Studio's Call Stack, Locals, Autos and Watch windows, docked together beside the editors on the
+right.  Call Stack and Locals are shown when debugging starts; the others from Debug > Windows.  Each
+shows where the emulator stopped, and is empty while it runs.  They need the program built for the
+debugger (a configuration's Debug, see [Building](building.md)): a Release build shows its calls, but not
+their parameters or locals.
+
+### Call Stack
+
+A row per call the program is in, found by walking the stack from the stop through the programs running
+there (the kernal's calls and interrupts too, on into the process that made them), with each parameter's
+type, name and value and the line it is at:
+
+    modplay.exe!Scale(SPoint* psPoint = 0x00eff5, int iBy = 2) Line 5
+
+The innermost has a yellow arrow; code with no debug records (the start up) is `[External Code]`.  Enter
+or a double click on a call chooses it: its line is shown in its editor, with a green arrow in the gutter,
+and Locals, Autos and the Watches show that call.
+
+### Locals, Autos and Watch
+
+Each is a tree of values, Name | Value | Type:
+
+- **Locals**: the chosen call's parameters and locals in scope at its line, `this` first.
+- **Autos**: what the line and the line before use (names and member chains such as `p->x`, not calls),
+  and, just after a Step Out, what the function returned (`Sum returned`).
+- **Watch 1-4**: expressions typed into the name of the empty last row (or added by the editor's Add
+  Watch), changed by typing over one and removed by emptying it.  They are kept with the breakpoints in
+  the workspace's `.hcp65user`.
+
+An object, an array or a pointer opens to its members, elements or what it points at, read only when
+opened.  A value is shown as its type has it: an `int` in decimal (hexadecimal with Hexadecimal Display),
+a `char` as `99 'c'`, an enum by its enumerators (`EF_A | EF_C`), a `char*` with its string, an object
+through a base class pointer with its own class (`CShape* {CSquare}`).  A value that changed since the
+last stop is red.  Typing into a Value writes it, if what is typed fits its type.
+
+Watch expressions are evaluated with the program's types (an `int` is 16 bits): names (locals, then
+`this`'s members, statics and globals, enumerators), `. -> [] * &`, casts, `sizeof`, and the arithmetic,
+comparison and logical operators.  Functions aren't called and nothing is assigned.  A suffix formats the
+result as Visual Studio's do: `,x` hexadecimal, `,d` decimal, `,s` a string alone, `,10` a pointer as an
+array of 10.
+
+### QuickWatch
+
+Shift+F9 (or the editor's QuickWatch) shows the expression at the caret, or what is selected, with its
+value: Reevaluate evaluates what is typed, Add Watch adds it to Watch 1.
+
+### Data tips
+
+The pointer resting on a name in the editor while stopped shows its value under it, opened like a Locals
+row; a member's (`pcCounter->miCount`) from the name it is a member of.  It goes when the pointer moves off
+the name and the tip.
 
 ## Breakpoints
 
