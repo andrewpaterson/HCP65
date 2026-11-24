@@ -68,8 +68,9 @@ right.  Call Stack and Locals are shown when debugging starts; the others from D
 shows where the emulator stopped, and is empty while it runs.  They need the program built for the
 debugger (a configuration's Debug, see [Building](building.md)) to show everything.  A Release build shows
 its calls and the variables it keeps in memory: objects, arrays and anything whose address is taken, as
-Locals and the watches have them.  A variable the optimiser keeps in a register, or folds away, is
-`(optimised away)`, and a Release build's parameters aren't shown.
+Locals and the watches have them, and the parameters that stay where they were passed (an object passed by
+value, a parameter whose address is taken).  A variable or parameter the optimiser keeps in a register, or
+folds away, is `(optimised away)`, in the Call Stack too.
 
 ### Call Stack
 
