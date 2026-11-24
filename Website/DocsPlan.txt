@@ -84,6 +84,8 @@ Decided (the user's, 2026-11-24)
     (HCP65-Emulator/HCP65Lib/Docs), whose devices implement them.
 10. Project items are hand-listed, one per page (question 3), not wildcards.  The site build checks that every page
     under a Sources.txt folder is an item of exactly one project, and fails (with the page's path) when one isn't.
+11. Test data (a test's Input and Output folders) is owned by its test project by where it is, not as items
+    (question 11): it isn't documentation, the tests find it by path, and Solution Explorer doesn't show it.
 
 
 Proposed (my recommendations, not decided)
@@ -198,8 +200,7 @@ H. Claude
   alone (the claude-request IDE check's stand-in for the tab).
 
 I. Files that aren't source
-  1. Each has one owning project.  Bulk test data (hundreds of files per Input folder) can't sensibly be hand-listed
-     and wildcards are out (decision 10): question 11.
+  1. Each has one owning project.  Test data is owned by location, not as items (decision 11).
   2. Each is source, generated (record the command and what it is made from; never edited by hand) or third-party
      (where it came from, which version).
   3. Tables from KiCad: the HCP65 memory map, registers and pinouts generated from the netlists with
@@ -236,8 +237,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
  9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
     (recommended: decision 4's rule), or kept beside the code as history.
 10. MCP: served by the running IDE (recommended: the index is already live there), or a separate headless program.
-11. Test data in Input/Output folders: owned by its test project by where it is, not as items (recommended: those
-    files aren't documentation and the tests already find them by path), or hand-listed like pages.
+11. Test data in Input/Output folders.  Decided 2026-11-24 (decision 11): owned by its test project by where it is,
+    not as items; not hand-listed like pages.
 
 Related, not about docs (asked 2026-11-24, unanswered): fcny, fccr and fcby stop at a unit with ANY bit clear, not at
 a zero unit, so "zero" in their names doesn't match the behaviour.  Rename them or change what they do?
