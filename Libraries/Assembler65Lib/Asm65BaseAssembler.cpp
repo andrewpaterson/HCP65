@@ -395,7 +395,7 @@ void CAsm65BaseAssembler::AddUndefined(SAsm65Token* psToken)
 {
 	bool	bAdded;
 
-	mcUndefinedNames.FindOrAdd(psToken->szText, psToken->uiLength, &bAdded);
+	mcUndefinedNames.FindOrAddIndex(psToken->szText, psToken->uiLength, &bAdded);
 	if (bAdded)
 	{
 		mcUndefined.Add(psToken);
