@@ -95,6 +95,10 @@ Decided (the user's, 2026-11-24)
     e11ce91e9, with CTextParser::SkipUTF8BOM fixed in 4a0a9da19): identical to PyYAML on this mkdocs.yml.
 14. The command-line index program lives in HCP65-IDE beside HCP65Build (question 6): it reads solutions with
     VisualStudioLib, which is there; not in CppCompilerLib's tests.
+15. Every ```cpp block compiles by default (question 7), check only: a block of statements is compiled inside a
+    function; a page names its headers once in a hidden comment at its top; a block that mustn't compile is marked
+    ```{.cpp .no-check} (it keeps its C++ colouring).  21 ```cpp blocks on 2026-11-24, about half statement fragments
+    (sprites, assembler, refactoring pages).
 
 
 Proposed (my recommendations, not decided)
@@ -107,8 +111,8 @@ Proposed (my recommendations, not decided)
   - A reference becomes a GitHub link to the line on the repository's branch (decision 12).
   - Tables are generated, never written by hand, wherever a source exists: the spreadsheet for the 65C64, the KiCad
     netlists for the HCP65's memory map, registers and pinouts.
-  - Examples are tests: ```cpp blocks compile (check only, the semantic pass's front end), ```text is for sketches,
-    the rule ```asm already follows; longer code comes from test files through named snippet sections.
+  - Examples are tests: every ```cpp block compiles (decision 15); longer code comes from test files through named
+    snippet sections.
   - Designs: a finished plan becomes a design page (how it works + the decisions and why); the class's main header
     points at it in one line.
   - Not doing: Doxygen or generated API pages (they copy the headers and bring a second C++ parser), implicit
@@ -184,7 +188,9 @@ E. The IDE treats docs as code (HCP65-IDE)
   definition from a page, a broken reference in the Problems list.
 
 F. Examples as tests
-  1. ```cpp blocks in pages compile, check only, through the semantic pass's front end; ```text is skipped.
+  1. Every ```cpp block compiles, check only, through the semantic pass's front end (decision 15): statements inside
+     a function, the page's headers from its hidden header comment, ```{.cpp .no-check} blocks skipped.  First, give
+     the pages with fragments their header comments.
   2. Named snippet sections (// --8<-- [start:name]) in test files, included by name.
   Check: a page with a broken ```cpp block fails the build with a clickable error.
 
@@ -244,7 +250,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
     the JSON parser showed a YAML reader would share most of its design).
  6. Where the command-line index program lives.  Decided 2026-11-24 (decision 14): beside HCP65Build in HCP65-IDE,
     not in CppCompilerLib's tests.
- 7. ```cpp blocks compile unless marked ```text (recommended: the asm rule), or only blocks marked to compile.
+ 7. Which ```cpp blocks compile.  Decided 2026-11-24 (decision 15): every one by default, fragments inside a function
+    with the page's headers, ```{.cpp .no-check} to exempt one; not only blocks marked to compile.
  8. Which memory notes move into the repositories: decisions and recipes (recommended), or everything.
  9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
     (recommended: decision 4's rule), or kept beside the code as history.
