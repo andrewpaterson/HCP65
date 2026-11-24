@@ -62,7 +62,7 @@ uint32 SAsm65StackRegisters::GetS(void) const { return (uint32)auiValues[ASM65_D
 // just before where the call returns to.
 //
 //////////////////////////////////////////////////////////////////////////
-uint32 SAsm65StackFrame::GetLineAddress(bool bInnermost)
+uint32 SAsm65StackFrame::GetLineAddress(void)
 {
 	return bInnermost ? uiPC : uiPC - 1;
 }
@@ -141,12 +141,14 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 	psFrame = pasFrames->Add();
 	*(SAsm65StackRegisters*)psFrame = *psRegisters;
 	Find(psRegisters->uiPC, (EAsm65StackSpace)psRegisters->uiSpace, psFrame);
+	psFrame->bInnermost = true;
 	while ((pasFrames->NumElements() < uiMaxFrames) && psFrame->psFunction)
 	{
 		if (!Caller(psFrame, &sCaller) || ((sCaller.uiSpace == psFrame->uiSpace) && (sCaller.GetS() <= psFrame->GetS())))
 		{
 			break;
 		}
+		sCaller.bInnermost = false;
 		psFrame = pasFrames->Add(&sCaller);
 	}
 	return pasFrames->NumElements();
@@ -156,52 +158,106 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 //////////////////////////////////////////////////////////////////////////
 //
 // Where psVariable, one of psFrame's function's, is while it runs, in
-// psFrame's space: its function's base (a register, or its frame
-// address) plus its offset, or where the pointer kept there points.
-// False if it isn't kept anywhere, or the base isn't known, or the
+// psFrame's space: its function's base plus its offset, or where the
+// pointer kept there points; or, for a variable whose place moves
+// (ADW_Ranges), where its range at the frame's line address says, which
+// may be a register's value.  False if it isn't kept anywhere then, or a
+// register it needs isn't known (a caller's that wasn't saved), or the
 // pointer can't be read.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, uint32* puiAddress)
+bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, SAsm65StackPlace* psPlace)
 {
-	uint8	uiBase;
-	uint64	uiValue;
-	uint32	uiPlace;
+	SAsm65DebugRange*	psRange;
 
-	uiBase = psFrame->psFunction->uiBase;
-	if (uiBase == ASM65_DEBUG_FRAME)
+	if (psVariable->uiWhere != ADW_Ranges)
 	{
-		if (!psFrame->bFrame)
+		return LocateAt(psFrame, psVariable->uiWhere, psFrame->psFunction->uiBase, psVariable->iOffset, psPlace);
+	}
+
+	psRange = psFrame->pcRecords->FindRange(psVariable, psFrame->GetLineAddress());
+	if (!psRange)
+	{
+		return false;
+	}
+	switch (psRange->uiWhere)
+	{
+	case ADW_Frame:
+		return LocateAt(psFrame, ADW_Frame, psFrame->psFunction->uiBase, psRange->iOffset, psPlace);
+	case ADW_Memory:
+		return LocateAt(psFrame, ADW_Frame, psRange->uiRegister, psRange->iOffset, psPlace);
+	case ADW_Register:
+		if (!psFrame->IsKnown(psRange->uiRegister))
 		{
 			return false;
 		}
-		uiValue = psFrame->uiFrame;
+		psPlace->bAddress = false;
+		psPlace->uiAddress = 0;
+		psPlace->uiValue = psFrame->Get(psRange->uiRegister);
+		return true;
+	default:
+		return false;
 	}
-	else if (psFrame->IsKnown(uiBase))
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The value of uiBase in psFrame: a register's, or its frame address
+// (ASM65_DEBUG_FRAME).  False if it isn't known.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65StackWalker::Base(SAsm65StackFrame* psFrame, uint8 uiBase, uint64* puiValue)
+{
+	if (uiBase == ASM65_DEBUG_FRAME)
 	{
-		uiValue = psFrame->Get(uiBase);
+		*puiValue = psFrame->uiFrame;
+		return psFrame->bFrame;
 	}
-	else
+	if (!psFrame->IsKnown(uiBase))
+	{
+		return false;
+	}
+	*puiValue = psFrame->Get(uiBase);
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The address at uiBase + iOffset (ADW_Frame), or the one kept there
+// (ADW_Indirect).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65StackWalker::LocateAt(SAsm65StackFrame* psFrame, uint8 uiWhere, uint8 uiBase, int32 iOffset, SAsm65StackPlace* psPlace)
+{
+	uint64	uiValue;
+	uint32	uiPlace;
+
+	if (!Base(psFrame, uiBase, &uiValue))
 	{
 		return false;
 	}
 
-	uiPlace = StackAddress((int64)uiValue + psVariable->iOffset);
-	switch (psVariable->uiWhere)
+	uiPlace = StackAddress((int64)uiValue + iOffset);
+	switch (uiWhere)
 	{
 	case ADW_Frame:
-		*puiAddress = uiPlace;
-		return true;
+		break;
 	case ADW_Indirect:
 		if (!ReadValue((EAsm65StackSpace)psFrame->uiSpace, uiPlace, PointerBytes(), &uiValue))
 		{
 			return false;
 		}
-		*puiAddress = (uint32)uiValue;
-		return true;
+		uiPlace = (uint32)uiValue;
+		break;
 	default:
 		return false;
 	}
+	psPlace->bAddress = true;
+	psPlace->uiAddress = uiPlace;
+	psPlace->uiValue = 0;
+	return true;
 }
 
 

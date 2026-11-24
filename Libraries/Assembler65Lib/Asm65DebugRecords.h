@@ -28,7 +28,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 #define ASM65_DEBUG_RECORDS_MAGIC	"Asm65DebugRecords"
-#define ASM65_DEBUG_RECORDS_VERSION	4
+#define ASM65_DEBUG_RECORDS_VERSION	5
 
 #define ASM65_DEBUG_NONE		0xFFFFFFFF		//No type, function or section.
 #define ASM65_DEBUG_ABSOLUTE	0xFFFFFFFE		//A place's section once linked: its offset is its address.
@@ -103,6 +103,22 @@ enum EAsm65DebugWhere
 	ADW_None,		//Not kept anywhere the debugger can read (optimised away).
 	ADW_Frame,		//At the base + iOffset.
 	ADW_Indirect,	//At the address held at the base + iOffset (an object passed by address).
+	ADW_Ranges,		//Where its ranges say, from code address to code address (SAsm65DebugRange); elsewhere not kept.
+	ADW_Register,	//A range's: in a register (uiRegister).
+	ADW_Memory,		//A range's: at a register (uiRegister) + iOffset (the 65C64's pseudo registers, [off + W]).
+};
+
+
+//Where a variable whose place moves (ADW_Ranges, optimised code) is from uiFrom up to uiTo (its function's section's
+//offsets, or once linked its addresses): at its function's base + iOffset (ADW_Frame), in a register (ADW_Register)
+//or at a register + iOffset (ADW_Memory).
+struct SAsm65DebugRange
+{
+	uint32	uiFrom;
+	uint32	uiTo;
+	uint8	uiWhere;		//EAsm65DebugWhere.
+	uint8	uiRegister;
+	int32	iOffset;
 };
 
 
@@ -190,6 +206,8 @@ struct SAsm65DebugVariable
 	int32	iOffset;
 	uint32	uiFirstLine;
 	uint32	uiLastLine;
+	uint32	uiFirstRange;	//ADW_Ranges: its ranges.
+	uint32	uiNumRanges;
 
 	bool	IsInScope(uint32 uiLine);
 };
@@ -236,6 +254,7 @@ typedef CArrayTemplate<SAsm65DebugGlobal>	CArrayAsm65DebugGlobals;
 typedef CArrayTemplate<SAsm65DebugType>		CArrayAsm65DebugTypes;
 typedef CArrayTemplate<SAsm65DebugMember>	CArrayAsm65DebugMembers;
 typedef CArrayTemplate<SAsm65DebugSaved>	CArrayAsm65DebugSaved;
+typedef CArrayTemplate<SAsm65DebugRange>	CArrayAsm65DebugRanges;
 
 
 //What a debugger knows of a program beyond its lines: its functions' frames and variables, its globals and their
@@ -252,6 +271,7 @@ protected:
 	CArrayAsm65DebugTypes		masTypes;
 	CArrayAsm65DebugMembers		masMembers;
 	CArrayAsm65DebugSaved		masSaved;
+	CArrayAsm65DebugRanges		masRanges;
 	uint8						muiProcessor;	//EAsm65DebugProcessor.
 	CHashMapString<uint32>		mcTypeKeys;		//Each type's index by its key.
 	CArrayUint32				mauiFunctionOrder;	//The functions' indices in address order (Sort), for FindFunction.
@@ -270,6 +290,7 @@ public:
 	bool					EndFunction(uint32 uiEnd);
 	void					EndFunctions(uint32 uiSection, uint32 uiEnd);
 	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine);
+	bool					AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset);
 	bool					AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic);
 	bool					AddType(const char* szKey, const char* szName, EAsm65DebugType eKind, uint8 uiFlags, uint32 uiBytes, uint32 uiTarget, uint32 uiCount);
 	bool					AddMember(const char* szName, EAsm65DebugMember eKind, uint32 uiType, int64 iValue, uint8 uiBitOffset, uint8 uiBits);
@@ -297,6 +318,8 @@ public:
 	uint32					FindTypeIndex(const char* szKey);
 	SAsm65DebugMember*		GetMember(SAsm65DebugType* psType, size uiIndex);
 	SAsm65DebugSaved*		GetSaved(SAsm65DebugFunction* psFunction, size uiIndex);
+	SAsm65DebugRange*		GetRange(SAsm65DebugVariable* psVariable, size uiIndex);
+	SAsm65DebugRange*		FindRange(SAsm65DebugVariable* psVariable, uint32 uiAddress);
 
 	bool					WriteChunks(CChunkFile* pcChunkFile);
 	bool					ReadChunks(CChunkFile* pcChunkFile);
@@ -304,6 +327,7 @@ public:
 protected:
 	SAsm65DebugFunction*	LastFunction(void);
 	SAsm65DebugType*		LastType(void);
+	SAsm65DebugVariable*	LastVariable(void);
 	bool					IsTypeOrNone(uint32 uiType);
 	bool					IsWhole(void);
 	uint32					MapType(uint32 uiType, CArrayUint32* pauiTypes);

@@ -22,11 +22,13 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 //The words the debug directives take for their kinds, in each enum's order.
-static const char*	gaszAsm65DebugEntries[] = { "long", "short", "interrupt", "userinterrupt", NULL };
-static const char*	gaszAsm65DebugWheres[] = { "none", "frame", "indirect", NULL };
-static const char*	gaszAsm65DebugVariableKinds[] = { "local", "parameter", NULL };
-static const char*	gaszAsm65DebugTypes[] = { "void", "bool", "integer", "float", "enum", "pointer", "reference", "array", "class", "function", NULL };
-static const char*	gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enumerator", NULL };
+static const char*				gaszAsm65DebugEntries[] = { "long", "short", "interrupt", "userinterrupt", NULL };
+static const char*				gaszAsm65DebugWheres[] = { "none", "frame", "indirect", "ranges", NULL };
+static const char*				gaszAsm65DebugRangePlaces[] = { "frame", "register", "memory", NULL };
+static const EAsm65DebugWhere	gaeAsm65DebugRangePlaces[] = { ADW_Frame, ADW_Register, ADW_Memory };
+static const char*				gaszAsm65DebugVariableKinds[] = { "local", "parameter", NULL };
+static const char*				gaszAsm65DebugTypes[] = { "void", "bool", "integer", "float", "enum", "pointer", "reference", "array", "class", "function", NULL };
+static const char*				gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enumerator", NULL };
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -57,8 +59,13 @@ static const char*	gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enume
 //                                      records (else at its section's end).
 //   .dvariable local|parameter, "name", type, where, offset, first, last
 //                                      A variable of the function: where is
-//                                      none, frame or indirect, in scope from
-//                                      line first to last.
+//                                      none, frame, indirect or ranges (the
+//                                      .dranges after it), in scope from line
+//                                      first to last.
+//   .drange from, to, frame, offset    Where the last variable (of ranges) is
+//   .drange from, to, register, R      from the label from up to the label
+//   .drange from, to, memory, R, offset  to: at the base + offset, in
+//                                      register R, or at R + offset.
 //   .dglobal "name", type, label       A global at the label.
 //   .dstatic "name", type, label       A static local of the function.
 //   .dtype index, "key", "name", kind, flags, bytes, target, count
@@ -96,6 +103,10 @@ bool CAsm65BaseAssembler::DebugDirective(SAsm65Token* psDirective, bool* pbResul
 	else if (psDirective->IsIdentifierIgnoreCase(".dvariable"))
 	{
 		*pbResult = DebugObject(psDirective) && DebugVariable(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".drange"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugRange(psDirective);
 	}
 	else if (psDirective->IsIdentifierIgnoreCase(".dglobal"))
 	{
@@ -305,7 +316,7 @@ bool CAsm65BaseAssembler::DebugVariable(SAsm65Token* psDirective)
 	bResult = DebugWord(gaszAsm65DebugVariableKinds, &iKind, "local or parameter") && Expect(AP65_Comma, "','") &&
 			  DebugText(&szName, "a variable's name") && Expect(AP65_Comma, "','") &&
 			  DebugTypeIndex(&uiType) && Expect(AP65_Comma, "','") &&
-			  DebugWord(gaszAsm65DebugWheres, &iWhere, "none, frame or indirect") && Expect(AP65_Comma, "','") &&
+			  DebugWord(gaszAsm65DebugWheres, &iWhere, "none, frame, indirect or ranges") && Expect(AP65_Comma, "','") &&
 			  DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset") && Expect(AP65_Comma, "','") &&
 			  DebugNumber(&iFirst, 0, 0x7FFFFFFFll, "a line") && Expect(AP65_Comma, "','") &&
 			  DebugNumber(&iLast, iFirst, 0x7FFFFFFFll, "a line no earlier than the first");
@@ -328,35 +339,87 @@ bool CAsm65BaseAssembler::DebugGlobal(SAsm65Token* psDirective, bool bStatic)
 {
 	CChars			szName;
 	uint32			uiType;
-	SAsm65Token*	psLabel;
 	SAsm65Value		sValue;
 	bool			bResult;
 
 	szName.Init();
-	bResult = DebugText(&szName, "a variable's name") && Expect(AP65_Comma, "','") && DebugTypeIndex(&uiType) && Expect(AP65_Comma, "','");
-	if (bResult)
+	bResult = DebugText(&szName, "a variable's name") && Expect(AP65_Comma, "','") && DebugTypeIndex(&uiType) && Expect(AP65_Comma, "','") &&
+			  DebugLabel(&sValue, "A debug global");
+	if (bResult && mbFinal && !mpcObject->GetDebug()->AddGlobal(szName.Text(), uiType, (uint32)sValue.iSection, (uint32)sValue.iValue, bStatic))
 	{
-		psLabel = Peek();
-		ClearValue(&sValue);
-		bResult = Expression(&sValue);
-		if (bResult && (sValue.iTerms > 0))
-		{
-			//The record keeps the label's section and offset: it needs no relocation.
-			UseTerm();
-		}
-		if (bResult && mbFinal)
-		{
-			if (!sValue.bResolved || (sValue.iSection < 0))
-			{
-				bResult = Error(psLabel, "A debug global must be at a label in one of the object's sections");
-			}
-			else if (!mpcObject->GetDebug()->AddGlobal(szName.Text(), uiType, (uint32)sValue.iSection, (uint32)sValue.iValue, bStatic))
-			{
-				bResult = Error(psDirective, ".dstatic must follow a .dfunction");
-			}
-		}
+		bResult = Error(psDirective, ".dstatic must follow a .dfunction");
 	}
 	szName.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// .drange: where the last variable (of ranges) is between two labels.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugRange(SAsm65Token* psDirective)
+{
+	SAsm65Value		sFrom;
+	SAsm65Value		sTo;
+	int				iPlace;
+	uint8			uiRegister;
+	int64			iOffset;
+	bool			bResult;
+
+	iPlace = 0;
+	uiRegister = 0;
+	iOffset = 0;
+	bResult = DebugLabel(&sFrom, "A debug range") && Expect(AP65_Comma, "','") && DebugLabel(&sTo, "A debug range") && Expect(AP65_Comma, "','") &&
+			  DebugWord(gaszAsm65DebugRangePlaces, &iPlace, "frame, register or memory") && Expect(AP65_Comma, "','");
+	if (bResult && (iPlace == 0))
+	{
+		bResult = DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset");
+	}
+	else if (bResult)
+	{
+		bResult = DebugRegister(&uiRegister);
+		if (bResult && (iPlace == 2))
+		{
+			bResult = Expect(AP65_Comma, "','") && DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "an offset");
+		}
+	}
+	if (bResult && mbFinal && ((sFrom.iSection != sTo.iSection) ||
+		!mpcObject->GetDebug()->AddRange((uint32)sFrom.iSection, (uint32)sFrom.iValue, (uint32)sTo.iValue, gaeAsm65DebugRangePlaces[iPlace], uiRegister, (int32)iOffset)))
+	{
+		bResult = Error(psDirective, ".drange must follow a .dvariable of ranges, its labels in order in its function's section");
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A label in one of the object's sections (in the final pass): its section
+// and offset, which a debug record keeps as they are (no relocation).
+// szWhat says what wants one when it isn't.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugLabel(SAsm65Value* psValue, const char* szWhat)
+{
+	SAsm65Token*	psLabel;
+	CChars			szError;
+	bool			bResult;
+
+	psLabel = Peek();
+	ClearValue(psValue);
+	bResult = Expression(psValue);
+	if (bResult && (psValue->iTerms > 0))
+	{
+		UseTerm();
+	}
+	if (bResult && mbFinal && (!psValue->bResolved || (psValue->iSection < 0)))
+	{
+		szError.Init(szWhat)->Append(" must be at a label in one of the object's sections");
+		bResult = Error(psLabel, szError.Text());
+		szError.Kill();
+	}
 	return bResult;
 }
 

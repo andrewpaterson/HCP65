@@ -35,6 +35,7 @@ void CAsm65DebugRecords::Init(void)
 	masTypes.Init();
 	masMembers.Init();
 	masSaved.Init();
+	masRanges.Init();
 	mcTypeKeys.Init();
 	mauiFunctionOrder.Init();
 	muiProcessor = ADP_None;
@@ -72,6 +73,7 @@ void CAsm65DebugRecords::Kill(void)
 	}
 	mauiFunctionOrder.Kill();
 	mcTypeKeys.Kill();
+	masRanges.Kill();
 	masSaved.Kill();
 	masMembers.Kill();
 	masTypes.Kill();
@@ -275,7 +277,37 @@ bool CAsm65DebugRecords::AddVariable(const char* szName, uint32 uiType, EAsm65De
 	psVariable->iOffset = iOffset;
 	psVariable->uiFirstLine = uiFirstLine;
 	psVariable->uiLastLine = uiLastLine;
+	psVariable->uiFirstRange = (uint32)masRanges.NumElements();
+	psVariable->uiNumRanges = 0;
 	psFunction->uiNumVariables++;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A range of the last variable (ADW_Ranges, of the last function): from
+// uiFrom up to uiTo, offsets in the function's section uiSection, it is in
+// the place (ADW_Frame, ADW_Register or ADW_Memory).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset)
+{
+	SAsm65DebugVariable*	psVariable;
+	SAsm65DebugRange*		psRange;
+
+	psVariable = LastVariable();
+	if (!psVariable || (psVariable->uiWhere != ADW_Ranges) || (uiSection != LastFunction()->sStart.uiSection) || (uiFrom > uiTo) || ((eWhere != ADW_Frame) && (eWhere != ADW_Register) && (eWhere != ADW_Memory)))
+	{
+		return false;
+	}
+	psRange = masRanges.Add();
+	psRange->uiFrom = uiFrom;
+	psRange->uiTo = uiTo;
+	psRange->uiWhere = (uint8)eWhere;
+	psRange->uiRegister = uiRegister;
+	psRange->iOffset = iOffset;
+	psVariable->uiNumRanges++;
 	return true;
 }
 
@@ -436,6 +468,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 	CArrayTemplate<bool>	abDescribe;
 	size					ui;
 	size					uiMember;
+	size					uiRange;
 	uint32*					puiIndex;
 	uint32					uiIndex;
 	bool					bDescribe;
@@ -445,6 +478,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 	SAsm65DebugFunction*	psSourceFunction;
 	SAsm65DebugFunction*	psFunction;
 	SAsm65DebugVariable*	psSourceVariable;
+	SAsm65DebugRange*		psRange;
 	SAsm65DebugGlobal*		psSourceGlobal;
 	uint32					uiAddress;
 
@@ -530,6 +564,11 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 			psSourceVariable = pcSource->GetVariable(psSourceFunction, uiMember);
 			AddVariable(psSourceVariable->szName.Text(), MapType(psSourceVariable->uiType, &auiTypes), (EAsm65DebugWhere)psSourceVariable->uiWhere, psSourceVariable->bParameter,
 						psSourceVariable->iOffset, psSourceVariable->uiFirstLine, psSourceVariable->uiLastLine);
+			for (uiRange = 0; uiRange < psSourceVariable->uiNumRanges; uiRange++)
+			{
+				psRange = pcSource->GetRange(psSourceVariable, uiRange);
+				AddRange(ASM65_DEBUG_ABSOLUTE, uiAddress + psRange->uiFrom, uiAddress + psRange->uiTo, (EAsm65DebugWhere)psRange->uiWhere, psRange->uiRegister, psRange->iOffset);
+			}
 		}
 	}
 
@@ -649,6 +688,11 @@ void CAsm65DebugRecords::Move(int64 iOffset)
 		psFunction->sStart.uiOffset = (uint32)(psFunction->sStart.uiOffset + iOffset);
 		psFunction->uiEnd = (uint32)(psFunction->uiEnd + iOffset);
 		psFunction->uiBody = (uint32)(psFunction->uiBody + iOffset);
+	}
+	for (ui = 0; ui < masRanges.NumElements(); ui++)
+	{
+		masRanges.Get(ui)->uiFrom = (uint32)(masRanges.Get(ui)->uiFrom + iOffset);
+		masRanges.Get(ui)->uiTo = (uint32)(masRanges.Get(ui)->uiTo + iOffset);
 	}
 	for (ui = 0; ui < masGlobals.NumElements(); ui++)
 	{
@@ -958,6 +1002,39 @@ SAsm65DebugSaved* CAsm65DebugRecords::GetSaved(SAsm65DebugFunction* psFunction, 
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugRange* CAsm65DebugRecords::GetRange(SAsm65DebugVariable* psVariable, size uiIndex)
+{
+	return (uiIndex < psVariable->uiNumRanges) ? masRanges.SafeGet(psVariable->uiFirstRange + uiIndex) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The range of psVariable (ADW_Ranges) that code at uiAddress is in, NULL
+// if none: it isn't kept anywhere there.
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugRange* CAsm65DebugRecords::FindRange(SAsm65DebugVariable* psVariable, uint32 uiAddress)
+{
+	SAsm65DebugRange*	psRange;
+	size				ui;
+
+	for (ui = 0; ui < psVariable->uiNumRanges; ui++)
+	{
+		psRange = GetRange(psVariable, ui);
+		if (psRange && (uiAddress >= psRange->uiFrom) && (uiAddress < psRange->uiTo))
+		{
+			return psRange;
+		}
+	}
+	return NULL;
+}
+
+
 EAsm65DebugProcessor CAsm65DebugRecords::GetProcessor(void) const { return (EAsm65DebugProcessor)muiProcessor; }
 
 
@@ -978,6 +1055,20 @@ SAsm65DebugFunction* CAsm65DebugRecords::LastFunction(void)
 SAsm65DebugType* CAsm65DebugRecords::LastType(void)
 {
 	return masTypes.Tail();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The last function's last variable, NULL if it has none.
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugVariable* CAsm65DebugRecords::LastVariable(void)
+{
+	SAsm65DebugFunction*	psFunction;
+
+	psFunction = LastFunction();
+	return (psFunction && (psFunction->uiNumVariables > 0)) ? masVariables.Tail() : NULL;
 }
 
 
@@ -1016,6 +1107,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 	SAsm65DebugType*		psType;
 	SAsm65DebugMember*		psMember;
 	SAsm65DebugSaved*		psSaved;
+	SAsm65DebugRange*		psRange;
 	bool					bResult;
 
 	bResult = pcChunkFile->WriteChunkBegin();
@@ -1058,6 +1150,8 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psVariable->iOffset);
 		bResult &= pcChunkFile->WriteInt32(psVariable->uiFirstLine);
 		bResult &= pcChunkFile->WriteInt32(psVariable->uiLastLine);
+		bResult &= pcChunkFile->WriteInt32(psVariable->uiFirstRange);
+		bResult &= pcChunkFile->WriteInt32(psVariable->uiNumRanges);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Variables");
 
@@ -1115,6 +1209,19 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psSaved->iOffset);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Saved");
+
+	bResult &= pcChunkFile->WriteChunkBegin();
+	bResult &= pcChunkFile->WriteInt32((uint32)masRanges.NumElements());
+	for (ui = 0; ui < masRanges.NumElements(); ui++)
+	{
+		psRange = masRanges.Get(ui);
+		bResult &= pcChunkFile->WriteInt32(psRange->uiFrom);
+		bResult &= pcChunkFile->WriteInt32(psRange->uiTo);
+		bResult &= pcChunkFile->WriteInt8(psRange->uiWhere);
+		bResult &= pcChunkFile->WriteInt8(psRange->uiRegister);
+		bResult &= pcChunkFile->WriteInt32(psRange->iOffset);
+	}
+	bResult &= pcChunkFile->WriteChunkEnd("Ranges");
 	return bResult;
 }
 
@@ -1135,6 +1242,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 	SAsm65DebugType*		psType;
 	SAsm65DebugMember*		psMember;
 	SAsm65DebugSaved*		psSaved;
+	SAsm65DebugRange*		psRange;
 
 	if (!pcChunkFile->ReadChunkBegin("DebugHeader") || !Asm65ReadMagic(pcChunkFile, ASM65_DEBUG_RECORDS_MAGIC, ASM65_DEBUG_RECORDS_VERSION) || !pcChunkFile->ReadInt8(&muiProcessor) || !pcChunkFile->ReadChunkEnd())
 	{
@@ -1173,7 +1281,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 		psVariable->szName.Init();
 		if (!Asm65ReadText(pcChunkFile, &psVariable->szName) || !pcChunkFile->ReadInt32(&psVariable->uiType) || !pcChunkFile->ReadInt8(&psVariable->uiWhere) ||
 			!pcChunkFile->ReadBool(&psVariable->bParameter) || !pcChunkFile->ReadInt32(&psVariable->iOffset) || !pcChunkFile->ReadInt32(&psVariable->uiFirstLine) ||
-			!pcChunkFile->ReadInt32(&psVariable->uiLastLine))
+			!pcChunkFile->ReadInt32(&psVariable->uiLastLine) || !pcChunkFile->ReadInt32(&psVariable->uiFirstRange) || !pcChunkFile->ReadInt32(&psVariable->uiNumRanges))
 		{
 			return false;
 		}
@@ -1255,6 +1363,24 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 			return false;
 		}
 	}
+	if (!pcChunkFile->ReadChunkEnd())
+	{
+		return false;
+	}
+
+	if (!pcChunkFile->ReadChunkBegin("Ranges") || !pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		psRange = masRanges.Add();
+		if (!pcChunkFile->ReadInt32(&psRange->uiFrom) || !pcChunkFile->ReadInt32(&psRange->uiTo) || !pcChunkFile->ReadInt8(&psRange->uiWhere) ||
+			!pcChunkFile->ReadInt8(&psRange->uiRegister) || !pcChunkFile->ReadInt32(&psRange->iOffset))
+		{
+			return false;
+		}
+	}
 	return pcChunkFile->ReadChunkEnd() && IsWhole();
 }
 
@@ -1275,6 +1401,13 @@ bool CAsm65DebugRecords::IsWhole(void)
 	{
 		psFunction = masFunctions.Get(ui);
 		if (((size)psFunction->uiFirstVariable + psFunction->uiNumVariables > masVariables.NumElements()) || ((size)psFunction->uiFirstSaved + psFunction->uiNumSaved > masSaved.NumElements()))
+		{
+			return false;
+		}
+	}
+	for (ui = 0; ui < masVariables.NumElements(); ui++)
+	{
+		if ((size)masVariables.Get(ui)->uiFirstRange + masVariables.Get(ui)->uiNumRanges > masRanges.NumElements())
 		{
 			return false;
 		}

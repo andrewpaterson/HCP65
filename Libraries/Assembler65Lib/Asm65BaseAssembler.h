@@ -181,7 +181,9 @@ protected:
 	bool			DebugBase(SAsm65Token* psDirective);
 	bool			DebugEnd(SAsm65Token* psDirective);
 	bool			DebugVariable(SAsm65Token* psDirective);
+	bool			DebugRange(SAsm65Token* psDirective);
 	bool			DebugGlobal(SAsm65Token* psDirective, bool bStatic);
+	bool			DebugLabel(SAsm65Value* psValue, const char* szWhat);
 	bool			DebugType(SAsm65Token* psDirective);
 	bool			DebugMember(SAsm65Token* psDirective);
 	bool			DebugText(CChars* pszDest, const char* szWhat);

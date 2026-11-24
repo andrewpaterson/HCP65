@@ -539,6 +539,81 @@ void TestAsm65StackWalker65C64(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// Where a variable whose place moves is, by the range the frame's line
+// address is in: at the base (V) + offset, a register's value, at a
+// register + offset; nowhere outside its ranges or when the register it
+// needs isn't known.  A caller's line address is just before its return.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65StackWalkerLocate(void)
+{
+	CAsm65DebugRecords		cRecords;
+	CAsm65Memory			cMemory;
+	CAsm65StackWalker*		pcWalker;
+	SAsm65StackFrame		sFrame;
+	SAsm65StackPlace		sPlace;
+	SAsm65DebugVariable*	psVariable;
+
+	cRecords.Init();
+	cRecords.AddFunction("Ranged", 0, 0x100, ADE_Long);
+	cRecords.SetFrame(0x100, ADF_Register, A65DR_V, 16, 0);
+	cRecords.SetBase(A65DR_V);
+	AssertTrue(cRecords.AddVariable("i", 0, ADW_Ranges, false, 0, 1, 2));
+	AssertTrue(cRecords.AddRange(0, 0x104, 0x108, ADW_Frame, 0, -2));
+	AssertTrue(cRecords.AddRange(0, 0x108, 0x10C, ADW_Register, A65DR_B, 0));
+	AssertTrue(cRecords.AddRange(0, 0x10C, 0x110, ADW_Memory, A65DR_W, 0x80));
+	AssertFalse(cRecords.AddRange(1, 0x110, 0x114, ADW_Frame, 0, 0));
+	AssertFalse(cRecords.AddRange(0, 0x114, 0x110, ADW_Frame, 0, 0));
+	AssertFalse(cRecords.AddRange(0, 0x110, 0x114, ADW_Ranges, 0, 0));
+	cRecords.EndFunctions(0, 0x120);
+	psVariable = cRecords.GetVariable(cRecords.GetFunction(0), 0);
+
+	cMemory.Init();
+	pcWalker = Asm65NewStackWalker(ADP_65C64, &cMemory);
+	sFrame.Init(0x104, ASS_User);
+	sFrame.psFunction = cRecords.GetFunction(0);
+	sFrame.pcRecords = &cRecords;
+	sFrame.uiFrame = 0;
+	sFrame.bFrame = false;
+	sFrame.bInnermost = true;
+	sFrame.Set(A65DR_V, 0x2000);
+	AssertTrue(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	AssertTrue(sPlace.bAddress);
+	AssertInt(0x1FFE, sPlace.uiAddress);
+
+	//In B, its value; unknown in a caller that didn't save it.
+	sFrame.uiPC = 0x108;
+	AssertFalse(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	sFrame.Set(A65DR_B, 1234);
+	AssertTrue(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	AssertFalse(sPlace.bAddress);
+	AssertLong(1234, sPlace.uiValue);
+
+	//A caller returning to 0x108 is at its call's line, 0x107: at the base.
+	sFrame.bInnermost = false;
+	AssertTrue(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	AssertTrue(sPlace.bAddress);
+	AssertInt(0x1FFE, sPlace.uiAddress);
+
+	sFrame.bInnermost = true;
+	sFrame.uiPC = 0x10C;
+	sFrame.Set(A65DR_W, 0x40);
+	AssertTrue(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	AssertTrue(sPlace.bAddress);
+	AssertInt(0xC0, sPlace.uiAddress);
+	sFrame.uiPC = 0x110;
+	AssertFalse(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	sFrame.uiPC = 0x100;
+	AssertFalse(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+
+	SafeKill(pcWalker);
+	cMemory.Kill();
+	cRecords.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65StackWalker(void)
@@ -549,6 +624,7 @@ void TestAsm65StackWalker(void)
 	TestAsm65StackWalkerSteps();
 	TestAsm65StackWalkerInterrupts();
 	TestAsm65StackWalker65C64();
+	TestAsm65StackWalkerLocate();
 
 	CW65C816InstructionFactory::GetInstance()->Kill();
 	TestStatistics();

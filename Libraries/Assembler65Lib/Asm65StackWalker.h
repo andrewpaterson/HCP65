@@ -70,15 +70,26 @@ struct SAsm65StackRegisters
 //A function on the stack: where it is (uiPC, the instruction it runs next, or for a caller the one its call returns
 //to), its registers (S as it was before the call it made; the first frame's are the processor's), the space its code
 //and stack are in, and its frame address (S before its own call, bFrame once a walk has found it).  psFunction is NULL
-//for code the debug records don't describe: the walk stops there.
+//for code the debug records don't describe: the walk stops there.  bInnermost for the first frame of a walk.
 struct SAsm65StackFrame : public SAsm65StackRegisters
 {
 	SAsm65DebugFunction*	psFunction;
 	CAsm65DebugRecords*		pcRecords;
 	uint32					uiFrame;
 	bool					bFrame;
+	bool					bInnermost;
 
-	uint32	GetLineAddress(bool bInnermost);
+	uint32	GetLineAddress(void);
+};
+
+
+//Where a variable is while its frame runs (CAsm65StackWalker::Locate): at uiAddress in the frame's space, or, when
+//it is in a register (bAddress false), its value.
+struct SAsm65StackPlace
+{
+	bool	bAddress;
+	uint32	uiAddress;
+	uint64	uiValue;
 };
 
 
@@ -116,13 +127,15 @@ public:
 	void					AddRecords(CAsm65DebugRecords* pcRecords, EAsm65StackSpace eSpace);
 	void					ClearRecords(void);
 	size					Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames);
-	bool					Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, uint32* puiAddress);
+	bool					Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, SAsm65StackPlace* psPlace);
 	virtual EAsm65DebugProcessor	GetProcessor(void) = 0;
 
 protected:
 	bool					Find(uint32 uiPC, EAsm65StackSpace eSpace, SAsm65StackFrame* psFrame);
 	bool					Caller(SAsm65StackFrame* psFrame, SAsm65StackFrame* psCaller);
 	bool					FrameAddress(SAsm65StackFrame* psFrame, uint32* puiFrame);
+	bool					Base(SAsm65StackFrame* psFrame, uint8 uiBase, uint64* puiValue);
+	bool					LocateAt(SAsm65StackFrame* psFrame, uint8 uiWhere, uint8 uiBase, int32 iOffset, SAsm65StackPlace* psPlace);
 	bool					ReadSaved(SAsm65StackFrame* psFrame, SAsm65StackRegisters* psCaller, uint32* puiEntryS);
 	bool					ReturnTo(SAsm65StackFrame* psFrame, uint32 uiEntryS, SAsm65StackRegisters* psCallerRegisters, SAsm65StackFrame* psCaller);
 	bool					ReadValue(EAsm65StackSpace eSpace, uint32 uiAddress, size uiBytes, uint64* puiValue);
