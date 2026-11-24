@@ -82,6 +82,8 @@ Decided (the user's, 2026-11-24)
     Makefile project of their own there (X65C64-Proposal.vcxproj: the spreadsheet, its generators and the pages);
     the HCP65 hardware pages (memory map, registers, devices) live with HCP65Lib
     (HCP65-Emulator/HCP65Lib/Docs), whose devices implement them.
+10. Project items are hand-listed, one per page (question 3), not wildcards.  The site build checks that every page
+    under a Sources.txt folder is an item of exactly one project, and fails (with the page's path) when one isn't.
 
 
 Proposed (my recommendations, not decided)
@@ -112,9 +114,11 @@ A. The site build (HCP65/Website)
   2. web.sh build: run every generator (sheet_to_html.py and those from C), gather the map's folders into a staging
      folder (copies, not symlinks: Windows), run every check, then `mkdocs build --strict` with docs_dir = staging.
      The snippets base_path list comes from the map too.
-  3. Every check prints GCC's "<file>:<line>:<column>: error: ..." with the page's real path (not the staging copy),
+  3. The item check (decision 10): every .md and image under a Sources.txt folder is an item of exactly one project's
+     .vcxproj; a missing or doubly listed one is an error.
+  4. Every check prints GCC's "<file>:<line>:<column>: error: ..." with the page's real path (not the staging copy),
      so the IDE's Build pane and Problems list can jump to it.
-  4. Website.vcxproj (+ .filters, + Website.sln): a Makefile project.  Items: mkdocs.yml, Sources.txt, the cross-cutting
+  5. Website.vcxproj (+ .filters, + Website.sln): a Makefile project.  Items: mkdocs.yml, Sources.txt, the cross-cutting
      pages, stylesheets, tools, DocsPlan.txt.  NMakeBuildCommandLine = web.sh build (Rebuild and Clean too).
   Check: the site builds byte-identically before and after A with nothing moved.
 
@@ -157,7 +161,7 @@ D. References to code
 E. The IDE treats docs as code (HCP65-IDE)
   1. BuildLib: a Makefile project with a build command is built by running it (a CCommandBuild subclass), whatever
      the solution's toolchain.  Its output goes through ParseMessageLine like any other.
-  2. VisualStudioLib: wildcard Include (docs\**\*.md) if question 3 says so.
+  2. (No wildcard Include: decision 10.)
   3. The code model reads the solution's .md items: links, snippet paths and [`Name`] references become index places
      of a new usage type, Documentation, resolved by the same code as D.
   4. Then, from the existing machinery: Rename changes references exactly (no longer as text); Rename File changes
@@ -194,7 +198,8 @@ H. Claude
   alone (the claude-request IDE check's stand-in for the tab).
 
 I. Files that aren't source
-  1. Each has one owning project; bulk test data is one wildcard item per Input folder.
+  1. Each has one owning project.  Bulk test data (hundreds of files per Input folder) can't sensibly be hand-listed
+     and wildcards are out (decision 10): question 11.
   2. Each is source, generated (record the command and what it is made from; never edited by hand) or third-party
      (where it came from, which version).
   3. Tables from KiCad: the HCP65 memory map, registers and pinouts generated from the netlists with
@@ -220,8 +225,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
  2. Owners of the 65c64 architecture pages and the hcp65 hardware pages.  Decided 2026-11-24 (decision 9): as
     recommended, X65C64-Proposal (with the spreadsheet, a small Makefile project of its own) and HCP65Lib; not
     Website.
- 3. Keeping project item lists complete: wildcard Include in VisualStudioLib (recommended; VS understands it too); or
-    hand-listed items plus a check that fails when a page isn't in a project.
+ 3. Keeping project item lists complete.  Decided 2026-11-24 (decision 10): hand-listed items plus a check, not
+    wildcard Include (which was my recommendation).
  4. Permalinks pinned to the commit the site was built from (recommended: links never drift) or to the branch.
  5. The page-to-repository map as its own file, Website/Sources.txt (recommended), or in mkdocs.yml's extra section.
  6. Where the command-line index program lives: beside HCP65Build in HCP65-IDE (recommended: it reads solutions with
@@ -231,6 +236,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
  9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
     (recommended: decision 4's rule), or kept beside the code as history.
 10. MCP: served by the running IDE (recommended: the index is already live there), or a separate headless program.
+11. Test data in Input/Output folders: owned by its test project by where it is, not as items (recommended: those
+    files aren't documentation and the tests already find them by path), or hand-listed like pages.
 
 Related, not about docs (asked 2026-11-24, unanswered): fcny, fccr and fcby stop at a unit with ANY bit clear, not at
 a zero unit, so "zero" in their names doesn't match the behaviour.  Rename them or change what they do?
