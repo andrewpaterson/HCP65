@@ -210,8 +210,9 @@ H. Claude
      Docs folders, design pages, plans, and the build and test commands.  Independent of A-G: can go first.
   2. The IDE's Claude tab sets CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 so the --add-dir repositories' CLAUDE.md
      files load too.
-  3. Memory notes that record decisions or recipes move into the repositories (G, CLAUDE.md); the notes keep only
-     pointers and session history.
+  3. Memory notes move into the repositories (decision 16): design rulings to design pages and decision lists,
+     recipes and how Claude should work to CLAUDE.md and testing pages, status and handoffs to the plans; memory
+     keeps pointers, machine fixes and session history.
   4. Later: the IDE serves its live index over MCP (find definition, find usages including Documentation, the pages
      that cover a symbol), so Claude asks the index instead of grepping.  question 10.
   5. Only if the site is published: llms.txt (mkdocs-llmstxt) at the site root.
