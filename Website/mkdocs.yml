@@ -153,33 +153,29 @@ nav:
       - libraries/index.md
 extra:
   # Where the site's pages come from (DocsPlan.txt decision 13): each folder (relative to the folder holding the
-  # repositories) lands at its site folder ("" is the top).  Read by tools/gather_sources.py, the checks and the IDE.
+  # repositories) lands at its site folder ("" is the top).  A project's Docs folder is laid out as the site's paths,
+  # and its pages are items of the project (decision 10).  Read by tools/site_sources.py (the build and the checks),
+  # TestAsm65C64Website and the IDE.
   sources:
+    # The site's own pages: the home page, the overviews, the stylesheet.
     - folder: HCP65/Website/docs
       site: ""
       branch: main
-    - folder: HCP65-IDE/HCP65IDE/HCP65IDE/Docs
-      site: ""
-      branch: main
-    - folder: HCP65-IDE/HCP65Build/Docs
-      site: ""
-      branch: main
+    # CommonLibraries: the compiler, and the 65C64 simulators.
     - folder: CommonLibraries/Libraries/CppCompilerLib/Docs
       site: ""
       branch: master
     - folder: CommonLibraries/Libraries/MicroprocessorLib/Docs
       site: ""
       branch: master
+    # HCP65: the 65C64 proposal, the assembler and C library, the computer's kernal, programs and emulator.
+    - folder: HCP65/X65C64-Proposal/Docs
+      site: ""
+      branch: main
     - folder: HCP65/Libraries/Assembler65Lib/Docs
       site: ""
       branch: main
     - folder: HCP65/Libraries/Libc65/Docs
-      site: ""
-      branch: main
-    - folder: HCP65/HCP65-Emulator/HCP65Lib/Docs
-      site: ""
-      branch: main
-    - folder: HCP65/HCP65-Emulator/HCP65Emulator/Docs
       site: ""
       branch: main
     - folder: HCP65/Kernal/Docs
@@ -191,6 +187,16 @@ extra:
     - folder: HCP65/Shell/Docs
       site: ""
       branch: main
-    - folder: HCP65/X65C64-Proposal/Docs
+    - folder: HCP65/HCP65-Emulator/HCP65Lib/Docs
+      site: ""
+      branch: main
+    - folder: HCP65/HCP65-Emulator/HCP65Emulator/Docs
+      site: ""
+      branch: main
+    # HCP65-IDE: the IDE, and hcp65build.
+    - folder: HCP65-IDE/HCP65IDE/HCP65IDE/Docs
+      site: ""
+      branch: main
+    - folder: HCP65-IDE/HCP65Build/Docs
       site: ""
       branch: main

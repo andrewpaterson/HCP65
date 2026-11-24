@@ -34,6 +34,9 @@
     <None Include="tools\sheet_to_html.py">
       <Filter>tools</Filter>
     </None>
+    <None Include="tools\site_sources.py">
+      <Filter>tools</Filter>
+    </None>
     <None Include="docs\index.md">
       <Filter>docs</Filter>
     </None>
@@ -45,11 +48,6 @@
     </None>
     <None Include="docs\stylesheets\extra.css">
       <Filter>docs\stylesheets</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="tools\site_sources.py">
-      <Filter>tools</Filter>
     </None>
   </ItemGroup>
 </Project>

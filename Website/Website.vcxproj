@@ -50,13 +50,11 @@
     <None Include="tools\check_project_items.py" />
     <None Include="tools\gather_sources.py" />
     <None Include="tools\sheet_to_html.py" />
+    <None Include="tools\site_sources.py" />
     <None Include="docs\index.md" />
     <None Include="docs\hcp65\index.md" />
     <None Include="docs\libraries\index.md" />
     <None Include="docs\stylesheets\extra.css" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="tools\site_sources.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
