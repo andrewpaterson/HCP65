@@ -241,6 +241,36 @@ D. References to code
   A reference links to the declaration in the header: a class's definition, a function's declaration (its comment
   and signature); an overloaded name without parameters links to its first declaration, and
   [`CShape::Init(int)`] picks one overload.  D has no questions left.
+  D1-D4 BUILT 2026-11-24.
+    D1: IndexLib's CSymbolTable picks each symbol's place (a type's definition, anything else's declaration, a
+      header's before a .cpp file's, then the first by file and line; not namespaces, parameters, labels or names
+      inside functions; only files under the root) and writes <key> TAB <kind> TAB <file> TAB <line> sorted by key
+      (HCP65-IDE 67565ad, TestSymbolTable).  hcp65index -root <folder> -out <file> <solution.sln>... indexes the
+      solutions together in one CWorkspaceIndex, each with its first configuration (HCP65-IDE 32d96a6).  The three
+      solutions listed (HCP65IDE.sln, HCP65Emulator.sln, HCP65Kernal.sln): 72017 symbols from 1945 units in about
+      100 s and 6.6 GB, Release; 20 threads instead of 8 only took it to 76 s for 9.4 GB, so it stays 8.  The table is
+      the same run to run.
+    D2, D3: tools/code_references.py (a hook beside gather_sources.py) and tools/symbol_table.py (HCP65 63d86f8,
+      af6e2b8).  mkdocs.yml's extra.repositories gives each repository's GitHub URL (the remotes use an ssh
+      host alias, so they can't be read from git); extra.solutions the solutions.  The table is kept in .symbols,
+      made again when a repository's HEAD, the solution list or the program changes (uncommitted edits don't: the
+      links go to the branch on GitHub anyway); web.sh index remakes it, web.sh clean keeps it.  The program is
+      $HCP65INDEX or build/HCP65IDERelease/hcp65index.  Resolving: an exact key; else the name, overloads in
+      (types first, then) file and line order; parameters compared with spaces gone and `const char` written `char
+      const`; a trailing const optional; an unscoped enumerator without its enum (the index keys enumerators with
+      their enum); a name with a / or an extension is a file, matched by the end of its path among the repositories'
+      tracked files, and must be unique.  A plain span warns only if the symbol's place is a header (not each
+      program's main, merged into one key), its name has 3 letters or more (not the registers X, Y, S, PC), and the
+      span isn't inlinehilite's `#!lang ...` (`#!text abs` is the way to say "not C++"); nothing in fences, HTML
+      comments, link texts or \[escaped] brackets.  Errors fail the strict build (logged once at the end, after the
+      <real path>:<line>:<column> lines).  tools/test_code_references.py checks a fixture page; web.sh runs it.
+    D4: 302 plain spans became references and 14 became `#!text` after reviewing each in context (the 65C64's abs,
+      the shell's exit and free, the IR's ptr, a formula's size, a parameter's size, an example's uint32) in 31
+      pages of the three repositories (CommonLibraries a60b9ebb5, HCP65 82b41b8, HCP65-IDE 2979c25).  The site
+      builds with no warnings; TestAssembler65Lib (its website test reads mkdocs.yml with CYAMLFile) passes.
+    Not done: references inside snippets (--8<--) aren't seen (the hook sees the page before snippets are put in);
+      a directory can't be named (only files); a class template named with its arguments ([`CArrayTemplate<M>`])
+      doesn't resolve.
 
 E. The IDE treats docs as code (HCP65-IDE)
   1. BuildLib: a Makefile project with a build command is built by running it (a CCommandBuild subclass), whatever

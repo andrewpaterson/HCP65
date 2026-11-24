@@ -30,6 +30,13 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   `Website/Website.sln` is the site as a Visual Studio project.  `Website/DocsPlan.txt` is the plan for the
   documentation.  A new page goes in its project's `Docs` folder and `.vcxproj` (the build checks it is in
   exactly one project); a new `Docs` folder goes in `extra.sources`.
+- Name code in a page with a reference: [`CTextArea`], [`CTextArea::ReplaceRanges`], [`CShape::Init(int)`] or
+  [`BaseLib/Chars.h`].  The site build links it to its line on GitHub and fails on one that names nothing; a plain
+  `CTextArea` naming a real class is a warning.  A span that isn't C++ but looks it is written `#!text abs`.
+  References resolve against the symbol table `hcp65index` (HCP65-IDE, built in `../build/HCP65IDERelease`) makes
+  of the solutions in `mkdocs.yml`'s `extra.solutions`; it is kept in `Website/.symbols` until a repository's HEAD
+  changes (about two minutes to make again), and `Website/web.sh index` remakes it.  `extra.repositories` says
+  where each repository is on GitHub (`Website/tools/code_references.py`, `symbol_table.py`).
 - 65C64 pages: `opcode-encoding.md` is generated from the spreadsheet by `web.sh`;
   `Website/tools/check_instruction_tables.py` checks the instruction index against the instruction pages;
   TestAssembler65Lib assembles every ```` ```asm ```` block in the site's `65c64` pages (```` ```text ```` for
