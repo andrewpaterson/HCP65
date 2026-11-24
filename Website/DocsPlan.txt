@@ -78,6 +78,10 @@ Decided (the user's, 2026-11-24)
  6. Find names: set / clear for bits, non-zero / zero for crumbs, nybbles and bytes (website: HCP65 db6ec74).
  7. Spreadsheet edits go through LibreOffice (installed 2026-11-24, 24.2.7.2, the version that writes the file).
  8. References to code are explicit (question 1): [`CTextArea`], [`CTextArea::ReplaceRanges`], [`BaseLib/Chars.h`].
+ 9. Owners (question 2): the 65C64 architecture pages live in X65C64-Proposal beside the spreadsheet, with a small
+    Makefile project of their own there (X65C64-Proposal.vcxproj: the spreadsheet, its generators and the pages);
+    the HCP65 hardware pages (memory map, registers, devices) live with HCP65Lib
+    (HCP65-Emulator/HCP65Lib/Docs), whose devices implement them.
 
 
 Proposed (my recommendations, not decided)
@@ -124,8 +128,8 @@ B. Pages move next to their code
        compiler: libc65            HCP65/Libraries/Libc65/Docs
        libraries (1, and more)     each library's own Docs
        65c64 assembler pages       Assembler65Lib/Docs
-       65c64 architecture pages    with the spreadsheet (question 2)
-       hcp65 hardware pages        HCP65Lib or Website (question 2)
+       65c64 architecture pages    HCP65/X65C64-Proposal/Docs (X65C64-Proposal.vcxproj, new; decision 9)
+       hcp65 hardware pages        HCP65/HCP65-Emulator/HCP65Lib/Docs (HCP65Lib.vcxproj; decision 9)
        hcp65 kernal, boot pages    HCP65/Kernal, HCP65/OperatingSystem
   Check: the site's URLs are unchanged (compare the built site's file list before and after); strict build passes.
 
@@ -213,8 +217,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
 
  1. The reference syntax.  Decided 2026-11-24: explicit [`Name`] (decision 8), not implicit (any code span that
     matches a symbol).
- 2. Owners of the 65c64 architecture pages and the hcp65 hardware pages: X65C64-Proposal (with the spreadsheet, as a
-    small Makefile project of its own) and HCP65Lib (the emulator implements those devices) (recommended); or both in
+ 2. Owners of the 65c64 architecture pages and the hcp65 hardware pages.  Decided 2026-11-24 (decision 9): as
+    recommended, X65C64-Proposal (with the spreadsheet, a small Makefile project of its own) and HCP65Lib; not
     Website.
  3. Keeping project item lists complete: wildcard Include in VisualStudioLib (recommended; VS understands it too); or
     hand-listed items plus a check that fails when a page isn't in a project.
