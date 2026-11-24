@@ -48,6 +48,8 @@ temp-freerouting.dsn
 /Website/site/
 /Website/.venv/
 /Website/.cache/
+/Website/.staging/
+/Website/tools/__pycache__/
 
 /Tests/TestLibc65/TestLibc65/Log_65C64.txt
 /Tests/TestLibc65/TestLibc65/Log_816.txt

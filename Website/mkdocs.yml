@@ -1,5 +1,6 @@
 site_name: Codaphela
 site_description: The HCP65 modern home computer, its C++ compiler, the 65C64 microprocessor proposal, the C++ software libraries and the HCP65 drivers and runtime
+# The pages come from the folders extra.sources maps (below), gathered into .staging by tools/gather_sources.py.
 docs_dir: docs
 site_dir: site
 
@@ -26,6 +27,8 @@ theme:
         icon: material/weather-sunny
         name: Light mode
 
+hooks:
+  - tools/gather_sources.py
 plugins:
   - search
   - privacy
@@ -148,3 +151,10 @@ nav:
       - Emulator: 65c64/emulator.md
   - C++ Software Libraries:
       - libraries/index.md
+extra:
+  # Where the site's pages come from (DocsPlan.txt decision 13): each folder (relative to the folder holding the
+  # repositories) lands at its site folder ("" is the top).  Read by tools/gather_sources.py, the checks and the IDE.
+  sources:
+    - folder: HCP65/Website/docs
+      site: ""
+      branch: main
