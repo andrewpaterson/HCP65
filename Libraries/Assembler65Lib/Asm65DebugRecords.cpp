@@ -300,16 +300,18 @@ bool CAsm65DebugRecords::AddVariable(const char* szName, uint32 uiType, EAsm65De
 //
 // A range of the last variable (ADW_Ranges, of the last function): from
 // uiFrom up to uiTo, offsets in the function's section uiSection, it is in
-// the place (ADW_Frame, ADW_Register, ADW_Memory or ADW_Address).
+// the place (ADW_Frame, ADW_Register, ADW_Memory or ADW_Address), or its
+// value is iValue (ADW_Value) or the address base + iOffset
+// (ADW_FrameAddress).
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset)
+bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset, int64 iValue)
 {
 	SAsm65DebugVariable*	psVariable;
 	SAsm65DebugRange*		psRange;
 
 	psVariable = LastVariable();
-	if (!psVariable || (psVariable->uiWhere != ADW_Ranges) || (uiSection != LastFunction()->sStart.uiSection) || (uiFrom > uiTo) || (eWhere < ADW_Frame) || (eWhere == ADW_Indirect) || (eWhere == ADW_Ranges) || (eWhere > ADW_Address))
+	if (!psVariable || (psVariable->uiWhere != ADW_Ranges) || (uiSection != LastFunction()->sStart.uiSection) || (uiFrom > uiTo) || (eWhere < ADW_Frame) || (eWhere == ADW_Indirect) || (eWhere == ADW_Ranges) || (eWhere > ADW_FrameAddress))
 	{
 		return false;
 	}
@@ -319,6 +321,7 @@ bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, 
 	psRange->uiWhere = (uint8)eWhere;
 	psRange->uiRegister = uiRegister;
 	psRange->iOffset = iOffset;
+	psRange->iValue = iValue;
 	psVariable->uiNumRanges++;
 	return true;
 }
@@ -382,11 +385,11 @@ bool CAsm65DebugRecords::AddInlineSpan(uint32 uiSection, uint32 uiFrom, uint32 u
 // A global at the place; bStatic, a static local of the last function.
 //
 //////////////////////////////////////////////////////////////////////////
-bool CAsm65DebugRecords::AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic)
+bool CAsm65DebugRecords::AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic, int32 iInline)
 {
 	SAsm65DebugGlobal*	psGlobal;
 
-	if (bStatic && (masFunctions.NumElements() == 0))
+	if ((bStatic && (masFunctions.NumElements() == 0)) || (iInline < -1) || (!bStatic && (iInline >= 0)))
 	{
 		return false;
 	}
@@ -396,6 +399,7 @@ bool CAsm65DebugRecords::AddGlobal(const char* szName, uint32 uiType, uint32 uiS
 	psGlobal->sPlace.uiSection = uiSection;
 	psGlobal->sPlace.uiOffset = uiOffset;
 	psGlobal->uiFunction = bStatic ? (uint32)(masFunctions.NumElements() - 1) : ASM65_DEBUG_NONE;
+	psGlobal->iInline = iInline;
 	return true;
 }
 
@@ -634,7 +638,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 			for (uiRange = 0; uiRange < psSourceVariable->uiNumRanges; uiRange++)
 			{
 				psRange = pcSource->GetRange(psSourceVariable, uiRange);
-				AddRange(ASM65_DEBUG_ABSOLUTE, uiAddress + psRange->uiFrom, uiAddress + psRange->uiTo, (EAsm65DebugWhere)psRange->uiWhere, psRange->uiRegister, psRange->iOffset);
+				AddRange(ASM65_DEBUG_ABSOLUTE, uiAddress + psRange->uiFrom, uiAddress + psRange->uiTo, (EAsm65DebugWhere)psRange->uiWhere, psRange->uiRegister, psRange->iOffset, psRange->iValue);
 			}
 		}
 		for (uiMember = 0; uiMember < psSourceFunction->uiNumInlines; uiMember++)
@@ -658,7 +662,7 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 		{
 			continue;
 		}
-		AddGlobalTo(psSourceGlobal->szName.Text(), MapType(psSourceGlobal->uiType, &auiTypes), uiAddress + psSourceGlobal->sPlace.uiOffset, uiIndex);
+		AddGlobalTo(psSourceGlobal->szName.Text(), MapType(psSourceGlobal->uiType, &auiTypes), uiAddress + psSourceGlobal->sPlace.uiOffset, uiIndex, psSourceGlobal->iInline);
 	}
 
 	auiFunctions.Kill();
@@ -710,7 +714,7 @@ void CAsm65DebugRecords::AddMemberTo(SAsm65DebugMember* psSource, uint32 uiType)
 //
 //
 //////////////////////////////////////////////////////////////////////////
-void CAsm65DebugRecords::AddGlobalTo(const char* szName, uint32 uiType, uint32 uiAddress, uint32 uiFunction)
+void CAsm65DebugRecords::AddGlobalTo(const char* szName, uint32 uiType, uint32 uiAddress, uint32 uiFunction, int32 iInline)
 {
 	SAsm65DebugGlobal*	psGlobal;
 
@@ -720,6 +724,7 @@ void CAsm65DebugRecords::AddGlobalTo(const char* szName, uint32 uiType, uint32 u
 	psGlobal->sPlace.uiSection = ASM65_DEBUG_ABSOLUTE;
 	psGlobal->sPlace.uiOffset = uiAddress;
 	psGlobal->uiFunction = uiFunction;
+	psGlobal->iInline = iInline;
 }
 
 
@@ -983,11 +988,12 @@ SAsm65DebugGlobal* CAsm65DebugRecords::GetGlobal(size uiIndex)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// The global named szName that code in psFunction sees: its static local
-// of that name first, else a global (NULL psFunction: globals only).
+// The global named szName that code in psFunction sees (or with iInline
+// code of that inline): its static local of that name first, else a
+// global (NULL psFunction: globals only).
 //
 //////////////////////////////////////////////////////////////////////////
-SAsm65DebugGlobal* CAsm65DebugRecords::FindGlobal(const char* szName, SAsm65DebugFunction* psFunction)
+SAsm65DebugGlobal* CAsm65DebugRecords::FindGlobal(const char* szName, SAsm65DebugFunction* psFunction, int32 iInline)
 {
 	size				ui;
 	uint32				uiFunction;
@@ -1003,7 +1009,7 @@ SAsm65DebugGlobal* CAsm65DebugRecords::FindGlobal(const char* szName, SAsm65Debu
 		{
 			continue;
 		}
-		if ((psGlobal->uiFunction != ASM65_DEBUG_NONE) && (psGlobal->uiFunction == uiFunction))
+		if ((psGlobal->uiFunction != ASM65_DEBUG_NONE) && (psGlobal->uiFunction == uiFunction) && (psGlobal->iInline == iInline))
 		{
 			return psGlobal;
 		}
@@ -1316,6 +1322,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psGlobal->uiType);
 		bResult &= Asm65WritePlace(pcChunkFile, &psGlobal->sPlace);
 		bResult &= pcChunkFile->WriteInt32(psGlobal->uiFunction);
+		bResult &= pcChunkFile->WriteInt32(psGlobal->iInline);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Globals");
 
@@ -1372,6 +1379,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt8(psRange->uiWhere);
 		bResult &= pcChunkFile->WriteInt8(psRange->uiRegister);
 		bResult &= pcChunkFile->WriteInt32(psRange->iOffset);
+		bResult &= pcChunkFile->WriteInt64(psRange->iValue);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Ranges");
 
@@ -1475,7 +1483,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 		psGlobal = masGlobals.Add();
 		psGlobal->szName.Init();
 		if (!Asm65ReadText(pcChunkFile, &psGlobal->szName) || !pcChunkFile->ReadInt32(&psGlobal->uiType) || !Asm65ReadPlace(pcChunkFile, &psGlobal->sPlace) ||
-			!pcChunkFile->ReadInt32(&psGlobal->uiFunction))
+			!pcChunkFile->ReadInt32(&psGlobal->uiFunction) || !pcChunkFile->ReadInt32(&psGlobal->iInline))
 		{
 			return false;
 		}
@@ -1551,7 +1559,7 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 	{
 		psRange = masRanges.Add();
 		if (!pcChunkFile->ReadInt32(&psRange->uiFrom) || !pcChunkFile->ReadInt32(&psRange->uiTo) || !pcChunkFile->ReadInt8(&psRange->uiWhere) ||
-			!pcChunkFile->ReadInt8(&psRange->uiRegister) || !pcChunkFile->ReadInt32(&psRange->iOffset))
+			!pcChunkFile->ReadInt8(&psRange->uiRegister) || !pcChunkFile->ReadInt32(&psRange->iOffset) || !pcChunkFile->ReadInt64(&psRange->iValue))
 		{
 			return false;
 		}
@@ -1650,6 +1658,10 @@ bool CAsm65DebugRecords::IsWhole(void)
 	{
 		psGlobal = masGlobals.Get(ui);
 		if ((psGlobal->uiFunction != ASM65_DEBUG_NONE) && (psGlobal->uiFunction >= masFunctions.NumElements()))
+		{
+			return false;
+		}
+		if ((psGlobal->iInline < -1) || ((psGlobal->iInline >= 0) && ((psGlobal->uiFunction == ASM65_DEBUG_NONE) || (psGlobal->iInline >= (int32)masFunctions.Get(psGlobal->uiFunction)->uiNumInlines))))
 		{
 			return false;
 		}

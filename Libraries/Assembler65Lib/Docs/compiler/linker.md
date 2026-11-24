@@ -109,11 +109,11 @@ they have).  The compiler writes them into the assembly with these directives:
 | `.dbase R` or `.dbase frame` | Its variables' offsets are from register `R`, or from its frame address (when left out). |
 | `.dend` | The function ends here, before code with no records (otherwise at its section's end, or where the next function starts). |
 | `.dvariable local\|parameter, "name", type, where, offset, first, last[, inline]` | A variable of the function (or of its inline `inline`, an index among its `.dinline`s), `where` (`none`, `frame` or `indirect`) at its function's base (`.dbase`) + `offset`, or `ranges` (where the `.drange` lines after it say), in scope from line `first` to `last`. |
-| `.drange from, to, frame, offset` | Where the last variable (of `ranges`) is from label `from` up to label `to`: at its function's base + `offset`; `register, R`: in register `R`; `memory, R, offset`: at `R` + `offset`; `address, n`: at address `n`.  Outside its ranges it isn't kept anywhere (optimised away). |
+| `.drange from, to, frame, offset` | Where the last variable (of `ranges`) is from label `from` up to label `to`: at its function's base + `offset`; `register, R`: in register `R`; `memory, R, offset`: at `R` + `offset`; `address, n`: at address `n`; or its value there: `value, n`, a constant `n`; `frameaddress, offset`, the address of the function's base + `offset`.  Outside its ranges it isn't kept anywhere (optimised away). |
 | `.dinline parent, "name", "file", line` | A call of `name` inlined into the function, in its inline `parent` (`-1` for none: in the function itself), at `file`'s `line`.  A debugger shows the code of each as a call of its own. |
 | `.dinspan from, to` | The last inline's code, from label `from` up to label `to`. |
 | `.dglobal "name", type, label` | A global at the label. |
-| `.dstatic "name", type, label` | A static local of the function, at the label. |
+| `.dstatic "name", type, label[, inline]` | A static local of the function (or of its inline `inline`, an index among its `.dinline`s), at the label. |
 | `.dtype index, "key", "name", kind, flags, bytes, target, count` | The unit's `index`'th type. |
 | `.dmember kind, "name", type, value, bit offset, bits` | A member of the last type: a `base`, `field`, `vtable` or `enumerator`. |
 

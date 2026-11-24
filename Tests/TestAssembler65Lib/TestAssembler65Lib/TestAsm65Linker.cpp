@@ -1319,7 +1319,8 @@ void TestAsm65LinkerDebugRecords(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // A variable whose place moves (ranges): its .dranges, at the base, in a
-// register, at a register and at an address, from label to label in its function's
+// register, at a register and at an address, or a value and the address
+// of a place in the frame, from label to label in its function's
 // section; linked to addresses, written and read back, moved.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1360,6 +1361,9 @@ void TestAsm65LinkerDebugRanges(void)
 		"	.drange __dbg2, __dbg3, memory, W, 0x80\n"
 		"	.drange __dbg3, Start.End, address, 0x84\n"
 		"	.dvariable local, \"j\", 0, frame, -4, 3, 4\n"
+		"	.dvariable local, \"k\", 0, ranges, 0, 3, 4\n"
+		"	.drange Start, __dbg1, value, -5000000000\n"
+		"	.drange __dbg1, __dbg2, frameaddress, 6\n"
 		"	.dtype 0, \"int\", \"int\", integer, 1, 2, -1, 0\n");
 	AssertTrue(sTest.cLinker.Link());
 	AssertString("", sTest.cLinker.GetErrors());
@@ -1368,7 +1372,7 @@ void TestAsm65LinkerDebugRanges(void)
 
 	//The ranges at their linked addresses; j, of the frame, has none.
 	psFunction = pcRecords->FindFunction(uiStart);
-	AssertInt(2, psFunction->uiNumVariables);
+	AssertInt(3, psFunction->uiNumVariables);
 	psVariable = pcRecords->GetVariable(psFunction, 0);
 	AssertInt(ADW_Ranges, psVariable->uiWhere);
 	AssertInt(4, psVariable->uiNumRanges);
@@ -1395,6 +1399,13 @@ void TestAsm65LinkerDebugRanges(void)
 	AssertTrue(pcRecords->FindRange(psVariable, psRange->uiTo) == NULL);
 	AssertInt(0, pcRecords->GetVariable(psFunction, 1)->uiNumRanges);
 
+	//k's values: a constant wider than 32 bits, then the address base + 6.
+	psVariable = pcRecords->GetVariable(psFunction, 2);
+	AssertInt(ADW_Value, pcRecords->GetRange(psVariable, 0)->uiWhere);
+	AssertLong(-5000000000ll, pcRecords->GetRange(psVariable, 0)->iValue);
+	AssertInt(ADW_FrameAddress, pcRecords->GetRange(psVariable, 1)->uiWhere);
+	AssertInt(6, pcRecords->GetRange(psVariable, 1)->iOffset);
+
 	//The object written and read back keeps them as offsets in Start's section.
 	pcMemoryFile = MemoryFile();
 	pcMemoryFile->mbBasicFileMustFree = false;
@@ -1405,6 +1416,7 @@ void TestAsm65LinkerDebugRanges(void)
 	AssertInt(4, psVariable->uiNumRanges);
 	AssertInt(0, cObject.GetDebug()->GetRange(psVariable, 0)->uiFrom);
 	AssertInt(uiInB - uiStart, cObject.GetDebug()->GetRange(psVariable, 1)->uiFrom);
+	AssertLong(-5000000000ll, cObject.GetDebug()->GetRange(cObject.GetDebug()->GetVariable(cObject.GetDebug()->GetFunction(0), 2), 0)->iValue);
 	cObject.Kill();
 	SafeKill(pcMemoryFile);
 
@@ -1465,7 +1477,14 @@ void TestAsm65LinkerDebugInlines(void)
 		"	.dvariable parameter, \"i\", 0, frame, 4, 5, 10, 0\n"
 		"	.dinline 0, \"Mul\", \"Test.cpp\", 9\n"
 		"	.dinspan Mul, MulEnd\n"
-		"	.dtype 0, \"int\", \"int\", integer, 1, 4, -1, 0\n");
+		"	.dstatic \"siCalls\", 0, Calls\n"
+		"	.dstatic \"siCalls\", 0, AreaCalls, 0\n"
+		"	.dtype 0, \"int\", \"int\", integer, 1, 4, -1, 0\n"
+		"	.section data\n"
+		"Calls:\n"
+		"	.word 0\n"
+		"AreaCalls:\n"
+		"	.word 0\n");
 	AssertTrue(sTest.cLinker.Link());
 	AssertString("", sTest.cLinker.GetErrors());
 	uiStart = (uint32)LinkedSymbol(&sTest, "Start");
@@ -1491,6 +1510,12 @@ void TestAsm65LinkerDebugInlines(void)
 	AssertTrue(pcRecords->FindVariable(psFunction, "i", 9, 0) == pcRecords->GetVariable(psFunction, 1));
 	AssertTrue(pcRecords->FindVariable(psFunction, "i", 9) == NULL);
 	AssertTrue(pcRecords->FindVariable(psFunction, "i", 25, 1) == NULL);
+
+	//A static of each: main's code sees its own, Area's code Area's.
+	AssertTrue(pcRecords->FindGlobal("siCalls", psFunction) != pcRecords->FindGlobal("siCalls", psFunction, 0));
+	AssertInt(0, pcRecords->FindGlobal("siCalls", psFunction, 0)->iInline);
+	AssertInt(-1, pcRecords->FindGlobal("siCalls", psFunction)->iInline);
+	AssertTrue(pcRecords->FindGlobal("siCalls", psFunction, 1) == NULL);
 
 	//The innermost an address is in.
 	AssertInt(-1, pcRecords->FindInline(psFunction, uiStart));
@@ -1661,7 +1686,7 @@ void TestAsm65LinkerDebugErrors(void)
 		"7:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n"
 		"9:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n"
 		"10:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n"
-		"11:23: Expected frame, register, memory or address 'stack'\n"
+		"11:23: Expected frame, register, memory, address, value or frameaddress 'stack'\n"
 		"12:33: Expected one of the processor's registers 'Q'\n"
 		"13:17: A debug range must be at a label in one of the object's sections '12'\n"
 		"17:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n", cAssembler.GetErrors());

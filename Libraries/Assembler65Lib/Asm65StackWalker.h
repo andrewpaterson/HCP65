@@ -92,8 +92,11 @@ struct SAsm65StackFrame : public SAsm65StackRegisters
 };
 
 
+#define ASM65_STACK_NO_REGISTER	0xFF		//A place's value not from a register (SAsm65StackPlace::uiRegister).
+
+
 //Where a variable is while its frame runs (CAsm65StackWalker::Locate): at uiAddress in the frame's space, or, when
-//it is in a register (bAddress false), uiRegister's value.
+//bAddress is false, its value: uiRegister's, or (ASM65_STACK_NO_REGISTER) one the records know.
 struct SAsm65StackPlace
 {
 	bool	bAddress;

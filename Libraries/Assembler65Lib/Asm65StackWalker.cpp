@@ -221,7 +221,8 @@ void CAsm65StackWalker::AddFrame(CArrayAsm65StackFrames* pasFrames, SAsm65StackF
 // psFrame's space: its function's base plus its offset, or where the
 // pointer kept there points; or, for a variable whose place moves
 // (ADW_Ranges), where its range at the frame's line address says: from
-// the base or a register, an address, or a register's value.  False if it isn't kept anywhere then, or a
+// the base or a register, an address, or a value (a register's, one the
+// records know, or the address of a place in the frame).  False if it isn't kept anywhere then, or a
 // register it needs isn't known (a caller's that wasn't saved), or the
 // pointer can't be read.
 //
@@ -249,8 +250,23 @@ bool CAsm65StackWalker::Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* p
 	case ADW_Address:
 		psPlace->bAddress = true;
 		psPlace->uiAddress = (uint32)psRange->iOffset;
-		psPlace->uiRegister = 0;
+		psPlace->uiRegister = ASM65_STACK_NO_REGISTER;
 		psPlace->uiValue = 0;
+		return true;
+	case ADW_Value:
+		psPlace->bAddress = false;
+		psPlace->uiAddress = 0;
+		psPlace->uiRegister = ASM65_STACK_NO_REGISTER;
+		psPlace->uiValue = (uint64)psRange->iValue;
+		return true;
+	case ADW_FrameAddress:
+		if (!LocateAt(psFrame, ADW_Frame, psFrame->psFunction->uiBase, psRange->iOffset, psPlace))
+		{
+			return false;
+		}
+		psPlace->bAddress = false;
+		psPlace->uiValue = psPlace->uiAddress;
+		psPlace->uiAddress = 0;
 		return true;
 	case ADW_Register:
 		if (!psFrame->IsKnown(psRange->uiRegister))
@@ -334,7 +350,7 @@ bool CAsm65StackWalker::LocateAt(SAsm65StackFrame* psFrame, uint8 uiWhere, uint8
 	}
 	psPlace->bAddress = true;
 	psPlace->uiAddress = uiPlace;
-	psPlace->uiRegister = 0;
+	psPlace->uiRegister = ASM65_STACK_NO_REGISTER;
 	psPlace->uiValue = 0;
 	return true;
 }

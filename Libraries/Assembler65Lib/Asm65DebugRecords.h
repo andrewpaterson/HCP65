@@ -28,7 +28,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 #define ASM65_DEBUG_RECORDS_MAGIC	"Asm65DebugRecords"
-#define ASM65_DEBUG_RECORDS_VERSION	7
+#define ASM65_DEBUG_RECORDS_VERSION	8
 
 #define ASM65_DEBUG_NONE		0xFFFFFFFF		//No type, function or section.
 #define ASM65_DEBUG_ABSOLUTE	0xFFFFFFFE		//A place's section once linked: its offset is its address.
@@ -107,12 +107,15 @@ enum EAsm65DebugWhere
 	ADW_Register,	//A range's: in a register (uiRegister).
 	ADW_Memory,		//A range's: at a register (uiRegister) + iOffset.
 	ADW_Address,	//A range's: at the address iOffset (the 65C64's pseudo registers, $00 to $FF).
+	ADW_Value,		//A range's: no place, its value is iValue (a constant the optimiser knows).
+	ADW_FrameAddress,	//A range's: no place, its value is the address the base + iOffset (a variable's address).
 };
 
 
 //Where a variable whose place moves (ADW_Ranges, optimised code) is from uiFrom up to uiTo (its function's section's
 //offsets, or once linked its addresses): at its function's base + iOffset (ADW_Frame), in a register (ADW_Register),
-//at a register + iOffset (ADW_Memory) or at the address iOffset (ADW_Address).
+//at a register + iOffset (ADW_Memory) or at the address iOffset (ADW_Address); or what its value is there, iValue
+//(ADW_Value) or the address the base + iOffset (ADW_FrameAddress).
 struct SAsm65DebugRange
 {
 	uint32	uiFrom;
@@ -120,6 +123,7 @@ struct SAsm65DebugRange
 	uint8	uiWhere;		//EAsm65DebugWhere.
 	uint8	uiRegister;
 	int32	iOffset;
+	int64	iValue;
 };
 
 
@@ -240,13 +244,15 @@ struct SAsm65DebugSpan
 };
 
 
-//A variable with a place of its own: a global, a static member, or a function's static local (uiFunction).
+//A variable with a place of its own: a global, a static member, or a function's static local (uiFunction), or of a
+//function inlined into it (iInline, one of its inlines; -1 for its own).
 struct SAsm65DebugGlobal
 {
 	CChars				szName;
 	uint32				uiType;
 	SAsm65DebugPlace	sPlace;
 	uint32				uiFunction;		//ASM65_DEBUG_NONE for a global.
+	int32				iInline;
 };
 
 
@@ -321,10 +327,10 @@ public:
 	bool					EndFunction(uint32 uiEnd);
 	void					EndFunctions(uint32 uiSection, uint32 uiEnd);
 	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine, int32 iInline = -1);
-	bool					AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset);
+	bool					AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset, int64 iValue = 0);
 	bool					AddInline(const char* szName, int32 iParent, const char* szFile, uint32 uiLine);
 	bool					AddInlineSpan(uint32 uiSection, uint32 uiFrom, uint32 uiTo);
-	bool					AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic);
+	bool					AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic, int32 iInline = -1);
 	bool					AddType(const char* szKey, const char* szName, EAsm65DebugType eKind, uint8 uiFlags, uint32 uiBytes, uint32 uiTarget, uint32 uiCount);
 	bool					AddMember(const char* szName, EAsm65DebugMember eKind, uint32 uiType, int64 iValue, uint8 uiBitOffset, uint8 uiBits);
 	bool					IsValid(void);
@@ -344,7 +350,7 @@ public:
 	size					FindVisible(SAsm65DebugFunction* psFunction, uint32 uiLine, CArrayUint32* pauiVariables, int32 iInline = -1);
 	size					NumGlobals(void) const;
 	SAsm65DebugGlobal*		GetGlobal(size uiIndex);
-	SAsm65DebugGlobal*		FindGlobal(const char* szName, SAsm65DebugFunction* psFunction);
+	SAsm65DebugGlobal*		FindGlobal(const char* szName, SAsm65DebugFunction* psFunction, int32 iInline = -1);
 	size					NumTypes(void) const;
 	SAsm65DebugType*		GetType(uint32 uiIndex);
 	SAsm65DebugType*		FindType(const char* szKey);
@@ -369,7 +375,7 @@ protected:
 	uint32					MapType(uint32 uiType, CArrayUint32* pauiTypes);
 	uint32					SectionAddress(uint32 uiSection, CArrayUint32* pauiSectionAddresses);
 	void					AddMemberTo(SAsm65DebugMember* psSource, uint32 uiType);
-	void					AddGlobalTo(const char* szName, uint32 uiType, uint32 uiAddress, uint32 uiFunction);
+	void					AddGlobalTo(const char* szName, uint32 uiType, uint32 uiAddress, uint32 uiFunction, int32 iInline);
 };
 
 
