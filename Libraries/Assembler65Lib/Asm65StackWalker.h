@@ -70,7 +70,11 @@ struct SAsm65StackRegisters
 //A function on the stack: where it is (uiPC, the instruction it runs next, or for a caller the one its call returns
 //to), its registers (S as it was before the call it made; the first frame's are the processor's), the space its code
 //and stack are in, and its frame address (S before its own call, bFrame once a walk has found it).  psFunction is NULL
-//for code the debug records don't describe: the walk stops there.  bInnermost for the first frame of a walk.
+//for code the debug records don't describe: the walk stops there.  bInnermost for the first call of a walk.
+//
+//A walk with inlines (DebuggerFPlan.txt F2-4) has a row for each inlined call the code is in, innermost first, before
+//its function's: iInline is the row's inline (an index among psFunction's, -1 for the function itself), and iCalled
+//the inline just inside it (-1 for the innermost row of its call), whose call is the row's line.
 struct SAsm65StackFrame : public SAsm65StackRegisters
 {
 	SAsm65DebugFunction*	psFunction;
@@ -78,8 +82,13 @@ struct SAsm65StackFrame : public SAsm65StackRegisters
 	uint32					uiFrame;
 	bool					bFrame;
 	bool					bInnermost;
+	int32					iInline;
+	int32					iCalled;
 
-	uint32	GetLineAddress(void);
+	uint32				GetLineAddress(void);
+	const char*			GetName(void);
+	SAsm65DebugInline*	GetCalled(void);
+	bool				IsInline(void);
 };
 
 
@@ -127,12 +136,13 @@ public:
 
 	void					AddRecords(CAsm65DebugRecords* pcRecords, EAsm65StackSpace eSpace);
 	void					ClearRecords(void);
-	size					Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames);
+	size					Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames, bool bInlines = false);
 	bool					Locate(SAsm65StackFrame* psFrame, SAsm65DebugVariable* psVariable, SAsm65StackPlace* psPlace);
 	virtual EAsm65DebugProcessor	GetProcessor(void) = 0;
 
 protected:
 	bool					Find(uint32 uiPC, EAsm65StackSpace eSpace, SAsm65StackFrame* psFrame);
+	void					AddFrame(CArrayAsm65StackFrames* pasFrames, SAsm65StackFrame* psFrame, bool bInlines);
 	bool					Caller(SAsm65StackFrame* psFrame, SAsm65StackFrame* psCaller);
 	bool					FrameAddress(SAsm65StackFrame* psFrame, uint32* puiFrame);
 	bool					Base(SAsm65StackFrame* psFrame, uint8 uiBase, uint64* puiValue);

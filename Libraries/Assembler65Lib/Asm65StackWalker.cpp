@@ -70,6 +70,38 @@ uint32 SAsm65StackFrame::GetLineAddress(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The name of the row's function: its inline's callee's, or its own.
+// NULL for code the records don't describe.
+//
+//////////////////////////////////////////////////////////////////////////
+const char* SAsm65StackFrame::GetName(void)
+{
+	if (!psFunction)
+	{
+		return NULL;
+	}
+	return IsInline() ? pcRecords->GetInline(psFunction, (size)iInline)->szName.Text() : psFunction->szName.Text();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The inline just inside the row, whose call (szFile, uiLine) is the row's
+// line; NULL when the row is the innermost of its call (its line is its
+// line address's).
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugInline* SAsm65StackFrame::GetCalled(void)
+{
+	return (psFunction && (iCalled >= 0)) ? pcRecords->GetInline(psFunction, (size)iCalled) : NULL;
+}
+
+
+bool SAsm65StackFrame::IsInline(void) { return iInline >= 0; }
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsm65StackWalker::Init(CAsm65StackMemory* pcMemory)
@@ -127,9 +159,9 @@ void CAsm65StackWalker::ClearRecords(void)
 // Returns how many.
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames)
+size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65StackFrames* pasFrames, size uiMaxFrames, bool bInlines)
 {
-	SAsm65StackFrame*	psFrame;
+	SAsm65StackFrame	sFrame;
 	SAsm65StackFrame	sCaller;
 
 	pasFrames->ReInit();
@@ -138,20 +170,46 @@ size CAsm65StackWalker::Walk(SAsm65StackRegisters* psRegisters, CArrayAsm65Stack
 		return 0;
 	}
 
-	psFrame = pasFrames->Add();
-	*(SAsm65StackRegisters*)psFrame = *psRegisters;
-	Find(psRegisters->uiPC, (EAsm65StackSpace)psRegisters->uiSpace, psFrame);
-	psFrame->bInnermost = true;
-	while ((pasFrames->NumElements() < uiMaxFrames) && psFrame->psFunction)
+	*(SAsm65StackRegisters*)&sFrame = *psRegisters;
+	Find(psRegisters->uiPC, (EAsm65StackSpace)psRegisters->uiSpace, &sFrame);
+	sFrame.bInnermost = true;
+	AddFrame(pasFrames, &sFrame, bInlines);
+	while ((pasFrames->NumElements() < uiMaxFrames) && sFrame.psFunction)
 	{
-		if (!Caller(psFrame, &sCaller) || ((sCaller.uiSpace == psFrame->uiSpace) && (sCaller.GetS() <= psFrame->GetS())))
+		if (!Caller(&sFrame, &sCaller) || ((sCaller.uiSpace == sFrame.uiSpace) && (sCaller.GetS() <= sFrame.GetS())))
 		{
 			break;
 		}
 		sCaller.bInnermost = false;
-		psFrame = pasFrames->Add(&sCaller);
+		sFrame = sCaller;
+		AddFrame(pasFrames, &sFrame, bInlines);
 	}
 	return pasFrames->NumElements();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// A call found by the walk, with bInlines a row before it for each
+// inlined call its line address is in, innermost first (they share its
+// registers and frame).
+//
+//////////////////////////////////////////////////////////////////////////
+void CAsm65StackWalker::AddFrame(CArrayAsm65StackFrames* pasFrames, SAsm65StackFrame* psFrame, bool bInlines)
+{
+	SAsm65StackFrame*	psRow;
+	int32				iInline;
+
+	psFrame->iCalled = -1;
+	iInline = (bInlines && psFrame->psFunction) ? psFrame->pcRecords->FindInline(psFrame->psFunction, psFrame->GetLineAddress()) : -1;
+	for (; iInline >= 0; iInline = psFrame->pcRecords->GetInline(psFrame->psFunction, (size)iInline)->iParent)
+	{
+		psRow = pasFrames->Add(psFrame);
+		psRow->iInline = iInline;
+		psFrame->iCalled = iInline;
+	}
+	psFrame->iInline = -1;
+	pasFrames->Add(psFrame);
 }
 
 

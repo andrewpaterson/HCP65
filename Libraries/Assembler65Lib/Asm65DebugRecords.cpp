@@ -36,6 +36,8 @@ void CAsm65DebugRecords::Init(void)
 	masMembers.Init();
 	masSaved.Init();
 	masRanges.Init();
+	masInlines.Init();
+	masSpans.Init();
 	mcTypeKeys.Init();
 	mauiFunctionOrder.Init();
 	muiProcessor = ADP_None;
@@ -71,8 +73,15 @@ void CAsm65DebugRecords::Kill(void)
 	{
 		masMembers.Get(ui)->szName.Kill();
 	}
+	for (ui = 0; ui < masInlines.NumElements(); ui++)
+	{
+		masInlines.Get(ui)->szName.Kill();
+		masInlines.Get(ui)->szFile.Kill();
+	}
 	mauiFunctionOrder.Kill();
 	mcTypeKeys.Kill();
+	masSpans.Kill();
+	masInlines.Kill();
 	masRanges.Kill();
 	masSaved.Kill();
 	masMembers.Kill();
@@ -120,6 +129,8 @@ SAsm65DebugFunction* CAsm65DebugRecords::AddFunction(const char* szName, uint32 
 	psFunction->uiBase = ASM65_DEBUG_FRAME;
 	psFunction->uiFirstSaved = (uint32)masSaved.NumElements();
 	psFunction->uiNumSaved = 0;
+	psFunction->uiFirstInline = (uint32)masInlines.NumElements();
+	psFunction->uiNumInlines = 0;
 	psFunction->uiResult = uiResult;
 	psFunction->uiFirstVariable = (uint32)masVariables.NumElements();
 	psFunction->uiNumVariables = 0;
@@ -314,6 +325,59 @@ bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A call inlined into the last function: of szName (as C++ names it), in
+// its inline iParent (-1 for none: in the function itself), at szFile's
+// uiLine.  Its code is the spans added after it (AddInlineSpan).
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::AddInline(const char* szName, int32 iParent, const char* szFile, uint32 uiLine)
+{
+	SAsm65DebugFunction*	psFunction;
+	SAsm65DebugInline*		psInline;
+
+	psFunction = LastFunction();
+	if (!psFunction || (iParent < -1) || (iParent >= (int32)psFunction->uiNumInlines))
+	{
+		return false;
+	}
+	psInline = masInlines.Add();
+	psInline->szName.Init(szName);
+	psInline->szFile.Init(szFile);
+	psInline->uiLine = uiLine;
+	psInline->iParent = iParent;
+	psInline->uiFirstSpan = (uint32)masSpans.NumElements();
+	psInline->uiNumSpans = 0;
+	psFunction->uiNumInlines++;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Code of the last function's last inline: from uiFrom up to uiTo,
+// offsets in the function's section uiSection.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65DebugRecords::AddInlineSpan(uint32 uiSection, uint32 uiFrom, uint32 uiTo)
+{
+	SAsm65DebugFunction*	psFunction;
+	SAsm65DebugSpan*		psSpan;
+
+	psFunction = LastFunction();
+	if (!psFunction || (psFunction->uiNumInlines == 0) || (uiSection != psFunction->sStart.uiSection) || (uiFrom > uiTo))
+	{
+		return false;
+	}
+	psSpan = masSpans.Add();
+	psSpan->uiFrom = uiFrom;
+	psSpan->uiTo = uiTo;
+	masInlines.Tail()->uiNumSpans++;
+	return true;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // A global at the place; bStatic, a static local of the last function.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -479,6 +543,8 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 	SAsm65DebugFunction*	psFunction;
 	SAsm65DebugVariable*	psSourceVariable;
 	SAsm65DebugRange*		psRange;
+	SAsm65DebugInline*		psSourceInline;
+	SAsm65DebugSpan*		psSpan;
 	SAsm65DebugGlobal*		psSourceGlobal;
 	uint32					uiAddress;
 
@@ -568,6 +634,16 @@ void CAsm65DebugRecords::Append(CAsm65DebugRecords* pcSource, CArrayUint32* paui
 			{
 				psRange = pcSource->GetRange(psSourceVariable, uiRange);
 				AddRange(ASM65_DEBUG_ABSOLUTE, uiAddress + psRange->uiFrom, uiAddress + psRange->uiTo, (EAsm65DebugWhere)psRange->uiWhere, psRange->uiRegister, psRange->iOffset);
+			}
+		}
+		for (uiMember = 0; uiMember < psSourceFunction->uiNumInlines; uiMember++)
+		{
+			psSourceInline = pcSource->GetInline(psSourceFunction, uiMember);
+			AddInline(psSourceInline->szName.Text(), psSourceInline->iParent, psSourceInline->szFile.Text(), psSourceInline->uiLine);
+			for (uiRange = 0; uiRange < psSourceInline->uiNumSpans; uiRange++)
+			{
+				psSpan = pcSource->GetSpan(psSourceInline, uiRange);
+				AddInlineSpan(ASM65_DEBUG_ABSOLUTE, uiAddress + psSpan->uiFrom, uiAddress + psSpan->uiTo);
 			}
 		}
 	}
@@ -693,6 +769,11 @@ void CAsm65DebugRecords::Move(int64 iOffset)
 	{
 		masRanges.Get(ui)->uiFrom = (uint32)(masRanges.Get(ui)->uiFrom + iOffset);
 		masRanges.Get(ui)->uiTo = (uint32)(masRanges.Get(ui)->uiTo + iOffset);
+	}
+	for (ui = 0; ui < masSpans.NumElements(); ui++)
+	{
+		masSpans.Get(ui)->uiFrom = (uint32)(masSpans.Get(ui)->uiFrom + iOffset);
+		masSpans.Get(ui)->uiTo = (uint32)(masSpans.Get(ui)->uiTo + iOffset);
 	}
 	for (ui = 0; ui < masGlobals.NumElements(); ui++)
 	{
@@ -1035,6 +1116,71 @@ SAsm65DebugRange* CAsm65DebugRecords::FindRange(SAsm65DebugVariable* psVariable,
 }
 
 
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugInline* CAsm65DebugRecords::GetInline(SAsm65DebugFunction* psFunction, size uiIndex)
+{
+	return (uiIndex < psFunction->uiNumInlines) ? masInlines.SafeGet(psFunction->uiFirstInline + uiIndex) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+SAsm65DebugSpan* CAsm65DebugRecords::GetSpan(SAsm65DebugInline* psInline, size uiIndex)
+{
+	return (uiIndex < psInline->uiNumSpans) ? masSpans.SafeGet(psInline->uiFirstSpan + uiIndex) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The innermost of psFunction's inlines whose code uiAddress is in (an
+// index among its inlines; its parents are outside it), -1 if none.
+//
+//////////////////////////////////////////////////////////////////////////
+int32 CAsm65DebugRecords::FindInline(SAsm65DebugFunction* psFunction, uint32 uiAddress)
+{
+	SAsm65DebugInline*	psInline;
+	SAsm65DebugSpan*	psSpan;
+	size				ui;
+	size				uiSpan;
+	int32				iFound;
+	int32				iDepth;
+	int32				iFoundDepth;
+	int32				iParent;
+
+	iFound = -1;
+	iFoundDepth = -1;
+	for (ui = 0; ui < psFunction->uiNumInlines; ui++)
+	{
+		psInline = GetInline(psFunction, ui);
+		for (uiSpan = 0; uiSpan < psInline->uiNumSpans; uiSpan++)
+		{
+			psSpan = GetSpan(psInline, uiSpan);
+			if ((uiAddress >= psSpan->uiFrom) && (uiAddress < psSpan->uiTo))
+			{
+				iDepth = 0;
+				for (iParent = psInline->iParent; (iParent >= 0) && (iDepth <= (int32)psFunction->uiNumInlines); iParent = GetInline(psFunction, (size)iParent)->iParent)
+				{
+					iDepth++;
+				}
+				if (iDepth > iFoundDepth)
+				{
+					iFound = (int32)ui;
+					iFoundDepth = iDepth;
+				}
+				break;
+			}
+		}
+	}
+	return iFound;
+}
+
+
 EAsm65DebugProcessor CAsm65DebugRecords::GetProcessor(void) const { return (EAsm65DebugProcessor)muiProcessor; }
 
 
@@ -1108,6 +1254,7 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 	SAsm65DebugMember*		psMember;
 	SAsm65DebugSaved*		psSaved;
 	SAsm65DebugRange*		psRange;
+	SAsm65DebugInline*		psInline;
 	bool					bResult;
 
 	bResult = pcChunkFile->WriteChunkBegin();
@@ -1135,6 +1282,8 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiResult);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiFirstVariable);
 		bResult &= pcChunkFile->WriteInt32(psFunction->uiNumVariables);
+		bResult &= pcChunkFile->WriteInt32(psFunction->uiFirstInline);
+		bResult &= pcChunkFile->WriteInt32(psFunction->uiNumInlines);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Functions");
 
@@ -1222,6 +1371,26 @@ bool CAsm65DebugRecords::WriteChunks(CChunkFile* pcChunkFile)
 		bResult &= pcChunkFile->WriteInt32(psRange->iOffset);
 	}
 	bResult &= pcChunkFile->WriteChunkEnd("Ranges");
+
+	bResult &= pcChunkFile->WriteChunkBegin();
+	bResult &= pcChunkFile->WriteInt32((uint32)masInlines.NumElements());
+	for (ui = 0; ui < masInlines.NumElements(); ui++)
+	{
+		psInline = masInlines.Get(ui);
+		bResult &= Asm65WriteText(pcChunkFile, psInline->szName.Text());
+		bResult &= Asm65WriteText(pcChunkFile, psInline->szFile.Text());
+		bResult &= pcChunkFile->WriteInt32(psInline->uiLine);
+		bResult &= pcChunkFile->WriteInt32(psInline->iParent);
+		bResult &= pcChunkFile->WriteInt32(psInline->uiFirstSpan);
+		bResult &= pcChunkFile->WriteInt32(psInline->uiNumSpans);
+	}
+	bResult &= pcChunkFile->WriteInt32((uint32)masSpans.NumElements());
+	for (ui = 0; ui < masSpans.NumElements(); ui++)
+	{
+		bResult &= pcChunkFile->WriteInt32(masSpans.Get(ui)->uiFrom);
+		bResult &= pcChunkFile->WriteInt32(masSpans.Get(ui)->uiTo);
+	}
+	bResult &= pcChunkFile->WriteChunkEnd("Inlines");
 	return bResult;
 }
 
@@ -1243,6 +1412,8 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 	SAsm65DebugMember*		psMember;
 	SAsm65DebugSaved*		psSaved;
 	SAsm65DebugRange*		psRange;
+	SAsm65DebugInline*		psInline;
+	SAsm65DebugSpan*		psSpan;
 
 	if (!pcChunkFile->ReadChunkBegin("DebugHeader") || !Asm65ReadMagic(pcChunkFile, ASM65_DEBUG_RECORDS_MAGIC, ASM65_DEBUG_RECORDS_VERSION) || !pcChunkFile->ReadInt8(&muiProcessor) || !pcChunkFile->ReadChunkEnd())
 	{
@@ -1261,7 +1432,8 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 			!pcChunkFile->ReadInt32(&psFunction->uiBody) || !pcChunkFile->ReadInt8(&psFunction->uiEntry) || !pcChunkFile->ReadInt8(&psFunction->uiFrame) ||
 			!pcChunkFile->ReadInt8(&psFunction->uiFrameRegister) || !pcChunkFile->ReadInt32(&psFunction->iFrameOffset) || !pcChunkFile->ReadInt32(&psFunction->iFrameAdjust) ||
 			!pcChunkFile->ReadInt8(&psFunction->uiBase) || !pcChunkFile->ReadInt32(&psFunction->uiFirstSaved) || !pcChunkFile->ReadInt32(&psFunction->uiNumSaved) ||
-			!pcChunkFile->ReadInt32(&psFunction->uiResult) || !pcChunkFile->ReadInt32(&psFunction->uiFirstVariable) || !pcChunkFile->ReadInt32(&psFunction->uiNumVariables))
+			!pcChunkFile->ReadInt32(&psFunction->uiResult) || !pcChunkFile->ReadInt32(&psFunction->uiFirstVariable) || !pcChunkFile->ReadInt32(&psFunction->uiNumVariables) ||
+			!pcChunkFile->ReadInt32(&psFunction->uiFirstInline) || !pcChunkFile->ReadInt32(&psFunction->uiNumInlines))
 		{
 			return false;
 		}
@@ -1381,6 +1553,38 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 			return false;
 		}
 	}
+	if (!pcChunkFile->ReadChunkEnd())
+	{
+		return false;
+	}
+
+	if (!pcChunkFile->ReadChunkBegin("Inlines") || !pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		psInline = masInlines.Add();
+		psInline->szName.Init();
+		psInline->szFile.Init();
+		if (!Asm65ReadText(pcChunkFile, &psInline->szName) || !Asm65ReadText(pcChunkFile, &psInline->szFile) || !pcChunkFile->ReadInt32(&psInline->uiLine) ||
+			!pcChunkFile->ReadInt32(&psInline->iParent) || !pcChunkFile->ReadInt32(&psInline->uiFirstSpan) || !pcChunkFile->ReadInt32(&psInline->uiNumSpans))
+		{
+			return false;
+		}
+	}
+	if (!pcChunkFile->ReadInt32(&uiCount))
+	{
+		return false;
+	}
+	for (ui = 0; ui < uiCount; ui++)
+	{
+		psSpan = masSpans.Add();
+		if (!pcChunkFile->ReadInt32(&psSpan->uiFrom) || !pcChunkFile->ReadInt32(&psSpan->uiTo))
+		{
+			return false;
+		}
+	}
 	return pcChunkFile->ReadChunkEnd() && IsWhole();
 }
 
@@ -1393,16 +1597,27 @@ bool CAsm65DebugRecords::ReadChunks(CChunkFile* pcChunkFile)
 bool CAsm65DebugRecords::IsWhole(void)
 {
 	size					ui;
+	size					uiInline;
 	SAsm65DebugFunction*	psFunction;
+	SAsm65DebugInline*		psInline;
 	SAsm65DebugType*		psType;
 	SAsm65DebugGlobal*		psGlobal;
 
 	for (ui = 0; ui < masFunctions.NumElements(); ui++)
 	{
 		psFunction = masFunctions.Get(ui);
-		if (((size)psFunction->uiFirstVariable + psFunction->uiNumVariables > masVariables.NumElements()) || ((size)psFunction->uiFirstSaved + psFunction->uiNumSaved > masSaved.NumElements()))
+		if (((size)psFunction->uiFirstVariable + psFunction->uiNumVariables > masVariables.NumElements()) || ((size)psFunction->uiFirstSaved + psFunction->uiNumSaved > masSaved.NumElements()) ||
+			((size)psFunction->uiFirstInline + psFunction->uiNumInlines > masInlines.NumElements()))
 		{
 			return false;
+		}
+		for (uiInline = 0; uiInline < psFunction->uiNumInlines; uiInline++)
+		{
+			psInline = masInlines.Get(psFunction->uiFirstInline + uiInline);
+			if ((psInline->iParent < -1) || (psInline->iParent >= (int32)uiInline) || ((size)psInline->uiFirstSpan + psInline->uiNumSpans > masSpans.NumElements()))
+			{
+				return false;
+			}
 		}
 	}
 	for (ui = 0; ui < masVariables.NumElements(); ui++)

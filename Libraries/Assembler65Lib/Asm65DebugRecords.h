@@ -28,7 +28,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 #define ASM65_DEBUG_RECORDS_MAGIC	"Asm65DebugRecords"
-#define ASM65_DEBUG_RECORDS_VERSION	5
+#define ASM65_DEBUG_RECORDS_VERSION	6
 
 #define ASM65_DEBUG_NONE		0xFFFFFFFF		//No type, function or section.
 #define ASM65_DEBUG_ABSOLUTE	0xFFFFFFFE		//A place's section once linked: its offset is its address.
@@ -183,6 +183,8 @@ struct SAsm65DebugFunction
 	uint32				uiNumVariables;
 	uint32				uiFirstSaved;
 	uint32				uiNumSaved;
+	uint32				uiFirstInline;
+	uint32				uiNumInlines;
 };
 
 
@@ -211,6 +213,28 @@ struct SAsm65DebugVariable
 	uint32	uiNumRanges;
 
 	bool	IsInScope(uint32 uiLine);
+};
+
+
+//A call inlined into a function (DebuggerFPlan.txt F2): the function inlined (as C++ names it), the inline it is
+//in (iParent, an index among its function's inlines; -1 for none), the file and line of the call (in the parent's
+//code, or the function's), and the code addresses that are its (SAsm65DebugSpan, from uiFirstSpan).
+struct SAsm65DebugInline
+{
+	CChars	szName;
+	CChars	szFile;
+	uint32	uiLine;
+	int32	iParent;
+	uint32	uiFirstSpan;
+	uint32	uiNumSpans;
+};
+
+
+//Code addresses from uiFrom up to uiTo (its function's section's offsets, or once linked its addresses).
+struct SAsm65DebugSpan
+{
+	uint32	uiFrom;
+	uint32	uiTo;
 };
 
 
@@ -256,11 +280,13 @@ typedef CArrayTemplate<SAsm65DebugType>		CArrayAsm65DebugTypes;
 typedef CArrayTemplate<SAsm65DebugMember>	CArrayAsm65DebugMembers;
 typedef CArrayTemplate<SAsm65DebugSaved>	CArrayAsm65DebugSaved;
 typedef CArrayTemplate<SAsm65DebugRange>	CArrayAsm65DebugRanges;
+typedef CArrayTemplate<SAsm65DebugInline>	CArrayAsm65DebugInlines;
+typedef CArrayTemplate<SAsm65DebugSpan>		CArrayAsm65DebugSpans;
 
 
-//What a debugger knows of a program beyond its lines: its functions' frames and variables, its globals and their
-//types.  An object has its units' (the assembler's .dfunction, .dframe, .dvariable, .dglobal, .dstatic, .dtype and
-//.dmember directives), at places in its sections; the linker appends each object's placed ones (Append), at their
+//What a debugger knows of a program beyond its lines: its functions' frames, variables and inlined calls, its globals
+//and their types.  An object has its units' (the assembler's .dfunction, .dframe, .dvariable, .drange, .dinline,
+//.dinspan, .dglobal, .dstatic, .dtype and .dmember directives), at places in its sections; the linker appends each object's placed ones (Append), at their
 //addresses, a type that more than one unit describes kept once.  Written in the object and in the program's debug
 //file (CAsm65DebugInfo) the same way.
 class CAsm65DebugRecords
@@ -273,6 +299,8 @@ protected:
 	CArrayAsm65DebugMembers		masMembers;
 	CArrayAsm65DebugSaved		masSaved;
 	CArrayAsm65DebugRanges		masRanges;
+	CArrayAsm65DebugInlines		masInlines;
+	CArrayAsm65DebugSpans		masSpans;
 	uint8						muiProcessor;	//EAsm65DebugProcessor.
 	CHashMapString<uint32>		mcTypeKeys;		//Each type's index by its key.
 	CArrayUint32				mauiFunctionOrder;	//The functions' indices in address order (Sort), for FindFunction.
@@ -292,6 +320,8 @@ public:
 	void					EndFunctions(uint32 uiSection, uint32 uiEnd);
 	bool					AddVariable(const char* szName, uint32 uiType, EAsm65DebugWhere eWhere, bool bParameter, int32 iOffset, uint32 uiFirstLine, uint32 uiLastLine);
 	bool					AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset);
+	bool					AddInline(const char* szName, int32 iParent, const char* szFile, uint32 uiLine);
+	bool					AddInlineSpan(uint32 uiSection, uint32 uiFrom, uint32 uiTo);
 	bool					AddGlobal(const char* szName, uint32 uiType, uint32 uiSection, uint32 uiOffset, bool bStatic);
 	bool					AddType(const char* szKey, const char* szName, EAsm65DebugType eKind, uint8 uiFlags, uint32 uiBytes, uint32 uiTarget, uint32 uiCount);
 	bool					AddMember(const char* szName, EAsm65DebugMember eKind, uint32 uiType, int64 iValue, uint8 uiBitOffset, uint8 uiBits);
@@ -321,6 +351,9 @@ public:
 	SAsm65DebugSaved*		GetSaved(SAsm65DebugFunction* psFunction, size uiIndex);
 	SAsm65DebugRange*		GetRange(SAsm65DebugVariable* psVariable, size uiIndex);
 	SAsm65DebugRange*		FindRange(SAsm65DebugVariable* psVariable, uint32 uiAddress);
+	SAsm65DebugInline*		GetInline(SAsm65DebugFunction* psFunction, size uiIndex);
+	SAsm65DebugSpan*		GetSpan(SAsm65DebugInline* psInline, size uiIndex);
+	int32					FindInline(SAsm65DebugFunction* psFunction, uint32 uiAddress);
 
 	bool					WriteChunks(CChunkFile* pcChunkFile);
 	bool					ReadChunks(CChunkFile* pcChunkFile);

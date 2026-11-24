@@ -1418,6 +1418,98 @@ void TestAsm65LinkerDebugRanges(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A function's inlined calls (.dinline, .dinspan): Area inlined into
+// main, and Mul inlined into Area there; the innermost inline an address
+// is in; linked to addresses, written and read back, moved.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65LinkerDebugInlines(void)
+{
+	SLinkTest				sTest;
+	CAsm65DebugRecords*		pcRecords;
+	CAsm65Object			cObject;
+	CMemoryFile*			pcMemoryFile;
+	SAsm65DebugFunction*	psFunction;
+	SAsm65DebugInline*		psInline;
+	uint32					uiStart;
+	uint32					uiArea;
+	uint32					uiMul;
+	uint32					uiAfter;
+
+	LinkTestInit(&sTest);
+	LinkTestObject(&sTest,
+		"	.global Pad\n"
+		"Pad:\n"
+		"	ret\n");
+	LinkTestObject(&sTest,
+		"	.global Start\n"
+		"Start:\n"
+		"	.dfunction \"main\"\n"
+		"	psh A\n"
+		"	.global Area\n"
+		"Area:\n"
+		"	cpy B, A\n"
+		"	.global Mul\n"
+		"Mul:\n"
+		"	mul\n"
+		"MulEnd:\n"
+		"	cpy A, B\n"
+		"	.global After\n"
+		"After:\n"
+		"	pul A\n"
+		"	ret\n"
+		"	.dinline -1, \"Area\", \"Test.cpp\", 25\n"
+		"	.dinspan Area, After\n"
+		"	.dinline 0, \"Mul\", \"Test.cpp\", 9\n"
+		"	.dinspan Mul, MulEnd\n");
+	AssertTrue(sTest.cLinker.Link());
+	AssertString("", sTest.cLinker.GetErrors());
+	uiStart = (uint32)LinkedSymbol(&sTest, "Start");
+	uiArea = (uint32)LinkedSymbol(&sTest, "Area");
+	uiMul = (uint32)LinkedSymbol(&sTest, "Mul");
+	uiAfter = (uint32)LinkedSymbol(&sTest, "After");
+	pcRecords = sTest.cLinker.GetDebugInfo()->GetRecords();
+
+	psFunction = pcRecords->FindFunction(uiStart);
+	AssertInt(2, psFunction->uiNumInlines);
+	psInline = pcRecords->GetInline(psFunction, 1);
+	AssertString("Mul", psInline->szName.Text());
+	AssertString("Test.cpp", psInline->szFile.Text());
+	AssertInt(9, psInline->uiLine);
+	AssertInt(0, psInline->iParent);
+	AssertInt(uiMul, pcRecords->GetSpan(psInline, 0)->uiFrom);
+	AssertTrue(pcRecords->GetSpan(psInline, 1) == NULL);
+	AssertTrue(pcRecords->GetInline(psFunction, 2) == NULL);
+
+	//The innermost an address is in.
+	AssertInt(-1, pcRecords->FindInline(psFunction, uiStart));
+	AssertInt(0, pcRecords->FindInline(psFunction, uiArea));
+	AssertInt(1, pcRecords->FindInline(psFunction, uiMul));
+	AssertInt(0, pcRecords->FindInline(psFunction, uiAfter - 1));
+	AssertInt(-1, pcRecords->FindInline(psFunction, uiAfter));
+
+	//The object written and read back keeps them as offsets in its section.
+	pcMemoryFile = MemoryFile();
+	pcMemoryFile->mbBasicFileMustFree = false;
+	AssertTrue(sTest.acObjects[1].Write(pcMemoryFile));
+	cObject.Init("read");
+	AssertTrue(cObject.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
+	psFunction = cObject.GetDebug()->GetFunction(0);
+	AssertInt(2, psFunction->uiNumInlines);
+	AssertString("Area", cObject.GetDebug()->GetInline(psFunction, 0)->szName.Text());
+	AssertInt(uiMul - uiStart, cObject.GetDebug()->GetSpan(cObject.GetDebug()->GetInline(psFunction, 1), 0)->uiFrom);
+	cObject.Kill();
+	SafeKill(pcMemoryFile);
+
+	//Moved as a module's are.
+	pcRecords->Move(0x100);
+	AssertInt(1, pcRecords->FindInline(pcRecords->FindFunction(uiStart + 0x100), uiMul + 0x100));
+	LinkTestKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The variables a function's code sees at a line: those in scope, an
 // inner one hiding an outer one of its name, as a debugger's Locals and
 // watches find them; this listed first.
@@ -1563,6 +1655,28 @@ void TestAsm65LinkerDebugErrors(void)
 	cObject.Kill();
 	cAssembler.Kill();
 
+	//A .dinline follows a function, its parent an inline before it; a .dinspan follows a .dinline.
+	cAssembler.Init();
+	cObject.Init("errors");
+	AssertFalse(cAssembler.AssembleObject(
+		"	.dinline -1, \"F\", \"Test.cpp\", 2\n"
+		"Start:\n"
+		"	.dfunction \"Start\"\n"
+		"	nop\n"
+		"Next:\n"
+		"	ret\n"
+		"	.dinspan Start, Next\n"
+		"	.dinline 0, \"F\", \"Test.cpp\", 2\n"
+		"	.dinline -1, \"F\", \"Test.cpp\", 2\n"
+		"	.dinspan Next, Start\n", &cObject));
+	AssertString(
+		"1:2: .dinline must follow a .dfunction, its parent an inline before it '.dinline'\n"
+		"7:2: .dinspan must follow a .dinline, its labels in order in its function's section '.dinspan'\n"
+		"8:2: .dinline must follow a .dfunction, its parent an inline before it '.dinline'\n"
+		"10:2: .dinspan must follow a .dinline, its labels in order in its function's section '.dinspan'\n", cAssembler.GetErrors());
+	cObject.Kill();
+	cAssembler.Kill();
+
 	//Only in an object.
 	cAssembler.Init();
 	AssertFalse(cAssembler.Assemble("	.dfunction \"Start\"\n"));
@@ -1594,6 +1708,7 @@ void TestAsm65Linker(void)
 	TestAsm65LinkerLineTable();
 	TestAsm65LinkerDebugRecords();
 	TestAsm65LinkerDebugRanges();
+	TestAsm65LinkerDebugInlines();
 	TestAsm65LinkerDebugVisible();
 	TestAsm65LinkerDebugErrors();
 	TestAsm65LinkerRelocatable();

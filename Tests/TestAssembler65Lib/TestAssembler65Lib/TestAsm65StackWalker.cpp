@@ -620,6 +620,71 @@ void TestAsm65StackWalkerLocate(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// A walk with inlines: a row for each inlined call the code is in,
+// innermost first, before its function's; each named by its callee, the
+// outer ones at the calls of the ones inside them.  Without inlines only
+// the function.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65StackWalkerInlines(void)
+{
+	CAsm65DebugRecords		cRecords;
+	CAsm65Memory			cMemory;
+	CAsm65StackWalker*		pcWalker;
+	SAsm65StackRegisters	sRegisters;
+	CArrayAsm65StackFrames	asFrames;
+	SAsm65StackFrame*		psFrame;
+
+	cRecords.Init();
+	cRecords.SetProcessor(ADP_65C64);
+	cRecords.AddFunction("main", 0, 0x100, ADE_Long);
+	AssertTrue(cRecords.AddInline("Area", -1, "Test.cpp", 25));
+	AssertTrue(cRecords.AddInlineSpan(0, 0x104, 0x110));
+	AssertTrue(cRecords.AddInline("Mul", 0, "Test.cpp", 9));
+	AssertTrue(cRecords.AddInlineSpan(0, 0x108, 0x10C));
+	cRecords.EndFunctions(0, 0x120);
+
+	cMemory.Init();
+	pcWalker = Asm65NewStackWalker(ADP_65C64, &cMemory);
+	pcWalker->AddRecords(&cRecords, ASS_User);
+	asFrames.Init();
+	sRegisters.Init(0x108, ASS_User);
+	sRegisters.Set(A65DR_S, 0x1FF0);
+
+	pcWalker->Walk(&sRegisters, &asFrames, 16, true);
+	AssertTrue(asFrames.NumElements() >= 3);
+	psFrame = asFrames.Get(0);
+	AssertString("Mul", psFrame->GetName());
+	AssertTrue(psFrame->IsInline());
+	AssertTrue(psFrame->GetCalled() == NULL);
+	AssertTrue(psFrame->bInnermost);
+	psFrame = asFrames.Get(1);
+	AssertString("Area", psFrame->GetName());
+	AssertInt(9, psFrame->GetCalled()->uiLine);
+	psFrame = asFrames.Get(2);
+	AssertString("main", psFrame->GetName());
+	AssertFalse(psFrame->IsInline());
+	AssertInt(25, psFrame->GetCalled()->uiLine);
+	AssertString("Test.cpp", psFrame->GetCalled()->szFile.Text());
+
+	//Outside Mul only Area's row; without inlines only main's.
+	sRegisters.uiPC = 0x10C;
+	pcWalker->Walk(&sRegisters, &asFrames, 16, true);
+	AssertString("Area", asFrames.Get(0)->GetName());
+	AssertString("main", asFrames.Get(1)->GetName());
+	pcWalker->Walk(&sRegisters, &asFrames, 16);
+	AssertString("main", asFrames.Get(0)->GetName());
+	AssertTrue(asFrames.Get(0)->GetCalled() == NULL);
+
+	asFrames.Kill();
+	SafeKill(pcWalker);
+	cMemory.Kill();
+	cRecords.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65StackWalker(void)
@@ -631,6 +696,7 @@ void TestAsm65StackWalker(void)
 	TestAsm65StackWalkerInterrupts();
 	TestAsm65StackWalker65C64();
 	TestAsm65StackWalkerLocate();
+	TestAsm65StackWalkerInlines();
 
 	CW65C816InstructionFactory::GetInstance()->Kill();
 	TestStatistics();

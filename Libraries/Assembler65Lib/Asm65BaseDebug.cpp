@@ -67,6 +67,11 @@ static const char*				gaszAsm65DebugMembers[] = { "base", "field", "vtable", "en
 //   .drange from, to, memory, R, offset  to: at the base + offset, in
 //   .drange from, to, address, n       register R, at R + offset, or at
 //                                      the address n.
+//   .dinline parent, "name", "file", line  A call of name inlined into the
+//                                      function, in its inline parent (-1
+//                                      for none), at the file's line.
+//   .dinspan from, to                  The last inline's code from the
+//                                      label from up to the label to.
 //   .dglobal "name", type, label       A global at the label.
 //   .dstatic "name", type, label       A static local of the function.
 //   .dtype index, "key", "name", kind, flags, bytes, target, count
@@ -108,6 +113,14 @@ bool CAsm65BaseAssembler::DebugDirective(SAsm65Token* psDirective, bool* pbResul
 	else if (psDirective->IsIdentifierIgnoreCase(".drange"))
 	{
 		*pbResult = DebugObject(psDirective) && DebugRange(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dinline"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugInline(psDirective);
+	}
+	else if (psDirective->IsIdentifierIgnoreCase(".dinspan"))
+	{
+		*pbResult = DebugObject(psDirective) && DebugInlineSpan(psDirective);
 	}
 	else if (psDirective->IsIdentifierIgnoreCase(".dglobal"))
 	{
@@ -394,6 +407,55 @@ bool CAsm65BaseAssembler::DebugRange(SAsm65Token* psDirective)
 		!mpcObject->GetDebug()->AddRange((uint32)sFrom.iSection, (uint32)sFrom.iValue, (uint32)sTo.iValue, gaeAsm65DebugRangePlaces[iPlace], uiRegister, (int32)iOffset)))
 	{
 		bResult = Error(psDirective, ".drange must follow a .dvariable of ranges, its labels in order in its function's section");
+	}
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// .dinline: a call inlined into the function.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugInline(SAsm65Token* psDirective)
+{
+	CChars	szName;
+	CChars	szFile;
+	int64	iParent;
+	int64	iLine;
+	bool	bResult;
+
+	szName.Init();
+	szFile.Init();
+	bResult = DebugNumber(&iParent, -1, 0x7FFFFFFFll, "an inline or -1") && Expect(AP65_Comma, "','") &&
+			  DebugText(&szName, "a function's name") && Expect(AP65_Comma, "','") &&
+			  DebugText(&szFile, "a file's name") && Expect(AP65_Comma, "','") &&
+			  DebugNumber(&iLine, 0, 0x7FFFFFFFll, "a line");
+	if (bResult && mbFinal && !mpcObject->GetDebug()->AddInline(szName.Text(), (int32)iParent, szFile.Text(), (uint32)iLine))
+	{
+		bResult = Error(psDirective, ".dinline must follow a .dfunction, its parent an inline before it");
+	}
+	szFile.Kill();
+	szName.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// .dinspan: the last inline's code between two labels.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsm65BaseAssembler::DebugInlineSpan(SAsm65Token* psDirective)
+{
+	SAsm65Value	sFrom;
+	SAsm65Value	sTo;
+	bool		bResult;
+
+	bResult = DebugLabel(&sFrom, "An inline's span") && Expect(AP65_Comma, "','") && DebugLabel(&sTo, "An inline's span");
+	if (bResult && mbFinal && ((sFrom.iSection != sTo.iSection) || !mpcObject->GetDebug()->AddInlineSpan((uint32)sFrom.iSection, (uint32)sFrom.iValue, (uint32)sTo.iValue)))
+	{
+		bResult = Error(psDirective, ".dinspan must follow a .dinline, its labels in order in its function's section");
 	}
 	return bResult;
 }
