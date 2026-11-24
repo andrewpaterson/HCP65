@@ -83,12 +83,15 @@ Decided (the user's, 2026-11-24)
     the HCP65 hardware pages (memory map, registers, devices) live with HCP65Lib
     (HCP65-Emulator/HCP65Lib/Docs), whose devices implement them.
 10. Project items are hand-listed, one per page (question 3), not wildcards.  The site build checks that every page
-    under a Sources.txt folder is an item of exactly one project, and fails (with the page's path) when one isn't.
+    under a mapped folder is an item of exactly one project, and fails (with the page's path) when one isn't.
 11. Test data (a test's Input and Output folders) is owned by its test project by where it is, not as items
     (question 11): it isn't documentation, the tests find it by path, and Solution Explorer doesn't show it.
 12. Links to code go to the branch (question 4): GitHub's blob/<branch>/<path>#L<line> with each repository's branch
     (CommonLibraries master, the others main), not pinned to a commit.  Line numbers can drift as files change until
     the site is rebuilt; accepted.
+13. The map of docs folders lives in mkdocs.yml under extra.sources (question 5), not in a file of its own.  The IDE
+    reads mkdocs.yml with a YAML parser in BaseLib (CYAMLParser, beside CXMLParser and CJSONParser, into the same
+    CMarkup tree), so it can read nav: too.
 
 
 Proposed (my recommendations, not decided)
@@ -113,23 +116,23 @@ What is to be built
 -------------------
 
 A. The site build (HCP65/Website)
-  1. A map file (Website/Sources.txt): each line a folder in a repository and the site folder it lands in, e.g.
-     `HCP65-IDE/HCP65IDE/Docs -> ide`.  Read by the site build AND the IDE (to resolve a link from where a page
-     really is), so it is one plain file, not something inside web.sh.
+  1. The map (decision 13): mkdocs.yml's extra.sources, a list of { folder, site, branch }, e.g. folder
+     HCP65-IDE/HCP65IDE/Docs, site ide, branch main.  Read by the site build AND the IDE (to resolve a link from
+     where a page really is; CYAMLParser), so it is in mkdocs.yml, not inside web.sh.
   2. web.sh build: run every generator (sheet_to_html.py and those from C), gather the map's folders into a staging
      folder (copies, not symlinks: Windows), run every check, then `mkdocs build --strict` with docs_dir = staging.
      The snippets base_path list comes from the map too.
-  3. The item check (decision 10): every .md and image under a Sources.txt folder is an item of exactly one project's
+  3. The item check (decision 10): every .md and image under a mapped folder is an item of exactly one project's
      .vcxproj; a missing or doubly listed one is an error.
   4. Every check prints GCC's "<file>:<line>:<column>: error: ..." with the page's real path (not the staging copy),
      so the IDE's Build pane and Problems list can jump to it.
-  5. Website.vcxproj (+ .filters, + Website.sln): a Makefile project.  Items: mkdocs.yml, Sources.txt, the cross-cutting
+  5. Website.vcxproj (+ .filters, + Website.sln): a Makefile project.  Items: mkdocs.yml, the cross-cutting
      pages, stylesheets, tools, DocsPlan.txt.  NMakeBuildCommandLine = web.sh build (Rebuild and Clean too).
   Check: the site builds byte-identically before and after A with nothing moved.
 
 B. Pages move next to their code
   1. `git mv` per repository, a Docs folder beside the owning project, the pages added to its .vcxproj as None items
-     (filters: Docs), a Sources.txt line each.  Images move with their pages.
+     (filters: Docs), an extra.sources entry each.  Images move with their pages.
   2. Proposed owners:
        ide (25)                    HCP65-IDE/HCP65IDE/Docs (HCP65IDE.vcxproj)
        compiler: front end, IR     CommonLibraries/Libraries/CppCompilerLib/Docs
@@ -155,10 +158,10 @@ C. The 65C64 derived from the spreadsheet
   Check: the generated pages match today's hand-written tables (differences reviewed with the user, like fscr/fccr).
 
 D. References to code
-  1. A command-line program (question 6) reads Sources.txt's solutions, indexes them with CCPPIndex and writes a symbol
+  1. A command-line program (question 6) reads the mapped repositories' solutions, indexes them with CCPPIndex and writes a symbol
      table: qualified name -> repository, file, line.
   2. A small MkDocs plugin in Website/tools turns each [`Name`] into a link to its line on the repository's branch
-     (decision 12; the branch per repository comes from Sources.txt).
+     (decision 12; the branch per repository comes from extra.sources).
   3. The checks: unresolved reference = error; plain `CName` spans = warnings.
   4. Convert the existing pages from the warnings list.
   Check: a fixture page with good, bad and plain references gives exactly the expected errors and warnings.
@@ -233,7 +236,9 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
     wildcard Include (which was my recommendation).
  4. Links pinned to a commit or to the branch.  Decided 2026-11-24 (decision 12): the branch, not the commit the
     site was built from (which was my recommendation).
- 5. The page-to-repository map as its own file, Website/Sources.txt (recommended), or in mkdocs.yml's extra section.
+ 5. Where the page-to-repository map lives.  Decided 2026-11-24 (decision 13): mkdocs.yml under extra.sources,
+    read by a new BaseLib CYAMLParser; not a Website/Sources.txt of its own (my first recommendation, changed once
+    the JSON parser showed a YAML reader would share most of its design).
  6. Where the command-line index program lives: beside HCP65Build in HCP65-IDE (recommended: it reads solutions with
     VisualStudioLib), or in CppCompilerLib's tests.
  7. ```cpp blocks compile unless marked ```text (recommended: the asm rule), or only blocks marked to compile.
