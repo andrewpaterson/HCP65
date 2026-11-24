@@ -84,11 +84,12 @@ struct SAsm65StackFrame : public SAsm65StackRegisters
 
 
 //Where a variable is while its frame runs (CAsm65StackWalker::Locate): at uiAddress in the frame's space, or, when
-//it is in a register (bAddress false), its value.
+//it is in a register (bAddress false), uiRegister's value.
 struct SAsm65StackPlace
 {
 	bool	bAddress;
 	uint32	uiAddress;
+	uint8	uiRegister;
 	uint64	uiValue;
 };
 

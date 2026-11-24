@@ -541,7 +541,7 @@ void TestAsm65StackWalker65C64(void)
 //
 // Where a variable whose place moves is, by the range the frame's line
 // address is in: at the base (V) + offset, a register's value, at a
-// register + offset; nowhere outside its ranges or when the register it
+// register + offset, at an address; nowhere outside its ranges or when the register it
 // needs isn't known.  A caller's line address is just before its return.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -562,6 +562,7 @@ void TestAsm65StackWalkerLocate(void)
 	AssertTrue(cRecords.AddRange(0, 0x104, 0x108, ADW_Frame, 0, -2));
 	AssertTrue(cRecords.AddRange(0, 0x108, 0x10C, ADW_Register, A65DR_B, 0));
 	AssertTrue(cRecords.AddRange(0, 0x10C, 0x110, ADW_Memory, A65DR_W, 0x80));
+	AssertTrue(cRecords.AddRange(0, 0x110, 0x114, ADW_Address, 0, 0x84));
 	AssertFalse(cRecords.AddRange(1, 0x110, 0x114, ADW_Frame, 0, 0));
 	AssertFalse(cRecords.AddRange(0, 0x114, 0x110, ADW_Frame, 0, 0));
 	AssertFalse(cRecords.AddRange(0, 0x110, 0x114, ADW_Ranges, 0, 0));
@@ -587,6 +588,7 @@ void TestAsm65StackWalkerLocate(void)
 	sFrame.Set(A65DR_B, 1234);
 	AssertTrue(pcWalker->Locate(&sFrame, psVariable, &sPlace));
 	AssertFalse(sPlace.bAddress);
+	AssertInt(A65DR_B, sPlace.uiRegister);
 	AssertLong(1234, sPlace.uiValue);
 
 	//A caller returning to 0x108 is at its call's line, 0x107: at the base.
@@ -602,6 +604,10 @@ void TestAsm65StackWalkerLocate(void)
 	AssertTrue(sPlace.bAddress);
 	AssertInt(0xC0, sPlace.uiAddress);
 	sFrame.uiPC = 0x110;
+	AssertTrue(pcWalker->Locate(&sFrame, psVariable, &sPlace));
+	AssertTrue(sPlace.bAddress);
+	AssertInt(0x84, sPlace.uiAddress);
+	sFrame.uiPC = 0x114;
 	AssertFalse(pcWalker->Locate(&sFrame, psVariable, &sPlace));
 	sFrame.uiPC = 0x100;
 	AssertFalse(pcWalker->Locate(&sFrame, psVariable, &sPlace));

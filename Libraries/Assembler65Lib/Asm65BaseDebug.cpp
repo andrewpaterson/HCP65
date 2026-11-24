@@ -24,8 +24,8 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //The words the debug directives take for their kinds, in each enum's order.
 static const char*				gaszAsm65DebugEntries[] = { "long", "short", "interrupt", "userinterrupt", NULL };
 static const char*				gaszAsm65DebugWheres[] = { "none", "frame", "indirect", "ranges", NULL };
-static const char*				gaszAsm65DebugRangePlaces[] = { "frame", "register", "memory", NULL };
-static const EAsm65DebugWhere	gaeAsm65DebugRangePlaces[] = { ADW_Frame, ADW_Register, ADW_Memory };
+static const char*				gaszAsm65DebugRangePlaces[] = { "frame", "register", "memory", "address", NULL };
+static const EAsm65DebugWhere	gaeAsm65DebugRangePlaces[] = { ADW_Frame, ADW_Register, ADW_Memory, ADW_Address };
 static const char*				gaszAsm65DebugVariableKinds[] = { "local", "parameter", NULL };
 static const char*				gaszAsm65DebugTypes[] = { "void", "bool", "integer", "float", "enum", "pointer", "reference", "array", "class", "function", NULL };
 static const char*				gaszAsm65DebugMembers[] = { "base", "field", "vtable", "enumerator", NULL };
@@ -65,7 +65,8 @@ static const char*				gaszAsm65DebugMembers[] = { "base", "field", "vtable", "en
 //   .drange from, to, frame, offset    Where the last variable (of ranges) is
 //   .drange from, to, register, R      from the label from up to the label
 //   .drange from, to, memory, R, offset  to: at the base + offset, in
-//                                      register R, or at R + offset.
+//   .drange from, to, address, n       register R, at R + offset, or at
+//                                      the address n.
 //   .dglobal "name", type, label       A global at the label.
 //   .dstatic "name", type, label       A static local of the function.
 //   .dtype index, "key", "name", kind, flags, bytes, target, count
@@ -372,10 +373,14 @@ bool CAsm65BaseAssembler::DebugRange(SAsm65Token* psDirective)
 	uiRegister = 0;
 	iOffset = 0;
 	bResult = DebugLabel(&sFrom, "A debug range") && Expect(AP65_Comma, "','") && DebugLabel(&sTo, "A debug range") && Expect(AP65_Comma, "','") &&
-			  DebugWord(gaszAsm65DebugRangePlaces, &iPlace, "frame, register or memory") && Expect(AP65_Comma, "','");
+			  DebugWord(gaszAsm65DebugRangePlaces, &iPlace, "frame, register, memory or address") && Expect(AP65_Comma, "','");
 	if (bResult && (iPlace == 0))
 	{
 		bResult = DebugNumber(&iOffset, -0x7FFFFFFFll, 0x7FFFFFFFll, "a frame offset");
+	}
+	else if (bResult && (iPlace == 3))
+	{
+		bResult = DebugNumber(&iOffset, 0, 0x7FFFFFFFll, "an address");
 	}
 	else if (bResult)
 	{

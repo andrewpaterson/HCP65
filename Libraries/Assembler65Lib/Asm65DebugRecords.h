@@ -105,13 +105,14 @@ enum EAsm65DebugWhere
 	ADW_Indirect,	//At the address held at the base + iOffset (an object passed by address).
 	ADW_Ranges,		//Where its ranges say, from code address to code address (SAsm65DebugRange); elsewhere not kept.
 	ADW_Register,	//A range's: in a register (uiRegister).
-	ADW_Memory,		//A range's: at a register (uiRegister) + iOffset (the 65C64's pseudo registers, [off + W]).
+	ADW_Memory,		//A range's: at a register (uiRegister) + iOffset.
+	ADW_Address,	//A range's: at the address iOffset (the 65C64's pseudo registers, $00 to $FF).
 };
 
 
 //Where a variable whose place moves (ADW_Ranges, optimised code) is from uiFrom up to uiTo (its function's section's
-//offsets, or once linked its addresses): at its function's base + iOffset (ADW_Frame), in a register (ADW_Register)
-//or at a register + iOffset (ADW_Memory).
+//offsets, or once linked its addresses): at its function's base + iOffset (ADW_Frame), in a register (ADW_Register),
+//at a register + iOffset (ADW_Memory) or at the address iOffset (ADW_Address).
 struct SAsm65DebugRange
 {
 	uint32	uiFrom;

@@ -288,7 +288,7 @@ bool CAsm65DebugRecords::AddVariable(const char* szName, uint32 uiType, EAsm65De
 //
 // A range of the last variable (ADW_Ranges, of the last function): from
 // uiFrom up to uiTo, offsets in the function's section uiSection, it is in
-// the place (ADW_Frame, ADW_Register or ADW_Memory).
+// the place (ADW_Frame, ADW_Register, ADW_Memory or ADW_Address).
 //
 //////////////////////////////////////////////////////////////////////////
 bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, EAsm65DebugWhere eWhere, uint8 uiRegister, int32 iOffset)
@@ -297,7 +297,7 @@ bool CAsm65DebugRecords::AddRange(uint32 uiSection, uint32 uiFrom, uint32 uiTo, 
 	SAsm65DebugRange*		psRange;
 
 	psVariable = LastVariable();
-	if (!psVariable || (psVariable->uiWhere != ADW_Ranges) || (uiSection != LastFunction()->sStart.uiSection) || (uiFrom > uiTo) || ((eWhere != ADW_Frame) && (eWhere != ADW_Register) && (eWhere != ADW_Memory)))
+	if (!psVariable || (psVariable->uiWhere != ADW_Ranges) || (uiSection != LastFunction()->sStart.uiSection) || (uiFrom > uiTo) || (eWhere < ADW_Frame) || (eWhere == ADW_Indirect) || (eWhere == ADW_Ranges) || (eWhere > ADW_Address))
 	{
 		return false;
 	}

@@ -1319,7 +1319,7 @@ void TestAsm65LinkerDebugRecords(void)
 //////////////////////////////////////////////////////////////////////////
 //
 // A variable whose place moves (ranges): its .dranges, at the base, in a
-// register and at a register, from label to label in its function's
+// register, at a register and at an address, from label to label in its function's
 // section; linked to addresses, written and read back, moved.
 //
 //////////////////////////////////////////////////////////////////////////
@@ -1353,10 +1353,12 @@ void TestAsm65LinkerDebugRanges(void)
 		"	pul A\n"
 		"__dbg3:\n"
 		"	ret\n"
+		"Start.End:\n"
 		"	.dvariable local, \"i\", 0, ranges, 0, 3, 4\n"
 		"	.drange Start, __dbg1, frame, -2\n"
 		"	.drange __dbg1, __dbg2, register, B\n"
 		"	.drange __dbg2, __dbg3, memory, W, 0x80\n"
+		"	.drange __dbg3, Start.End, address, 0x84\n"
 		"	.dvariable local, \"j\", 0, frame, -4, 3, 4\n"
 		"	.dtype 0, \"int\", \"int\", integer, 1, 2, -1, 0\n");
 	AssertTrue(sTest.cLinker.Link());
@@ -1369,7 +1371,7 @@ void TestAsm65LinkerDebugRanges(void)
 	AssertInt(2, psFunction->uiNumVariables);
 	psVariable = pcRecords->GetVariable(psFunction, 0);
 	AssertInt(ADW_Ranges, psVariable->uiWhere);
-	AssertInt(3, psVariable->uiNumRanges);
+	AssertInt(4, psVariable->uiNumRanges);
 	psRange = pcRecords->GetRange(psVariable, 0);
 	AssertInt(uiStart, psRange->uiFrom);
 	AssertInt(ADW_Frame, psRange->uiWhere);
@@ -1383,9 +1385,13 @@ void TestAsm65LinkerDebugRanges(void)
 	AssertInt(ADW_Memory, psRange->uiWhere);
 	AssertInt(A65DR_W, psRange->uiRegister);
 	AssertInt(0x80, psRange->iOffset);
-	AssertTrue(pcRecords->GetRange(psVariable, 3) == NULL);
+	psRange = pcRecords->GetRange(psVariable, 3);
+	AssertInt(ADW_Address, psRange->uiWhere);
+	AssertInt(0x84, psRange->iOffset);
+	AssertTrue(pcRecords->GetRange(psVariable, 4) == NULL);
 	AssertTrue(pcRecords->FindRange(psVariable, uiStart) == pcRecords->GetRange(psVariable, 0));
 	AssertTrue(pcRecords->FindRange(psVariable, uiInB) == pcRecords->GetRange(psVariable, 1));
+	AssertTrue(pcRecords->FindRange(psVariable, psRange->uiTo - 1) == psRange);
 	AssertTrue(pcRecords->FindRange(psVariable, psRange->uiTo) == NULL);
 	AssertInt(0, pcRecords->GetVariable(psFunction, 1)->uiNumRanges);
 
@@ -1396,7 +1402,7 @@ void TestAsm65LinkerDebugRanges(void)
 	cObject.Init("read");
 	AssertTrue(cObject.Read(MemoryFile(pcMemoryFile->GetBufferPointer(), pcMemoryFile->GetBufferSize())));
 	psVariable = cObject.GetDebug()->GetVariable(cObject.GetDebug()->GetFunction(0), 0);
-	AssertInt(3, psVariable->uiNumRanges);
+	AssertInt(4, psVariable->uiNumRanges);
 	AssertInt(0, cObject.GetDebug()->GetRange(psVariable, 0)->uiFrom);
 	AssertInt(uiInB - uiStart, cObject.GetDebug()->GetRange(psVariable, 1)->uiFrom);
 	cObject.Kill();
@@ -1550,7 +1556,7 @@ void TestAsm65LinkerDebugErrors(void)
 		"7:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n"
 		"9:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n"
 		"10:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n"
-		"11:23: Expected frame, register or memory 'stack'\n"
+		"11:23: Expected frame, register, memory or address 'stack'\n"
 		"12:33: Expected one of the processor's registers 'Q'\n"
 		"13:17: A debug range must be at a label in one of the object's sections '12'\n"
 		"17:2: .drange must follow a .dvariable of ranges, its labels in order in its function's section '.drange'\n", cAssembler.GetErrors());
