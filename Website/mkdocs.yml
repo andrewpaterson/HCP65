@@ -167,3 +167,6 @@ extra:
     - folder: CommonLibraries/Libraries/CppCompilerLib/Docs
       site: ""
       branch: master
+    - folder: CommonLibraries/Libraries/MicroprocessorLib/Docs
+      site: ""
+      branch: master

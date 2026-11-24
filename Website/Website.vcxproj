@@ -53,7 +53,6 @@
     <None Include="docs\index.md" />
     <None Include="docs\65c64\assembler.md" />
     <None Include="docs\65c64\bus.md" />
-    <None Include="docs\65c64\emulator.md" />
     <None Include="docs\65c64\examples.md" />
     <None Include="docs\65c64\index.md" />
     <None Include="docs\65c64\interrupts.md" />
