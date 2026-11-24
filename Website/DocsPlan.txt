@@ -91,7 +91,10 @@ Decided (the user's, 2026-11-24)
     the site is rebuilt; accepted.
 13. The map of docs folders lives in mkdocs.yml under extra.sources (question 5), not in a file of its own.  The IDE
     reads mkdocs.yml with a YAML parser in BaseLib (CYAMLParser, beside CXMLParser and CJSONParser, into the same
-    CMarkup tree), so it can read nav: too.
+    CMarkup tree), so it can read nav: too.  CYAMLParser and CYAMLFile were built 2026-11-24 (CommonLibraries
+    e11ce91e9, with CTextParser::SkipUTF8BOM fixed in 4a0a9da19): identical to PyYAML on this mkdocs.yml.
+14. The command-line index program lives in HCP65-IDE beside HCP65Build (question 6): it reads solutions with
+    VisualStudioLib, which is there; not in CppCompilerLib's tests.
 
 
 Proposed (my recommendations, not decided)
@@ -158,8 +161,8 @@ C. The 65C64 derived from the spreadsheet
   Check: the generated pages match today's hand-written tables (differences reviewed with the user, like fscr/fccr).
 
 D. References to code
-  1. A command-line program (question 6) reads the mapped repositories' solutions, indexes them with CCPPIndex and writes a symbol
-     table: qualified name -> repository, file, line.
+  1. A command-line program in HCP65-IDE beside HCP65Build (decision 14) reads the mapped repositories' solutions,
+     indexes them with CCPPIndex and writes a symbol table: qualified name -> repository, file, line.
   2. A small MkDocs plugin in Website/tools turns each [`Name`] into a link to its line on the repository's branch
      (decision 12; the branch per repository comes from extra.sources).
   3. The checks: unresolved reference = error; plain `CName` spans = warnings.
@@ -239,8 +242,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
  5. Where the page-to-repository map lives.  Decided 2026-11-24 (decision 13): mkdocs.yml under extra.sources,
     read by a new BaseLib CYAMLParser; not a Website/Sources.txt of its own (my first recommendation, changed once
     the JSON parser showed a YAML reader would share most of its design).
- 6. Where the command-line index program lives: beside HCP65Build in HCP65-IDE (recommended: it reads solutions with
-    VisualStudioLib), or in CppCompilerLib's tests.
+ 6. Where the command-line index program lives.  Decided 2026-11-24 (decision 14): beside HCP65Build in HCP65-IDE,
+    not in CppCompilerLib's tests.
  7. ```cpp blocks compile unless marked ```text (recommended: the asm rule), or only blocks marked to compile.
  8. Which memory notes move into the repositories: decisions and recipes (recommended), or everything.
  9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
