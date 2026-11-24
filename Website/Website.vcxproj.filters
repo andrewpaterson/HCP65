@@ -4,15 +4,6 @@
     <Filter Include="docs">
       <UniqueIdentifier>{0b1ea2a2-e090-4dd2-92d8-ddc57cbd1f42}</UniqueIdentifier>
     </Filter>
-    <Filter Include="docs\65c64">
-      <UniqueIdentifier>{37a32e11-0e0b-404f-ba5e-f78481a63d49}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="docs\65c64\images">
-      <UniqueIdentifier>{f1b34dcf-4106-4b03-9e67-b5b527af1d38}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="docs\65c64\instructions">
-      <UniqueIdentifier>{2aed88e6-3821-421a-9c0f-e82d12c11adc}</UniqueIdentifier>
-    </Filter>
     <Filter Include="docs\hcp65">
       <UniqueIdentifier>{db156417-8170-420a-820c-78bb6a44ff8c}</UniqueIdentifier>
     </Filter>
@@ -45,99 +36,6 @@
     </None>
     <None Include="docs\index.md">
       <Filter>docs</Filter>
-    </None>
-    <None Include="docs\65c64\bus.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\index.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\interrupts.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\memory-map.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\notation.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\opcode-encoding.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\operands.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\registers.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <None Include="docs\65c64\timing.md">
-      <Filter>docs\65c64</Filter>
-    </None>
-    <Image Include="docs\65c64\images\partial-multiplication.png">
-      <Filter>docs\65c64\images</Filter>
-    </Image>
-    <Image Include="docs\65c64\images\schematic-symbol.png">
-      <Filter>docs\65c64\images</Filter>
-    </Image>
-    <Image Include="docs\65c64\images\system-block-diagram.png">
-      <Filter>docs\65c64\images</Filter>
-    </Image>
-    <None Include="docs\65c64\instructions\arithmetic.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\block.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\branch.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\control.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\cpy.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\cpyx.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\find.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\hardware.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\index.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\jump.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\logical.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\multiply-divide.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\return.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\shift.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\stack.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\status.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\subcopy.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\vector.md">
-      <Filter>docs\65c64\instructions</Filter>
-    </None>
-    <None Include="docs\65c64\instructions\width.md">
-      <Filter>docs\65c64\instructions</Filter>
     </None>
     <None Include="docs\hcp65\index.md">
       <Filter>docs\hcp65</Filter>

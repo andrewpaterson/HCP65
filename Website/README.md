@@ -32,8 +32,9 @@ beside the code they describe, each folder mapped here (DocsPlan.txt step B).
 
 ## Generated pages
 
-The 65C64 Opcode Encoding page is generated from the spreadsheet's 'Opcode encoding' sheet by
-tools/sheet_to_html.py; web.sh regenerates it before every build and live preview (the command is in web.sh).
+The 65C64 Opcode Encoding page (../X65C64-Proposal/Docs/65c64/opcode-encoding.md) is generated from the spreadsheet's
+'Opcode encoding' sheet by tools/sheet_to_html.py; web.sh regenerates it before every build and live preview (the
+command is in web.sh).
 
 ## Checks
 
@@ -50,8 +51,8 @@ instruction's own page doesn't.  Both checks find pages through extra.sources (t
 fails when a file in a mapped folder isn't an item of exactly one Visual Studio project (DocsPlan.txt decision 10):
 a page goes in the project of the code it describes, a page about nothing in particular in Website.vcxproj.
 
-TestAssembler65Lib (TestAsm65C64Website.cpp) assembles every ```asm example in docs/65c64, so fence a syntax summary
-that isn't real source as ```text.
+TestAssembler65Lib (TestAsm65C64Website.cpp) assembles every ```asm example in the site's 65c64 pages, wherever they
+live, so fence a syntax summary that isn't real source as ```text.
 
 The Worked Examples page includes the feature programs from
 ../Tests/TestAssembler65Lib/TestAssembler65Lib/Input (pymdownx.snippets, base_path in mkdocs.yml).

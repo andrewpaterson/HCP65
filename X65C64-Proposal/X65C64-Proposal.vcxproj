@@ -47,5 +47,38 @@
     <None Include="System Block Diagram.odg" />
     <Image Include="System Block Diagram.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\65c64\bus.md" />
+    <Image Include="Docs\65c64\images\partial-multiplication.png" />
+    <Image Include="Docs\65c64\images\schematic-symbol.png" />
+    <Image Include="Docs\65c64\images\system-block-diagram.png" />
+    <None Include="Docs\65c64\index.md" />
+    <None Include="Docs\65c64\instructions\arithmetic.md" />
+    <None Include="Docs\65c64\instructions\block.md" />
+    <None Include="Docs\65c64\instructions\branch.md" />
+    <None Include="Docs\65c64\instructions\control.md" />
+    <None Include="Docs\65c64\instructions\cpy.md" />
+    <None Include="Docs\65c64\instructions\cpyx.md" />
+    <None Include="Docs\65c64\instructions\find.md" />
+    <None Include="Docs\65c64\instructions\hardware.md" />
+    <None Include="Docs\65c64\instructions\index.md" />
+    <None Include="Docs\65c64\instructions\jump.md" />
+    <None Include="Docs\65c64\instructions\logical.md" />
+    <None Include="Docs\65c64\instructions\multiply-divide.md" />
+    <None Include="Docs\65c64\instructions\return.md" />
+    <None Include="Docs\65c64\instructions\shift.md" />
+    <None Include="Docs\65c64\instructions\stack.md" />
+    <None Include="Docs\65c64\instructions\status.md" />
+    <None Include="Docs\65c64\instructions\subcopy.md" />
+    <None Include="Docs\65c64\instructions\vector.md" />
+    <None Include="Docs\65c64\instructions\width.md" />
+    <None Include="Docs\65c64\interrupts.md" />
+    <None Include="Docs\65c64\memory-map.md" />
+    <None Include="Docs\65c64\notation.md" />
+    <None Include="Docs\65c64\opcode-encoding.md" />
+    <None Include="Docs\65c64\operands.md" />
+    <None Include="Docs\65c64\registers.md" />
+    <None Include="Docs\65c64\timing.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

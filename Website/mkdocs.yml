@@ -191,3 +191,6 @@ extra:
     - folder: HCP65/Shell/Docs
       site: ""
       branch: main
+    - folder: HCP65/X65C64-Proposal/Docs
+      site: ""
+      branch: main

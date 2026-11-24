@@ -26,7 +26,7 @@ fi
 # Pages made from other files: the 65C64's Opcode Encoding page from its spreadsheet.
 generate() {
     .venv/bin/python tools/sheet_to_html.py "../X65C64-Proposal/65C64 Instruction Architecture.xlsx" \
-        "Opcode encoding" B8:AJ371 docs/65c64/opcode-encoding.md --title "Opcode Encoding" \
+        "Opcode encoding" B8:AJ371 ../X65C64-Proposal/Docs/65c64/opcode-encoding.md --title "Opcode Encoding" \
         --intro "How each 65C64 instruction is encoded: the 16 bit opcode on the left and the 16 bit operand word that follows it on the right.  Reproduced from the 'Opcode encoding' sheet of the 65C64 Instruction Architecture spreadsheet." \
         > /dev/null
 }

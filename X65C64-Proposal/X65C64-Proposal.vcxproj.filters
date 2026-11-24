@@ -18,4 +18,113 @@
     <None Include="System Block Diagram.odg" />
     <Image Include="System Block Diagram.png" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{0f5da464-73a5-4266-8ca4-c940e42bdcbe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\65c64">
+      <UniqueIdentifier>{46fe5a07-bd52-4690-a5e0-0fac403cb889}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\65c64\images">
+      <UniqueIdentifier>{9c830463-f1aa-4fe0-a094-0297f6bcbb56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\65c64\instructions">
+      <UniqueIdentifier>{9db697ad-db9c-4a73-81a5-6480b98c9cce}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\65c64\bus.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <Image Include="Docs\65c64\images\partial-multiplication.png">
+      <Filter>Docs\65c64\images</Filter>
+    </Image>
+    <Image Include="Docs\65c64\images\schematic-symbol.png">
+      <Filter>Docs\65c64\images</Filter>
+    </Image>
+    <Image Include="Docs\65c64\images\system-block-diagram.png">
+      <Filter>Docs\65c64\images</Filter>
+    </Image>
+    <None Include="Docs\65c64\index.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\arithmetic.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\block.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\branch.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\control.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\cpy.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\cpyx.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\find.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\hardware.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\index.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\jump.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\logical.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\multiply-divide.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\return.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\shift.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\stack.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\status.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\subcopy.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\vector.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\instructions\width.md">
+      <Filter>Docs\65c64\instructions</Filter>
+    </None>
+    <None Include="Docs\65c64\interrupts.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\memory-map.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\notation.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\opcode-encoding.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\operands.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\registers.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+    <None Include="Docs\65c64\timing.md">
+      <Filter>Docs\65c64</Filter>
+    </None>
+  </ItemGroup>
 </Project>
