@@ -203,4 +203,29 @@
       <Filter>MathTbls</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{efbbf586-0069-4836-9d25-4a07fde75400}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\compiler">
+      <UniqueIdentifier>{5504814b-0f99-48d6-bd44-0c18817542a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{1d2f878c-3348-48dd-8918-3a9307d78e88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65\runtime">
+      <UniqueIdentifier>{044625cd-ad75-4183-9487-0d5d681fdd06}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\libc65.md">
+      <Filter>Docs\compiler</Filter>
+    </None>
+    <None Include="Docs\hcp65\runtime\index.md">
+      <Filter>Docs\hcp65\runtime</Filter>
+    </None>
+    <None Include="Docs\hcp65\runtime\w65c816.md">
+      <Filter>Docs\hcp65\runtime</Filter>
+    </None>
+  </ItemGroup>
 </Project>

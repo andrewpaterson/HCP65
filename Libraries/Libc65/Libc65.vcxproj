@@ -145,6 +145,11 @@
     <None Include="MathTbls\SQRT3.HEX" />
     <None Include="MathTbls\SQUARE.HEX" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\libc65.md" />
+    <None Include="Docs\hcp65\runtime\index.md" />
+    <None Include="Docs\hcp65\runtime\w65c816.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

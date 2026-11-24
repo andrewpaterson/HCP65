@@ -173,3 +173,6 @@ extra:
     - folder: HCP65/Libraries/Assembler65Lib/Docs
       site: ""
       branch: main
+    - folder: HCP65/Libraries/Libc65/Docs
+      site: ""
+      branch: main

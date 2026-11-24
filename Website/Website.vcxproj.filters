@@ -13,14 +13,8 @@
     <Filter Include="docs\65c64\instructions">
       <UniqueIdentifier>{2aed88e6-3821-421a-9c0f-e82d12c11adc}</UniqueIdentifier>
     </Filter>
-    <Filter Include="docs\compiler">
-      <UniqueIdentifier>{8531dbe7-c984-4240-8b15-55400fec6f91}</UniqueIdentifier>
-    </Filter>
     <Filter Include="docs\hcp65">
       <UniqueIdentifier>{db156417-8170-420a-820c-78bb6a44ff8c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="docs\hcp65\runtime">
-      <UniqueIdentifier>{8b7d25ad-24cd-4bcc-9998-5ee2d8da1f08}</UniqueIdentifier>
     </Filter>
     <Filter Include="docs\libraries">
       <UniqueIdentifier>{4f354b51-d507-442a-9d11-6c3f502da45e}</UniqueIdentifier>
@@ -145,9 +139,6 @@
     <None Include="docs\65c64\instructions\width.md">
       <Filter>docs\65c64\instructions</Filter>
     </None>
-    <None Include="docs\compiler\libc65.md">
-      <Filter>docs\compiler</Filter>
-    </None>
     <None Include="docs\hcp65\boot.md">
       <Filter>docs\hcp65</Filter>
     </None>
@@ -180,12 +171,6 @@
     </None>
     <None Include="docs\hcp65\sprites.md">
       <Filter>docs\hcp65</Filter>
-    </None>
-    <None Include="docs\hcp65\runtime\index.md">
-      <Filter>docs\hcp65\runtime</Filter>
-    </None>
-    <None Include="docs\hcp65\runtime\w65c816.md">
-      <Filter>docs\hcp65\runtime</Filter>
     </None>
     <None Include="docs\libraries\index.md">
       <Filter>docs\libraries</Filter>

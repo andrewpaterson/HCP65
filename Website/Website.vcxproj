@@ -82,7 +82,6 @@
     <None Include="docs\65c64\instructions\subcopy.md" />
     <None Include="docs\65c64\instructions\vector.md" />
     <None Include="docs\65c64\instructions\width.md" />
-    <None Include="docs\compiler\libc65.md" />
     <None Include="docs\hcp65\boot.md" />
     <None Include="docs\hcp65\console.md" />
     <None Include="docs\hcp65\devices.md" />
@@ -94,8 +93,6 @@
     <None Include="docs\hcp65\registers.md" />
     <None Include="docs\hcp65\screen.md" />
     <None Include="docs\hcp65\sprites.md" />
-    <None Include="docs\hcp65\runtime\index.md" />
-    <None Include="docs\hcp65\runtime\w65c816.md" />
     <None Include="docs\libraries\index.md" />
     <None Include="docs\stylesheets\extra.css" />
   </ItemGroup>
