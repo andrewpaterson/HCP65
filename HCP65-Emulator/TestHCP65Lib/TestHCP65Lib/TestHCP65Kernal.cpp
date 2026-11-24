@@ -2447,6 +2447,7 @@ void TestHCP65KernalVideo(STestKernal* psKernal)
 	//3, the transparent one 10 to its right with the set palette 4, and the SFT 20 to its right with 4 again (the image
 	//before it didn't leave its own set).  Whichever frame it is, the other is the picture drawn after.
 	puiIndices = NULL;
+	puiNumbers = NULL;
 	for (i = 0; i < 2; i++)
 	{
 		if (pcVideo->GetChip(i, 0)[TEST_HCP65_VIDEO_IMAGES_Y * 640 + TEST_HCP65_VIDEO_IMAGES_X] == 0x01)
