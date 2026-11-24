@@ -51,9 +51,10 @@ These pages are written from:
 In the HCP65 repository:
 
 - `X65C64-Proposal/65C64 Instruction Architecture.xlsx` (V0.1 Prelim), the architecture spreadsheet.
-- `X65C64-Proposal/65C64 Instruction Architecture - Copy.pdf`, the draft instruction reference for
-  `cpy`.
 - `X65C64-Proposal/65C64 Proposal.odt`, the original proposal.
+
+The draft instruction reference for `cpy` (`65C64 Instruction Architecture - Copy.pdf`) was
+replaced by the [`cpy`](instructions/cpy.md) page and deleted; commit 74337b9 is the last to have it.
 
 Every example on these pages assembles with the assembler: a test (TestAssembler65Lib)
 assembles them all.
