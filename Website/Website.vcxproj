@@ -82,7 +82,6 @@
     <None Include="docs\65c64\instructions\subcopy.md" />
     <None Include="docs\65c64\instructions\vector.md" />
     <None Include="docs\65c64\instructions\width.md" />
-    <None Include="docs\hcp65\console.md" />
     <None Include="docs\hcp65\index.md" />
     <None Include="docs\libraries\index.md" />
     <None Include="docs\stylesheets\extra.css" />

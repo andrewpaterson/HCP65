@@ -33,4 +33,17 @@
       <Filter>Header</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{5986be52-b6b0-497f-9d44-6e982ca2dc8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{7f5bf555-422c-49ee-8f2f-ac86ecc88e46}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\console.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -139,9 +139,6 @@
     <None Include="docs\65c64\instructions\width.md">
       <Filter>docs\65c64\instructions</Filter>
     </None>
-    <None Include="docs\hcp65\console.md">
-      <Filter>docs\hcp65</Filter>
-    </None>
     <None Include="docs\hcp65\index.md">
       <Filter>docs\hcp65</Filter>
     </None>
