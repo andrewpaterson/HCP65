@@ -32,7 +32,7 @@ The website (HCP65/Website):
     sheet, run by hand (web.sh doesn't).  pymdownx.snippets has one base_path (TestAssembler65Lib's Input) and one
     page uses it (examples.md).
   - All four repositories are public on GitHub (CommonLibraries = Codaphela.Library, HCP65, HCP65-IDE, LogiCim =
-    Codaphela.LogiCim), so permalinks work for anyone.
+    Codaphela.LogiCim), so links to the code work for anyone.
 
 The IDE (HCP65-IDE):
   - VisualStudioLib reads ClCompile, ClInclude, None, Text, Image and CustomBuild items (VcxItem.cpp); no sign of
@@ -86,6 +86,9 @@ Decided (the user's, 2026-11-24)
     under a Sources.txt folder is an item of exactly one project, and fails (with the page's path) when one isn't.
 11. Test data (a test's Input and Output folders) is owned by its test project by where it is, not as items
     (question 11): it isn't documentation, the tests find it by path, and Solution Explorer doesn't show it.
+12. Links to code go to the branch (question 4): GitHub's blob/<branch>/<path>#L<line> with each repository's branch
+    (CommonLibraries master, the others main), not pinned to a commit.  Line numbers can drift as files change until
+    the site is rebuilt; accepted.
 
 
 Proposed (my recommendations, not decided)
@@ -95,7 +98,7 @@ Proposed (my recommendations, not decided)
     the site is today, so URLs and relative links between pages don't change.
   - References to code (explicit, decision 8) are written Rust style.  An unresolved one is a build error.  A plain code span that looks like a class (`CFoo`) and isn't a reference is
     a warning, which is also the worklist for converting the existing pages.
-  - A reference becomes a GitHub permalink at the commit the site was built from.
+  - A reference becomes a GitHub link to the line on the repository's branch (decision 12).
   - Tables are generated, never written by hand, wherever a source exists: the spreadsheet for the 65C64, the KiCad
     netlists for the HCP65's memory map, registers and pinouts.
   - Examples are tests: ```cpp blocks compile (check only, the semantic pass's front end), ```text is for sketches,
@@ -154,8 +157,8 @@ C. The 65C64 derived from the spreadsheet
 D. References to code
   1. A command-line program (question 6) reads Sources.txt's solutions, indexes them with CCPPIndex and writes a symbol
      table: qualified name -> repository, file, line.
-  2. A small MkDocs plugin in Website/tools turns each [`Name`] into a permalink at the repository's commit (the commit
-     the gather step saw; a dirty tree links to the branch and warns).
+  2. A small MkDocs plugin in Website/tools turns each [`Name`] into a link to its line on the repository's branch
+     (decision 12; the branch per repository comes from Sources.txt).
   3. The checks: unresolved reference = error; plain `CName` spans = warnings.
   4. Convert the existing pages from the warnings list.
   Check: a fixture page with good, bad and plain references gives exactly the expected errors and warnings.
@@ -228,7 +231,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
     Website.
  3. Keeping project item lists complete.  Decided 2026-11-24 (decision 10): hand-listed items plus a check, not
     wildcard Include (which was my recommendation).
- 4. Permalinks pinned to the commit the site was built from (recommended: links never drift) or to the branch.
+ 4. Links pinned to a commit or to the branch.  Decided 2026-11-24 (decision 12): the branch, not the commit the
+    site was built from (which was my recommendation).
  5. The page-to-repository map as its own file, Website/Sources.txt (recommended), or in mkdocs.yml's extra section.
  6. Where the command-line index program lives: beside HCP65Build in HCP65-IDE (recommended: it reads solutions with
     VisualStudioLib), or in CppCompilerLib's tests.
