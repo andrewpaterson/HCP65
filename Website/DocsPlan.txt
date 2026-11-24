@@ -103,6 +103,10 @@ Decided (the user's, 2026-11-24)
     design pages and plans' decision lists), recipes (to CLAUDE.md files and testing pages), how the user wants
     Claude to work (to CLAUDE.md, so every session follows them, the IDE's Claude tab included) and status and
     handoffs (to the plan files).  Machine fixes and session history stay in memory; what stays becomes pointers.
+17. A finished plan whose design page exists is superseded and deleted (question 9; decision 4's rule): the design
+    page names the last commit that had it.  Only a fully finished plan: its open items move to the design page's
+    "not done" list first (a plan kept as a gap list, like Navigation.txt, stays until then), and what points at it
+    (other plans, notes, memory) is changed to point at the design page.
 
 
 Proposed (my recommendations, not decided)
@@ -201,7 +205,7 @@ F. Examples as tests
 G. Designs
   1. When a plan is finished, a design page is written from it next to its code: how it works, then the decisions
      with their reasons and dates.  The class's main header names the page in one line.
-  2. What becomes of the plan file is question 9.
+  2. Then the plan file is deleted (decision 17), once its open items and the references to it have moved.
   3. The decisions now only in Claude's memory notes move into these pages as they are written.
   Check: each design page passes the reference check like any other.
 
@@ -259,8 +263,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
     with the page's headers, ```{.cpp .no-check} to exempt one; not only blocks marked to compile.
  8. Which memory notes move into the repositories.  Decided 2026-11-24 (decision 16): design rulings, recipes, how
     Claude should work, and status and handoffs; not machine fixes or session history, and not only the rulings.
- 9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
-    (recommended: decision 4's rule), or kept beside the code as history.
+ 9. A finished plan once its design page exists.  Decided 2026-11-24 (decision 17): superseded and deleted, the page
+    naming its last commit; not kept beside the code as history.
 10. MCP: served by the running IDE (recommended: the index is already live there), or a separate headless program.
 11. Test data in Input/Output folders.  Decided 2026-11-24 (decision 11): owned by its test project by where it is,
     not as items; not hand-listed like pages.
