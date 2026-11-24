@@ -115,6 +115,10 @@ Decided (the user's, 2026-11-24)
     and D, its design notes becoming its design pages and its status notes their "what is built" and "not done" (or
     its plan's open items), then those notes deleted.  Largest areas first: WindowLib, the compiler, BaseLib and
     StandardLib, Assembler65Lib and Libc65, then the rest.
+20. The indexing setup moves out of the IDE app into a library both the IDE and D1's program use, so they index a
+    workspace identically (the user, 2026-11-24): HCP65-IDE/Libraries/IndexLib, CWorkspaceIndex (the configuration,
+    the system headers, the projects' include folders and defines, the worker-thread indexing), from which the
+    IDE's CIDECodeModel derives.
 
 
 Proposed (my recommendations, not decided)
@@ -220,6 +224,10 @@ C. The 65C64 derived from the spreadsheet
   Check: the generated pages match today's hand-written tables (differences reviewed with the user, like fscr/fccr).
 
 D. References to code
+  0. The indexing setup in a library (decision 20): IndexLib's CWorkspaceIndex, tested by TestIndexLib on a small
+     solution; CIDECodeModel derives from it.  BUILT 2026-11-24 (HCP65-IDE 728fb84): TestIndexLib passes 64 and 32
+     bit Debug and 64 bit Release; the IDE checks pass but enum-to-class, which fails the same at HCP65-IDE's HEAD
+     before IndexLib (EMode's cast in its own enumerator list isn't found).
   1. A command-line program in HCP65-IDE beside HCP65Build (decision 14) reads the mapped repositories' solutions,
      indexes them with CCPPIndex and writes a symbol table: qualified name -> repository, file, line.
   2. A small MkDocs plugin in Website/tools turns each [`Name`] into a link to its line on the repository's branch
@@ -227,6 +235,10 @@ D. References to code
   3. The checks: unresolved reference = error; plain `CName` spans = warnings.
   4. Convert the existing pages from the warnings list.
   Check: a fixture page with good, bad and plain references gives exactly the expected errors and warnings.
+  Still to ask (one at a time): which solutions D1 indexes (recommended: a short list beside extra.sources in
+  mkdocs.yml, the symbol table cached until a repository changes); which plain code spans warn (recommended: only
+  those naming a real symbol, so made-up example names like CTank never do); where a reference to a class or an
+  overloaded function links (recommended: its declaration in the header).
 
 E. The IDE treats docs as code (HCP65-IDE)
   1. BuildLib: a Makefile project with a build command is built by running it (a CCommandBuild subclass), whatever
