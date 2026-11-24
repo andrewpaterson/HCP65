@@ -476,6 +476,7 @@ static bool TestKernalPutExe(const char* szImage, const char* szName, const char
 {
 	CHCP65ExeBuilder	cExe;
 	CChars				szDebug;
+	const char*			szFile;
 	bool				bBuilt;
 
 	cExe.Init();
@@ -487,8 +488,10 @@ static bool TestKernalPutExe(const char* szImage, const char* szName, const char
 	AssertTrue(bBuilt);
 	if (bBuilt)
 	{
-		//Its debug file beside it in Output, named as the program is (\excepts.exe's Output/excepts.debug).
-		szDebug.Init(TEST_HCP65_OUTPUT _FS_)->Append(&szName[1]);
+		//Its debug file in Output, named as the program's file is (\excepts.exe's Output/excepts.debug, \OS\INIT.EXE's
+		//Output/INIT.debug).
+		szFile = strrchr(szName, '\\');
+		szDebug.Init(TEST_HCP65_OUTPUT _FS_)->Append(szFile ? szFile + 1 : szName);
 		szDebug.SetLength(szDebug.FindFromEnd('.'));
 		szDebug.Append(".debug");
 		AssertTrue(cExe.GetDebugInfo()->WriteFile(szDebug.Text()));
