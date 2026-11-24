@@ -2,13 +2,16 @@
 #include "BaseLib/ArrayChars.h"
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/TextFile.h"
+#include "BaseLib/YAMLFile.h"
 #include "Assembler65Lib/Asm65C64Assembler.h"
 #include "Assembler65Lib/Asm65Object.h"
 #include "TestLib/Assert.h"
 #include "TestAsm65C64Context.h"
 
 
-#define TEST_ASM65_WEBSITE_65C64	".." _FS_ ".." _FS_ ".." _FS_ "Website" _FS_ "docs" _FS_ "65c64"
+#define TEST_ASM65_WEBSITE			".." _FS_ ".." _FS_ ".." _FS_ "Website"
+#define TEST_ASM65_WEBSITE_ROOT		".." _FS_ ".." _FS_ ".." _FS_ ".."
+#define TEST_ASM65_WEBSITE_65C64	"65c64/"
 #define TEST_ASM65_WEBSITE_FENCE	"```asm"
 #define TEST_ASM65_WEBSITE_END		"```"
 #define TEST_ASM65_WEBSITE_INCLUDED	"--8<--"
@@ -179,21 +182,81 @@ static size TestAsm65WebsitePage(const char* szFilename, CChars* pszMessage)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The pages the website puts in its 65c64 folder.  They live beside their
+// code in several repositories; mkdocs.yml's extra.sources maps each
+// folder (relative to the folder holding the repositories) to where its
+// files land in the site.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestAsm65WebsiteFindPages(CArrayChars* paszPages)
+{
+	CYAMLFile		cYAMLFile;
+	CMarkupTag*		pcSources;
+	CMarkupTag*		pcSource;
+	STagIterator	sIter;
+	CFileUtil		cFileUtil;
+	CArrayChars		aszFiles;
+	CChars			szFolder;
+	CChars			szStaged;
+	const char*		szSite;
+	const char*		szFile;
+	size			i;
+
+	cYAMLFile.Init();
+	AssertTrue(cYAMLFile.Read("mkdocs.yml", TEST_ASM65_WEBSITE));
+	pcSources = cYAMLFile.mcMarkup.mpcDoc->GetRootTag()->GetTag("extra")->GetTag("sources");
+	AssertNotNull(pcSources);
+
+	for (pcSource = pcSources->GetTag(&sIter); pcSource != NULL; pcSource = pcSources->GetNextTag(&sIter))
+	{
+		szFolder.Init(TEST_ASM65_WEBSITE_ROOT);
+		cFileUtil.AppendToPath(&szFolder, pcSource->GetStringAttribute("folder"));
+		cFileUtil.FullPath(&szFolder);
+		szSite = pcSource->GetStringAttribute("site");
+
+		aszFiles.Init();
+		cFileUtil.FindFilesWithExtension(szFolder.Text(), "md", &aszFiles, true);
+		for (i = 0; i < aszFiles.NumElements(); i++)
+		{
+			szFile = aszFiles.GetText(i);
+			AssertTrue(strncmp(szFile, szFolder.Text(), szFolder.Length()) == 0);
+
+			szStaged.Init(szSite);
+			if (!szStaged.Empty())
+			{
+				szStaged.Append('/');
+			}
+			szStaged.Append(&szFile[szFolder.Length() + 1]);
+			szStaged.Replace('\\', '/');
+			if (szStaged.StartsWith(TEST_ASM65_WEBSITE_65C64))
+			{
+				paszPages->Add(szFile);
+			}
+			szStaged.Kill();
+		}
+		aszFiles.Kill();
+		szFolder.Kill();
+	}
+	cYAMLFile.Kill();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The website says every 65C64 example on it assembles: assemble them all
-// (Website/docs/65c64, every page).
+// (every page in the site's 65c64 folder, wherever it lives).
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65C64WebsiteExamples(void)
 {
-	CFileUtil	cFileUtil;
 	CArrayChars	aszFiles;
 	CChars		szMessage;
 	size		i;
 	size		uiExamples;
 
 	aszFiles.Init();
-	cFileUtil.FindFilesWithExtension(TEST_ASM65_WEBSITE_65C64, "md", &aszFiles, true);
-	AssertTrue(aszFiles.NumElements() >= 20);
+	TestAsm65WebsiteFindPages(&aszFiles);
+	AssertTrue(aszFiles.NumElements() >= 30);
 
 	szMessage.Init();
 	uiExamples = 0;
