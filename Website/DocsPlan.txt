@@ -1,0 +1,245 @@
+Documentation, website and Claude (DocsPlan.txt, plan, 2026-11-24)
+==================================================================
+
+The user (2026-11-24): "Plan out the documentation / website / claude integration ... plan".  It follows a
+discussion the same day: "The IDE needs to treat those markdown docs as essentially a part of the code?", "How do
+high level designs tie in?" and "can this become something that Claude can be pointed at?".
+
+Nothing here is built and nothing is a go-ahead: the decisions under "Decided" are the user's, everything else is
+proposed.  The questions under "What is the user's to decide" are asked one at a time, my recommendation first.
+
+
+The goal
+--------
+
+One set of documentation that is part of the code: written in the repositories next to what it describes, built and
+checked like code, kept right by the IDE's refactorings, and readable by people (the website), by the IDE and by
+Claude.  The rule underneath it all: the C++ index (CppCompilerLib's CCPPIndex) decides what a reference in a page
+means, the same code for the IDE (live, while editing) and for the website build (in a batch), so they can never
+disagree.
+
+
+What there is to build on (surveyed 2026-11-24)
+-----------------------------------------------
+
+The website (HCP65/Website):
+  - MkDocs + Material, built by web.sh (build, serve, live) with its own .venv (mkdocs-material, glightbox,
+    table-reader, openpyxl).  `mkdocs build --strict` passes.  84 pages: 65c64 33, ide 25, hcp65 13, compiler 11,
+    libraries 1.  The pages name source files in backticks but link to none.
+  - Checks: tools/check_instruction_tables.py (the 65C64 instruction index against the instruction pages; web.sh runs
+    it) and TestAssembler65Lib's TestAsm65C64Website.cpp, which assembles every ```asm block under docs/65c64.
+  - Generated: only docs/65c64/opcode-encoding.md, by tools/sheet_to_html.py from the spreadsheet's 'Opcode encoding'
+    sheet, run by hand (web.sh doesn't).  pymdownx.snippets has one base_path (TestAssembler65Lib's Input) and one
+    page uses it (examples.md).
+  - All four repositories are public on GitHub (CommonLibraries = Codaphela.Library, HCP65, HCP65-IDE, LogiCim =
+    Codaphela.LogiCim), so permalinks work for anyone.
+
+The IDE (HCP65-IDE):
+  - VisualStudioLib reads ClCompile, ClInclude, None, Text, Image and CustomBuild items (VcxItem.cpp); no sign of
+    wildcard Include support.  Libc65.vcxproj is a Makefile project with no commands (indexed, never built).
+  - BuildLib builds a whole solution with one toolchain: HCP65, MSVC or GCC (SolutionBuild.h).  Nothing runs a
+    Makefile project's NMakeBuildCommandLine.  CCommandBuild (CommandBuild.h) runs programs one after another and
+    collects their output: a subclass says what to run.
+  - The Build pane and Problems list understand "<file> (<line>, <column>): ", MSVC's "<file>(<line>,<column>): " and
+    GCC's "<file>:<line>:<column>: <kind>: " (CIDEMessageOutput::ParseMessageLine), so a check that prints GCC's form
+    gets clickable rows for nothing.
+  - Rename's text search covers .txt and .md items of the solution's projects (IDERename.cpp:267); files outside the
+    solution aren't searched (a gap listed in the IDE notes).  No Markdown highlighting; no "open with the system's
+    program" for files that aren't text.
+  - The Claude tab runs `claude -p` with --add-dir for the git root of every workspace solution and project
+    (CIDEAskClaude::AddClaudeDirectories).
+
+The index: CCPPIndex lives in CppCompilerLib.  Only the IDE and TestCppIndex use it; there is no command-line program
+that indexes a solution and writes out what it found.
+
+Claude: no repository has a CLAUDE.md.  What Claude knows of the project's decisions is mostly in about 195 memory
+notes under ~/.claude: not versioned, not seen by other people, and not seen by sessions started outside ~/Codaphela
+(the IDE's Claude tab starts in a solution or repository folder).  Claude Code doesn't load the CLAUDE.md of an
+--add-dir folder unless CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 is set.
+
+Files that aren't source (tracked, 2026-11-24): KiCad (HCP65: 260 schematics, 223 PCBs, 443 footprints; LogiCim: 23
+schematics), Gerber and drill outputs, 371 STEP models, 278 datasheet PDFs in HCP65/Datasheets, the 65C64
+spreadsheet, test Input/Output data (CommonLibraries: 892 PNG, 767 .bin...), fonts, pictures, sounds, project and
+build files, about 180 .txt notes and plans.
+
+
+Decided (the user's, 2026-11-24)
+--------------------------------
+
+ 1. The IDE treats the Markdown docs as part of the code.
+ 2. Pages live next to the code they describe, each an item of that code's .vcxproj (one owning project per page),
+    not all in one Website project ("This sounds much better").  Website.vcxproj keeps what belongs to the site as a
+    whole.
+ 3. HCP65/Datasheets is excluded from the documentation: no project items, no references, no manifest.
+ 4. A file the website has replaced is deleted from the repository, and the page says which commit last had it.  Done
+    for the cpy draft PDF (HCP65 c61cfa6).
+ 5. The 65C64's source of truth is X65C64-Proposal/65C64 Instruction Architecture.xlsx; the website is derived from
+    it.  fscr and fccr were missing from its Instructions sheet and were added in red (HCP65 bd998c0).
+ 6. Find names: set / clear for bits, non-zero / zero for crumbs, nybbles and bytes (website: HCP65 db6ec74).
+ 7. Spreadsheet edits go through LibreOffice (installed 2026-11-24, 24.2.7.2, the version that writes the file).
+
+
+Proposed (my recommendations, not decided)
+------------------------------------------
+
+  - One site, built from many folders: each repository's Docs folders are gathered into a staging folder laid out as
+    the site is today, so URLs and relative links between pages don't change.
+  - References to code are explicit, Rust style: [`CTextArea`], [`CTextArea::ReplaceRanges`], [`BaseLib/Chars.h`].
+    An unresolved one is a build error.  A plain code span that looks like a class (`CFoo`) and isn't a reference is
+    a warning, which is also the worklist for converting the existing pages.
+  - A reference becomes a GitHub permalink at the commit the site was built from.
+  - Tables are generated, never written by hand, wherever a source exists: the spreadsheet for the 65C64, the KiCad
+    netlists for the HCP65's memory map, registers and pinouts.
+  - Examples are tests: ```cpp blocks compile (check only, the semantic pass's front end), ```text is for sketches,
+    the rule ```asm already follows; longer code comes from test files through named snippet sections.
+  - Designs: a finished plan becomes a design page (how it works + the decisions and why); the class's main header
+    points at it in one line.
+  - Not doing: Doxygen or generated API pages (they copy the headers and bring a second C++ parser), implicit
+    references (Rename's text search found 106 unrelated Kills), per-repository sites, a home-made source browser.
+
+
+What is to be built
+-------------------
+
+A. The site build (HCP65/Website)
+  1. A map file (Website/Sources.txt): each line a folder in a repository and the site folder it lands in, e.g.
+     `HCP65-IDE/HCP65IDE/Docs -> ide`.  Read by the site build AND the IDE (to resolve a link from where a page
+     really is), so it is one plain file, not something inside web.sh.
+  2. web.sh build: run every generator (sheet_to_html.py and those from C), gather the map's folders into a staging
+     folder (copies, not symlinks: Windows), run every check, then `mkdocs build --strict` with docs_dir = staging.
+     The snippets base_path list comes from the map too.
+  3. Every check prints GCC's "<file>:<line>:<column>: error: ..." with the page's real path (not the staging copy),
+     so the IDE's Build pane and Problems list can jump to it.
+  4. Website.vcxproj (+ .filters, + Website.sln): a Makefile project.  Items: mkdocs.yml, Sources.txt, the cross-cutting
+     pages, stylesheets, tools, DocsPlan.txt.  NMakeBuildCommandLine = web.sh build (Rebuild and Clean too).
+  Check: the site builds byte-identically before and after A with nothing moved.
+
+B. Pages move next to their code
+  1. `git mv` per repository, a Docs folder beside the owning project, the pages added to its .vcxproj as None items
+     (filters: Docs), a Sources.txt line each.  Images move with their pages.
+  2. Proposed owners:
+       ide (25)                    HCP65-IDE/HCP65IDE/Docs (HCP65IDE.vcxproj)
+       compiler: front end, IR     CommonLibraries/Libraries/CppCompilerLib/Docs
+       compiler: assembler, linker HCP65/Libraries/Assembler65Lib/Docs
+       compiler: libc65            HCP65/Libraries/Libc65/Docs
+       libraries (1, and more)     each library's own Docs
+       65c64 assembler pages       Assembler65Lib/Docs
+       65c64 architecture pages    with the spreadsheet (question 2)
+       hcp65 hardware pages        HCP65Lib or Website (question 2)
+       hcp65 kernal, boot pages    HCP65/Kernal, HCP65/OperatingSystem
+  Check: the site's URLs are unchanged (compare the built site's file list before and after); strict build passes.
+
+C. The 65C64 derived from the spreadsheet
+  1. Generators read the xlsx (openpyxl) on every build: the Instructions sheet becomes the instruction index and each
+     instruction page's summary table (as Markdown files the hand-written pages include by snippet); the Registers,
+     Addressing modes, Operand encoding and Hardware registers sheets become their pages.  Pinout and Memory bank
+     remapping are outside the 65C64's scope and are skipped.  Generated files say "Generated from ... Do not edit".
+  2. A check: every mnemonic a hand-written page names exists in the spreadsheet.
+  3. The generator also writes a plain text table of the instructions (mnemonic, codes) next to the spreadsheet, in
+     the repository: readable diffs for every spreadsheet change, and something C++ tests can read.
+  4. Tests in TestAssembler65Lib and TestMicroprocessorLib compare the assembler's and the simulator's tables with that
+     text table, so the code follows the spreadsheet too.
+  Check: the generated pages match today's hand-written tables (differences reviewed with the user, like fscr/fccr).
+
+D. References to code
+  1. A command-line program (question 6) reads Sources.txt's solutions, indexes them with CCPPIndex and writes a symbol
+     table: qualified name -> repository, file, line.
+  2. A small MkDocs plugin in Website/tools turns each [`Name`] into a permalink at the repository's commit (the commit
+     the gather step saw; a dirty tree links to the branch and warns).
+  3. The checks: unresolved reference = error; plain `CName` spans = warnings.
+  4. Convert the existing pages from the warnings list.
+  Check: a fixture page with good, bad and plain references gives exactly the expected errors and warnings.
+
+E. The IDE treats docs as code (HCP65-IDE)
+  1. BuildLib: a Makefile project with a build command is built by running it (a CCommandBuild subclass), whatever
+     the solution's toolchain.  Its output goes through ParseMessageLine like any other.
+  2. VisualStudioLib: wildcard Include (docs\**\*.md) if question 3 says so.
+  3. The code model reads the solution's .md items: links, snippet paths and [`Name`] references become index places
+     of a new usage type, Documentation, resolved by the same code as D.
+  4. Then, from the existing machinery: Rename changes references exactly (no longer as text); Rename File changes
+     links and snippet paths; Find Usages shows a Documentation group; Go to Definition works from a page; an
+     unresolved reference is marked like a compile error.
+  5. Markdown highlighting (headings, code, links, references coloured resolved / unresolved).
+  6. "Open with the system's program" for items that aren't text (PDF, .kicad_sch, .xlsx, .odt, images).
+  Check: IDE checks on a fixture solution (Checks/Input/Docs): rename a class and a file, find usages, go to
+  definition from a page, a broken reference in the Problems list.
+
+F. Examples as tests
+  1. ```cpp blocks in pages compile, check only, through the semantic pass's front end; ```text is skipped.
+  2. Named snippet sections (// --8<-- [start:name]) in test files, included by name.
+  Check: a page with a broken ```cpp block fails the build with a clickable error.
+
+G. Designs
+  1. When a plan is finished, a design page is written from it next to its code: how it works, then the decisions
+     with their reasons and dates.  The class's main header names the page in one line.
+  2. What becomes of the plan file is question 9.
+  3. The decisions now only in Claude's memory notes move into these pages as they are written.
+  Check: each design page passes the reference check like any other.
+
+H. Claude
+  1. A CLAUDE.md per repository (CommonLibraries, HCP65, HCP65-IDE, LogiCim, HCP65-Sculpt): a short map to the
+     Docs folders, design pages, plans, and the build and test commands.  Independent of A-G: can go first.
+  2. The IDE's Claude tab sets CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 so the --add-dir repositories' CLAUDE.md
+     files load too.
+  3. Memory notes that record decisions or recipes move into the repositories (G, CLAUDE.md); the notes keep only
+     pointers and session history.
+  4. Later: the IDE serves its live index over MCP (find definition, find usages including Documentation, the pages
+     that cover a symbol), so Claude asks the index instead of grepping.  question 10.
+  5. Only if the site is published: llms.txt (mkdocs-llmstxt) at the site root.
+  Check: a fresh `claude -p` in each repository answers "where is X documented and how is it built" from CLAUDE.md
+  alone (the claude-request IDE check's stand-in for the tab).
+
+I. Files that aren't source
+  1. Each has one owning project; bulk test data is one wildcard item per Input folder.
+  2. Each is source, generated (record the command and what it is made from; never edited by hand) or third-party
+     (where it came from, which version).
+  3. Tables from KiCad: the HCP65 memory map, registers and pinouts generated from the netlists with
+     KicadImporterLib, and checked against the hand-written prose like C.
+  4. References to KiCad parts and nets (reference designator, /net) checked against the netlist.
+
+
+Order
+-----
+
+H1 first (cheap, independent, helps every session).  Then A, B, D in that order: B needs A's map, D needs B's final
+paths.  C can go any time after A.  E after D (it reuses D's resolver).  F, G, I and the rest of H after E, in any
+order.
+
+
+What is the user's to decide
+----------------------------
+
+Asked one at a time, my recommendation first.  Not yet asked unless marked.
+
+ 1. The reference syntax: explicit [`Name`] (recommended), or implicit (any code span that matches a symbol).
+ 2. Owners of the 65c64 architecture pages and the hcp65 hardware pages: X65C64-Proposal (with the spreadsheet, as a
+    small Makefile project of its own) and HCP65Lib (the emulator implements those devices) (recommended); or both in
+    Website.
+ 3. Keeping project item lists complete: wildcard Include in VisualStudioLib (recommended; VS understands it too); or
+    hand-listed items plus a check that fails when a page isn't in a project.
+ 4. Permalinks pinned to the commit the site was built from (recommended: links never drift) or to the branch.
+ 5. The page-to-repository map as its own file, Website/Sources.txt (recommended), or in mkdocs.yml's extra section.
+ 6. Where the command-line index program lives: beside HCP65Build in HCP65-IDE (recommended: it reads solutions with
+    VisualStudioLib), or in CppCompilerLib's tests.
+ 7. ```cpp blocks compile unless marked ```text (recommended: the asm rule), or only blocks marked to compile.
+ 8. Which memory notes move into the repositories: decisions and recipes (recommended), or everything.
+ 9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
+    (recommended: decision 4's rule), or kept beside the code as history.
+10. MCP: served by the running IDE (recommended: the index is already live there), or a separate headless program.
+
+Related, not about docs (asked 2026-11-24, unanswered): fcny, fccr and fcby stop at a unit with ANY bit clear, not at
+a zero unit, so "zero" in their names doesn't match the behaviour.  Rename them or change what they do?
+
+
+Things to watch for
+-------------------
+
+  - Other sessions edit these repositories at the same time: check git status, commit only this work's files.
+  - Generated files are never edited by hand; the generator is changed and rerun.
+  - The staging folder must reproduce today's layout exactly or every relative link breaks: compare the built site's
+    file list before and after each move.
+  - A check reporting a staging path is useless to the IDE: always the page's real path.
+  - Indexing every solution for D takes time (the IDE's startup indexing is about 10 s per large solution): cache the
+    symbol table by commit.
+  - The spreadsheet is edited with LibreOffice, not by rewriting its XML.
+  - mkdocs strict mode: a `|` inside a code span in a table needs <code>..&#124;..</code>.
