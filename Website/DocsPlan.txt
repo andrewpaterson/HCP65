@@ -330,9 +330,8 @@ E. The IDE treats docs as code (HCP65-IDE)
   references, rename a page changing the link to it, a broken reference in Problems and underlined, a plain span's
   warning, the page's colours, Website.sln built.
   Order: 1 (it changes D, so first, while D is fresh), 2 (independent), 3, 4, 5, 6.
+  Decided (the user, 2026-11-24): resolving moves into C++ (step 1), one implementation for the IDE and the site.
   Still to ask (one at a time):
-    - Whether resolving moves into C++ (step 1; recommended: yes, it is the plan's rule, and the IDE needs the
-      resolver anyway; the cost is rewriting about 300 lines of Python as C++ with their tests).
     - What the IDE does with a reference to a symbol its open workspace doesn't have (a kernal struct named in a
       compiler page while only HCP65IDE.sln is open).  Recommended: resolve it from the site's symbol table
       (Website/.symbols) when there is one, so Go to Definition still works and it isn't marked as an error; Rename
