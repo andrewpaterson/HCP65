@@ -21,6 +21,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include <string.h>
 #include "BaseLib/ConstructorCall.h"
 #include "AsmW65C816StackWalker.h"
+#include "Asm65C64StackWalker.h"
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -451,6 +452,9 @@ CAsm65StackWalker* Asm65NewStackWalker(EAsm65DebugProcessor eProcessor, CAsm65St
 	{
 	case ADP_W65C816:
 		pcWalker = NewMalloc<CAsmW65C816StackWalker>();
+		break;
+	case ADP_65C64:
+		pcWalker = NewMalloc<CAsm65C64StackWalker>();
 		break;
 	default:
 		return NULL;

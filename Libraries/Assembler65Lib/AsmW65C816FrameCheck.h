@@ -24,18 +24,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 #include "BaseLib/ArrayTemplate.h"
 #include "MicroprocessorLib/FastW65C816.h"
 #include "Asm65Memory.h"
-#include "Asm65StackWalker.h"
-
-
-//A call being run: S before the jsl (S is below it while the call runs), the caller's D then, the lowest byte of the
-//return address it pushed and the instruction it returns to.
-struct SAsmW65C816FrameCall
-{
-	uint16	uiS;
-	uint16	uiD;
-	uint16	uiReturn;
-	uint32	uiReturnTo;
-};
+#include "Asm65FrameCheck.h"
 
 
 //A store to a caller's stack: the instruction's address, the first byte it stores to, the lowest byte it may not
@@ -55,35 +44,33 @@ struct SAsmW65C816FrameWrite
 //within the stack.  A function's pushed arguments are below both, so it may write those; code running on its
 //caller's D (a runtime routine, a stub) isn't checked; a store through a pointer isn't a direct page store.  As
 //CAsmW65C816Lockstep checks the emulator, which runs it too (SetFrameCheck): BeforeStep and AfterStep go round each
-//step of whatever runs the program.  The calls it follows check a stack walker's walk (WrongFrame).
-class CAsmW65C816FrameCheck
+//step of whatever runs the program.  The calls it follows (CAsm65FrameCheck) check a stack walker's walk.
+class CAsmW65C816FrameCheck : public CAsm65FrameCheck
 {
 protected:
-	CAsm65Memory*						mpcMemory;
-	CFastW65C816*						mpcFast;
-	CArrayTemplate<SAsmW65C816FrameCall>	masCalls;
-	uint16								muiStackTop;	//S at the first call: frames are below it.
+	CAsm65Memory*							mpcMemory;
+	CFastW65C816*							mpcFast;
 	CArrayTemplate<SAsmW65C816FrameWrite>	masWrites;		//The first few found.
-	CChars								mszWrites;
+	CChars									mszWrites;
 
 public:
 	void	Init(CAsm65Memory* pcMemory, CFastW65C816* pcFast);
-	void	Kill(void);
+	void	Kill(void) override;
 
-	size	Run(size uiMaxSteps);
 	uint8	BeforeStep(void);
 	void	AfterStep(uint8 uiOpcode);
 
-	size					NumCalls(void) const;
-	SAsmW65C816FrameCall*	GetCall(size uiIndex);
-	size					WrongFrame(CArrayAsm65StackFrames* pasFrames);
 	size					NumWrites(void) const;
 	SAsmW65C816FrameWrite*	GetWrite(size uiIndex);
 	const char*				GetWrites(void) const;
 	static void				AppendWrite(SAsmW65C816FrameWrite* psWrite, CChars* pszDest);
 
+	bool	IsStopped(void) override;
+
 protected:
-	void	AddCall(uint16 uiS, uint16 uiReturn, uint32 uiReturnTo);
+	void	Step(void) override;
+	size	KeptRegister(void) override;
+	uint64	Kept(void) override;
 	void	Check(uint32 uiAddress, uint8 uiOpcode);
 	uint32	Limit(void);
 };

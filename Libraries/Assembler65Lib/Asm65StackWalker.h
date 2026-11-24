@@ -25,6 +25,7 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 
 
 class CFastW65C816;
+class CFast65C64;
 
 
 //The memories a walk reads.  A computer with a user mode sees other memory there at the same addresses (the HCP65's
@@ -57,6 +58,7 @@ struct SAsm65StackRegisters
 
 	void	Init(uint32 uiPCIn, EAsm65StackSpace eSpace);
 	void	Init(CFastW65C816* pcFast, EAsm65StackSpace eSpace);
+	void	Init(CFast65C64* pcFast, EAsm65StackSpace eSpace);
 	void	Set(size uiRegister, uint64 uiValue);
 	void	Forget(size uiRegister);
 	bool	IsKnown(size uiRegister) const;

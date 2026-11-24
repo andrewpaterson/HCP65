@@ -3,6 +3,8 @@
 #include "Assembler65Lib/AsmW65C816Assembler.h"
 #include "Assembler65Lib/AsmW65C816FrameCheck.h"
 #include "Assembler65Lib/AsmW65C816StackWalker.h"
+#include "Assembler65Lib/Asm65C64Assembler.h"
+#include "Assembler65Lib/Asm65C64FrameCheck.h"
 #include "TestLib/Assert.h"
 
 
@@ -157,14 +159,90 @@ static const char* gszTestAsm65StackWalkerKernel =
 	"\t.word Start\n";
 
 
-//A program run a step at a time, its stack walked before each step and checked against the calls being run.
+//A 65C64 program's functions as the compiler makes them: a frameless caller pushing arguments (one narrow, wth round
+//it), then pushing A at 32 bits on the branch it takes past a wth A, 64 and a bra; a frame of its own from V (V
+//pushed, S moved, V a copy of S, a kept unit [$80 + W] pushed); a leaf that pushes and pulls; a function whose V is a
+//home with an exit before its last; brk's handler.  Exits set a width back after pulling V, as the back end's do.
+//Start has no records.
+static const char* gszTestAsm65StackWalker65C64 =
+	".org $1000\n"
+	"Start:\n"
+	"\twth A, 32\n"
+	"\twth B, 32\n"
+	"\tjsr Outer\n"
+	"\tstp\n"
+	"Outer:\n"
+	"\twth A, 8\n"
+	"\tpsh A\n"
+	"\twth A, 32\n"
+	"\tpsh A\n"
+	"\tjsr Framed\n"
+	"\tadd S, 5\n"
+	"\tcmp S, S\n"
+	"\tbras z, OuterThin\n"
+	"\twth A, 64\n"
+	"\tbra OuterWide\n"
+	"OuterThin:\n"
+	"\tpsh A\n"
+	"\tjsr Leaf\n"
+	"\tpul A\n"
+	"OuterWide:\n"
+	"\twth A, 32\n"
+	"\tret\n"
+	"OuterEnd:\n"
+	"Framed:\n"
+	"\tpsh V\n"
+	"\tsub S, 8\n"
+	"\tcpy V, S\n"
+	"\tpsh [$80 + W]\n"
+	"FramedBody:\n"
+	"\tjsr Leaf\n"
+	"\tjsr HomeV\n"
+	"\tbrk 5\n"
+	"\tpul [$80 + W]\n"
+	"\tadd S, 8\n"
+	"\tpul V\n"
+	"\twth A, 32\n"
+	"\tret\n"
+	"FramedEnd:\n"
+	"Leaf:\n"
+	"\tpsh (A, B)\n"
+	"\tpul (A, B)\n"
+	"\tret\n"
+	"LeafEnd:\n"
+	"HomeV:\n"
+	"\tpsh V\n"
+	"\tcpy V, 0\n"
+	"\tbras z, HomeVOther\n"
+	"\tpul V\n"
+	"\tret\n"
+	"HomeVOther:\n"
+	"\tjsr Leaf\n"
+	"\tpul V\n"
+	"\twth A, 32\n"
+	"\tret\n"
+	"HomeVEnd:\n"
+	"Brk:\n"
+	"\tpsh A\n"
+	"\tjsr Leaf\n"
+	"\tpul A\n"
+	"\trti\n"
+	"BrkEnd:\n";
+
+
+//A program run a step at a time on either processor, its stack walked before each step and checked against the calls
+//being run.
 struct STestAsm65StackWalker
 {
+	EAsm65DebugProcessor	eProcessor;
 	CAsm65DebugRecords		acRecords[2];		//EAsm65StackSpace's.
 	CAsm65Memory			cMemory;
-	CFastW65C816			cFast;
-	CAsmW65C816FrameCheck	cCheck;
-	CAsmW65C816StackWalker	cWalker;
+	CFastW65C816			cFastW65C816;
+	CFast65C64				cFast65C64;
+	CAsmW65C816FrameCheck	cCheckW65C816;
+	CAsm65C64FrameCheck		cCheck65C64;
+	CAsm65FrameCheck*		pcCheck;
+	CAsm65StackWalker*		pcWalker;
 	CArrayAsm65StackFrames	asFrames;
 	SAsm65StackRegisters	sRegisters;
 	int64					iKernel;			//Code from here on is the kernel's: before, user mode's.
@@ -173,20 +251,20 @@ struct STestAsm65StackWalker
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Assembles szSource; kernel mode's code is from szKernel's label (none
-// when NULL).
+// Assembles szSource (pcAssembler is Init'ed, for eProcessor); kernel
+// mode's code is from szKernel's label (none when NULL).
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65StackWalkerInit(STestAsm65StackWalker* psTest, CAsmW65C816Assembler* pcAssembler, const char* szSource, const char* szKernel)
+static void TestAsm65StackWalkerInit(STestAsm65StackWalker* psTest, CAsm65BaseAssembler* pcAssembler, EAsm65DebugProcessor eProcessor, const char* szSource, const char* szKernel)
 {
-	pcAssembler->Init();
+	psTest->eProcessor = eProcessor;
 	AssertString("", pcAssembler->Assemble(szSource) ? "" : pcAssembler->GetErrors());
-	psTest->iKernel = 0x1000000;
+	psTest->iKernel = 0x100000000LL;
 	AssertTrue(!szKernel || pcAssembler->GetSymbol(szKernel, &psTest->iKernel));
 	psTest->acRecords[ASS_Kernel].Init();
 	psTest->acRecords[ASS_User].Init();
-	psTest->acRecords[ASS_Kernel].SetProcessor(ADP_W65C816);
-	psTest->acRecords[ASS_User].SetProcessor(ADP_W65C816);
+	psTest->acRecords[ASS_Kernel].SetProcessor(eProcessor);
+	psTest->acRecords[ASS_User].SetProcessor(eProcessor);
 }
 
 
@@ -198,8 +276,8 @@ static void TestAsm65StackWalkerInit(STestAsm65StackWalker* psTest, CAsmW65C816A
 // if it is after iKernel.  Returns those records, for what it saved.
 //
 //////////////////////////////////////////////////////////////////////////
-static CAsm65DebugRecords* TestAsm65StackWalkerFunction(STestAsm65StackWalker* psTest, CAsmW65C816Assembler* pcAssembler, const char* szName, const char* szBody, EAsm65DebugEntry eEntry,
-														EAsm65DebugFrame eFrame = ADF_FollowS, uint8 uiRegister = AW65DR_S, int32 iOffset = 0, int32 iAdjust = 0)
+static CAsm65DebugRecords* TestAsm65StackWalkerFunction(STestAsm65StackWalker* psTest, CAsm65BaseAssembler* pcAssembler, const char* szName, const char* szBody, EAsm65DebugEntry eEntry,
+														EAsm65DebugFrame eFrame = ADF_FollowS, uint8 uiRegister = ASM65_DEBUG_S, int32 iOffset = 0, int32 iAdjust = 0)
 {
 	CAsm65DebugRecords*	pcRecords;
 	CChars				szEnd;
@@ -225,28 +303,61 @@ static CAsm65DebugRecords* TestAsm65StackWalkerFunction(STestAsm65StackWalker* p
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Loads the program, its records described.
+// Loads the program, its records described, on its processor reset.
 //
 //////////////////////////////////////////////////////////////////////////
-static void TestAsm65StackWalkerLoad(STestAsm65StackWalker* psTest, CAsmW65C816Assembler* pcAssembler)
+static void TestAsm65StackWalkerLoad(STestAsm65StackWalker* psTest, CAsm65BaseAssembler* pcAssembler, uint32 uiReset = 0)
 {
 	psTest->cMemory.Init();
-	psTest->cMemory.Load(pcAssembler->GetOutput());
-	pcAssembler->Kill();
-	psTest->cMemory.InitFast65816(&psTest->cFast);
-	psTest->cFast.Reset();
-	psTest->cCheck.Init(&psTest->cMemory, &psTest->cFast);
-	psTest->cWalker.Init(&psTest->cMemory);
-	psTest->cWalker.AddRecords(&psTest->acRecords[ASS_Kernel], ASS_Kernel);
-	psTest->cWalker.AddRecords(&psTest->acRecords[ASS_User], ASS_User);
+	if (psTest->eProcessor == ADP_65C64)
+	{
+		psTest->cMemory.LoadProgram(pcAssembler->GetOutput(), uiReset);
+		psTest->cMemory.InitFast65C64(&psTest->cFast65C64);
+		psTest->cFast65C64.Reset();
+		psTest->cCheck65C64.Init(&psTest->cMemory, &psTest->cFast65C64);
+		psTest->pcCheck = &psTest->cCheck65C64;
+	}
+	else
+	{
+		psTest->cMemory.Load(pcAssembler->GetOutput());
+		psTest->cMemory.InitFast65816(&psTest->cFastW65C816);
+		psTest->cFastW65C816.Reset();
+		psTest->cCheckW65C816.Init(&psTest->cMemory, &psTest->cFastW65C816);
+		psTest->pcCheck = &psTest->cCheckW65C816;
+	}
+	psTest->pcWalker = Asm65NewStackWalker(psTest->eProcessor, &psTest->cMemory);
+	psTest->pcWalker->AddRecords(&psTest->acRecords[ASS_Kernel], ASS_Kernel);
+	psTest->pcWalker->AddRecords(&psTest->acRecords[ASS_User], ASS_User);
 	psTest->asFrames.Init();
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The processor's registers as they are, in the space its code is in.
+//
+//////////////////////////////////////////////////////////////////////////
+static void TestAsm65StackWalkerRegisters(STestAsm65StackWalker* psTest)
+{
+	uint32	uiPC;
+
+	if (psTest->eProcessor == ADP_65C64)
+	{
+		uiPC = psTest->cFast65C64.GetProgramCounter();
+		psTest->sRegisters.Init(&psTest->cFast65C64, (uiPC >= psTest->iKernel) ? ASS_Kernel : ASS_User);
+	}
+	else
+	{
+		uiPC = psTest->cFastW65C816.GetProgramAddress();
+		psTest->sRegisters.Init(&psTest->cFastW65C816, (uiPC >= psTest->iKernel) ? ASS_Kernel : ASS_User);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // Runs the program to its stp, its walk at every step the calls being
-// run (CAsmW65C816FrameCheck) to the start up's code, whose records it
+// run (CAsm65FrameCheck) to the start up's code, whose records it
 // hasn't; or, with the program address from iShortFrom to iShortTo, the
 // walk may end early at a function described.  Returns the deepest walk.
 //
@@ -259,18 +370,17 @@ static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortF
 	size					uiWrongFrame;
 	size					uiDeepest;
 	uint32					uiFirstWrong;
-	uint8					uiOpcode;
 	bool					bShort;
 
 	psRegisters = &psTest->sRegisters;
 	uiWrong = 0;
 	uiFirstWrong = 0;
 	uiDeepest = 0;
-	for (uiSteps = 0; (uiSteps < 1000) && !psTest->cFast.IsStopped(); uiSteps++)
+	for (uiSteps = 0; (uiSteps < 1000) && !psTest->pcCheck->IsStopped(); uiSteps++)
 	{
-		psRegisters->Init(&psTest->cFast, (psTest->cFast.GetProgramAddress() >= psTest->iKernel) ? ASS_Kernel : ASS_User);
-		psTest->cWalker.Walk(psRegisters, &psTest->asFrames, 16);
-		uiWrongFrame = psTest->cCheck.WrongFrame(&psTest->asFrames);
+		TestAsm65StackWalkerRegisters(psTest);
+		psTest->pcWalker->Walk(psRegisters, &psTest->asFrames, 16);
+		uiWrongFrame = psTest->pcCheck->WrongFrame(&psTest->asFrames);
 		bShort = (uiWrongFrame == psTest->asFrames.NumElements()) && (psRegisters->uiPC >= iShortFrom) && (psRegisters->uiPC < iShortTo);
 		if ((uiWrongFrame != 0) && !bShort)
 		{
@@ -278,13 +388,13 @@ static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortF
 			uiWrong++;
 		}
 		uiDeepest = (psTest->asFrames.NumElements() > uiDeepest) ? psTest->asFrames.NumElements() : uiDeepest;
-
-		uiOpcode = psTest->cCheck.BeforeStep();
-		psTest->cFast.Step();
-		psTest->cCheck.AfterStep(uiOpcode);
+		psTest->pcCheck->Run(1);
 	}
-	AssertTrue(psTest->cFast.IsStopped());
-	AssertString("", psTest->cCheck.GetWrites());
+	AssertTrue(psTest->pcCheck->IsStopped());
+	if (psTest->eProcessor == ADP_W65C816)
+	{
+		AssertString("", psTest->cCheckW65C816.GetWrites());
+	}
 	AssertInt(0, (int)uiWrong);
 	AssertInt(0, (int)uiFirstWrong);
 	return uiDeepest;
@@ -298,9 +408,16 @@ static size TestAsm65StackWalkerRun(STestAsm65StackWalker* psTest, int64 iShortF
 static void TestAsm65StackWalkerKill(STestAsm65StackWalker* psTest)
 {
 	psTest->asFrames.Kill();
-	psTest->cWalker.Kill();
-	psTest->cCheck.Kill();
-	psTest->cFast.Kill();
+	SafeKill(psTest->pcWalker);
+	psTest->pcCheck->Kill();
+	if (psTest->eProcessor == ADP_65C64)
+	{
+		psTest->cFast65C64.Kill();
+	}
+	else
+	{
+		psTest->cFastW65C816.Kill();
+	}
 	psTest->cMemory.Kill();
 	psTest->acRecords[ASS_User].Kill();
 	psTest->acRecords[ASS_Kernel].Kill();
@@ -319,7 +436,8 @@ void TestAsm65StackWalkerSteps(void)
 	CAsmW65C816Assembler	cAssembler;
 	int64					iBody;
 
-	TestAsm65StackWalkerInit(&sTest, &cAssembler, gszTestAsm65StackWalker, NULL);
+	cAssembler.Init();
+	TestAsm65StackWalkerInit(&sTest, &cAssembler, ADP_W65C816, gszTestAsm65StackWalker, NULL);
 	//Framed's S after phd is D + 4: its frame address (S before jsl pushed 3 bytes and phd 2) is D + 9, the caller's D
 	//below jsl's push.  Aligned keeps S after phd at D + 6.
 	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Outer", NULL, ADE_Long);
@@ -328,6 +446,7 @@ void TestAsm65StackWalkerSteps(void)
 	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Aligned", "AlignedBody", ADE_Long, ADF_Memory, AW65DR_D, 6, 5)->AddSaved(AW65DR_D, false, 0, -4);
 	AssertTrue(cAssembler.GetSymbol("FramedBody", &iBody));
 	TestAsm65StackWalkerLoad(&sTest, &cAssembler);
+	cAssembler.Kill();
 
 	//Leaf in Aligned in Framed in Outer, called from Start.
 	AssertInt(5, (int)TestAsm65StackWalkerRun(&sTest, 0, 0));
@@ -336,7 +455,7 @@ void TestAsm65StackWalkerSteps(void)
 	sTest.sRegisters.Init((uint32)iBody, ASS_User);
 	sTest.sRegisters.Set(AW65DR_S, 0xFFFE);
 	sTest.sRegisters.Set(AW65DR_D, 0xFFF0);
-	AssertTrue(sTest.cWalker.Walk(&sTest.sRegisters, &sTest.asFrames, 16) <= 2);
+	AssertTrue(sTest.pcWalker->Walk(&sTest.sRegisters, &sTest.asFrames, 16) <= 2);
 	AssertInt(0, (int)sTest.cMemory.NumBadAccesses());
 	TestAsm65StackWalkerKill(&sTest);
 }
@@ -358,7 +477,8 @@ void TestAsm65StackWalkerInterrupts(void)
 	int64					iSwitch;
 	int64					iBody;
 
-	TestAsm65StackWalkerInit(&sTest, &cAssembler, gszTestAsm65StackWalkerKernel, "Cop");
+	cAssembler.Init();
+	TestAsm65StackWalkerInit(&sTest, &cAssembler, ADP_W65C816, gszTestAsm65StackWalkerKernel, "Cop");
 	//Cop's body keeps the process's D at S + 1 and its S at S + 3, on the kernel's stack: its frame address there is S + 4.
 	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Process", NULL, ADE_Long);
 	pcRecords = TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Cop", "CopBody", ADE_UserInterrupt, ADF_Register, AW65DR_S, 4);
@@ -370,9 +490,47 @@ void TestAsm65StackWalkerInterrupts(void)
 	AssertTrue(cAssembler.GetSymbol("CopSwitch", &iSwitch));
 	AssertTrue(cAssembler.GetSymbol("CopBody", &iBody));
 	TestAsm65StackWalkerLoad(&sTest, &cAssembler);
+	cAssembler.Kill();
 
 	//Short in Brk in Kernel in Cop in Process, called from Start.
 	AssertInt(6, (int)TestAsm65StackWalkerRun(&sTest, iSwitch + 1, iBody));
+	TestAsm65StackWalkerKill(&sTest);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The 65C64's walks at every step are the calls being run, to Start's
+// code: a framed function by its rule (V + 16, the caller's V and its kept
+// unit saved below the return), in its prologue and epilogue by following
+// its code, the others by following theirs (an exit before the last
+// passed over as the stack was before it), brk's handler by its 4 byte
+// return and P.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65StackWalker65C64(void)
+{
+	STestAsm65StackWalker	sTest;
+	CAsm65C64Assembler		cAssembler;
+	CAsm65DebugRecords*		pcRecords;
+	int64					iBrk;
+
+	cAssembler.Init();
+	TestAsm65StackWalkerInit(&sTest, &cAssembler, ADP_65C64, gszTestAsm65StackWalker65C64, NULL);
+	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Outer", NULL, ADE_Long);
+	pcRecords = TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Framed", "FramedBody", ADE_Long, ADF_Register, A65DR_V, 16);
+	pcRecords->AddSaved(A65DR_V, false, 0, -7);
+	pcRecords->AddSaved(0x80, true, 4, -19);
+	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Leaf", NULL, ADE_Long);
+	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "HomeV", NULL, ADE_Long);
+	TestAsm65StackWalkerFunction(&sTest, &cAssembler, "Brk", NULL, ADE_Interrupt);
+	AssertTrue(cAssembler.GetSymbol("Brk", &iBrk));
+	TestAsm65StackWalkerLoad(&sTest, &cAssembler, 0x1000);
+	cAssembler.Kill();
+	sTest.cMemory.SetLong(VECTOR_65C64_BASE + 4 * 5, (uint32)iBrk);
+
+	//Leaf in HomeV (or Brk) in Framed in Outer, called from Start.
+	AssertInt(5, (int)TestAsm65StackWalkerRun(&sTest, 0, 0));
 	TestAsm65StackWalkerKill(&sTest);
 }
 
@@ -388,6 +546,7 @@ void TestAsm65StackWalker(void)
 
 	TestAsm65StackWalkerSteps();
 	TestAsm65StackWalkerInterrupts();
+	TestAsm65StackWalker65C64();
 
 	CW65C816InstructionFactory::GetInstance()->Kill();
 	TestStatistics();

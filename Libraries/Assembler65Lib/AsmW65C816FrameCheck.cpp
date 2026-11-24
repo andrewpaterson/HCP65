@@ -33,10 +33,9 @@ along with Codaphela Assembler65Lib.  If not, see <http://www.gnu.org/licenses/>
 //////////////////////////////////////////////////////////////////////////
 void CAsmW65C816FrameCheck::Init(CAsm65Memory* pcMemory, CFastW65C816* pcFast)
 {
+	CAsm65FrameCheck::Init();
 	mpcMemory = pcMemory;
 	mpcFast = pcFast;
-	masCalls.Init();
-	muiStackTop = 0;
 	masWrites.Init();
 	mszWrites.Init();
 }
@@ -50,28 +49,54 @@ void CAsmW65C816FrameCheck::Kill(void)
 {
 	mszWrites.Kill();
 	masWrites.Kill();
-	masCalls.Kill();
+	CAsm65FrameCheck::Kill();
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 //
-// Runs up to uiMaxSteps instructions, or until stp, checking each (Before
-// and AfterStep).  Returns the steps run.
+// One instruction run, checked (Before and AfterStep).
 //
 //////////////////////////////////////////////////////////////////////////
-size CAsmW65C816FrameCheck::Run(size uiMaxSteps)
+void CAsmW65C816FrameCheck::Step(void)
 {
-	size	uiSteps;
 	uint8	uiOpcode;
 
-	for (uiSteps = 0; (uiSteps < uiMaxSteps) && !mpcFast->IsStopped(); uiSteps++)
-	{
-		uiOpcode = BeforeStep();
-		mpcFast->Step();
-		AfterStep(uiOpcode);
-	}
-	return uiSteps;
+	uiOpcode = BeforeStep();
+	mpcFast->Step();
+	AfterStep(uiOpcode);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The program ran to stp.
+//
+//////////////////////////////////////////////////////////////////////////
+bool CAsmW65C816FrameCheck::IsStopped(void)
+{
+	return mpcFast->IsStopped();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// Calls keep D.
+//
+//////////////////////////////////////////////////////////////////////////
+size CAsmW65C816FrameCheck::KeptRegister(void)
+{
+	return AW65DR_D;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+//
+//////////////////////////////////////////////////////////////////////////
+uint64 CAsmW65C816FrameCheck::Kept(void)
+{
+	return mpcFast->GetD();
 }
 
 
@@ -97,12 +122,12 @@ uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 	Check(uiAddress, uiOpcode);
 	if (AsmW65C816IsSubroutineCall(uiOpcode))
 	{
-		AddCall(uiS, uiS - ((uiOpcode == 0x22) ? 2 : 1), uiAddress + ((uiOpcode == 0x22) ? 4 : 3));
+		AddCall(uiS, (uint16)(uiS - ((uiOpcode == 0x22) ? 2 : 1)), uiAddress + ((uiOpcode == 0x22) ? 4 : 3));
 	}
 	else if ((uiOpcode == 0x02) || (uiOpcode == 0x00))
 	{
 		//The program bank, where it comes back to (after the signature byte), then P.
-		AddCall(uiS, uiS - 2, uiAddress + 2);
+		AddCall(uiS, (uint16)(uiS - 2), uiAddress + 2);
 	}
 	else if (uiOpcode == 0x6B)
 	{
@@ -113,7 +138,7 @@ uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 		if (AsmW65C816IsIndirectCall(uiAddress, auiStack))
 		{
 			//S before its phk, its return address the three bytes it pushed.
-			AddCall(uiS + 6, uiS + 4, uiAddress + 1);
+			AddCall((uint16)(uiS + 6), (uint16)(uiS + 4), uiAddress + 1);
 		}
 	}
 	return uiOpcode;
@@ -122,48 +147,15 @@ uint8 CAsmW65C816FrameCheck::BeforeStep(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
-// A call starting: S before it, the lowest byte of its return address,
-// the instruction that is.  The stack's top is S at the first call (the
-// start up's, once it has set S).
-//
-//////////////////////////////////////////////////////////////////////////
-void CAsmW65C816FrameCheck::AddCall(uint16 uiS, uint16 uiReturn, uint32 uiReturnTo)
-{
-	SAsmW65C816FrameCall*	psCall;
-
-	if (masCalls.NumElements() == 0)
-	{
-		muiStackTop = uiS;
-	}
-	psCall = masCalls.Add();
-	psCall->uiS = uiS;
-	psCall->uiD = mpcFast->GetD();
-	psCall->uiReturn = uiReturn;
-	psCall->uiReturnTo = uiReturnTo;
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
 // After the instruction (uiOpcode, BeforeStep's) ran: a return ends the
-// calls it returns from, those that started at or below S now, and the
-// one it returned to the caller of (a subroutine that moves S, as a frame
-// entry helper's jsr does, comes back with S below where it started).
+// calls it returns from (Returned).
 //
 //////////////////////////////////////////////////////////////////////////
 void CAsmW65C816FrameCheck::AfterStep(uint8 uiOpcode)
 {
-	if (!AsmW65C816IsReturn(uiOpcode))
+	if (AsmW65C816IsReturn(uiOpcode))
 	{
-		return;
-	}
-	if ((masCalls.NumElements() > 0) && (masCalls.Tail()->uiReturnTo == mpcFast->GetProgramAddress()))
-	{
-		masCalls.RemoveTail();
-	}
-	while ((masCalls.NumElements() > 0) && (masCalls.Tail()->uiS <= mpcFast->GetS()))
-	{
-		masCalls.RemoveTail();
+		Returned(mpcFast->GetProgramAddress(), mpcFast->GetS());
 	}
 }
 
@@ -178,15 +170,17 @@ void CAsmW65C816FrameCheck::AfterStep(uint8 uiOpcode)
 //////////////////////////////////////////////////////////////////////////
 uint32 CAsmW65C816FrameCheck::Limit(void)
 {
-	SAsmW65C816FrameCall*	psCall;
+	SAsm65FrameCall*	psCall;
 	uint32				uiLimit;
 	uint32				uiReturn;
+	uint16				uiD;
 
 	psCall = masCalls.Tail();
-	uiLimit = (uint32)muiStackTop + 1;
-	if ((psCall->uiD >= mpcFast->GetS()) && (psCall->uiD <= muiStackTop))
+	uiD = (uint16)psCall->uiKept;
+	uiLimit = muiStackTop + 1;
+	if ((uiD >= mpcFast->GetS()) && (uiD <= muiStackTop))
 	{
-		uiLimit = (uint32)psCall->uiD + 1;
+		uiLimit = (uint32)uiD + 1;
 	}
 	if (masCalls.NumElements() >= 2)
 	{
@@ -224,7 +218,7 @@ void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 	}
 	uiD = mpcFast->GetD();
 	uiLimit = Limit();
-	if ((uiD == masCalls.Tail()->uiD) || (uiLimit > muiStackTop))
+	if ((uiD == masCalls.Tail()->uiKept) || (uiLimit > muiStackTop))
 	{
 		return;
 	}
@@ -257,64 +251,6 @@ void CAsmW65C816FrameCheck::Check(uint32 uiAddress, uint8 uiOpcode)
 		mszWrites.Append(sz);
 		AppendWrite(psWrite, &mszWrites);
 	}
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The calls being run, the first (outermost) at 0.
-//
-//////////////////////////////////////////////////////////////////////////
-size CAsmW65C816FrameCheck::NumCalls(void) const
-{
-	return masCalls.NumElements();
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-//
-//////////////////////////////////////////////////////////////////////////
-SAsmW65C816FrameCall* CAsmW65C816FrameCheck::GetCall(size uiIndex)
-{
-	return masCalls.Get(uiIndex);
-}
-
-
-//////////////////////////////////////////////////////////////////////////
-//
-// The first frame of a walk (CAsm65StackWalker's, from the registers as
-// they are before the next step) that isn't the call it should be: each
-// caller where its call returns to, with S as it was before the call and
-// its D.  The walk may stop at code the debug records don't describe;
-// stopping anywhere else, its index is the walk's length.  0 if the walk
-// is right.
-//
-//////////////////////////////////////////////////////////////////////////
-size CAsmW65C816FrameCheck::WrongFrame(CArrayAsm65StackFrames* pasFrames)
-{
-	SAsm65StackFrame*		psFrame;
-	SAsmW65C816FrameCall*	psCall;
-	size					uiFrames;
-	size					uiCalls;
-	size					ui;
-
-	uiFrames = pasFrames->NumElements();
-	uiCalls = masCalls.NumElements();
-	for (ui = 1; ui < uiFrames; ui++)
-	{
-		psFrame = pasFrames->Get(ui);
-		psCall = (ui <= uiCalls) ? masCalls.Get(uiCalls - ui) : NULL;
-		if (!psCall || (psFrame->uiPC != psCall->uiReturnTo) || (psFrame->GetS() != psCall->uiS) || !psFrame->IsKnown(AW65DR_D) || (psFrame->Get(AW65DR_D) != psCall->uiD))
-		{
-			return ui;
-		}
-	}
-	if ((uiFrames > 0) && pasFrames->Tail()->psFunction && (uiFrames <= uiCalls))
-	{
-		return uiFrames;
-	}
-	return 0;
 }
 
 

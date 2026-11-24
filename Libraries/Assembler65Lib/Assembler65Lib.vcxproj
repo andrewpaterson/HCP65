@@ -216,6 +216,9 @@
     <ClCompile Include="Asm65Output.cpp" />
     <ClCompile Include="Asm65Source.cpp" />
     <ClCompile Include="Asm65StackWalker.cpp" />
+    <ClCompile Include="Asm65FrameCheck.cpp" />
+    <ClCompile Include="Asm65C64FrameCheck.cpp" />
+    <ClCompile Include="Asm65C64StackWalker.cpp" />
     <ClCompile Include="AsmW65C816StackWalker.cpp" />
     <ClCompile Include="Asm65Symbols.cpp" />
     <ClCompile Include="Asm65Token.cpp" />
@@ -249,6 +252,9 @@
     <ClInclude Include="Asm65Output.h" />
     <ClInclude Include="Asm65Source.h" />
     <ClInclude Include="Asm65StackWalker.h" />
+    <ClInclude Include="Asm65FrameCheck.h" />
+    <ClInclude Include="Asm65C64FrameCheck.h" />
+    <ClInclude Include="Asm65C64StackWalker.h" />
     <ClInclude Include="AsmW65C816StackWalker.h" />
     <ClInclude Include="Asm65Symbols.h" />
     <ClInclude Include="Asm65Token.h" />
