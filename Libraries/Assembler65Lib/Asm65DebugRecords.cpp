@@ -738,10 +738,24 @@ SAsm65DebugType* CAsm65DebugRecords::GetType(uint32 uiIndex)
 //////////////////////////////////////////////////////////////////////////
 SAsm65DebugType* CAsm65DebugRecords::FindType(const char* szKey)
 {
+	uint32	uiIndex;
+
+	uiIndex = FindTypeIndex(szKey);
+	return (uiIndex != ASM65_DEBUG_NONE) ? masTypes.Get(uiIndex) : NULL;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
+// The index of the type keyed szKey, ASM65_DEBUG_NONE if there is none.
+//
+//////////////////////////////////////////////////////////////////////////
+uint32 CAsm65DebugRecords::FindTypeIndex(const char* szKey)
+{
 	uint32*	puiIndex;
 
 	puiIndex = mcTypeKeys.Get(szKey);
-	return puiIndex ? masTypes.Get(*puiIndex) : NULL;
+	return puiIndex ? *puiIndex : ASM65_DEBUG_NONE;
 }
 
 

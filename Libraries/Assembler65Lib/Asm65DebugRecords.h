@@ -221,6 +221,7 @@ public:
 	size					NumTypes(void) const;
 	SAsm65DebugType*		GetType(uint32 uiIndex);
 	SAsm65DebugType*		FindType(const char* szKey);
+	uint32					FindTypeIndex(const char* szKey);
 	SAsm65DebugMember*		GetMember(SAsm65DebugType* psType, size uiIndex);
 
 	bool					WriteChunks(CChunkFile* pcChunkFile);

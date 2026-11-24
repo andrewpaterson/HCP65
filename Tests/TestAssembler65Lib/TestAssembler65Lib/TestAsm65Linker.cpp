@@ -1208,6 +1208,8 @@ void TestAsm65LinkerDebugRecords(void)
 	AssertInt(8, psType->uiBytes);
 	AssertInt(3, psType->uiNumMembers);
 	AssertTrue(pcRecords->FindType("CShape") == psType);
+	AssertTrue(pcRecords->GetType(pcRecords->FindTypeIndex("CShape")) == psType);
+	AssertInt(ASM65_DEBUG_NONE, pcRecords->FindTypeIndex("CCircle"));
 	AssertInt(ADM_VTable, pcRecords->GetMember(psType, 0)->uiKind);
 	psMember = pcRecords->GetMember(psType, 2);
 	AssertString("miSides", psMember->szName.Text());
