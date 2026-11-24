@@ -11,7 +11,7 @@
 
 
 class CHCP65;
-class CHCP65EmulatorDebugger;
+class CEmulatorDebugger;
 
 
 //Runs the HCP65 on a thread of its own, so that it keeps running whatever the window's thread is doing, a dialog shown
@@ -27,7 +27,7 @@ class CHCP65EmulatorRunner
 {
 protected:
 	CHCP65*					mpcHCP65;
-	CHCP65EmulatorDebugger*	mpcDebugger;		//Runs the HCP65 when it's enabled.
+	CEmulatorDebugger*	mpcDebugger;		//Runs the HCP65 when it's enabled.
 	CNativeThread			mcThread;
 	CMutex					mcMutex;
 	CConditionVariable		mcChanged;			//Woken when any of the values below changes.
@@ -39,7 +39,7 @@ protected:
 	uint64					muiStartCycles;		//The HCP65's cycles then, less those it didn't run when the host fell behind.
 
 public:
-	void	Init(CHCP65* pcHCP65, CHCP65EmulatorDebugger* pcDebugger);
+	void	Init(CHCP65* pcHCP65, CEmulatorDebugger* pcDebugger);
 	void	Kill(void);
 
 	bool	Start(void);

@@ -1,7 +1,8 @@
 # Debugging
 
-The IDE debugs HCP65 programs in the [HCP65 emulator](../hcp65/emulator.md), with Visual Studio's Debug
-menu and keys.  It knows nothing of the processor itself: the emulator describes its registers and
+The IDE debugs W65C816 programs in the [HCP65 emulator](../hcp65/emulator.md), and 65C64 programs in
+the X65C64 Emulator (see [Debugging a 65C64 program](#debugging-a-65c64-program)), with Visual Studio's
+Debug menu and keys.  It knows nothing of the processor itself: the emulator describes its registers and
 addresses and disassembles its own code, so the same debugger works for the W65C816 and the 65C64.  It
 runs the emulator with a shared memory channel to it, or attaches to one already running over the network.
 
@@ -34,8 +35,9 @@ F5 debugs what was last built: build first (Ctrl+F9).
 
 Start Debugging uses the chosen run configuration's build configuration:
 
-1. It starts the emulator: the run configuration's tool, or the default emulator for a W65C816
-   configuration.  An emulator for another processor than the configuration's is refused as soon as it
+1. It starts the emulator: the run configuration's tool, or the default emulator for the
+   configuration's processor (the HCP65 Emulator for a W65C816 configuration, the X65C64 Emulator for a
+   65C64 one).  An emulator for another processor than the configuration's is refused as soon as it
    says what it is.  MSVC and GCC configurations can't be debugged.
 2. It loads each `<Load>` of the configuration (the HCP65's boot loader ROM) into the emulator at its
    address, then the configuration's own built image if it has no card, while the emulator waits at
@@ -64,8 +66,10 @@ built program has a line for, that file is opened with its line marked.
 Visual Studio's Call Stack, Locals, Autos and Watch windows, docked together beside the editors on the
 right.  Call Stack and Locals are shown when debugging starts; the others from Debug > Windows.  Each
 shows where the emulator stopped, and is empty while it runs.  They need the program built for the
-debugger (a configuration's Debug, see [Building](building.md)): a Release build shows its calls, but not
-their parameters or locals.
+debugger (a configuration's Debug, see [Building](building.md)) to show everything.  A Release build shows
+its calls and the variables it keeps in memory: objects, arrays and anything whose address is taken, as
+Locals and the watches have them.  A variable the optimiser keeps in a register, or folds away, is
+`(optimised away)`, and a Release build's parameters aren't shown.
 
 ### Call Stack
 
@@ -96,7 +100,8 @@ a `char` as `99 'c'`, an enum by its enumerators (`EF_A | EF_C`), a `char*` with
 through a base class pointer with its own class (`CShape* {CSquare}`).  A value that changed since the
 last stop is red.  Typing into a Value writes it, if what is typed fits its type.
 
-Watch expressions are evaluated with the program's types (an `int` is 16 bits): names (locals, then
+Watch expressions are evaluated with the program's types (an `int` is 16 bits on the W65C816, 32 on the
+65C64): names (locals, then
 `this`'s members, statics and globals, enumerators), `. -> [] * &`, casts, `sizeof`, and the arithmetic,
 comparison and logical operators.  Functions aren't called and nothing is assigned.  A suffix formats the
 result as Visual Studio's do: `,x` hexadecimal, `,d` decimal, `,s` a string alone, `,10` a pointer as an
@@ -152,6 +157,36 @@ them (a `<Lines>` says which file on the card with its `CardPath`).  If they dif
 says that the card's `\OS\OS.SYS` isn't the one built and its source lines may be wrong; if the
 card hasn't one, that the source lines aren't of what runs.  Debugging goes on either way.
 Debugging the kernal's own configuration once puts the one built on the card.
+
+## Debugging a 65C64 program
+
+A 65C64 program runs from reset in the X65C64 Emulator (`HCP65/X65C64-Emulator`): a 65C64 with 2MB of
+memory, a console at `00FF:0100` and the host file device at `00FF:0200` (so `printf` and `fopen` work), as
+the compiler's own tests run their programs.  It is a console program, with no window: what the program
+prints goes in the Build tab.  It stops when the program does (`stp`), or when the debugger goes.
+
+The program is an image the IDE loads at its address, and reset starts it there: the emulator's reset
+vector is the load address, `$10000`.  As a W65C816 program lists `UserStart.asm`, a 65C64 project lists
+Libc65's `Start65C64.asm` first: it sets the stack and the registers' widths, runs the global
+initialisers, calls `main` and stops with its result in A.  A configuration for it:
+
+```xml
+<Configuration Name="Debug|65C64" Toolchain="65C64" Solution="Debug|Win32" Debug="true">
+	<Image File="program.bin" Size="0x100000" Load="0x10000">
+		<Region Start="0x10000" End="0x110000" Offset="0x0"/>
+	</Image>
+</Configuration>
+```
+
+The emulator runs without the IDE too:
+
+```text
+X65C64Emulator program.bin [--load <address>] [--host <directory>]
+```
+
+It loads the file at `--load`'s address (`$10000` if not given) and runs it, its files in `--host`'s
+directory (the current one if not given), and exits with `main`'s result.  The debugging arguments
+(`--debug-shm`, `--debug-tcp`, `--debug-wait`, `--exit-on-detach`) are the HCP65 emulator's.
 
 ## Attaching
 

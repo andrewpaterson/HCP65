@@ -240,9 +240,10 @@ bool CHCP65EmulatorApp::Setup(CNativeWindowFactory* pcNativeFactory, CNativeSoun
 	}
 	mcHCP65.Reset();
 
+	mcDebugTarget.Init(&mcHCP65);
 	if (mbValid && mcDebugger.IsEnabled())
 	{
-		mbValid = mcDebugger.Start(&mcHCP65);
+		mbValid = mcDebugger.Start(&mcDebugTarget);
 	}
 
 	if (mbValid)
@@ -333,7 +334,8 @@ void CHCP65EmulatorApp::Class(void)
 {
 	U_Unknown(CHCP65, mcHCP65);
 	U_Unknown(CHCP65Mainboard, mcMainboard);
-	U_Unknown(CHCP65EmulatorDebugger, mcDebugger);
+	U_Unknown(CHCP65DebugTarget, mcDebugTarget);
+	U_Unknown(CEmulatorDebugger, mcDebugger);
 	U_Unknown(CHCP65EmulatorRunner, mcRunner);
 	M_Pointer(mpWindow);
 	M_Pointer(mpMenuBar);
@@ -390,6 +392,7 @@ void CHCP65EmulatorApp::Free(void)
 	mszMachine.Kill();
 	mcRunner.Kill();
 	mcDebugger.Kill();
+	mcDebugTarget.Kill();
 	mcKeyboard.Kill();
 	mcSNESKeys.Kill();
 	mcHCP65.Kill();

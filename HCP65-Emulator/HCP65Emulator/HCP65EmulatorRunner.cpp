@@ -1,6 +1,6 @@
 #include "BaseLib/Timer.h"
 #include "HCP65Lib/HCP65.h"
-#include "HCP65EmulatorDebugger.h"
+#include "EmulatorDebugLib/EmulatorDebugger.h"
 #include "HCP65EmulatorRunner.h"
 
 
@@ -13,7 +13,7 @@
 // pcDebugger runs the HCP65 if it's enabled, which is known before Start.
 //
 //////////////////////////////////////////////////////////////////////////
-void CHCP65EmulatorRunner::Init(CHCP65* pcHCP65, CHCP65EmulatorDebugger* pcDebugger)
+void CHCP65EmulatorRunner::Init(CHCP65* pcHCP65, CEmulatorDebugger* pcDebugger)
 {
 	mpcHCP65 = pcHCP65;
 	mpcDebugger = pcDebugger;
