@@ -32,7 +32,7 @@ generate() {
 }
 
 check() {
-    python3 tools/check_instruction_tables.py
+    .venv/bin/python tools/check_instruction_tables.py
     .venv/bin/python tools/check_project_items.py
 }
 

@@ -149,4 +149,9 @@
       <Filter>docs\stylesheets</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\site_sources.py">
+      <Filter>tools</Filter>
+    </None>
+  </ItemGroup>
 </Project>

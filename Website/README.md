@@ -40,10 +40,10 @@ tools/sheet_to_html.py; web.sh regenerates it before every build and live previe
 web.sh runs these before every build; problems are printed as `<file>:<line>:1: error:` lines, which the IDE's Build
 pane opens, and MkDocs's own warnings about a page are repeated that way with the page's real path.
 
-    python3 tools/check_instruction_tables.py
+    .venv/bin/python tools/check_instruction_tables.py
 
-fails when the instruction summary (docs/65c64/instructions/index.md) gives an operation or flags that the
-instruction's own page doesn't.
+fails when the instruction summary (the site's 65c64/instructions/index.md) gives an operation or flags that the
+instruction's own page doesn't.  Both checks find pages through extra.sources (tools/site_sources.py).
 
     .venv/bin/python tools/check_project_items.py
 

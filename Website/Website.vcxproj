@@ -86,5 +86,8 @@
     <None Include="docs\libraries\index.md" />
     <None Include="docs\stylesheets\extra.css" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\site_sources.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

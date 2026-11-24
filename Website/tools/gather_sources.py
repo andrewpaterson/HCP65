@@ -1,11 +1,5 @@
 """MkDocs hook: gathers the documentation folders mkdocs.yml's extra.sources maps into one staging folder laid out as
-the site, and builds the site from there (DocsPlan.txt step A, decision 13).
-
-    extra:
-      sources:
-        - folder: HCP65/Website/docs    # relative to the folder holding the repositories (two up from mkdocs.yml)
-          site: ""                      # where its files land in the site ("" is the top)
-          branch: main                  # its repository's branch, for links to the code (step D)
+the site, and builds the site from there (DocsPlan.txt step A, decision 13; the map is read by site_sources.py).
 
 Pages are copied, not linked (links don't work everywhere on Windows), and only when they changed, so a rebuild
 under `mkdocs serve` is quiet.  `serve` watches the mapped folders themselves.  Two folders putting a file in the
@@ -21,43 +15,13 @@ import sys
 
 from mkdocs.exceptions import PluginError
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import site_sources  # noqa: E402
+
 STAGING = '.staging'
 
-source_of = {}          # staging-relative path -> the real file it came from
+source_of = {}          # site path -> the real file it came from
 filter_added = False
-
-
-def read_sources(config):
-    """The website's folder and the (real folder, site folder, branch) of each extra.sources entry."""
-    website = os.path.dirname(os.path.abspath(config.config_file_path))
-    root = os.path.normpath(os.path.join(website, '..', '..'))
-    entries = config.extra.get('sources')
-    if not entries:
-        raise PluginError('mkdocs.yml has no extra.sources: nothing to build the site from')
-    sources = []
-    for entry in entries:
-        if not isinstance(entry, dict) or not {'folder', 'site', 'branch'} <= set(entry):
-            raise PluginError('extra.sources: each entry needs folder, site and branch: %r' % (entry,))
-        folder = os.path.normpath(os.path.join(root, entry['folder']))
-        if not os.path.isdir(folder):
-            raise PluginError('extra.sources: %s is not a folder' % folder)
-        sources.append((folder, (entry['site'] or '').strip('/'), entry['branch']))
-    return website, sources
-
-
-def gather(sources):
-    """Staging-relative path -> real path for every file of every mapped folder."""
-    files = {}
-    for folder, site, branch in sources:
-        for directory, directories, names in os.walk(folder):
-            directories.sort()
-            for name in sorted(names):
-                real = os.path.join(directory, name)
-                staged = os.path.normpath(os.path.join(site, os.path.relpath(real, folder)))
-                if staged in files:
-                    raise PluginError('extra.sources: %s and %s both land at %s' % (files[staged], real, staged))
-                files[staged] = real
-    return files
 
 
 def stage(staging, files):
@@ -98,16 +62,20 @@ class RealPathFilter(logging.Filter):
 def on_config(config):
     global filter_added
 
-    website, sources = read_sources(config)
-    staging = os.path.join(website, STAGING)
-    files = gather(sources)
+    try:
+        folders = site_sources.sources(config.extra.get('sources'))
+        files = site_sources.site_files(folders)
+    except site_sources.SourcesError as error:
+        raise PluginError(str(error))
+
+    staging = os.path.join(site_sources.WEBSITE, STAGING)
     os.makedirs(staging, exist_ok=True)
     stage(staging, files)
     source_of.clear()
     source_of.update(files)
 
     config['docs_dir'] = staging
-    for folder, site, branch in sources:
+    for folder, site, branch in folders:
         if folder not in config['watch']:
             config['watch'].append(folder)
 

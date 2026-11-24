@@ -3,30 +3,15 @@
 Studio project (DocsPlan.txt decision 10), so the IDE's Rename, Find Usages and Find in Files see it.
 
 The projects are every .vcxproj in the repositories beside this one.  Problems are printed as
-"<path>:1:1: error: ..." lines, which the IDE's Build pane can open; the exit code is the number of them (at most 1).
+"<path>:1:1: error: ..." lines, which the IDE's Build pane can open; it exits 1 if there are any.
 """
 import os
 import sys
 import xml.etree.ElementTree as ElementTree
 
-import yaml
+from site_sources import ROOT, sources
 
-WEBSITE = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-ROOT = os.path.normpath(os.path.join(WEBSITE, '..', '..'))
 SKIPPED = {'.git', '.vs', '.venv', '.staging', '.cache', 'site', 'build', 'Output', 'node_modules', 'x64', 'Debug', 'Release'}
-
-
-class Loader(yaml.SafeLoader):
-    """mkdocs.yml with its !!python/name: tags read as text."""
-
-
-Loader.add_multi_constructor('tag:yaml.org,2002:python/', lambda loader, suffix, node: suffix)
-
-
-def mapped_folders():
-    with open(os.path.join(WEBSITE, 'mkdocs.yml'), encoding='utf-8') as file:
-        config = yaml.load(file, Loader=Loader)
-    return [os.path.normpath(os.path.join(ROOT, entry['folder'])) for entry in config['extra']['sources']]
 
 
 def projects():
@@ -68,7 +53,7 @@ def main():
 
     checked = 0
     problems = 0
-    for folder in mapped_folders():
+    for folder, site, branch in sources():
         for directory, directories, names in os.walk(folder):
             directories.sort()
             for name in sorted(names):
