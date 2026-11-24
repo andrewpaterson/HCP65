@@ -273,18 +273,79 @@ D. References to code
       doesn't resolve.
 
 E. The IDE treats docs as code (HCP65-IDE)
-  1. BuildLib: a Makefile project with a build command is built by running it (a CCommandBuild subclass), whatever
-     the solution's toolchain.  Its output goes through ParseMessageLine like any other.
-  2. (No wildcard Include: decision 10.)
-  3. The code model reads the solution's .md items: links, snippet paths and [`Name`] references become index places
-     of a new usage type, Documentation, resolved by the same code as D.
-  4. Then, from the existing machinery: Rename changes references exactly (no longer as text); Rename File changes
-     links and snippet paths; Find Usages shows a Documentation group; Go to Definition works from a page; an
-     unresolved reference is marked like a compile error.
-  5. Markdown highlighting (headings, code, links, references coloured resolved / unresolved).
-  6. "Open with the system's program" for items that aren't text (PDF, .kicad_sch, .xlsx, .odt, images).
-  Check: IDE checks on a fixture solution (Checks/Input/Docs): rename a class and a file, find usages, go to
-  definition from a page, a broken reference in the Problems list.
+  Planned 2026-11-24 (the user: "Plan E please"); nothing built.  What there is (surveyed the same day):
+    - Builds: CSolutionBuild picks one toolchain per solution (HCP65, MSVC or GCC) and each builds its projects'
+      ClCompile items; ConfigurationType is only read to tell a static library.  Nothing runs a Makefile project's
+      NMakeBuildCommandLine, so Website.sln (Website and X65C64-Proposal, both Makefile projects running
+      `bash web.sh build|rebuild|clean`) can't be built from the IDE.  CCommandBuild runs programs in turn and
+      collects their output; the Build pane and Problems list read GCC's "<file>:<line>:<column>: error:" lines
+      (CIDEMessageOutput::ParseMessageLine), which is what web.sh's checks and code_references.py print.
+    - Pages: an editor tab whose file is an item of a project is handed to the edits thread, which parses it as C++
+      (CIDEEditorTab::TakeEdits, CIDECodeModel::ProcessEditedFile): a .md item is coloured as C++ (to be confirmed).
+      Rename's text search covers .md and .txt items (IDERename.cpp:267) as text, not as references.
+    - The index: places carry a usage type (ECPPUsageType, CppCompilerLib); Find Usages groups by it; Rename edits
+      the text at each place; Go to Definition starts from FindSymbolAt(file, line, column).
+    - D's rules for what a reference names (overloads, parameters, enumerators, files) and where a code span is
+      (fences, comments, link texts) are Python (tools/code_references.py, symbol_table.py).  The plan's rule is
+      that one piece of code decides for the IDE and the site; today only the symbol table is shared.
+    - Nothing opens a file with the system's program.
+  1. Resolving moves into C++ (IndexLib), one implementation for the IDE and the site:
+       a. CMarkdownSpans: a page's code spans outside fences and HTML comments, each with its line, column and what
+          its brackets make it (reference, link text, escaped, plain), as code_references.py does today.
+       b. CReferenceResolver: what a reference names (D's rules), from a symbol source that is either a CCPPIndex
+          (the IDE, live) or a written symbol table (the site), so both resolve with the same code.  Files by the
+          end of their path among a list of files.
+       c. hcp65index -resolve <table> <page>...: resolves pages against the written table (no indexing; quick) and
+          prints each reference's target or error and each warning.  code_references.py calls it and only puts in
+          the links; its Python scanner and resolver and their test go, the test's cases moving to TestIndexLib.
+     Check: the site builds identically (same links, no warnings) before and after; TestIndexLib has the fixture
+     page's cases.
+  2. BuildLib builds Makefile projects: a project whose ConfigurationType is Makefile is built by running its
+     NMakeBuildCommandLine (NMakeReBuildCommandLine, NMakeCleanCommandLine for Rebuild and Clean) in its folder, in
+     the solution's build order, whatever the toolchain; its output goes to the Build pane like a compiler's.
+     Libc65.vcxproj (a Makefile project with no commands) is skipped as now.  Check: TestBuildLib on a fixture
+     solution with a Makefile project; Website.sln built from the IDE, a broken reference in its Problems list.
+  3. The code model reads pages: every .md item of the workspace's projects is scanned (1a) once the C++ is
+     indexed, and again when the page is edited (on the edits thread) or the index changes (all pages; there are
+     about 85).  Each reference that resolves becomes index places of a new usage type, CPPUT_Documentation
+     (CppCompilerLib), one per name in it ([`CShape::Init`] is a place of CShape and one of CShape::Init), so the
+     existing machinery sees them.  Links between pages ([text](../ide/editor.md)) are read too, resolved through
+     mkdocs.yml's extra.sources (CYAMLFile), as places of the page they name.
+  4. From that, with little new code:
+       - Go to Definition, Quick Definition and Ctrl+click on a reference in a page.
+       - Find Usages has a Documentation group: the pages that name a symbol.
+       - Rename changes references exactly, as it changes code (no longer only by its text search, which stays
+         for .txt and for what isn't a reference).
+       - Rename File (and moving a page) changes the links to it and the snippet paths (--8<--) that name it.
+       - An unresolved reference is a problem of its page: underlined like a compile error, listed in Problems.
+         A plain span naming a symbol is a warning there too, as in the site build.
+  5. Markdown highlighting instead of C++ for .md tabs: headings, emphasis, code spans, links; fenced ```cpp
+     blocks coloured by the C++ tokeniser (lexically: F compiles them); references coloured as the symbol they
+     name (class, function...) or as an error when unresolved.  The Structure view shows the headings.
+  6. Open with the system's program: an item that isn't text (PDF, .xlsx, .odt, .kicad_sch, .kicad_pcb, images)
+     opens in the program the system has for it (xdg-open on Linux, ShellExecute on Windows), from Solution
+     Explorer.
+  Check: IDE checks on a fixture solution (Checks/Input/Docs: a library, its page, a second page linking to it):
+  go to definition from a page, find usages listing the page, rename a class and a function changing the page's
+  references, rename a page changing the link to it, a broken reference in Problems and underlined, a plain span's
+  warning, the page's colours, Website.sln built.
+  Order: 1 (it changes D, so first, while D is fresh), 2 (independent), 3, 4, 5, 6.
+  Still to ask (one at a time):
+    - Whether resolving moves into C++ (step 1; recommended: yes, it is the plan's rule, and the IDE needs the
+      resolver anyway; the cost is rewriting about 300 lines of Python as C++ with their tests).
+    - What the IDE does with a reference to a symbol its open workspace doesn't have (a kernal struct named in a
+      compiler page while only HCP65IDE.sln is open).  Recommended: resolve it from the site's symbol table
+      (Website/.symbols) when there is one, so Go to Definition still works and it isn't marked as an error; Rename
+      and Find Usages only cover the open workspace.  Otherwise: mark it unresolved, or leave it unmarked.
+    - Which pages Rename changes.  Recommended: the pages that are items of the open workspace's projects, as code;
+      a page outside it that names the old name fails the next site build, with its line.  Otherwise: also every
+      page under mkdocs.yml's mapped folders.
+    - How the IDE finds mkdocs.yml (to resolve links between pages, whose folders it maps).  Recommended: the
+      mkdocs.yml that is an item of a workspace project (Website.vcxproj has it), else
+      ../HCP65/Website/mkdocs.yml beside the solution's repository; without one, links aren't resolved and only
+      references are.
+    - Opening a non-text item: double-click opens it in the system's program (recommended, as Visual Studio does)
+      or only a context menu command.
 
 F. Examples as tests
   1. Every ```cpp block compiles, check only, through the semantic pass's front end (decision 15): statements inside
