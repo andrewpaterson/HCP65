@@ -77,6 +77,7 @@ Decided (the user's, 2026-11-24)
     it.  fscr and fccr were missing from its Instructions sheet and were added in red (HCP65 bd998c0).
  6. Find names: set / clear for bits, non-zero / zero for crumbs, nybbles and bytes (website: HCP65 db6ec74).
  7. Spreadsheet edits go through LibreOffice (installed 2026-11-24, 24.2.7.2, the version that writes the file).
+ 8. References to code are explicit (question 1): [`CTextArea`], [`CTextArea::ReplaceRanges`], [`BaseLib/Chars.h`].
 
 
 Proposed (my recommendations, not decided)
@@ -84,8 +85,7 @@ Proposed (my recommendations, not decided)
 
   - One site, built from many folders: each repository's Docs folders are gathered into a staging folder laid out as
     the site is today, so URLs and relative links between pages don't change.
-  - References to code are explicit, Rust style: [`CTextArea`], [`CTextArea::ReplaceRanges`], [`BaseLib/Chars.h`].
-    An unresolved one is a build error.  A plain code span that looks like a class (`CFoo`) and isn't a reference is
+  - References to code (explicit, decision 8) are written Rust style.  An unresolved one is a build error.  A plain code span that looks like a class (`CFoo`) and isn't a reference is
     a warning, which is also the worklist for converting the existing pages.
   - A reference becomes a GitHub permalink at the commit the site was built from.
   - Tables are generated, never written by hand, wherever a source exists: the spreadsheet for the 65C64, the KiCad
@@ -211,7 +211,8 @@ What is the user's to decide
 
 Asked one at a time, my recommendation first.  Not yet asked unless marked.
 
- 1. The reference syntax: explicit [`Name`] (recommended), or implicit (any code span that matches a symbol).
+ 1. The reference syntax.  Decided 2026-11-24: explicit [`Name`] (decision 8), not implicit (any code span that
+    matches a symbol).
  2. Owners of the 65c64 architecture pages and the hcp65 hardware pages: X65C64-Proposal (with the spreadsheet, as a
     small Makefile project of its own) and HCP65Lib (the emulator implements those devices) (recommended); or both in
     Website.
