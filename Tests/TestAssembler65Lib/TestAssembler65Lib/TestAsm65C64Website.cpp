@@ -212,6 +212,7 @@ static void TestAsm65WebsiteFindPages(CArrayChars* paszPages)
 		szFolder.Init(TEST_ASM65_WEBSITE_ROOT);
 		cFileUtil.AppendToPath(&szFolder, pcSource->GetStringAttribute("folder"));
 		cFileUtil.FullPath(&szFolder);
+		AssertString(szFolder.Text(), cFileUtil.IsDirectory(szFolder.Text()) ? szFolder.Text() : "is not a folder");
 		szSite = pcSource->GetStringAttribute("site");
 
 		aszFiles.Init();
