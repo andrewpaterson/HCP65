@@ -66,4 +66,17 @@
       <Filter>Source</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{20638a4d-dd56-4ca9-b519-b8d30a214343}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{1c060521-1e57-444a-a055-300c4c3712cb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\boot.md">
+      <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
 </Project>

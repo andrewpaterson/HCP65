@@ -185,3 +185,6 @@ extra:
     - folder: HCP65/Kernal/Docs
       site: ""
       branch: main
+    - folder: HCP65/Boot/Docs
+      site: ""
+      branch: main

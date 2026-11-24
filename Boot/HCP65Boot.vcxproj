@@ -104,6 +104,9 @@
       <Project>{E25D2DAC-0E80-42B2-8FA7-99B837CF7588}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\boot.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

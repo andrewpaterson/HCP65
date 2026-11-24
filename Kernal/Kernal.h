@@ -3,7 +3,7 @@
 #include "BaseLib/PrimitiveTypes.h"
 
 
-//The HCP65 starts in two stages (Website docs/hcp65/boot.md).  The boot loader in the ROM (HCP65/Boot) brings up the
+//The HCP65 starts in two stages (Boot/Docs/hcp65/boot.md).  The boot loader in the ROM (HCP65/Boot) brings up the
 //devices and the SD card, loads \OS\OS.SYS into MPU RAM and jumps to it.  OS.SYS (this kernal) starts the devices again,
 //loads each board's driver and runs the program \OS\STARTUP.TXT names.
 #define KERNAL_OS_FILE					"\\OS\\OS.SYS"
