@@ -68,10 +68,13 @@ Visual Studio's Call Stack, Locals, Autos and Watch windows, docked together bes
 right.  Call Stack and Locals are shown when debugging starts; the others from Debug > Windows.  Each
 shows where the emulator stopped, and is empty while it runs.  They need the program built for the
 debugger (a configuration's Debug, see [Building](building.md)) to show everything.  A Release build shows
-its calls and the variables it keeps in memory: objects, arrays and anything whose address is taken, as
-Locals and the watches have them, and the parameters that stay where they were passed (an object passed by
-value, a parameter whose address is taken).  A variable or parameter the optimiser keeps in a register, or
-folds away, is `(optimised away)`, in the Call Stack too.
+its calls and the variables it keeps in memory (objects, arrays and anything whose address is taken), the
+parameters that stay where they were passed (an object passed by value, a parameter whose address is taken),
+and, wherever the optimiser keeps their values, its other variables, parameters and `this`: in a register,
+a pseudo register or the frame, as Visual Studio shows optimised code.  A variable is `(optimised away)`,
+in the Call Stack too, where it has no value kept anywhere: before its first value, after its value's last
+use, folded into a constant, or in a register a call it made didn't save.  A variable in a register can be
+edited in the innermost call (the register is written), but has no address and can't be watched.
 
 ### Call Stack
 
