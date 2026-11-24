@@ -17,18 +17,18 @@ LINK = re.compile(r'\[`(\w+)`\]\(([\w-]+\.md)(#[\w-]+)?\)')
 
 
 def tables(path):
-    """Yields each Markdown table in the file as (header cells, list of row cells)."""
+    """Yields each Markdown table in the file as (header cells, list of (line number, row cells))."""
     header = None
     rows = []
     with open(path, encoding='utf-8') as file:
-        for line in file:
+        for number, line in enumerate(file, 1):
             line = line.strip()
             if line.startswith('|') and line.endswith('|'):
                 cells = [cell.strip() for cell in line[1:-1].split('|')]
                 if header is None:
                     header = cells
                 elif not all(re.fullmatch(r':?-+:?', cell) for cell in cells):
-                    rows.append(cells)
+                    rows.append((number, cells))
             elif header is not None:
                 yield header, rows
                 header = None
@@ -45,7 +45,7 @@ def page_operations(path):
             continue
         operation = header.index('Operation')
         flags = header.index('Flags') if 'Flags' in header else None
-        for row in rows:
+        for number, row in rows:
             pairs.add((row[operation], row[flags] if flags is not None else ''))
     return pairs
 
@@ -54,12 +54,13 @@ def main():
     errors = 0
     checked = 0
     pages = {}
-    for header, rows in tables(os.path.join(DOCS, 'index.md')):
+    index = os.path.normpath(os.path.join(DOCS, 'index.md'))
+    for header, rows in tables(index):
         if 'Operation' not in header:
             continue
         operation = header.index('Operation')
         flags = header.index('Flags') if 'Flags' in header else None
-        for row in rows:
+        for number, row in rows:
             link = LINK.search(row[0])
             if link is None:
                 continue
@@ -70,7 +71,8 @@ def main():
             checked += 1
             if pair not in pages[page]:
                 errors += 1
-                print('index.md: `%s` is "%s" with flags "%s", which %s does not give' % (link.group(1), pair[0], pair[1], page))
+                print('%s:%d:1: error: `%s` is "%s" with flags "%s", which %s does not give' %
+                      (index, number, link.group(1), pair[0], pair[1], page))
     print('%d instruction rows checked, %d differ from their pages' % (checked, errors))
     return 1 if errors else 0
 
