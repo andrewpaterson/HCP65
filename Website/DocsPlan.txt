@@ -99,6 +99,10 @@ Decided (the user's, 2026-11-24)
     function; a page names its headers once in a hidden comment at its top; a block that mustn't compile is marked
     ```{.cpp .no-check} (it keeps its C++ colouring).  21 ```cpp blocks on 2026-11-24, about half statement fragments
     (sprites, assembler, refactoring pages).
+16. Claude's memory notes move into the repositories (question 8), four kinds of them: the user's design rulings (to
+    design pages and plans' decision lists), recipes (to CLAUDE.md files and testing pages), how the user wants
+    Claude to work (to CLAUDE.md, so every session follows them, the IDE's Claude tab included) and status and
+    handoffs (to the plan files).  Machine fixes and session history stay in memory; what stays becomes pointers.
 
 
 Proposed (my recommendations, not decided)
@@ -252,7 +256,8 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
     not in CppCompilerLib's tests.
  7. Which ```cpp blocks compile.  Decided 2026-11-24 (decision 15): every one by default, fragments inside a function
     with the page's headers, ```{.cpp .no-check} to exempt one; not only blocks marked to compile.
- 8. Which memory notes move into the repositories: decisions and recipes (recommended), or everything.
+ 8. Which memory notes move into the repositories.  Decided 2026-11-24 (decision 16): design rulings, recipes, how
+    Claude should work, and status and handoffs; not machine fixes or session history, and not only the rulings.
  9. A finished plan once its design page exists: superseded, so deleted with the page naming its last commit
     (recommended: decision 4's rule), or kept beside the code as history.
 10. MCP: served by the running IDE (recommended: the index is already live there), or a separate headless program.
