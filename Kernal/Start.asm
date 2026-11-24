@@ -1,7 +1,7 @@
 ; OS.SYS's start up.  The boot loader (HCP65/Boot) read OS.SYS into MPU RAM, its first 256 bytes to $00FF00 (the
 ; stubs and vectors below) and the rest to banks 1 to 3, then jumped to $00FF00: ResetStub, which goes on at Start.
 ; The processor is native and in kernel mode, with interrupts disabled and the NMI timer's NMI off; ROM and RAM have long
-; since swapped (Website docs/hcp65/memory-map.md).  So the start up:
+; since swapped (HCP65Lib/Docs/hcp65/memory-map.md).  So the start up:
 ;
 ;   1. Clears the top 1KB of RAM bank 7: the user mode remap table's pages for process IDs $FC-$FF.
 ;   2. Sets the stack and the direct page, clears bss, sets up the heap, calls the init table's routines (each global's
