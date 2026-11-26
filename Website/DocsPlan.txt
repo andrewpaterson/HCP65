@@ -281,7 +281,8 @@ E. The IDE treats docs as code (HCP65-IDE)
       collects their output; the Build pane and Problems list read GCC's "<file>:<line>:<column>: error:" lines
       (CIDEMessageOutput::ParseMessageLine), which is what web.sh's checks and code_references.py print.
     - Pages: an editor tab whose file is an item of a project is handed to the edits thread, which parses it as C++
-      (CIDEEditorTab::TakeEdits, CIDECodeModel::ProcessEditedFile): a .md item is coloured as C++ (to be confirmed).
+      (CIDEEditorTab::TakeEdits, CIDECodeModel::ProcessEditedFile).  (Found while building: CIDEDocuments::
+      AddEditedFile drops every file that isn't C or C++, so a .md item was plain text, never coloured as C++.)
       Rename's text search covers .md and .txt items (IDERename.cpp:267) as text, not as references.
     - The index: places carry a usage type (ECPPUsageType, CppCompilerLib); Find Usages groups by it; Rename edits
       the text at each place; Go to Definition starts from FindSymbolAt(file, line, column).
@@ -337,11 +338,47 @@ E. The IDE treats docs as code (HCP65-IDE)
   changes code; a page outside it that names the old name fails the next site build, with its line.  The IDE finds
   mkdocs.yml (to resolve links between pages) as the one that is an item of a workspace project (Website.vcxproj
   has it), otherwise where a configurable setting in the project says (the user: "the otherwise must be a
-  configurable setting in the project"; taken as a property of the page's project, kept in its .vcxproj and set in
-  the IDE's project properties); without either, links between pages aren't checked and references still are.
+  configurable setting in the project"; built as DocsSite in the project's .hcp65project, the IDE's project
+  properties file beside its licence, set in Properties... in Solution Explorer, not in the .vcxproj); without
+  either, links between pages aren't checked and references still are.
   An item that isn't text opens in the system's program only from a context menu command in Solution Explorer
   (Open with System Program; not my recommendation, double-click); double-click does what it does now.  E has no
   questions left.
+  E1-E6 BUILT 2026-11-26.
+    E1: IndexLib's CMarkdownSpans (spans, then links and snippet paths) and CReferenceResolver (D's rules) over a
+      CSymbolTable, which reads a written table too; hcp65index -resolve <table> -files <list> <page>... prints each
+      page's links, errors and warnings, and code_references.py only puts the links in (columns are bytes: it
+      converts them).  TestReferences has the fixture page's cases, its expected results made by the Python it
+      replaced; the site built before and after was the same file for file (HCP65-IDE 14dc8d2, 80fc798; HCP65
+      54fe12f).
+    E2: BuildLib's GCC build runs a Makefile project's NMakeBuildCommandLine with the shell in the project's folder,
+      in its turn; MSBuild runs them itself on Windows.  Only projects that have a build command: HCP65 programs and
+      Libc65 are Makefile projects too, without one, and are built as before.  The IDE has no Rebuild or Clean, so
+      NMakeReBuildCommandLine and NMakeCleanCommandLine aren't used.  Website.sln builds with Debug|GCC (hcp65build
+      or the IDE); TestBuildMakefile.
+    E3: CWorkspaceIndex finds the workspace's .md items when it starts indexing, and the thread that indexes the last
+      unit resolves them (IsIndexing is true until then): each reference to an indexed symbol is index places of
+      usage CPPUT_Documentation (CppCompilerLib), one per name in it and per type in its parameters; what the
+      workspace hasn't is resolved from the website's table; files from the website's list when there is one.  An
+      edited page is resolved again on the edits thread from its editor's text.  Not done: a page isn't resolved
+      again when C++ changes without it (only when it is edited, or the workspace is indexed again), so a symbol
+      renamed by hand (not by Rename) leaves the page's reference stale until then.  TestWorkspacePages.
+    E4: Ctrl+B on a reference goes where the website's link goes; Find Usages' group "Usage in documentation";
+      Rename changes references (its text search skips a page's places, as it does code's); Rename File changes the
+      links and snippet paths that name the file (CDocsSite: the map from mkdocs.yml, pymdownx.snippets' base_path;
+      without a website, links relative to their page); a page's problems are its errors and warnings.  Not done:
+      Go to Definition (F12) goes to the index's definition, not the link's place; the Structure view doesn't show
+      a page's headings.  TestDocsSite.
+    E5: CMarkdownHighlighter colours a page with the C++ highlighter's kinds: headings, code spans, references as
+      what they name or unresolved, HTML comments, fences, and ```cpp blocks lexically (parsing them would add
+      made-up units to the projects).  TestMarkdownHighlighter.
+    E6: Open with System Program in Solution Explorer's menu, for any file; xdg-open run from a child that ends at
+      once (so nothing is left to wait for), ShellExecute on Windows; HCP65_IDE_SYSTEM_OPEN names another program.
+    Checks (Checks/Input/Docs): docs-go-to-source, docs-find-usages, docs-rename, docs-rename-file, docs-problems,
+    docs-colours, docs-open-with-system, docs-build.  The IDE's page: ide/documentation.md.  The whole suite (550
+    checks, Release) passes but enum-to-class, which failed the same before E; menus and rename-file-dialog were
+    updated for the new menu item.  TestIndexLib (214) passes in 64 and 32 bit Debug and 64 bit Release,
+    TestBuildLib (831) in 64 bit Debug; the site builds with no warnings.
 
 F. Examples as tests
   1. Every ```cpp block compiles, check only, through the semantic pass's front end (decision 15): statements inside
