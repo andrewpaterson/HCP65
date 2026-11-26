@@ -5,8 +5,8 @@ The user (2026-11-24): "Plan out the documentation / website / claude integratio
 discussion the same day: "The IDE needs to treat those markdown docs as essentially a part of the code?", "How do
 high level designs tie in?" and "can this become something that Claude can be pointed at?".
 
-Nothing here is built and nothing is a go-ahead: the decisions under "Decided" are the user's, everything else is
-proposed.  The questions under "What is the user's to decide" are asked one at a time, my recommendation first.
+Nothing here is a go-ahead: the decisions under "Decided" are the user's, everything else is proposed, and each
+stage says what of it is built.  The questions under "What is the user's to decide" are asked one at a time, my recommendation first.
 
 
 The goal
@@ -398,6 +398,16 @@ G. Designs
      and GerberLib 14, HCP65-IDE 11, HCP65 hardware, kernal and emulator 8, MicroprocessorLib 6, Sculpt and LogiCim 5,
      other 2 (and 16 of machine fixes and history, which stay).
   Check: each design page passes the reference check like any other.
+  G2-G4 built 2026-11-26, area by area, each area's notes deleted after its pages were committed: WindowLib, the
+  compiler (compiler/design), BaseLib and StandardLib, Assembler65Lib and Libc65 and the 65 suites, SupportLib and
+  ProceduralLib and GerberLib, the IDE (ide/design), the HCP65 (hcp65/design: hardware, kernal, interrupts,
+  emulator, board tester), MicroprocessorLib, and LogiCim and HCP65-Sculpt, which joined the site for it (the user,
+  2026-11-26: "Same for LogiCim and Sculpt, Sculpt is public").  Finished plans that nothing cites were deleted, the
+  page naming the last commit that had them; finished plans that code, tests or other plans cite by step were kept
+  as that record with a note at their end (each CLAUDE.md lists them); open plans had their status appended.  What
+  the notes said that the code no longer does was left out and reported; recipes went to the CLAUDE.md files.  The
+  memory notes left are machine fixes, session history and pointers.  Not built: G1's one line in each class's main
+  header naming its page.
 
 H. Claude
   1. A CLAUDE.md per repository (CommonLibraries, HCP65, HCP65-IDE, LogiCim, HCP65-Sculpt): a short map to the
@@ -413,7 +423,7 @@ H. Claude
      Part built 2026-11-24: how to work (a section the same in all five CLAUDE.md files), the code rules and the
      recipes are in the CLAUDE.md files (CommonLibraries e93836692, HCP65 405d4d0, HCP65-IDE 748f477, LogiCim
      b7cfdbd, HCP65-Sculpt 934a570); the 40 memory notes they came from were deleted.  The rest is done with G, area
-     by area (G4, decision 19).
+     by area (G4, decision 19): built 2026-11-26 (see G).
   4. Later: the IDE serves its live index over MCP (find definition, find usages including Documentation, the pages
      that cover a symbol), so Claude asks the index instead of grepping (decision 18: the running IDE only).
   5. Only if the site is published: llms.txt (mkdocs-llmstxt) at the site root.
