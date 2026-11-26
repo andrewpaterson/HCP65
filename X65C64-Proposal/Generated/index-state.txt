@@ -3,7 +3,7 @@
 | Mnemonic | Name | Operation | Flags | W65C816 |
 |---|---|---|---|---|
 | [`sep`](status.md#sep-and-cep) | Set state bits | P ∨ E → P | the flags named | sep sec sei |
-| [`cep`](status.md#sep-and-cep) | Clear state bits | P ∧ !E → P | the flags named | rep clc |
+| [`cep`](status.md#sep-and-cep) | Clear state bits | P ∧ !E → P | the flags named | rep clc cli clv |
 | [`wth`](width.md#wth-and-wtth) | Set register width | O → r | a, b, x, y | rep sep |
 | [`wtth`](width.md#wth-and-wtth) | Set two register widths | O2 → r1; O2 → r2 | a, b, x, y | |
 | [`gwth`](width.md#gwth) | Get register width | 8r → R; {8r - 1 → R} | | |

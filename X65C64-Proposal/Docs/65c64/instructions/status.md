@@ -14,7 +14,7 @@ Set, clear and copy the status flags, and move them to and from register bits.
 ```
 
 Set or clear any of the flags e, l, f, g, n, v, z and c, replacing the W65C816's `sep`, `rep`,
-`sec`, `clc`, `sei` and `cli`.  One word.  The register widths are set with [`wth`](width.md)
+`sec`, `clc`, `sei`, `cli` and `clv`.  One word.  The register widths are set with [`wth`](width.md)
 instead.
 
 ```asm
