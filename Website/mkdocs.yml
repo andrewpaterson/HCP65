@@ -31,6 +31,7 @@ hooks:
   - tools/gather_sources.py
   - tools/code_references.py
   - tools/code_examples.py
+  - tools/kicad_references.py
 plugins:
   - search
   - privacy

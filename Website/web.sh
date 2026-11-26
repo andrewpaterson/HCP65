@@ -44,6 +44,7 @@ check() {
     .venv/bin/python tools/check_files.py
     .venv/bin/python tools/test_check_files.py -q
     .venv/bin/python tools/test_device_tables.py -q
+    .venv/bin/python tools/test_kicad_references.py -q
     .venv/bin/python tools/test_code_references.py -q
     .venv/bin/python tools/test_code_examples.py -q
 }

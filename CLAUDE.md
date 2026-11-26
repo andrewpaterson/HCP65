@@ -49,6 +49,9 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   bits are checked against the sheets drawn as diagrams.  TestAssembler65Lib assembles every ```` ```asm ```` block
   in the site's `65c64` pages (```` ```text ```` for syntax), and checks the assembler's and the simulator's
   instructions against `Generated/Instructions.txt`.
+- A page names a KiCad part or net as `` `#!kicad IC9` `` or `` `#!kicad ~Main Access` ``, on the board a hidden
+  `<!-- kicad Main Memory Channel -->` names once, or `` `#!kicad Audio Clock:~WR_B` `` for another board; the site
+  build checks it against the board's schematic (`Website/tools/kicad_references.py`, through `DeviceROM --names`).
 - `devices.md`'s boards table and each board's register table are made from the boards' descriptions
   (`Website/tools/device_tables.py`, writing `DeviceROM/Generated`; the boards are `DeviceROM/MakeImages.ps1`'s list):
   change a board's description or schematic, not the table.  It needs the DeviceROM program built

@@ -70,5 +70,9 @@
     <None Include="tools\device_tables.py" />
     <None Include="tools\test_device_tables.py" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\kicad_references.py" />
+    <None Include="tools\test_kicad_references.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

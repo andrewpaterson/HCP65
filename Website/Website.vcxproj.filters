@@ -84,4 +84,12 @@
       <Filter>tools</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\kicad_references.py">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="tools\test_kicad_references.py">
+      <Filter>tools</Filter>
+    </None>
+  </ItemGroup>
 </Project>

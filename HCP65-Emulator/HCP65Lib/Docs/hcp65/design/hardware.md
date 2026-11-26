@@ -19,9 +19,9 @@ Reading the netlists found mistakes in the schematics, which the user corrected 
 | Where | Wrong | Corrected |
 |---|---|---|
 | Processor Board, Address Decode V2 to V3 | The `~Main` labels were the wrong way round | Kernel mode has main memory from `$200000`, user mode all 16MB |
-| HCP65 Kernal Mode | The interrupt depth counter's outputs were labelled in reverse order | The user ruled the counter isn't reversed: IC9's Q labels were fixed |
+| HCP65 Kernal Mode | The interrupt depth counter's outputs were labelled in reverse order | The user ruled the counter isn't reversed: `#!kicad HCP65 Kernal Mode:IC9`'s Q labels were fixed |
 | Main Memory Channel | Each socket's two window bits were swapped | The lower data bit is the low bit of the window |
-| Audio Clock | The DAC's `~WR_B` came from the '138's Y3 | Y5, with A0 kept on Q2: Q1 would change A0 on the same edge that ends each write |
+| Audio Clock | The DAC's `#!kicad Audio Clock:~WR_B` came from the '138's Y3 | Y5, with A0 kept on Q2: Q1 would change A0 on the same edge that ends each write |
 
 No board had been made then, and these boards' PCBs haven't changed in git since.
 
@@ -198,7 +198,7 @@ The board has none of these; they are the emulator's:
 
 - The Full Mainboard: three processors, and sockets for the second and third.  Only processor 0 is emulated.
 - The PCBs carry none of the 2026-10-31 schematic corrections.  The Main Memory Channel's PCB had old tracks left
-  on IC2's pads 12 to 19 after the user's reroute (DRC shorts), reported on 2026-10-31.
+  on `#!kicad Main Memory Channel:IC2`'s pads 12 to 19 after the user's reroute (DRC shorts), reported on 2026-10-31.
 - The faults found in the faults files are the boards' to fix; the emulator models none of them.  For the SD Card
   Board, as listed on 2026-11-05 (the file has their state): Fast CLK undriven, the Read Function counters held in
   reset, the DAT-zero inverter's polarity, `~Main RD` and `~Main WD` crossed, 5V into the cards; and likely timing
