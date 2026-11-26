@@ -554,8 +554,13 @@ I. Files that aren't source
   the user: delete it) and an empty header deleted); Ic (tools/device_tables.py: devices.md's boards table and each
   board's registers from the boards' descriptions, the board list MakeImages.ps1's, the notes the table lost put
   under it, the user); Id (DeviceROM --names lists a schematic's parts and named nets; tools/kicad_references.py
-  checks #!kicad spans and shows them without their board; hardware.md's IC9, ~WR_B and IC2 are references).  Ie in
-  progress.
+  checks #!kicad spans and shows them without their board; hardware.md's IC9, ~WR_B and IC2 are references).  Ie
+  (LogiCim --decode simulates the HCP65 MPU Address Decode board: CKicadSchemLogicimDecode builds it without laying
+  it out, wires it by its netlist, joins series resistors and drives supply-named nets; every part on the path is a
+  74 series model, no placeholders. tools/check_decode.py compares memory-map.md's kernel mode and swap tables and
+  registers.md's 13 register rows with it: 22 rows, no differences).  Open: whether the converter itself should join
+  series resistors and drive supply-named nets for every import (TestKicadImporterLib's expected circuits would
+  change); --decode is Linux only.
 
 
 Order
