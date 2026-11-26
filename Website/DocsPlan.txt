@@ -547,6 +547,15 @@ I. Files that aren't source
   Check: a tracked file nobody described fails the build at its path; a device board's register renamed in KiCad
   changes its table; a #!kicad span naming no part fails the build; a memory-map row that the decode doesn't give
   fails the build.
+  Built 2026-11-26: Ia (43 plans and notes made items, under Plans); Ib (tools/check_files.py in the site's checks:
+  13,400 tracked files of the five repositories, every one an item, test data, a repository's own file, named in a
+  CMakeLists.txt or a README row; READMEs for Kicad, Datasheets, Pictures, Documents, Fonts and the programs'
+  Resources; the files that belonged to a project made its items; ImageRowBlitterChannelAccessor (never compiled,
+  the user: delete it) and an empty header deleted); Ic (tools/device_tables.py: devices.md's boards table and each
+  board's registers from the boards' descriptions, the board list MakeImages.ps1's, the notes the table lost put
+  under it, the user); Id (DeviceROM --names lists a schematic's parts and named nets; tools/kicad_references.py
+  checks #!kicad spans and shows them without their board; hardware.md's IC9, ~WR_B and IC2 are references).  Ie in
+  progress.
 
 
 Order
