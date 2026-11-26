@@ -6,7 +6,8 @@ discussion the same day: "The IDE needs to treat those markdown docs as essentia
 high level designs tie in?" and "can this become something that Claude can be pointed at?".
 
 Nothing here is a go-ahead: the decisions under "Decided" are the user's, everything else is proposed, and each
-stage says what of it is built.  The questions under "What is the user's to decide" are asked one at a time, my recommendation first.
+stage says what of it is built.  The questions under "What is the user's to decide" are asked one at a time, my
+recommendation first.
 
 
 The goal
