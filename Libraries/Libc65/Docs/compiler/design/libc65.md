@@ -297,6 +297,7 @@ ambiguous only at the end of a file that fills its last cluster; then the walk s
 
 ## Not done
 
+- There is no `<float.h>`: code that needs a float's limits defines its own constants.
 - The trig and log tables aren't used: [`Libc65/math.cpp`] computes those functions.  Reading them into RAM at run
   time by a library call was the plan if they were wanted.
 - Lazy loading of code on the W65C816 is a separate project (the user, 2026-10-29): a fetch routine for each machine,
