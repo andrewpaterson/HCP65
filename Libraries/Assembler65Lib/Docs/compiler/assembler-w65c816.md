@@ -1,5 +1,12 @@
 # W65C816 Assembler
 
+<!-- cpp
+#include "Assembler65Lib/AsmW65C816Assembler.h"
+#include "Assembler65Lib/Asm65Object.h"
+char*	szSource;
+bool	bResult;
+-->
+
 The W65C816 assembler ([`CAsmW65C816Assembler`] in Assembler65Lib) uses the W65C816's own mnemonics
 (`lda`, `sta`, `adc`, `jsl`, `rep` ...) in the style of the [65C64 assembler](../65c64/assembler.md):
 upper case registers, lower case flags, memory in square brackets, a bare value is a constant, and

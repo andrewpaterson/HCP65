@@ -1,5 +1,10 @@
 # Assembler
 
+<!-- cpp
+#include "Assembler65Lib/Asm65C64Assembler.h"
+char*	szSource;
+-->
+
 The 65C64 assembler ([`CAsm65C64Assembler`] in Assembler65Lib) turns 65C64 source into bytes.  This
 page is the source format: lines, labels, numbers, expressions and directives.  The instructions
 themselves are on the [instruction pages](instructions/index.md), and their operands in

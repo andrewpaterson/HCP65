@@ -1,5 +1,21 @@
 # Sprites
 
+<!-- cpp
+#include <stdlib.h>
+#include <string.h>
+#include "UserLib/HCP65User.h"
+#include "UserLib/HCP65SFT.h"
+const void*			frame;
+uint32				frameSize;
+const SSFTPalette*	palette;
+uint8*				puiStageSft;
+uint32				uiStageSize;
+int32				iWasX;
+int32				iWasY;
+uint16*				puiSpansOfHerFrame;
+uint16				uiStage;
+-->
+
 A sprite is a picture that moves over another: a character walking across a stage, a pointer, a
 letter of text.  The HCP65 has no sprite hardware.  A program draws its sprites into the frame being
 drawn with [the screen's calls](screen.md), then shows that frame, and the kernel has the copying
@@ -42,7 +58,7 @@ board's: one sprite's at indices 1 to 16, another's at 17 to 32, both in palette
 A program reads the file with the [file calls](kernel-calls.md#files) and finds what is in it with
 `HCP65SFT.h`:
 
-```c++
+```cpp
 uint32  uiSize;
 uint8*  puiMaki;
 
@@ -94,7 +110,7 @@ width times height bytes with [`malloc`], unpacks the SFT into them and gives th
 them, to be drawn with `palette` (`KERNAL_SCREEN_NO_PALETTE` for the one set).  The SFT can be freed
 then.  `SFTImageFree(image)` takes the handle back and frees the pixels.
 
-```c++
+```cpp
 uint16  uiStage;
 
 SFTImageMake(puiStageSft, uiStageSize, 0, &uiStage);
@@ -135,7 +151,7 @@ given ([Blits](screen.md#blits)).  So the background goes back only where the sp
 pixels, one copy a row.  `sprites` works out each of Maki's frames' spans as it loads them, from her
 SFT's runs: for each row, its first drawn pixel and the one after its last.  Then each frame:
 
-```c++
+```cpp
 SKernalBlit  sBlit;
 
 memset(&sBlit, 0, sizeof(SKernalBlit));

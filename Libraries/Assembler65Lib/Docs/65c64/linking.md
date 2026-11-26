@@ -1,5 +1,14 @@
 # Objects and Linking
 
+<!-- cpp
+#include "Assembler65Lib/Asm65C64Assembler.h"
+#include "Assembler65Lib/Asm65Object.h"
+#include "Assembler65Lib/Asm65Linker.h"
+#include "Assembler65Lib/Asm65Library.h"
+char*				szSource;
+CAsm65Library	cLibrary;
+-->
+
 A program of more than one source file is assembled into *objects* and joined by the *linker*.
 An object ([`CAsm65Object`]) holds one source file's sections, symbols and relocations.  The
 linker ([`CAsm65Linker`]) places the sections at addresses, resolves the symbols between objects
