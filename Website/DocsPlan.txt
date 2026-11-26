@@ -514,6 +514,35 @@ I. Files that aren't source
   Decided 2026-11-26 (step 4): a page writes a part or a net as `#!kicad IC9` or `#!kicad ~{Main Access}` (the code
   reference check leaves #! spans alone), checked against the board it names once in a hidden comment (<!-- kicad
   Main Board -->), or `#!kicad Video Board:IC4` for another board (the user, as recommended).
+  Decided 2026-11-26 (plans and notes): a plan or note beside code (.txt) is an item of the project in its folder,
+  as a page is (decision 10), and the item check covers it; a note inside a folder a README describes is a row of
+  the README instead (the user, as recommended).
+  Planned 2026-11-26, in order:
+  Ia. Plans and notes: every .txt beside code (not test data, CMakeLists.txt or a run's Log.txt) made an item of
+      the nearest project above it, by script; tools/check_project_items.py checks them as it checks pages.
+  Ib. A README.md at the top of each folder of non-source files (HCP65's Kicad, Datasheets, Pictures, Documents and
+      Fonts, LogiCim's icons, and any other the check finds): what the folder is, then a table, Pattern | Is | From:
+      source, generated (the command and its inputs, never edited by hand) or third-party (the supplier, the
+      version).  tools/check_files.py: every tracked file of the five repositories is an item of a project, test
+      data (a test's Input or Output), one of a repository's own files (licences, CLAUDE.md, .gitignore,
+      CMakeLists.txt, solutions, .hcp65build) or under a README that has exactly one row for it; anything else is an
+      error at its path.
+  Ic. The device tables: a mode of the DeviceROM program (DeviceRomLib, KicadLib) that writes, from each device
+      board's schematic, the boards table devices.md has (name, main bus, driver) and a register table a board
+      (offset, read or write, name), into Generated files the pages include by snippet; web.sh runs it, as it runs
+      instruction_tables.py.  The tables' wording is the schematics' (net names); a difference from today's pages is
+      shown to the user before the page changes.
+  Id. KiCad references: `#!kicad IC9`, `#!kicad ~{Main Access}`, `#!kicad Video Board:IC4`, the page's board in
+      <!-- kicad Main Board -->.  The same program lists a board's references and nets; a hook
+      (tools/kicad_references.py) checks every span, with clickable errors.  inlinehilite shows a #!kicad span as
+      plain code; the code reference check already leaves #! spans alone.
+  Ie. The decode: read the main board's address decode from its netlist (the gates and decoders between the address
+      lines and the chip selects) into address ranges; check memory-map.md's kernel-mode table and registers.md's
+      register addresses against them.  How the decode is read is worked out from the schematic first, and put to
+      the user if it needs a choice.
+  Check: a tracked file nobody described fails the build at its path; a device board's register renamed in KiCad
+  changes its table; a #!kicad span naming no part fails the build; a memory-map row that the decode doesn't give
+  fails the build.
 
 
 Order
