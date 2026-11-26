@@ -35,8 +35,11 @@ beside the code they describe, each folder mapped here (DocsPlan.txt step B).
 The 65C64 Opcode Encoding page (../X65C64-Proposal/Docs/65c64/opcode-encoding.md) is generated from the spreadsheet's
 'Opcode encoding' sheet by tools/sheet_to_html.py, and the instruction tables (../X65C64-Proposal/Generated/*.txt,
 which the instruction pages include, and Generated/Instructions.txt) from its Instructions sheet by
-tools/instruction_tables.py, as ../X65C64-Proposal/InstructionTables.yml says; web.sh regenerates them before every
-build and live preview (the commands are in web.sh).
+tools/instruction_tables.py, as ../X65C64-Proposal/InstructionTables.yml says.  The HCP65's device tables
+(../DeviceROM/Generated: the boards and each board's registers, which devices.md includes) are made from the boards'
+descriptions by tools/device_tables.py, through the DeviceROM program for a board described by its schematic (built in
+../../build/DeviceROMRelease, or $DEVICEROM).  web.sh regenerates them all before every build and live preview (the
+commands are in web.sh).
 
 ## Checks
 

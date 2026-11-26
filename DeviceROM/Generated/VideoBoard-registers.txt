@@ -1,0 +1,30 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | Flags | ReadWrite |
+| $401 | Clear Interrupt | Write |
+| $402 | Address Low | Read |
+| $403 | Address High | Read |
+| $404 | Address Bank | Read |
+| $405 | Clock Select | Write |
+| $406 | Horizontal Low | Read |
+| $406 | Horizontal Front Porch Start | Write |
+| $407 | Horizontal High | Read |
+| $407 | Horizontal Sync Start | Write |
+| $408 | Horizontal Back Porch Start | Write |
+| $409 | Horizontal Back Porch End | Write |
+| $40A | Horizontal Shift Pattern Low | Write |
+| $40B | Horizontal Shift Pattern High | Write |
+| $40C | Vertical Low | Read |
+| $40C | Vertical Front Porch Start Low | Write |
+| $40D | Vertical High | Read |
+| $40D | Vertical Front Porch Start High | Write |
+| $40E | Vertical Sync Start Low | Write |
+| $40F | Vertical Sync Start High | Write |
+| $410 | Vertical Back Porch Start Low | Write |
+| $411 | Vertical Back Porch Start High | Write |
+| $412 | Vertical Back Porch End Low | Write |
+| $413 | Vertical Back Porch End High | Write |
+| $416 | Palette Byte | Write |
+| $417 | Video Signal Delay | Write |

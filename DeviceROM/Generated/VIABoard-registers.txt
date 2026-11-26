@@ -1,0 +1,13 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | VIA AB | ReadWrite |
+| $410 | VIA CD | ReadWrite |
+| $420 | VIA EF | ReadWrite |
+| $430 | VIA GH | ReadWrite |
+| $440 | VIA XJ | ReadWrite |
+| $450 | VIA KL | ReadWrite |
+| $460 | VIA MN | ReadWrite |
+| $470 | VIA OP | ReadWrite |
+| $480 | Interrupts | Read |

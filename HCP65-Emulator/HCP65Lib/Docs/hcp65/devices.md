@@ -132,19 +132,56 @@ board's SST39VF010 at address 0, the rest of the chip left erased (`$FF`).
 
 The HCP65's own boards have the manufacturer `HCP65`:
 
-| Device name | Socket | Main bus | Driver file |
-|---|---|---|---|
-| `SD Card Board` | 32KB | Drives it (DMA) | `SDCARD.DRV` |
-| `Sound Board` | 128KB | Doesn't use it | `SOUND.DRV` |
-| `UART Board` | 32KB | Doesn't use it | `UART.DRV` |
-| `VIA Board` | 32KB | Doesn't use it | `VIA.DRV` |
-| `PS2 Board` | 32KB | Doesn't use it | `PS2.DRV` |
-| `Blitter Board` | 32KB | Drives it (copies in main memory) | `BLITTER.DRV` |
-| `Graphics Board` | 128KB | Drives it (copies in main memory) | `GRAPHICS.DRV` |
-| `LCD and SNES Board` | 32KB | Doesn't use it | `LCD.DRV` |
-| `Memory Board` | 32KB | Windows A and B: it is 4MB of main memory | none: the kernel sets its window |
-| `Coprocessor Board` | 32KB | Windows A and B, private: the coprocessors' 4MB | `COPROC.DRV` |
-| `Video Board` | 128KB | Windows A and B, private: its video memory | `VIDEO.DRV` |
+--8<-- "devices.txt"
+
+What each does with the main bus:
+
+- The SD Card Board drives it to copy sectors to and from main memory (DMA).
+- The Blitter Board and the Graphics Board drive it to copy in main memory.
+- The Memory Board is 4MB of main memory, through windows A and B.  It has no driver: the kernel sets its window.
+- The Coprocessor Board's windows are private: the coprocessors' own 4MB.
+- The Video Board's windows are private: its video memory.
+
+### The boards' registers
+
+Each board's registers, from its description: offsets in its slot, and names as its schematic's nets name them (or
+as its description, written by hand, does).  The LCD and SNES Board's and the Memory Board's descriptions list none.
+
+#### Sound Board
+
+--8<-- "SoundBoard-registers.txt"
+
+#### SD Card Board
+
+--8<-- "SDCardBoard-registers.txt"
+
+#### UART Board
+
+--8<-- "UARTBoard-registers.txt"
+
+#### VIA Board
+
+--8<-- "VIABoard-registers.txt"
+
+#### Blitter Board
+
+--8<-- "BlitterBoard-registers.txt"
+
+#### Coprocessor Board
+
+--8<-- "CoprocessorBoard-registers.txt"
+
+#### Graphics Board
+
+--8<-- "GraphicsBoard-registers.txt"
+
+#### PS2 Board
+
+--8<-- "PS2Board-registers.txt"
+
+#### Video Board
+
+--8<-- "VideoBoard-registers.txt"
 
 ### Drivers
 

@@ -73,4 +73,15 @@
       <Filter>tools</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\test_check_files.py">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="tools\device_tables.py">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="tools\test_device_tables.py">
+      <Filter>tools</Filter>
+    </None>
+  </ItemGroup>
 </Project>

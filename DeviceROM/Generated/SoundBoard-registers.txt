@@ -1,0 +1,12 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | Flags | ReadWrite |
+| $401 | Clear Interrupt | Write |
+| $402 | Start Low (read: Counter Low) | ReadWrite |
+| $403 | Start High (read: Counter High) | ReadWrite |
+| $404 | End Low | Write |
+| $405 | End High | Write |
+| $406 | Interrupt Low | Write |
+| $407 | Interrupt High | Write |

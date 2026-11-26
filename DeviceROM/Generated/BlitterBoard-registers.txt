@@ -1,0 +1,18 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | Flags | ReadWrite |
+| $401 | Clear Interrupt | Write |
+| $402 | Transparent Colour | ReadWrite |
+| $404 | Dest Address Low | Write |
+| $405 | Dest Address High | Write |
+| $406 | Dest Address Bank | Write |
+| $407 | Start | Write |
+| $408 | Source Address Low | Write |
+| $409 | Source Address High | Write |
+| $40A | Source Address Bank | Write |
+| $40C | Count Offset Start Low | ReadWrite |
+| $40D | Count Offset Start High | ReadWrite |
+| $40E | Count Offset Stop Low | Write |
+| $40F | Count Offset Stop High | Write |

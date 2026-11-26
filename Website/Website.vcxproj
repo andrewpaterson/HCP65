@@ -65,5 +65,10 @@
     <None Include="tools\test_code_examples.py" />
     <None Include="tools\test_instruction_tables.py" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\test_check_files.py" />
+    <None Include="tools\device_tables.py" />
+    <None Include="tools\test_device_tables.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

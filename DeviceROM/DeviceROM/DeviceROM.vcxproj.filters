@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Generated">
+      <UniqueIdentifier>{c55b433d-ef27-4ef6-bf7b-45f6e815f67d}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Boards">
       <UniqueIdentifier>{38a1cca7-28b0-4c0e-b992-35d36fbfaf67}</UniqueIdentifier>
     </Filter>
@@ -31,6 +34,38 @@
     </None>
     <None Include="..\MakeImages.ps1">
       <Filter>Boards</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Generated\BlitterBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\CoprocessorBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\GraphicsBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\PS2Board-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\SDCardBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\SoundBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\UARTBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\VIABoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\VideoBoard-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="..\Generated\devices.txt">
+      <Filter>Generated</Filter>
     </None>
   </ItemGroup>
 </Project>

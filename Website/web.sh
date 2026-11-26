@@ -28,9 +28,10 @@ if [[ ! -x .venv/bin/mkdocs ]]; then
 fi
 
 # Pages made from other files: the 65C64's Opcode Encoding page and its instruction tables (and the tables' checks)
-# from its spreadsheet.
+# from its spreadsheet, and the HCP65's device tables from the boards' descriptions.
 generate() {
     .venv/bin/python tools/instruction_tables.py > /dev/null
+    .venv/bin/python tools/device_tables.py > /dev/null
     .venv/bin/python tools/sheet_to_html.py "../X65C64-Proposal/65C64 Instruction Architecture.xlsx" \
         "Opcode encoding" B8:AJ371 ../X65C64-Proposal/Docs/65c64/opcode-encoding.md --title "Opcode Encoding" \
         --intro "How each 65C64 instruction is encoded: the 16 bit opcode on the left and the 16 bit operand word that follows it on the right.  Reproduced from the 'Opcode encoding' sheet of the 65C64 Instruction Architecture spreadsheet." \
@@ -42,6 +43,7 @@ check() {
     .venv/bin/python tools/check_project_items.py
     .venv/bin/python tools/check_files.py
     .venv/bin/python tools/test_check_files.py -q
+    .venv/bin/python tools/test_device_tables.py -q
     .venv/bin/python tools/test_code_references.py -q
     .venv/bin/python tools/test_code_examples.py -q
 }

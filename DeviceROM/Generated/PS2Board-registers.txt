@@ -1,0 +1,11 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | Flags | ReadWrite |
+| $401 | PS2 FIFO 1 | Read |
+| $401 | Clear Interrupt 1 | Write |
+| $402 | PS2 FIFO 2 | Read |
+| $402 | Clear Interrupt 2 | Write |
+| $403 | Direct | ReadWrite |
+| $404 | State | Read |

@@ -49,6 +49,10 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   bits are checked against the sheets drawn as diagrams.  TestAssembler65Lib assembles every ```` ```asm ```` block
   in the site's `65c64` pages (```` ```text ```` for syntax), and checks the assembler's and the simulator's
   instructions against `Generated/Instructions.txt`.
+- `devices.md`'s boards table and each board's register table are made from the boards' descriptions
+  (`Website/tools/device_tables.py`, writing `DeviceROM/Generated`; the boards are `DeviceROM/MakeImages.ps1`'s list):
+  change a board's description or schematic, not the table.  It needs the DeviceROM program built
+  (`cmake -S DeviceROM -B ../build/DeviceROMRelease -DCMAKE_BUILD_TYPE=Release -DBASELIB_64=ON`).
 - Design pages (how it is built and why, its decisions and what isn't done) are in the `hcp65/design` folders:
   `Kernal/Docs` (the kernal, interrupts), `HCP65-Emulator/HCP65Lib/Docs` (their index, the hardware),
   `HCP65-Emulator/HCP65Emulator/Docs` (the emulator), `HCP65-Tester/HCP65Tester/Docs` (the board tester).

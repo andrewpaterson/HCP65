@@ -1,0 +1,20 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | UART2 Receiver Buffer / Transmitter Holding | ReadWrite |
+| $401 | UART2 Interrupt Enable | ReadWrite |
+| $402 | UART2 Interrupt Identification / FIFO Control | ReadWrite |
+| $403 | UART2 Line Control | ReadWrite |
+| $404 | UART2 Modem Control | ReadWrite |
+| $405 | UART2 Line Status | ReadWrite |
+| $406 | UART2 Modem Status | ReadWrite |
+| $407 | UART2 Scratch | ReadWrite |
+| $408 | UART1 Receiver Buffer / Transmitter Holding | ReadWrite |
+| $409 | UART1 Interrupt Enable | ReadWrite |
+| $40A | UART1 Interrupt Identification / FIFO Control | ReadWrite |
+| $40B | UART1 Line Control | ReadWrite |
+| $40C | UART1 Modem Control | ReadWrite |
+| $40D | UART1 Line Status | ReadWrite |
+| $40E | UART1 Modem Status | ReadWrite |
+| $40F | UART1 Scratch | ReadWrite |

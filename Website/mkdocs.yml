@@ -52,6 +52,7 @@ markdown_extensions:
         - ../Tests/TestAssembler65Lib/TestAssembler65Lib/Input
         - ../Tests/TestAssembler65Lib/TestAssembler65Lib
         - ../X65C64-Proposal/Generated
+        - ../DeviceROM/Generated
       check_paths: true
       dedent_subsections: true
   - pymdownx.superfences:

@@ -1,0 +1,17 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Offset | Name | Access |
+|---|---|---|
+| $400 | DMA Address Low | Write |
+| $401 | DMA Address High | Write |
+| $402 | DMA Address Bank | Write |
+| $404 | GPIO | ReadWrite |
+| $406 | Data Count Low | Write |
+| $407 | Data Count High | Write |
+| $408 | CRC Count Low | Write |
+| $409 | CRC Count High | Write |
+| $40A | Clear Interrupt | Write |
+| $40B | Read Start | Write |
+| $40C | Flags | ReadWrite |
+| $40E | Write Data Low | Write |
+| $40F | Write Data High | Write |

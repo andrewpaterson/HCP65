@@ -253,6 +253,18 @@
     <None Include="..\Boards\VIABoard.xml" />
     <None Include="..\MakeImages.ps1" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Generated\BlitterBoard-registers.txt" />
+    <None Include="..\Generated\CoprocessorBoard-registers.txt" />
+    <None Include="..\Generated\GraphicsBoard-registers.txt" />
+    <None Include="..\Generated\PS2Board-registers.txt" />
+    <None Include="..\Generated\SDCardBoard-registers.txt" />
+    <None Include="..\Generated\SoundBoard-registers.txt" />
+    <None Include="..\Generated\UARTBoard-registers.txt" />
+    <None Include="..\Generated\VIABoard-registers.txt" />
+    <None Include="..\Generated\VideoBoard-registers.txt" />
+    <None Include="..\Generated\devices.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

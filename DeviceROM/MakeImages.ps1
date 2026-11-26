@@ -13,7 +13,8 @@ $DeviceROM = Join-Path $PSScriptRoot 'x64\Release\DeviceROM.exe'
 $Boards = Join-Path $PSScriptRoot 'Boards'
 $Kicad = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\Kicad\Computer'))
 
-# Each board's image and what it is made from: a description in Boards\, or a schematic in Kicad\Computer\.
+# Each board's image and what it is made from: a description in Boards\, or a schematic in Kicad\Computer\.  The
+# website's device tables are made from the same list (Website/tools/device_tables.py reads it).
 $Images = @(
 	@{ Image = 'SoundBoard';		Description = 'SoundBoard.xml' },
 	@{ Image = 'SDCardBoard';		Description = 'SDCardBoard.xml' },

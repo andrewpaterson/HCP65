@@ -1,0 +1,15 @@
+<!-- Generated from the device boards' descriptions (DeviceROM/Boards, or worked out from the boards' schematics) by HCP65/Website/tools/device_tables.py.  Don't edit it: change the description or the schematic. -->
+
+| Device name | Socket | Main bus | Driver file |
+|---|---|---|---|
+| `Sound Board` | 128KB | Doesn't use it | `SOUND.DRV` |
+| `SD Card Board` | 32KB | Drives it | `SDCARD.DRV` |
+| `UART Board` | 32KB | Doesn't use it | `UART.DRV` |
+| `VIA Board` | 32KB | Doesn't use it | `VIA.DRV` |
+| `Memory Board` | 32KB | Windows A and B | none |
+| `Blitter Board` | 32KB | Drives it | `BLITTER.DRV` |
+| `Coprocessor Board` | 32KB | Windows A and B, private | `COPROC.DRV` |
+| `Graphics Board` | 128KB | Drives it | `GRAPHICS.DRV` |
+| `LCD and SNES Board` | 32KB | Doesn't use it | `LCD.DRV` |
+| `PS2 Board` | 32KB | Doesn't use it | `PS2.DRV` |
+| `Video Board` | 128KB | Windows A and B, private | `VIDEO.DRV` |
