@@ -297,6 +297,9 @@ ambiguous only at the end of a file that fills its last cluster; then the walk s
 
 ## Not done
 
+- Why the FAT assembly is slower than the compiled C++ (above): profiles were taken (`TEST_PROJECT65_PROFILE`) but
+  not analysed, and the assembly has no line table, so its time lands in its callers.  `TEST_PROJECT65_CPP=1` builds
+  the C++ to compare.
 - There is no `<float.h>`: code that needs a float's limits defines its own constants.
 - The trig and log tables aren't used: [`Libc65/math.cpp`] computes those functions.  Reading them into RAM at run
   time by a library call was the plan if they were wanted.
