@@ -223,6 +223,22 @@ C. The 65C64 derived from the spreadsheet
   4. Tests in TestAssembler65Lib and TestMicroprocessorLib compare the assembler's and the simulator's tables with that
      text table, so the code follows the spreadsheet too.
   Check: the generated pages match today's hand-written tables (differences reviewed with the user, like fscr/fccr).
+  Built 2026-11-26 (HCP65 8cc21ed..85200fa).  The user's answers: the spreadsheet is changed first to say what the
+  pages say (red edits, with LibreOffice), then the tables are made from it; of the other sheets, Hardware registers
+  is a table and is generated, while Registers, Addressing modes and Operand encoding are drawn as diagrams, so the
+  pages describing them stay hand-written and are checked against them.  As built: tools/instruction_tables.py
+  writes X65C64-Proposal/Generated/<table>.txt as X65C64-Proposal/InstructionTables.yml says (the index's seven
+  tables, each instruction page's summary, the hardware registers), which the pages include by snippet, and
+  Generated/Instructions.txt (every row's mnemonic and codes); 108 cells of the sheet were changed, and the site
+  came out the same.  The checks: every instruction page's title names the sheet's mnemonics and all of them are
+  named; each index row links to the page whose table has its row; operands.md's modes and registers.md's registers
+  and status bits are the diagram sheets'.  check_instruction_tables.py, which compared the index with the pages,
+  went: both are made from the same rows now.  C4's tests are TestAssembler65Lib's TestAsm65C64Spreadsheet, for the
+  assembler and the simulator both (a TestMicroprocessorLib test would read HCP65 from CommonLibraries): the
+  assembler knows the sheet's mnemonics and no others, and the simulator decodes each from an opcode with its
+  instruction code and nothing else (the hardware register instructions aren't simulated yet).  Not done: the
+  index's Encoding table (codes to instructions) is still hand-written; the extend and sub codes aren't compared
+  with the code, as the Opcode encoding sheet, which places their bits, is drawn too.
 
 D. References to code
   0. The indexing setup in a library (decision 20): IndexLib's CWorkspaceIndex, tested by TestIndexLib on a small
@@ -411,14 +427,14 @@ F. Examples as tests
   2.  Snippet sections: the first example taken from a test by name (pymdownx.snippets' "// --8<-- [start:name]"),
       where a page's example repeats one a test already runs.
   Built 2026-11-26 (HCP65-IDE e44bf69, c603fd7: CPageExamples, hcp65index -examples, TestPageExamples; HCP65
-  Website/tools/ code_examples.py). As built: 18 pages have ```cpp blocks; every checked one compiles, and a broken
-  one fails the build with its "<page>:<line>:<column>: error:" line (tried). Differences from the plan: the check
+  Website/tools/ code_examples.py).  As built: 18 pages have ```cpp blocks; every checked one compiles, and a broken
+  one fails the build with its "<page>:<line>:<column>: error:" line (tried).  Differences from the plan: the check
   takes about a second and a half for every page, so it isn't cached; a block of only snippets isn't compiled, its
   code is, in the test it comes from; a page in a project that can't see a header names it by its path from the page
-  (the 65C64 emulator page, MicroprocessorLib's, needed HCP65's assembler until its example moved to a test). The
+  (the 65C64 emulator page, MicroprocessorLib's, needed HCP65's assembler until its example moved to a test).  The
   65C64 emulator page's example is TestAssembler65Lib's (TestAsm65C64Website.cpp, sections emulator and
   emulator-kill), so it runs as well as compiles; the snippets' base_path has that test's folder, dedent_subsections
-  on. Not done: the IDE doesn't show an example's errors as it shows a reference's (only the site build does).
+  on.  Not done: the IDE doesn't show an example's errors as it shows a reference's (only the site build does).
 
 G. Designs
   1. When a plan is finished, a design page is written from it next to its code: how it works, then the decisions
