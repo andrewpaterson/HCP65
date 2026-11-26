@@ -52,7 +52,9 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 - Test suites build with CMake as in CommonLibraries (`cmake -S Tests/TestAssembler65Lib -B
   ../build/TestAssembler65Lib64 -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).
   TestAssembler65Lib reads `Website/mkdocs.yml` and the `Docs` folders it lists.  Run TestLibc65 from
-  `Tests/TestLibc65/TestLibc65` (as `ctest` does), else it can't find BaseLib.
+  `Tests/TestLibc65/TestLibc65` (as `ctest` does), else it can't find BaseLib.  TestHCP65Lib reads `Kicad/Computer`
+  (link it into a private copy); `TEST_HCP65_KERNAL_ONLY=<Boot|UART|VIA|PS2|Shell|Console|Blitter|LCD|Video|
+  NoMainMemory|Exceptions>` runs one of its kernal tests.
 
 ## Rules for the code
 

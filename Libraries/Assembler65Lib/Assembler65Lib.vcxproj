@@ -272,6 +272,9 @@
     <None Include="Docs\65c64\linking.md" />
     <None Include="Docs\65c64\examples.md" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\design\assembler.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -95,6 +95,9 @@ nav:
           - W65C816 Back End: compiler/design/w65c816.md
           - 65C64 Back End: compiler/design/65c64.md
           - Self-Hosting: compiler/design/self-hosting.md
+          - Assembler and Linker: compiler/design/assembler.md
+          - Libc65: compiler/design/libc65.md
+          - The 65 Test Suites: compiler/design/test-suites.md
   - HCP65 IDE:
       - ide/index.md
       - Solutions and Workspaces: ide/solutions.md

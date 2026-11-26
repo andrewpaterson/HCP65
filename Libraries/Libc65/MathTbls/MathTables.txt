@@ -149,3 +149,7 @@ with MULT) and IRW65C816Runtime-MathSafe.asm (multiplies without); see W65C816.t
   used the lower half wouldn't link.  A reciprocal divide for byte divisors was prototyped
   and measured first: 16/8 with a 16 bit quotient 340 -> 293 cycles, but slower when the
   quotient is a byte (276 -> 292 over all n), so not taken up.
+
+Finished (2026-11-26, HCP65/Website/DocsPlan.txt G4).  Its design, decisions and open items are now the design
+page Libc65/Docs/compiler/design/libc65.md; this file is kept only as the record other plans cite.  Don't add to
+it: change the page.

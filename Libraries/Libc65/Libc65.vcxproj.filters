@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Docs\compiler\design">
+      <UniqueIdentifier>{5541dc1c-90b2-42ca-a21b-e07e02ee8de4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{6d4aa36d-5602-4cbf-a97a-f2511aaff2a5}</UniqueIdentifier>
     </Filter>
@@ -226,6 +229,11 @@
     </None>
     <None Include="Docs\hcp65\runtime\w65c816.md">
       <Filter>Docs\hcp65\runtime</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\design\libc65.md">
+      <Filter>Docs\compiler\design</Filter>
     </None>
   </ItemGroup>
 </Project>

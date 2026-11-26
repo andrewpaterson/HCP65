@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Docs\compiler\design">
+      <UniqueIdentifier>{6359573b-999f-492b-81be-81de8c1ce1bc}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{f561361b-6d11-4a09-bd10-d5cd5c7c441d}</UniqueIdentifier>
     </Filter>
@@ -265,6 +268,11 @@
     </None>
     <None Include="Docs\65c64\examples.md">
       <Filter>Docs\65c64</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\compiler\design\assembler.md">
+      <Filter>Docs\compiler\design</Filter>
     </None>
   </ItemGroup>
 </Project>
