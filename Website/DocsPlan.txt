@@ -511,6 +511,9 @@ I. Files that aren't source
   schematic and included by snippet; the memory map's decode is worked out from the main board's netlist (a decode
   reader to write first) and memory-map.md and registers.md are checked against it.  A schematic can't be reworded
   to match a page as the spreadsheet was: its net names are the circuit.
+  Decided 2026-11-26 (step 4): a page writes a part or a net as `#!kicad IC9` or `#!kicad ~{Main Access}` (the code
+  reference check leaves #! spans alone), checked against the board it names once in a hidden comment (<!-- kicad
+  Main Board -->), or `#!kicad Video Board:IC4` for another board (the user, as recommended).
 
 
 Order
