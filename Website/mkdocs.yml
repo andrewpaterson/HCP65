@@ -187,6 +187,19 @@ nav:
           - Drawing and Speed: libraries/windowlib/drawing.md
           - Input, Focus, Keys and the Clipboard: libraries/windowlib/input.md
           - Backends: libraries/windowlib/backends.md
+      - SupportLib:
+          - libraries/supportlib/index.md
+          - Images and Drawing: libraries/supportlib/images.md
+          - Fonts: libraries/supportlib/fonts.md
+          - Sound: libraries/supportlib/sound.md
+          - Shapes: libraries/supportlib/shapes.md
+          - Scenes: libraries/supportlib/scenes.md
+          - Unwrapping and Virtual Textures: libraries/supportlib/unwrapping.md
+      - ProceduralLib:
+          - libraries/procedurallib/index.md
+          - Isosurfaces: libraries/procedurallib/isosurface.md
+          - Texture Generators: libraries/procedurallib/textures.md
+      - GerberLib: libraries/gerberlib/index.md
 extra:
   # Where the site's pages come from (DocsPlan.txt decision 13): each folder (relative to the folder holding the
   # repositories) lands at its site folder ("" is the top).  A project's Docs folder is laid out as the site's paths,
@@ -197,7 +210,7 @@ extra:
     - folder: HCP65/Website/docs
       site: ""
       branch: main
-    # CommonLibraries: the compiler, the 65C64 simulators, and BaseLib, StandardLib and WindowLib's design.
+    # CommonLibraries: the compiler, the 65C64 simulators, and the libraries' design.
     - folder: CommonLibraries/Libraries/CppCompilerLib/Docs
       site: ""
       branch: master
@@ -211,6 +224,15 @@ extra:
       site: ""
       branch: master
     - folder: CommonLibraries/Libraries/StandardLib/Docs
+      site: ""
+      branch: master
+    - folder: CommonLibraries/Libraries/SupportLib/Docs
+      site: ""
+      branch: master
+    - folder: CommonLibraries/Libraries/ProceduralLib/Docs
+      site: ""
+      branch: master
+    - folder: CommonLibraries/Libraries/GerberLib/Docs
       site: ""
       branch: master
     # HCP65: the 65C64 proposal, the assembler and C library, the computer's kernal, programs and emulator.
