@@ -55,6 +55,13 @@ status bits from the Registers sheet.
 fails when a file in a mapped folder isn't an item of exactly one Visual Studio project (DocsPlan.txt decision 10):
 a page goes in the project of the code it describes, a page about nothing in particular in Website.vcxproj.
 
+    .venv/bin/python tools/check_files.py
+
+fails when a tracked file of the five repositories doesn't say what it is (DocsPlan.txt I): it is an item of a
+project, test data, one of a repository's own files, named in a CMakeLists.txt, or a row of the README.md of a folder
+above it, whose table (| Files | Are | From |) says whether it is source, generated (from what, by what command) or
+third-party (from where, which version).
+
 TestAssembler65Lib (TestAsm65C64Website.cpp) assembles every ```asm example in the site's 65c64 pages, wherever they
 live, so fence a syntax summary that isn't real source as ```text.
 

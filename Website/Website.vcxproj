@@ -46,7 +46,6 @@
     <None Include="web.sh" />
     <None Include="README.md" />
     <None Include="DocsPlan.txt" />
-    <None Include="tools\check_instruction_tables.py" />
     <None Include="tools\check_project_items.py" />
     <None Include="tools\code_references.py" />
     <None Include="tools\gather_sources.py" />
@@ -58,6 +57,13 @@
     <None Include="docs\hcp65\index.md" />
     <None Include="docs\libraries\index.md" />
     <None Include="docs\stylesheets\extra.css" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\check_files.py" />
+    <None Include="tools\code_examples.py" />
+    <None Include="tools\instruction_tables.py" />
+    <None Include="tools\test_code_examples.py" />
+    <None Include="tools\test_instruction_tables.py" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
