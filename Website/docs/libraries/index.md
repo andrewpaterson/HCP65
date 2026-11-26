@@ -10,3 +10,4 @@ The common libraries, in dependency order.  Each library's design pages are writ
 | [SupportLib](supportlib/index.md) | Images, drawing and fonts, sound and the MOD player, shapes, meshes and scenes, unwrapping and virtual textures. |
 | [ProceduralLib](procedurallib/index.md) | Isosurfaces (marching cubes, dual contouring, octrees) and procedural textures. |
 | [GerberLib](gerberlib/index.md) | Gerber and Excellon files: parsing, writing, panels, SVG and rendering. |
+| [MicroprocessorLib](microprocessorlib/index.md) | The processor simulators (the 65C64, the W65C816 and the W65C02, cycle by cycle and fast) and the logic simulation: timeline, voltages, traces, ports and chips. |

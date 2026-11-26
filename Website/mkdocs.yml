@@ -76,6 +76,13 @@ nav:
           - hcp65/runtime/index.md
           - W65C816 Runtime: hcp65/runtime/w65c816.md
       - Emulator: hcp65/emulator.md
+      - Design:
+          - hcp65/design/index.md
+          - The Hardware: hcp65/design/hardware.md
+          - The Kernal: hcp65/design/kernal.md
+          - Interrupts: hcp65/design/interrupts.md
+          - The Emulator: hcp65/design/emulator.md
+          - The Board Tester: hcp65/design/tester.md
   - HCP65 C++ Compiler:
       - compiler/index.md
       - Building Programs: compiler/building.md
@@ -210,6 +217,10 @@ nav:
           - Isosurfaces: libraries/procedurallib/isosurface.md
           - Texture Generators: libraries/procedurallib/textures.md
       - GerberLib: libraries/gerberlib/index.md
+      - MicroprocessorLib:
+          - libraries/microprocessorlib/index.md
+          - The Processor Simulators: libraries/microprocessorlib/simulators.md
+          - Logic Simulation: libraries/microprocessorlib/logic.md
 extra:
   # Where the site's pages come from (DocsPlan.txt decision 13): each folder (relative to the folder holding the
   # repositories) lands at its site folder ("" is the top).  A project's Docs folder is laid out as the site's paths,
@@ -268,6 +279,9 @@ extra:
       site: ""
       branch: main
     - folder: HCP65/HCP65-Emulator/HCP65Emulator/Docs
+      site: ""
+      branch: main
+    - folder: HCP65/HCP65-Tester/HCP65Tester/Docs
       site: ""
       branch: main
     # HCP65-IDE: the IDE, and hcp65build.

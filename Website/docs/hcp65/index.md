@@ -26,5 +26,5 @@ registers.  Everything else (memory boards, video, sound, storage, input) plugs 
 
 The compiler's runtime routines are in [Drivers and Runtime](runtime/index.md).
 
-These pages were worked out from the KiCad schematics in `658-Computer/Kicad/Computer`.  The
+These pages were worked out from the KiCad schematics in `HCP65/Kicad/Computer`.  The
 schematic sheet each part comes from is named in its section.
