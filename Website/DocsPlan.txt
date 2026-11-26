@@ -386,6 +386,29 @@ F. Examples as tests
      the pages with fragments their header comments.
   2. Named snippet sections (// --8<-- [start:name]) in test files, included by name.
   Check: a page with a broken ```cpp block fails the build with a clickable error.
+  Planned 2026-11-26.  The user's answers: a page's hidden comment declares the names its examples use without
+  declaring them, as well as naming its headers; the IDE's refactoring pages' before-and-after blocks are
+  {.cpp .no-check} (they show an edit, not an API, and the IDE's checks test each refactoring on real code).  22
+  ```cpp blocks then: 2 already no-check, 11 before-and-after, 9 library examples (the assembler, linker, emulator,
+  hcp65build, W65C816 and sprite pages).
+  1a. The page's hidden comment, before its first block: "<!-- cpp", then lines of C++ (its #includes and the
+      declarations its examples need), then "-->".  It goes before each block of the page.  ```c++ is written ```cpp.
+  1b. A block is compiled as a unit of the project the page is an item of, as that project's build configuration
+      compiles it (what the index uses), and checked as the IDE checks an edited file (the host's check): the hidden
+      lines, then the block at file scope if it declares (its first code line starts at column 0 and the next line
+      is "{" at column 0, or it starts with class, struct, union, enum, namespace, template, typedef, extern or #),
+      else as the body of a function.  The unit is named beside the page, so an error's line maps back to the page.
+  1c. IndexLib: CPageExamples, a page's blocks found with CMarkdownSpans::FindFence and checked through
+      CWorkspaceIndex::ParseUnit and CCPPSemanticPass, giving each error at its page line (the preprocessor's, the
+      parser's and the check's, in the unit only; one in a header the block includes is given at the block's first
+      line).  hcp65index -examples <solution.sln>... -pages <page.md>... prints them as
+      "<page>:<line>:<column>: error: <message>".  TestIndexLib tests it on fixture pages.
+  1d. The site build: tools/code_examples.py, a hook beside code_references.py, runs it on the pages that have
+      ```cpp blocks, cached in .symbols by the pages' text, the solutions and the repositories' HEADs as the symbol
+      table is; an error fails the build with its clickable line.
+  1e. The pages: the hidden comments; the before-and-after blocks marked no-check.
+  2.  Snippet sections: the first example taken from a test by name (pymdownx.snippets' "// --8<-- [start:name]"),
+      where a page's example repeats one a test already runs.
 
 G. Designs
   1. When a plan is finished, a design page is written from it next to its code: how it works, then the decisions
