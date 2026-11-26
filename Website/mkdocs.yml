@@ -30,6 +30,7 @@ theme:
 hooks:
   - tools/gather_sources.py
   - tools/code_references.py
+  - tools/code_examples.py
 plugins:
   - search
   - privacy
@@ -49,7 +50,9 @@ markdown_extensions:
   - pymdownx.snippets:
       base_path:
         - ../Tests/TestAssembler65Lib/TestAssembler65Lib/Input
+        - ../Tests/TestAssembler65Lib/TestAssembler65Lib
       check_paths: true
+      dedent_subsections: true
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

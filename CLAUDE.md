@@ -33,6 +33,10 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 - Name code in a page with a reference: [`CTextArea`], [`CTextArea::ReplaceRanges`], [`CShape::Init(int)`] or
   [`BaseLib/Chars.h`].  The site build links it to its line on GitHub and fails on one that names nothing; a plain
   `CTextArea` naming a real class is a warning.  A span that isn't C++ but looks it is written `#!text abs`.
+- A ```` ```cpp ```` block in a page compiles (the site build checks it, `hcp65index -examples`, as the project the
+  page is an item of compiles): a hidden comment under the page's title, `<!-- cpp`, then the `#include`s and the
+  declarations its examples use without declaring, then `-->`, goes before each block; a block of statements is
+  compiled in a function.  ```` ```{.cpp .no-check} ```` is for one that shows an edit, not an API.
   References resolve against the symbol table `hcp65index` (HCP65-IDE, built in `../build/HCP65IDERelease`) makes
   of the solutions in `mkdocs.yml`'s `extra.solutions`; it is kept in `Website/.symbols` until a repository's HEAD
   changes (about two minutes to make again), and `Website/web.sh index` remakes it.  `extra.repositories` says

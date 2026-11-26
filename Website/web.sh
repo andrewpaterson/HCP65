@@ -39,6 +39,7 @@ check() {
     .venv/bin/python tools/check_instruction_tables.py
     .venv/bin/python tools/check_project_items.py
     .venv/bin/python tools/test_code_references.py -q
+    .venv/bin/python tools/test_code_examples.py -q
 }
 
 build() {
