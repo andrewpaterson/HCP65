@@ -74,5 +74,9 @@
     <None Include="tools\kicad_references.py" />
     <None Include="tools\test_kicad_references.py" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\check_decode.py" />
+    <None Include="tools\test_check_decode.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

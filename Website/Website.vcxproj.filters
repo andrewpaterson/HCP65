@@ -92,4 +92,12 @@
       <Filter>tools</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="tools\check_decode.py">
+      <Filter>tools</Filter>
+    </None>
+    <None Include="tools\test_check_decode.py">
+      <Filter>tools</Filter>
+    </None>
+  </ItemGroup>
 </Project>

@@ -56,6 +56,10 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   (`Website/tools/device_tables.py`, writing `DeviceROM/Generated`; the boards are `DeviceROM/MakeImages.ps1`'s list):
   change a board's description or schematic, not the table.  It needs the DeviceROM program built
   (`cmake -S DeviceROM -B ../build/DeviceROMRelease -DCMAKE_BUILD_TYPE=Release -DBASELIB_64=ON`).
+- `memory-map.md`'s kernel mode and swap tables and `registers.md`'s addresses are checked against the HCP65 MPU
+  Address Decode board, simulated by `LogiCim --decode` (`Website/tools/check_decode.py`); a row that differs fails
+  the site build.  It needs LogiCim built (`cmake -S ../LogiCim/LogiCim -B ../build/LogiCimRelease
+  -DCMAKE_BUILD_TYPE=Release`).
 - Design pages (how it is built and why, its decisions and what isn't done) are in the `hcp65/design` folders:
   `Kernal/Docs` (the kernal, interrupts), `HCP65-Emulator/HCP65Lib/Docs` (their index, the hardware),
   `HCP65-Emulator/HCP65Emulator/Docs` (the emulator), `HCP65-Tester/HCP65Tester/Docs` (the board tester).

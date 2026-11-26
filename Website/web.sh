@@ -13,7 +13,9 @@
 # mkdocs.yml's extra.sources maps (tools/gather_sources.py).  The checks print problems as "<file>:<line>:1: error:"
 # lines, which the IDE's Build pane opens.  References to code ([`CTextArea`]) need hcp65index (HCP65-IDE's
 # HCP65Index, built in ../../build/HCP65IDERelease, or $HCP65INDEX) and are checked by the build itself
-# (tools/code_references.py).  The port defaults to 8000; set PORT to change it, e.g. PORT=8080 ./web.sh
+# (tools/code_references.py).  The memory map and registers are checked against the address decode board, simulated
+# by LogiCim (built in ../../build/LogiCimRelease, or $LOGICIM; tools/check_decode.py).  The port defaults to 8000;
+# set PORT to change it, e.g. PORT=8080 ./web.sh
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -45,6 +47,8 @@ check() {
     .venv/bin/python tools/test_check_files.py -q
     .venv/bin/python tools/test_device_tables.py -q
     .venv/bin/python tools/test_kicad_references.py -q
+    .venv/bin/python tools/check_decode.py
+    .venv/bin/python tools/test_check_decode.py -q
     .venv/bin/python tools/test_code_references.py -q
     .venv/bin/python tools/test_code_examples.py -q
 }

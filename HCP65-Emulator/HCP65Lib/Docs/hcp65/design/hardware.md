@@ -14,6 +14,10 @@ decode and the main memory channel were read from the schematics' netlists (`kic
 boards were read the same way as each was emulated (the SD Card Board's on 2026-11-05).  `kicad-cli` rewrites the
 project it exports from, so it is run on a copy (the recipe is in `CLAUDE.md`).
 
+The site's build checks the memory map's kernel mode tables and the registers' addresses against the HCP65 MPU
+Address Decode board itself: LogiCim simulates its schematic through every address and mode and prints each chip
+select's ranges (`#!text LogiCim --decode`, `Website/tools/check_decode.py`), and a row that differs fails the build.
+
 Reading the netlists found mistakes in the schematics, which the user corrected there on 2026-10-31:
 
 | Where | Wrong | Corrected |
