@@ -88,6 +88,13 @@ nav:
       - Linker and Outputs: compiler/linker.md
       - Libc65: compiler/libc65.md
       - Listings, Profiling and Testing: compiler/testing.md
+      - Design:
+          - compiler/design/index.md
+          - Front End: compiler/design/front-end.md
+          - IR and Optimiser: compiler/design/ir.md
+          - W65C816 Back End: compiler/design/w65c816.md
+          - 65C64 Back End: compiler/design/65c64.md
+          - Self-Hosting: compiler/design/self-hosting.md
   - HCP65 IDE:
       - ide/index.md
       - Solutions and Workspaces: ide/solutions.md
