@@ -134,6 +134,9 @@
     <None Include="Docs\hcp65\design\kernal.md" />
     <None Include="Docs\hcp65\design\interrupts.md" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="KernalInterrupts.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Plans">
+      <UniqueIdentifier>{b1b95a01-7b7f-4519-8df8-7350030d8d83}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Docs\hcp65\design">
       <UniqueIdentifier>{9342ef8f-74de-49c0-aaf2-0a9bb7e043f8}</UniqueIdentifier>
     </Filter>
@@ -154,6 +157,11 @@
     </None>
     <None Include="Docs\hcp65\design\interrupts.md">
       <Filter>Docs\hcp65\design</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="KernalInterrupts.txt">
+      <Filter>Plans</Filter>
     </None>
   </ItemGroup>
 </Project>
