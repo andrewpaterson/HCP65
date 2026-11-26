@@ -499,6 +499,9 @@ I. Files that aren't source
   from the schematics or the pages are checked against them; how a page names a part or a net, checked against which
   board.  The user, 2026-11-26: "The kicad files aren't really part of the code source as such, but as you point out
   they are a source of documentation.  I need to think about this."
+  Decided 2026-11-26: each folder of them says what it is (the user: "That sounds reasonable: saying what each
+  folder is"), as the spreadsheet already is: a source the pages are made from or checked against, outputs generated
+  from it, or third-party references; not project items.
 
 
 Order
