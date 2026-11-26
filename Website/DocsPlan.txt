@@ -409,6 +409,15 @@ F. Examples as tests
   1e. The pages: the hidden comments; the before-and-after blocks marked no-check.
   2.  Snippet sections: the first example taken from a test by name (pymdownx.snippets' "// --8<-- [start:name]"),
       where a page's example repeats one a test already runs.
+  Built 2026-11-26 (HCP65-IDE e44bf69, c603fd7: CPageExamples, hcp65index -examples, TestPageExamples; HCP65 Website/tools/
+  code_examples.py).  As built: 18 pages have ```cpp blocks; every checked one compiles, and a broken one fails the
+  build with its "<page>:<line>:<column>: error:" line (tried).  Differences from the plan: the check takes about a
+  second and a half for every page, so it isn't cached; a block of only snippets isn't compiled, its code is, in the
+  test it comes from; a page in a project that can't see a header names it by its path from the page (the 65C64
+  emulator page, MicroprocessorLib's, needed HCP65's assembler until its example moved to a test).  The 65C64
+  emulator page's example is TestAssembler65Lib's (TestAsm65C64Website.cpp, sections emulator and emulator-kill), so
+  it runs as well as compiles; the snippets' base_path has that test's folder, dedent_subsections on.  Not done: the
+  IDE doesn't show an example's errors as it shows a reference's (only the site build does).
 
 G. Designs
   1. When a plan is finished, a design page is written from it next to its code: how it works, then the decisions
