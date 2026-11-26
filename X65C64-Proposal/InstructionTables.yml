@@ -6,8 +6,8 @@
 #
 # Columns: link (the mnemonic, linked), mnemonic (the mnemonic, left out where it is the row above's in a table with a
 # form column), name (the sheet's name without "(zero extend)", "(sign extend)", "(unsigned)" or "(signed)"), form
-# (that word, or nothing), full name (the sheet's name), operation, flags, w65c816.  A row written {row: n, text: true}
-# shows its mnemonic as `#!text abs`: a name C++ has too.
+# (that word, or nothing), operation, flags, w65c816.  A row written {row: n, text: true} shows its mnemonic as
+# `#!text abs`: a name C++ has too.
 
 index-copy:
   columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
