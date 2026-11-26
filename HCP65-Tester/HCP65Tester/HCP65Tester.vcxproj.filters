@@ -30,6 +30,15 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{14a0942a-60ae-4247-98f3-3695b4d8f94c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65">
+      <UniqueIdentifier>{68494ac0-dfbf-4efc-beec-228e8814d5e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Docs\hcp65\design">
+      <UniqueIdentifier>{d8ffb1e0-7d5e-4bc6-bf9e-547dbe67cefa}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{16236feb-476f-4ffe-96ab-43d880e5625e}</UniqueIdentifier>
     </Filter>
@@ -68,5 +77,10 @@
     <ClInclude Include="CommonBoard.h">
       <Filter>Source\Specific</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\design\tester.md">
+      <Filter>Docs\hcp65\design</Filter>
+    </None>
   </ItemGroup>
 </Project>

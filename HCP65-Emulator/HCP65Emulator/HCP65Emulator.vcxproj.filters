@@ -92,6 +92,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Docs\hcp65\design">
+      <UniqueIdentifier>{8a36f091-6334-4126-bafa-9d391a05f415}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{8D2F4A61-3B7C-4E19-A5D0-6C1E2F3A4B5C}</UniqueIdentifier>
     </Filter>
@@ -107,6 +110,11 @@
   <ItemGroup>
     <None Include="Docs\hcp65\emulator.md">
       <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\design\emulator.md">
+      <Filter>Docs\hcp65\design</Filter>
     </None>
   </ItemGroup>
 </Project>

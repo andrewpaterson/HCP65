@@ -119,6 +119,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Docs\hcp65\design">
+      <UniqueIdentifier>{c6f2e6d7-d82e-47af-bcec-b394922d8875}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{2B7E9C14-6F3A-4D85-B0C2-9E1A7D4F3C68}</UniqueIdentifier>
     </Filter>
@@ -140,6 +143,14 @@
     </None>
     <None Include="Docs\hcp65\devices.md">
       <Filter>Docs\hcp65</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\design\index.md">
+      <Filter>Docs\hcp65\design</Filter>
+    </None>
+    <None Include="Docs\hcp65\design\hardware.md">
+      <Filter>Docs\hcp65\design</Filter>
     </None>
   </ItemGroup>
 </Project>

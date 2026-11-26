@@ -329,6 +329,9 @@
   <ItemGroup>
     <None Include="Docs\hcp65\emulator.md" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\design\emulator.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

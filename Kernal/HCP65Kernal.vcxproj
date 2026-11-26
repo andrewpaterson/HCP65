@@ -130,6 +130,10 @@
     <None Include="Docs\hcp65\screen.md" />
     <None Include="Docs\hcp65\sprites.md" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\design\kernal.md" />
+    <None Include="Docs\hcp65\design\interrupts.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

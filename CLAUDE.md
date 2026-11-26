@@ -41,8 +41,11 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   `Website/tools/check_instruction_tables.py` checks the instruction index against the instruction pages;
   TestAssembler65Lib assembles every ```` ```asm ```` block in the site's `65c64` pages (```` ```text ```` for
   syntax).
+- Design pages (how it is built and why, its decisions and what isn't done) are in the `hcp65/design` folders:
+  `Kernal/Docs` (the kernal, interrupts), `HCP65-Emulator/HCP65Lib/Docs` (their index, the hardware),
+  `HCP65-Emulator/HCP65Emulator/Docs` (the emulator), `HCP65-Tester/HCP65Tester/Docs` (the board tester).
 - Notes beside code: `Libraries/Assembler65Lib/Assembler65C64Syntax.txt`, `AssemblerW65C816Syntax.txt`,
-  `W65C816Names.txt`; `Kernal/KernalInterrupts.txt`, `Kernal/ImagesPlan.txt`.
+  `W65C816Names.txt`; `Kernal/KernalInterrupts.txt` (finished, kept as the record the code cites).
 
 ## Building and testing
 
@@ -52,9 +55,11 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 - Test suites build with CMake as in CommonLibraries (`cmake -S Tests/TestAssembler65Lib -B
   ../build/TestAssembler65Lib64 -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).
   TestAssembler65Lib reads `Website/mkdocs.yml` and the `Docs` folders it lists.  Run TestLibc65 from
-  `Tests/TestLibc65/TestLibc65` (as `ctest` does), else it can't find BaseLib.  TestHCP65Lib reads `Kicad/Computer`
-  (link it into a private copy); `TEST_HCP65_KERNAL_ONLY=<Boot|UART|VIA|PS2|Shell|Console|Blitter|LCD|Video|
-  NoMainMemory|Exceptions>` runs one of its kernal tests.
+  `Tests/TestLibc65/TestLibc65` (as `ctest` does), else it can't find BaseLib.  TestHCP65Lib reads `Kicad/Computer`,
+  the program folders, `Libraries` and `../CommonLibraries` by their relative paths (a private copy needs them linked
+  at the same paths); `TEST_HCP65_KERNAL_ONLY=<Boot|UART|VIA|PS2|Shell|Console|Blitter|LCD|Video|NoMainMemory|
+  Exceptions|Walk>` runs one of its kernal tests, and `TEST_HCP65_CLOCK`, `TEST_HCP65_RUN_CYCLES` and
+  `TEST_MODPLAY_SECONDS` time `modplay.exe` (the other switches are read in `TestHCP65Kernal.cpp`).
 
 ## Rules for the code
 
@@ -68,6 +73,7 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 - W65C816 code generation: no frameless leaves, and function pointers and vtables keep the stack-argument entry
   (see `../CommonLibraries/Libraries/CppCompilerLib/CodeGenerationHandoff.txt`, Rulings).
 - Drill files are written in millimetres.
+- The SD cards run 4 bits wide: keep the kernal's SD driver and the emulated SD board 4 bit, never SPI or 1 bit.
 
 ## Recipes
 

@@ -237,6 +237,10 @@
     <None Include="Docs\hcp65\registers.md" />
     <None Include="Docs\hcp65\devices.md" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Docs\hcp65\design\index.md" />
+    <None Include="Docs\hcp65\design\hardware.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
