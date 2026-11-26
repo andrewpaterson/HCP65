@@ -126,6 +126,16 @@ nav:
       - The Claude Tab: ide/claude-tab.md
       - Settings and Keys: ide/settings.md
       - Checking the IDE: ide/checks.md
+      - Design:
+          - ide/design/index.md
+          - Architecture: ide/design/architecture.md
+          - The Code Model: ide/design/code-model.md
+          - Refactoring: ide/design/refactoring.md
+          - Navigation: ide/design/navigation.md
+          - Editing: ide/design/editing.md
+          - The Debugger: ide/design/debugger.md
+          - Git: ide/design/git.md
+          - The IDE Checks: ide/design/checks.md
   - 65C64 Microprocessor Proposal:
       - 65c64/index.md
       - Registers: 65c64/registers.md
