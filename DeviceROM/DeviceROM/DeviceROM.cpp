@@ -11,6 +11,10 @@
 #include "BaseLib/FileUtil.h"
 #include "BaseLib/XMLFile.h"
 #include "DeviceRomLib/DeviceROM.h"
+#include "KicadLib/KicadSchemFile.h"
+#include "KicadLib/KicadSchemNetlist.h"
+#include "KicadLib/KicadSchemNet.h"
+#include "KicadLib/KicadSchemSymbol.h"
 #include "DeviceRomLib/DeviceROMSchematic.h"
 
 
@@ -176,11 +180,68 @@ static bool DeviceROMMake(const char* szXMLFile, const char* szImageFile)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The parts and the named nets of szSchematic (one sheet), a line each:
+// "part<TAB><reference>" and "net<TAB><name>", for the website's checks
+// of a page's KiCad references (HCP65/Website/DocsPlan.txt Id).  A power
+// symbol isn't a part, and a net named only after a pin isn't listed.
+// False, having said why, if it can't be read.
+//
+//////////////////////////////////////////////////////////////////////////
+static bool DeviceROMNames(const char* szSchematic)
+{
+	CKicadSchemFile		cFile;
+	CKicadSchemNetlist	cNetlist;
+	CKicadSchemNet*		pcNet;
+	const char*			szReference;
+	size				i;
+	bool				bResult;
+
+	cFile.Init();
+	if (!cFile.Load((char*)szSchematic))
+	{
+		fprintf(stderr, "DeviceROM: can't read %s.\n", szSchematic);
+		cFile.Kill();
+		return false;
+	}
+	cNetlist.Init(&cFile);
+	bResult = cNetlist.Build();
+	if (!bResult)
+	{
+		fprintf(stderr, "DeviceROM: %s: can't work out its nets.\n", szSchematic);
+	}
+	else
+	{
+		for (i = 0; i < cFile.NumSymbols(); i++)
+		{
+			szReference = cFile.GetSymbol(i)->GetReference();
+			if (szReference && (szReference[0] != '\0') && (szReference[0] != '#'))
+			{
+				printf("part\t%s\n", szReference);
+			}
+		}
+		for (i = 0; i < cNetlist.NumNets(); i++)
+		{
+			pcNet = cNetlist.GetNet(i);
+			if (pcNet->GetNameSource() != KSNNS_Pin)
+			{
+				printf("net\t%s\n", pcNet->GetName());
+			}
+		}
+	}
+	cNetlist.Kill();
+	cFile.Kill();
+	return bResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 // The device ROM tool: makes the 1KB device ROM image that is flashed onto
 // an HCP65 device board from the board's XML description (DeviceROM.h).
 //
 //	DeviceROM <board.xml> [<image.bin>]
 //	DeviceROM <board.kicad_sch> [<board.xml> [<image.bin>]]
+//	DeviceROM --names <board.kicad_sch>
 //
 // The image is written beside the description, as <board>.bin, unless it
 // is named.  From a schematic the description is worked out first
@@ -193,15 +254,19 @@ int __cdecl main(int argc, char* argv[])
 	CChars	szXMLFile;
 	CChars	szImageFile;
 	bool	bSchematic;
+	bool	bNames;
 	bool	bResult;
 
+	bNames = (argc == 3) && (StringCompare(argv[1], "--names") == 0) && DeviceROMIsSchematic(argv[2]);
 	bSchematic = (argc >= 2) && DeviceROMIsSchematic(argv[1]);
-	if ((argc < 2) || (argc > (bSchematic ? 4 : 3)))
+	if (!bNames && ((argc < 2) || (argc > (bSchematic ? 4 : 3))))
 	{
 		fprintf(stderr, "Usage: DeviceROM <board.xml> [<image.bin>]\n");
 		fprintf(stderr, "       DeviceROM <board.kicad_sch> [<board.xml> [<image.bin>]]\n");
 		fprintf(stderr, "Makes a board's %d byte device ROM image (format %d) from its XML description, or from its schematic\n", DEVICE_ROM_SIZE, DEVICE_ROM_FORMAT);
 		fprintf(stderr, "through the description worked out from it.\n");
+		fprintf(stderr, "       DeviceROM --names <board.kicad_sch>\n");
+		fprintf(stderr, "Lists a schematic's parts and named nets, a line each.\n");
 		return 1;
 	}
 
@@ -214,7 +279,11 @@ int __cdecl main(int argc, char* argv[])
 	szXMLFile.Init();
 	szImageFile.Init();
 	bResult = true;
-	if (bSchematic)
+	if (bNames)
+	{
+		bResult = DeviceROMNames(argv[2]);
+	}
+	else if (bSchematic)
 	{
 		if (argc >= 3)
 		{
@@ -238,11 +307,11 @@ int __cdecl main(int argc, char* argv[])
 			szImageFile.Set(argv[2]);
 		}
 	}
-	if (szImageFile.Empty())
+	if (!bNames && szImageFile.Empty())
 	{
 		DeviceROMFileName(szXMLFile.Text(), ".bin", false, &szImageFile);
 	}
-	if (bResult)
+	if (!bNames && bResult)
 	{
 		bResult = DeviceROMMake(szXMLFile.Text(), szImageFile.Text());
 	}
