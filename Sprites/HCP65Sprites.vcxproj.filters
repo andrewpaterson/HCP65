@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Images">
+      <UniqueIdentifier>{a38f2fe3-082c-4816-b50f-c0cb27d53886}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{C3D4E5F6-0718-4293-A4B5-C6D7E8F90A1B}</UniqueIdentifier>
     </Filter>
@@ -44,5 +47,22 @@
     <ClInclude Include="..\Libraries\UserLib\HCP65LCDBoard.h">
       <Filter>Header</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Images\Fighting320.png">
+      <Filter>Images</Filter>
+    </None>
+    <None Include="Images\Flower.png">
+      <Filter>Images</Filter>
+    </None>
+    <None Include="Images\MakeFlower.py">
+      <Filter>Images</Filter>
+    </None>
+    <None Include="Images\MakiStand.png">
+      <Filter>Images</Filter>
+    </None>
+    <None Include="Images\MakiWalk.png">
+      <Filter>Images</Filter>
+    </None>
   </ItemGroup>
 </Project>

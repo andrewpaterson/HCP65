@@ -30,6 +30,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{eb397ee4-84e1-4656-8c1b-6ed83341f622}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Docs">
       <UniqueIdentifier>{14a0942a-60ae-4247-98f3-3695b4d8f94c}</UniqueIdentifier>
     </Filter>
@@ -81,6 +84,20 @@
   <ItemGroup>
     <None Include="Docs\hcp65\design\tester.md">
       <Filter>Docs\hcp65\design</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="HCP65Tester.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="small.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="HCP65Tester.rc">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="Resource.h">
+      <Filter>Resources</Filter>
     </None>
   </ItemGroup>
 </Project>

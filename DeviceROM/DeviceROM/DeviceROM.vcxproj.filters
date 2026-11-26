@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Boards">
+      <UniqueIdentifier>{38a1cca7-28b0-4c0e-b992-35d36fbfaf67}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source">
       <UniqueIdentifier>{d24d2cb1-22d9-44de-b910-b780952b693d}</UniqueIdentifier>
     </Filter>
@@ -9,5 +12,25 @@
     <ClCompile Include="DeviceROM.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Boards\MemoryBoard.xml">
+      <Filter>Boards</Filter>
+    </None>
+    <None Include="..\Boards\SDCardBoard.xml">
+      <Filter>Boards</Filter>
+    </None>
+    <None Include="..\Boards\SoundBoard.xml">
+      <Filter>Boards</Filter>
+    </None>
+    <None Include="..\Boards\UARTBoard.xml">
+      <Filter>Boards</Filter>
+    </None>
+    <None Include="..\Boards\VIABoard.xml">
+      <Filter>Boards</Filter>
+    </None>
+    <None Include="..\MakeImages.ps1">
+      <Filter>Boards</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -92,6 +92,9 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Machines">
+      <UniqueIdentifier>{083c466b-6e6f-4638-a951-8027017dc53e}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Docs\hcp65\design">
       <UniqueIdentifier>{8a36f091-6334-4126-bafa-9d391a05f415}</UniqueIdentifier>
     </Filter>
@@ -115,6 +118,23 @@
   <ItemGroup>
     <None Include="Docs\hcp65\design\emulator.md">
       <Filter>Docs\hcp65\design</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Machines\AnyMainboard.xml">
+      <Filter>Machines</Filter>
+    </None>
+    <None Include="Machines\LCD.xml">
+      <Filter>Machines</Filter>
+    </None>
+    <None Include="Machines\SmallMainboard.xml">
+      <Filter>Machines</Filter>
+    </None>
+    <None Include="Machines\Video.xml">
+      <Filter>Machines</Filter>
+    </None>
+    <None Include="SNESMappings.xml">
+      <Filter>Machines</Filter>
     </None>
   </ItemGroup>
 </Project>

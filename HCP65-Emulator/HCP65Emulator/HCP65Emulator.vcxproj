@@ -332,6 +332,13 @@
   <ItemGroup>
     <None Include="Docs\hcp65\design\emulator.md" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Machines\AnyMainboard.xml" />
+    <None Include="Machines\LCD.xml" />
+    <None Include="Machines\SmallMainboard.xml" />
+    <None Include="Machines\Video.xml" />
+    <None Include="SNESMappings.xml" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

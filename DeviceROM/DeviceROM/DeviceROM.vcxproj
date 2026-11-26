@@ -245,6 +245,14 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\Boards\MemoryBoard.xml" />
+    <None Include="..\Boards\SDCardBoard.xml" />
+    <None Include="..\Boards\SoundBoard.xml" />
+    <None Include="..\Boards\UARTBoard.xml" />
+    <None Include="..\Boards\VIABoard.xml" />
+    <None Include="..\MakeImages.ps1" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HCP65.h" />
+    <ClInclude Include="..\..\Libraries\DebugLib\HCP65DebugMessage.h" />
     <ClInclude Include="HCP65Device.h" />
     <ClInclude Include="HCP65Registers.h" />
     <ClInclude Include="HCP65Audio.h" />
