@@ -540,6 +540,10 @@ I. Files that aren't source
       lines and the chip selects) into address ranges; check memory-map.md's kernel-mode table and registers.md's
       register addresses against them.  How the decode is read is worked out from the schematic first, and put to
       the user if it needs a choice.
+  Decided 2026-11-26 (Ie): the decode is read by simulating it with LogiCim (the user, as recommended): a
+  command-line mode of LogiCim's KiCad importer builds the HCP65 MPU Address Decode board's circuit
+  (KicadImporterLib, MicroprocessorLib's 74-series models), drives every address and kernel mode, and prints each
+  chip select's address ranges; the site build checks the pages against them, so it needs LogiCim built too.
   Check: a tracked file nobody described fails the build at its path; a device board's register renamed in KiCad
   changes its table; a #!kicad span naming no part fails the build; a memory-map row that the decode doesn't give
   fails the build.
