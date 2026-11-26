@@ -2,6 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <None Include="65C64 Instruction Architecture.xlsx" />
+    <None Include="InstructionTables.yml" />
     <None Include="65C64 Proposal.odt" />
     <Image Include="Address Absolute Mode - heading.png" />
     <Image Include="Addressing Modes.png" />
@@ -19,6 +20,9 @@
     <Image Include="System Block Diagram.png" />
   </ItemGroup>
   <ItemGroup>
+    <Filter Include="Generated">
+      <UniqueIdentifier>{a155da67-bef3-491e-bf36-9d159ae9e231}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Docs">
       <UniqueIdentifier>{0f5da464-73a5-4266-8ca4-c940e42bdcbe}</UniqueIdentifier>
     </Filter>
@@ -125,6 +129,86 @@
     </None>
     <None Include="Docs\65c64\timing.md">
       <Filter>Docs\65c64</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Generated\Instructions.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\arithmetic.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\block.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\branch.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\control.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\cpy.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\cpyx.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\find.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\hardware.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-block.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-copy.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-flow.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-hardware.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-register.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-stack.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\index-state.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\jump.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\logical.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\multiply-divide.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\return.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\shift.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\stack.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\status.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\subcopy.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\vector.txt">
+      <Filter>Generated</Filter>
+    </None>
+    <None Include="Generated\width.txt">
+      <Filter>Generated</Filter>
     </None>
   </ItemGroup>
 </Project>

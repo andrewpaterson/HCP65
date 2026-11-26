@@ -1,0 +1,17 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags |
+|---|---|---|---|
+| `vcpy` | Vector copy | [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vnot` | Vector invert | ![W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vand` | Vector and | [V] ∧ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vtst` | Vector test | [V] ∧ [W]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vor` | Vector or | [V] ∨ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vxor` | Vector xor | [V] ⊻ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vadd` | Vector add | [V] + [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vsub` | Vector subtract | [V] - [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vcmp` | Vector compare | [V] - [W]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vpcpy` | Vector precopy | [V]; [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vpand` | Vector preand | [V] ∧ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vpor` | Vector preor | [V] ∨ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| `vpxor` | Vector prexor | [V] ⊻ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |

@@ -1,0 +1,123 @@
+# The website's tables of 65C64 instructions, made from the Instructions sheet of "65C64 Instruction Architecture.xlsx"
+# by HCP65/Website/tools/instruction_tables.py (HCP65/Website/DocsPlan.txt C1).  Each table is written to
+# Generated/<table>.txt, which its page includes (--8<-- "<table>.txt").  A table has its columns (what each shows,
+# and its heading) and its rows, each the sheet's number for an instruction (column B), with where its mnemonic links
+# to in a "link" column.
+#
+# Columns: link (the mnemonic, linked), mnemonic (the mnemonic, left out where it is the row above's in a table with a
+# form column), name (the sheet's name without "(zero extend)", "(sign extend)", "(unsigned)" or "(signed)"), form
+# (that word, or nothing), full name (the sheet's name), operation, flags, w65c816.  A row written {row: n, text: true}
+# shows its mnemonic as `#!text abs`: a name C++ has too.
+
+index-copy:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
+  rows: [[0, cpy.md], [2, logical.md], [4, logical.md], [6, logical.md], [8, logical.md], [10, arithmetic.md],
+         [12, arithmetic.md], [14, arithmetic.md], [44, cpyx.md], [67, shift.md], [68, shift.md]]
+
+index-register:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
+  rows: [[16, subcopy.md], [18, subcopy.md], [51, arithmetic.md#neg-and-abs], [52, arithmetic.md#neg-and-abs],
+         [49, multiply-divide.md#mul], [50, multiply-divide.md#div], [53, find.md], [54, find.md], [55, find.md],
+         [56, find.md], [57, find.md], [58, find.md], [59, find.md], [60, find.md], [61, find.md], [62, find.md],
+         [63, find.md], [64, find.md], [65, find.md], [66, find.md]]
+
+index-flow:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
+  rows: [[19, jump.md], [20, jump.md], [21, jump.md#relative-targets], [22, jump.md#relative-targets],
+         [36, branch.md], [37, branch.md], [38, branch.md], [39, branch.md], [42, branch.md], [43, branch.md],
+         [25, return.md], [27, return.md], [32, control.md#brk], [33, control.md#stp], [41, control.md#nop]]
+
+index-stack:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
+  rows: [[45, stack.md], [47, stack.md], [23, stack.md], [24, stack.md], [46, stack.md], [48, stack.md],
+         [26, stack.md]]
+
+index-state:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
+  rows: [[28, status.md#sep-and-cep], [29, status.md#sep-and-cep], [30, width.md#wth-and-wtth],
+         [31, width.md#wth-and-wtth], [34, width.md#gwth], [35, width.md#wthx], [98, status.md#bist],
+         [99, status.md#stab], [101, status.md#stat]]
+
+index-block:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [[69, block.md], [70, block.md], [71, block.md], [72, block.md], [73, block.md], [74, block.md],
+         [75, block.md], [76, block.md], [77, block.md], [78, block.md], [79, block.md], [80, block.md],
+         [81, vector.md], [82, vector.md], [83, vector.md], [84, vector.md], [85, vector.md], [86, vector.md],
+         [87, vector.md], [88, vector.md], [89, vector.md], [90, vector.md], [91, vector.md], [92, vector.md],
+         [93, vector.md]]
+
+index-hardware:
+  columns: [[link, Mnemonic], [name, Name], [operation, Operation]]
+  rows: [[94, hardware.md], [95, hardware.md], [96, hardware.md], [97, hardware.md]]
+
+arithmetic:
+  columns: [[mnemonic, Mnemonic], [form, Form], [operation, Operation], [flags, Flags]]
+  rows: [10, 11, 12, 13, 14, 15, 51, {row: 52, text: true}]
+
+block:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80]
+
+branch:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation]]
+  rows: [36, 37, 38, 39, 42, 43]
+
+control:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation]]
+  rows: [32, 33, 41]
+
+cpy:
+  columns: [[form, Form], [operation, Operation], [flags, Flags]]
+  rows: [0, 1]
+
+cpyx:
+  columns: [[form, Form], [operation, Operation], [flags, Flags]]
+  rows: [44, 100]
+
+find:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66]
+
+hardware:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation]]
+  rows: [94, 95, 96, 97]
+
+jump:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation]]
+  rows: [19, 20, 21, 22]
+
+logical:
+  columns: [[mnemonic, Mnemonic], [form, Form], [operation, Operation], [flags, Flags]]
+  rows: [2, 3, 4, 5, 6, 7, 8, 9]
+
+multiply-divide:
+  columns: [[mnemonic, Mnemonic], [operation, Operation], [flags, Flags]]
+  rows: [49, 50]
+
+return:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [25, 27]
+
+shift:
+  columns: [[mnemonic, Mnemonic], [operation, Operation], [flags, Flags]]
+  rows: [67, 68]
+
+stack:
+  columns: [[name, Form], [operation, Operation], [flags, Flags]]
+  rows: [45, 47, 23, 24, 46, 48, 26]
+
+status:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [28, 29, 101, 98, 99]
+
+subcopy:
+  columns: [[mnemonic, Mnemonic], [operation, Operation], [flags, Flags]]
+  rows: [16, 18]
+
+vector:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]
+
+width:
+  columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
+  rows: [30, 31, 34, 35]

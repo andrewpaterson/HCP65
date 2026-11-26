@@ -1,0 +1,7 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation |
+|---|---|---|
+| `brk` | Break | C+i → C; C → [S]; S-4 → S; P → [S]; S-2 → S; [vector] → C |
+| `stp` | Stop | 1 → Clock |
+| `nop` | No operation | wait O2 |

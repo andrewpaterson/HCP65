@@ -41,10 +41,12 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   of the solutions in `mkdocs.yml`'s `extra.solutions`; it is kept in `Website/.symbols` until a repository's HEAD
   changes (about two minutes to make again), and `Website/web.sh index` remakes it.  `extra.repositories` says
   where each repository is on GitHub (`Website/tools/code_references.py`, `symbol_table.py`).
-- 65C64 pages: `opcode-encoding.md` is generated from the spreadsheet by `web.sh`;
-  `Website/tools/check_instruction_tables.py` checks the instruction index against the instruction pages;
-  TestAssembler65Lib assembles every ```` ```asm ```` block in the site's `65c64` pages (```` ```text ```` for
-  syntax).
+- 65C64 pages: `opcode-encoding.md` and the instruction tables are generated from the spreadsheet by `web.sh`
+  (`Website/tools/instruction_tables.py` writes `X65C64-Proposal/Generated`, as
+  `X65C64-Proposal/InstructionTables.yml` says; the pages include the tables by snippet, and
+  `Generated/Instructions.txt` is every instruction's codes).  A table's wording is changed in the spreadsheet, in
+  red; a new table or row in `InstructionTables.yml`; TestAssembler65Lib assembles every ```` ```asm ```` block in
+  the site's `65c64` pages (```` ```text ```` for syntax).
 - Design pages (how it is built and why, its decisions and what isn't done) are in the `hcp65/design` folders:
   `Kernal/Docs` (the kernal, interrupts), `HCP65-Emulator/HCP65Lib/Docs` (their index, the hardware),
   `HCP65-Emulator/HCP65Emulator/Docs` (the emulator), `HCP65-Tester/HCP65Tester/Docs` (the board tester).

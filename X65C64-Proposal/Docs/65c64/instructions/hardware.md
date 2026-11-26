@@ -1,11 +1,6 @@
 # hws, hwg, hwsp, hwcp - Hardware Registers
 
-| Mnemonic | Name | Operation |
-|---|---|---|
-| `hws` | Set hardware all | R → H |
-| `hwg` | Get hardware all | H → R |
-| `hwsp` | Set hardware bits | H ∨ O2 → H |
-| `hwcp` | Clear hardware bits | H ∧ !O2 → H |
+--8<-- "hardware.txt"
 
 Read and write the processor's hardware registers: the interrupt depth, the counters, the clock,
 the watchdog, the programmable I/O and the user mode bank remapping.

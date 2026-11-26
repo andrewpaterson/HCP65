@@ -1,9 +1,6 @@
 # cpyx - Copy Extend
 
-| Form | Operation | Flags |
-|---|---|---|
-| Zero extend | O2:o → R | n, z |
-| Sign extend | O2:o:s → R | n, z |
+--8<-- "cpyx.txt"
 
 Copy a value of a given width between memory and a register, whatever the register's width.
 Where [`cpy`](cpy.md) always reads and writes memory at the register's width, `cpyx` names the

@@ -1,9 +1,6 @@
 # ret, rti - Return
 
-| Mnemonic | Name | Operation | Flags |
-|---|---|---|---|
-| `ret` | Return | {S+2 → S; [S] → P}; S+4 → S; [S] → C | all, if P is pulled |
-| `rti` | Return from interrupt | S+2 → S; [S] → P; S+4 → S; [S] → C | all |
+--8<-- "return.txt"
 
 `ret` returns from a subroutine called with [`jsr` or `brsr`](jump.md).  It pulls C, the return
 address, and first P if it's given.  It replaces the W65C816's `rts` and `rtl`.

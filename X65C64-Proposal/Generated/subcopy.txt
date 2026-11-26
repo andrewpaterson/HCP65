@@ -1,0 +1,6 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Operation | Flags |
+|---|---|---|
+| `scp` | R1:[O1]…R1:[O1+N] → R2:[O2]…R2:[O2+N] | n, z |
+| `scb` | R1:b[O1]…R1:b[O1+N] → R2:b[O2]…R2:b[O2+N] | n, z |

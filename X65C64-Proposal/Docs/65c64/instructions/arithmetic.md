@@ -1,15 +1,6 @@
 # add, sub, cmp, neg, abs - Arithmetic
 
-| Mnemonic | Form | Operation | Flags |
-|---|---|---|---|
-| `add` | Unsigned | O1 + O2 → O1 | n, v, z, c |
-| | Signed | O1 + O2:s → O1 | n, v, z, c |
-| `sub` | Unsigned | O1 - O2 → O1 | n, v, z, c |
-| | Signed | O1 - O2:s → O1 | n, v, z, c |
-| `cmp` | Unsigned | O1 - O2 | n, v, z, c |
-| | Signed | O1 - O2:s | n, v, z, c |
-| `neg` | | 0 - R2:s → R1 | n, z |
-| `#!text abs` | | abs(R2:s) → R1 | n, z |
+--8<-- "arithmetic.txt"
 
 `add` and `sub` add the second operand to the first or subtract it from the first.  `cmp`
 subtracts without writing the result, only setting the flags.

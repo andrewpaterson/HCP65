@@ -33,18 +33,20 @@ beside the code they describe, each folder mapped here (DocsPlan.txt step B).
 ## Generated pages
 
 The 65C64 Opcode Encoding page (../X65C64-Proposal/Docs/65c64/opcode-encoding.md) is generated from the spreadsheet's
-'Opcode encoding' sheet by tools/sheet_to_html.py; web.sh regenerates it before every build and live preview (the
-command is in web.sh).
+'Opcode encoding' sheet by tools/sheet_to_html.py, and the instruction tables (../X65C64-Proposal/Generated/*.txt,
+which the instruction pages include, and Generated/Instructions.txt) from its Instructions sheet by
+tools/instruction_tables.py, as ../X65C64-Proposal/InstructionTables.yml says; web.sh regenerates them before every
+build and live preview (the commands are in web.sh).
 
 ## Checks
 
 web.sh runs these before every build; problems are printed as `<file>:<line>:1: error:` lines, which the IDE's Build
 pane opens, and MkDocs's own warnings about a page are repeated that way with the page's real path.
 
-    .venv/bin/python tools/check_instruction_tables.py
+    .venv/bin/python tools/instruction_tables.py
 
-fails when the instruction summary (the site's 65c64/instructions/index.md) gives an operation or flags that the
-instruction's own page doesn't.  Both checks find pages through extra.sources (tools/site_sources.py).
+fails when an instruction page's title names a mnemonic the spreadsheet hasn't, the spreadsheet has one no title
+names, or an index row links to a page whose table hasn't its row.
 
     .venv/bin/python tools/check_project_items.py
 

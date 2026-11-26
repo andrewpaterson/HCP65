@@ -1,15 +1,6 @@
 # and, or, xor, tst - Logical
 
-| Mnemonic | Form | Operation | Flags |
-|---|---|---|---|
-| `and` | Zero extend | O1 ∧ O2 → O1 | n, z |
-| | Sign extend | O1 ∧ O2:s → O1 | n, z |
-| `or` | Zero extend | O1 ∨ O2 → O1 | n, z |
-| | Sign extend | O1 ∨ O2:s → O1 | n, z |
-| `xor` | Zero extend | O1 ⊻ O2 → O1 | n, z |
-| | Sign extend | O1 ⊻ O2:s → O1 | n, z |
-| `tst` | Zero extend | O1 ∧ O2 | n, z |
-| | Sign extend | O1 ∧ O2:s | n, z |
+--8<-- "logical.txt"
 
 And, or or exclusive or the second operand into the first.  `tst` ands them without writing
 the result, only setting the flags.

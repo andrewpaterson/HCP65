@@ -1,0 +1,13 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags | W65C816 |
+|---|---|---|---|---|
+| [`sep`](status.md#sep-and-cep) | Set state bits | P ∨ E → P | the flags named | sep sec sei |
+| [`cep`](status.md#sep-and-cep) | Clear state bits | P ∧ !E → P | the flags named | rep clc |
+| [`wth`](width.md#wth-and-wtth) | Set register width | O → r | a, b, x, y | rep sep |
+| [`wtth`](width.md#wth-and-wtth) | Set two register widths | O2 → r1; O2 → r2 | a, b, x, y | |
+| [`gwth`](width.md#gwth) | Get register width | 8r → R; {8r - 1 → R} | | |
+| [`wthx`](width.md#wthx) | Extend register width | extend(R) → R; O → r | a, b, x, y | |
+| [`bist`](status.md#bist) | Bit to status | R:b[N] → p | the flag written | |
+| [`stab`](status.md#stab) | Status to bit | p → R:b[N]; {p → R:b[N±1] … R:b[N±(count-1)]} | | |
+| [`stat`](status.md#stat) | Status to status | p2 → p1 | the flag written | |

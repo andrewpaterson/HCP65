@@ -1,13 +1,6 @@
 # bras, brac, brasa, braso, brae, brane - Branch
 
-| Mnemonic | Name | Operation |
-|---|---|---|
-| `bras` | Branch on set | C+i → C; if p {C + O2 → C} |
-| `brac` | Branch on clear | C+i → C; if !p {C + O2 → C} |
-| `brasa` | Branch on set and set | C+i → C; if (p1 ∧ p2) {C + O2 → C} |
-| `braso` | Branch on set xor set | C+i → C; if (p1 ⊻ p2) {C + O2 → C} |
-| `brae` | Branch on equal | C+i → C; if (p1 = p2) {C + O2 → C} |
-| `brane` | Branch on not equal | C+i → C; if (p1 ≠ p2) {C + O2 → C} |
+--8<-- "branch.txt"
 
 Branch to a label (or a byte offset from the next instruction) when a status flag, or a pair of
 flags, holds.  No flags are changed.

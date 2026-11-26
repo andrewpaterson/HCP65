@@ -1,11 +1,6 @@
 # wth, wtth, gwth, wthx - Register Width
 
-| Mnemonic | Name | Operation | Flags |
-|---|---|---|---|
-| `wth` | Set register width | O → r | a, b, x, y |
-| `wtth` | Set two register widths | O2 → r1; O2 → r2 | a, b, x, y |
-| `gwth` | Get register width | 8r → R; {8r - 1 → R} | |
-| `wthx` | Extend register width | extend(R) → R; O → r | a, b, x, y |
+--8<-- "width.txt"
 
 A, B, X and Y are each 8, 16, 32 or 64 bits wide (see [Register widths](../registers.md#register-widths)).
 These instructions set, read and extend the widths, in place of the W65C816's `rep` and `sep`

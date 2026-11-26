@@ -1,12 +1,6 @@
 # sep, cep, stat, bist, stab - Status
 
-| Mnemonic | Name | Operation | Flags |
-|---|---|---|---|
-| `sep` | Set state bits | P ∨ E → P | the flags named |
-| `cep` | Clear state bits | P ∧ !E → P | the flags named |
-| `stat` | Status to status | p2 → p1 | the flag written |
-| `bist` | Bit to status | R:b[N] → p | the flag written |
-| `stab` | Status to bit | p → R:b[N]; {p → R:b[N±1] … R:b[N±(count-1)]} | |
+--8<-- "status.txt"
 
 Set, clear and copy the status flags, and move them to and from register bits.
 

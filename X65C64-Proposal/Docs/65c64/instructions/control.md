@@ -1,10 +1,6 @@
 # brk, stp, nop - Control
 
-| Mnemonic | Name | Operation |
-|---|---|---|
-| `brk` | Break | C+i → C; C → [S]; S-4 → S; P → [S]; S-2 → S; [vector] → C |
-| `stp` | Stop | 1 → Clock |
-| `nop` | No operation | wait O2 |
+--8<-- "control.txt"
 
 None of them change the flags.
 

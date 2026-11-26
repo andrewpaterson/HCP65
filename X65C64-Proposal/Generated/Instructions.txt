@@ -1,0 +1,105 @@
+# The 65C64's instructions.  Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by
+# HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the
+# spreadsheet.  A line a numbered row of the sheet: its number, mnemonic, instruction code, extend code, sub code (-
+# where the sheet has none) and name, tab separated.
+0	cpy	0	-	0	Copy (zero extend)
+1	cpy	0	-	1	Copy (sign extend)
+2	and	1	-	0	And (zero extend)
+3	and	1	-	1	And (sign extend)
+4	or	2	-	0	Or (zero extend)
+5	or	2	-	1	Or (sign extend)
+6	xor	3	-	0	Xor (zero extend)
+7	xor	3	-	1	Xor (sign extend)
+8	tst	4	-	0	Test (zero extend)
+9	tst	4	-	1	Test (sign extend)
+10	add	5	-	0	Add (unsigned)
+11	add	5	-	1	Add (signed)
+12	sub	6	-	0	Subtract (unsigned)
+13	sub	6	-	1	Subtract (signed)
+14	cmp	7	-	0	Compare (unsigned)
+15	cmp	7	-	1	Compare (signed)
+16	scp	9	-	0	Subcopy bytes
+18	scb	9	-	1	Subcopy bits
+19	jmp	10	-	0	Jump absolute
+20	jsr	10	-	0	Jump absolute subroutine
+21	bra	10	-	1	Jump relative (branch always)
+22	brsr	10	-	1	Jump relative subroutine
+23	psh	10	-	-	Push processor state
+24	psh	10	-	-	Push program count
+25	ret	11	0	0	Return
+26	pul	11	0	0	Pull processor state
+27	rti	11	0	1	Return from interrupt
+28	sep	11	1	0	Set state bits
+29	cep	11	1	1	Clear state bits
+30	wth	11	1	2	Set register width
+31	wtth	11	1	3	Set two register widths
+32	brk	11	2	-	Break
+33	stp	11	3	0	Stop
+34	gwth	11	3	2	Get register width
+35	wthx	11	3	3	Extend register width
+36	bras	12	0,1	1	Branch on set
+37	brac	12	0,1	0	Branch on clear
+38	brasa	12	0,1	2	Branch on set and set
+39	braso	12	0,1	3	Branch on set xor set
+40	bra	12	0,1	1	Branch always
+41	nop	12	0,1	0	No operation
+42	brae	12	2	0	Branch on equal
+43	brane	12	2	1	Branch on not equal
+44	cpyx	12	3	-	Copy extend (zero extend)
+45	psh	13	0	-	Push registers
+46	pul	13	2	-	Pull registers
+47	psh	13	1	-	Push operand
+48	pul	13	3	-	Pull into address
+49	mul	14	0	0	Multiply (partial)
+50	div	14	0	1	Divide (partial)
+51	neg	14	0	2	Negate
+52	abs	14	0	3	Absolute
+53	fsbi	14	1	0	Find set bit
+54	fcbi	14	1	0	Find clear bit
+55	fscr	14	1	1	Find non-zero crumb
+56	fccr	14	1	1	Find non-full crumb
+57	fsny	14	1	2	Find non-zero nybble
+58	fcny	14	1	2	Find non-full nybble
+59	fsby	14	1	3	Find non-zero byte
+60	fcby	14	1	3	Find non-full byte
+61	fzcr	14	0	0	Find zero crumb
+62	fzny	14	0	0	Find zero nybble
+63	fzby	14	0	0	Find zero byte
+64	ffcr	14	0	1	Find full crumb
+65	ffny	14	0	1	Find full nybble
+66	ffby	14	0	1	Find full byte
+67	shl	14	2	-	Shift left
+68	shr	14	3	-	Shift right
+69	bcpy	8	2	0	Block copy
+70	band	8	2	2	Block and
+71	btst	8	2	3	Block test
+72	bor	8	2	4	Block or
+73	bxor	8	2	5	Block xor
+74	badd	8	2	6	Block add
+75	bsub	8	2	8	Block subtract
+76	bcmp	8	2	10	Block compare
+77	bpcpy	8	2	12	Block precopy
+78	bpand	8	2	13	Block preand
+79	bpor	8	2	14	Block preor
+80	bpxor	8	2	15	Block prexor
+81	vcpy	8	3	0	Vector copy
+82	vnot	8	3	1	Vector invert
+83	vand	8	3	2	Vector and
+84	vtst	8	3	3	Vector test
+85	vor	8	3	4	Vector or
+86	vxor	8	3	5	Vector xor
+87	vadd	8	3	6	Vector add
+88	vsub	8	3	8	Vector subtract
+89	vcmp	8	3	10	Vector compare
+90	vpcpy	8	3	12	Vector precopy
+91	vpand	8	3	13	Vector preand
+92	vpor	8	3	14	Vector preor
+93	vpxor	8	3	15	Vector prexor
+94	hws	15	0	-	Set hardware all
+95	hwg	15	1	-	Get hardware all
+96	hwsp	15	2	-	Set hardware bits
+97	hwcp	15	3	-	Clear hardware bits
+98	bist	15	4	-	Bit to status
+99	stab	15	5	-	Status to bit
+100	cpyx	15	6	-	Copy extend (sign extend)
+101	stat	15	7	-	Status to status

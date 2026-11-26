@@ -1,0 +1,15 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags | W65C816 |
+|---|---|---|---|---|
+| [`cpy`](cpy.md) | Copy | O2 → O1 | n, z | lda ldx ldy sta stx sty stz |
+| [`and`](logical.md) | And | O1 ∧ O2 → O1 | n, z | and |
+| [`or`](logical.md) | Or | O1 ∨ O2 → O1 | n, z | ora tsb |
+| [`xor`](logical.md) | Xor | O1 ⊻ O2 → O1 | n, z | eor |
+| [`tst`](logical.md) | Test | O1 ∧ O2 | n, z | bit |
+| [`add`](arithmetic.md) | Add | O1 + O2 → O1 | n, v, z, c | adc inc inx iny |
+| [`sub`](arithmetic.md) | Subtract | O1 - O2 → O1 | n, v, z, c | sbc dec dex dey |
+| [`cmp`](arithmetic.md) | Compare | O1 - O2 | n, v, z, c | cmp cpx cpy |
+| [`cpyx`](cpyx.md) | Copy extend | O2:o → R | n, z | |
+| [`shl`](shift.md) | Shift left | O1 ‹‹ O2 → O1 | z, c, v | asl |
+| [`shr`](shift.md) | Shift right | O1 ›› O2 → O1 | n, z, c, v | lsr |

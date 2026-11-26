@@ -1,0 +1,10 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation |
+|---|---|---|
+| `bras` | Branch on set | C+i → C; if p {C + O2 → C} |
+| `brac` | Branch on clear | C+i → C; if !p {C + O2 → C} |
+| `brasa` | Branch on set and set | C+i → C; if (p1 ∧ p2) {C + O2 → C} |
+| `braso` | Branch on set xor set | C+i → C; if (p1 ⊻ p2) {C + O2 → C} |
+| `brae` | Branch on equal | C+i → C; if (p1 = p2) {C + O2 → C} |
+| `brane` | Branch on not equal | C+i → C; if (p1 ≠ p2) {C + O2 → C} |

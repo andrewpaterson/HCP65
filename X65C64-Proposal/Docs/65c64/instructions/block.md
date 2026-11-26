@@ -1,19 +1,6 @@
 # bcpy, band, btst, bor, bxor, badd, bsub, bcmp, bpcpy, bpand, bpor, bpxor - Block
 
-| Mnemonic | Name | Operation | Flags |
-|---|---|---|---|
-| `bcpy` | Block copy | R → [V]; A-1 → A; V+r → V | v |
-| `band` | Block and | [V] ∧ R → [V]; A-1 → A; V+r → V | n, v, z |
-| `btst` | Block test | [V] ∧ R; A-1 → A; V+r → V | n, v, z |
-| `bor` | Block or | [V] ∨ R → [V]; A-1 → A; V+r → V | n, v, z |
-| `bxor` | Block xor | [V] ⊻ R → [V]; A-1 → A; V+r → V | n, v, z |
-| `badd` | Block add | [V] + R → [V]; A-1 → A; V+r → V | n, v, z |
-| `bsub` | Block subtract | [V] - R → [V]; A-1 → A; V+r → V | n, v, z |
-| `bcmp` | Block compare | [V] - R; A-1 → A; V+r → V | n, v, z |
-| `bpcpy` | Block precopy | [V]; R → [V]; A-1 → A; V+r → V | n, v, z |
-| `bpand` | Block preand | [V] ∧ R → [V]; A-1 → A; V+r → V | n, v, z |
-| `bpor` | Block preor | [V] ∨ R → [V]; A-1 → A; V+r → V | n, v, z |
-| `bpxor` | Block prexor | [V] ⊻ R → [V]; A-1 → A; V+r → V | n, v, z |
+--8<-- "block.txt"
 
 Apply a register to every element of a block of memory: fill it, mask it, add to it, or search
 it.  V points at the block, A counts the elements and R holds the value.

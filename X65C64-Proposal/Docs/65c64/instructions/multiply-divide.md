@@ -1,9 +1,6 @@
 # mul, div - Multiply and Divide
 
-| Mnemonic | Operation | Flags |
-|---|---|---|
-| `mul` | A × B → Y | v, z |
-| `div` | Y ÷ A → Y, remainder B | v, z, c |
+--8<-- "multiply-divide.txt"
 
 Unsigned multiply and divide on fixed registers.  Each does one step of the operation every time
 it runs and leaves C on its opcode until the last step, so one `mul` or `div` repeats on its own

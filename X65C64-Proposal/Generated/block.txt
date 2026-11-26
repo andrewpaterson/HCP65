@@ -1,0 +1,16 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags |
+|---|---|---|---|
+| `bcpy` | Block copy | R → [V]; A-1 → A; V+r → V | v |
+| `band` | Block and | [V] ∧ R → [V]; A-1 → A; V+r → V | n, v, z |
+| `btst` | Block test | [V] ∧ R; A-1 → A; V+r → V | n, v, z |
+| `bor` | Block or | [V] ∨ R → [V]; A-1 → A; V+r → V | n, v, z |
+| `bxor` | Block xor | [V] ⊻ R → [V]; A-1 → A; V+r → V | n, v, z |
+| `badd` | Block add | [V] + R → [V]; A-1 → A; V+r → V | n, v, z |
+| `bsub` | Block subtract | [V] - R → [V]; A-1 → A; V+r → V | n, v, z |
+| `bcmp` | Block compare | [V] - R; A-1 → A; V+r → V | n, v, z |
+| `bpcpy` | Block precopy | [V]; R → [V]; A-1 → A; V+r → V | n, v, z |
+| `bpand` | Block preand | [V] ∧ R → [V]; A-1 → A; V+r → V | n, v, z |
+| `bpor` | Block preor | [V] ∨ R → [V]; A-1 → A; V+r → V | n, v, z |
+| `bpxor` | Block prexor | [V] ⊻ R → [V]; A-1 → A; V+r → V | n, v, z |

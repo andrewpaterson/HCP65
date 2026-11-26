@@ -1,9 +1,6 @@
 # scp, scb - Subcopy
 
-| Mnemonic | Operation | Flags |
-|---|---|---|
-| `scp` | R1:[O1]…R1:[O1+N] → R2:[O2]…R2:[O2+N] | n, z |
-| `scb` | R1:b[O1]…R1:b[O1+N] → R2:b[O2]…R2:b[O2+N] | n, z |
+--8<-- "subcopy.txt"
 
 Copy a run of bytes (`scp`) or bits (`scb`) from one register to another.  The source run starts
 at an index in the first register and the destination at an index in the second.  The

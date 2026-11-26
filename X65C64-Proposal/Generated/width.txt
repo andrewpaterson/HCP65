@@ -1,0 +1,8 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags |
+|---|---|---|---|
+| `wth` | Set register width | O → r | a, b, x, y |
+| `wtth` | Set two register widths | O2 → r1; O2 → r2 | a, b, x, y |
+| `gwth` | Get register width | 8r → R; {8r - 1 → R} | |
+| `wthx` | Extend register width | extend(R) → R; O → r | a, b, x, y |

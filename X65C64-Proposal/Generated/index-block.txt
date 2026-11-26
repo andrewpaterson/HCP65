@@ -1,0 +1,29 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags |
+|---|---|---|---|
+| [`bcpy`](block.md) | Block copy | R → [V]; A-1 → A; V+r → V | v |
+| [`band`](block.md) | Block and | [V] ∧ R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`btst`](block.md) | Block test | [V] ∧ R; A-1 → A; V+r → V | n, v, z |
+| [`bor`](block.md) | Block or | [V] ∨ R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`bxor`](block.md) | Block xor | [V] ⊻ R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`badd`](block.md) | Block add | [V] + R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`bsub`](block.md) | Block subtract | [V] - R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`bcmp`](block.md) | Block compare | [V] - R; A-1 → A; V+r → V | n, v, z |
+| [`bpcpy`](block.md) | Block precopy | [V]; R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`bpand`](block.md) | Block preand | [V] ∧ R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`bpor`](block.md) | Block preor | [V] ∨ R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`bpxor`](block.md) | Block prexor | [V] ⊻ R → [V]; A-1 → A; V+r → V | n, v, z |
+| [`vcpy`](vector.md) | Vector copy | [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vnot`](vector.md) | Vector invert | ![W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vand`](vector.md) | Vector and | [V] ∧ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vtst`](vector.md) | Vector test | [V] ∧ [W]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vor`](vector.md) | Vector or | [V] ∨ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vxor`](vector.md) | Vector xor | [V] ⊻ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vadd`](vector.md) | Vector add | [V] + [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vsub`](vector.md) | Vector subtract | [V] - [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vcmp`](vector.md) | Vector compare | [V] - [W]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vpcpy`](vector.md) | Vector precopy | [V]; [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vpand`](vector.md) | Vector preand | [V] ∧ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vpor`](vector.md) | Vector preor | [V] ∨ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+| [`vpxor`](vector.md) | Vector prexor | [V] ⊻ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |

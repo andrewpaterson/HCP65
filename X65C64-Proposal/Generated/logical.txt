@@ -1,0 +1,12 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Form | Operation | Flags |
+|---|---|---|---|
+| `and` | Zero extend | O1 ∧ O2 → O1 | n, z |
+| | Sign extend | O1 ∧ O2:s → O1 | n, z |
+| `or` | Zero extend | O1 ∨ O2 → O1 | n, z |
+| | Sign extend | O1 ∨ O2:s → O1 | n, z |
+| `xor` | Zero extend | O1 ⊻ O2 → O1 | n, z |
+| | Sign extend | O1 ⊻ O2:s → O1 | n, z |
+| `tst` | Zero extend | O1 ∧ O2 | n, z |
+| | Sign extend | O1 ∧ O2:s | n, z |

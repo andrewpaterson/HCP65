@@ -1,0 +1,19 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags | W65C816 |
+|---|---|---|---|---|
+| [`jmp`](jump.md) | Jump absolute | {P → [S]; S-2 → S}; O2 → C | | jmp |
+| [`jsr`](jump.md) | Jump absolute subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; O2 → C | | jsr |
+| [`bra`](jump.md#relative-targets) | Jump relative (branch always) | C+i → C; {P → [S]; S-2 → S}; C + O2 → C | | bra brl |
+| [`brsr`](jump.md#relative-targets) | Jump relative subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; C + O2 → C | | |
+| [`bras`](branch.md) | Branch on set | C+i → C; if p {C + O2 → C} | | bcs beq bvs bmi |
+| [`brac`](branch.md) | Branch on clear | C+i → C; if !p {C + O2 → C} | | bcc bne bvc bpl |
+| [`brasa`](branch.md) | Branch on set and set | C+i → C; if (p1 ∧ p2) {C + O2 → C} | | |
+| [`braso`](branch.md) | Branch on set xor set | C+i → C; if (p1 ⊻ p2) {C + O2 → C} | | |
+| [`brae`](branch.md) | Branch on equal | C+i → C; if (p1 = p2) {C + O2 → C} | | |
+| [`brane`](branch.md) | Branch on not equal | C+i → C; if (p1 ≠ p2) {C + O2 → C} | | |
+| [`ret`](return.md) | Return | {S+2 → S; [S] → P}; S+4 → S; [S] → C | all, if P is pulled | rts rtl |
+| [`rti`](return.md) | Return from interrupt | S+2 → S; [S] → P; S+4 → S; [S] → C | all | rti |
+| [`brk`](control.md#brk) | Break | C+i → C; C → [S]; S-4 → S; P → [S]; S-2 → S; [vector] → C | | brk cop |
+| [`stp`](control.md#stp) | Stop | 1 → Clock | | stp wai |
+| [`nop`](control.md#nop) | No operation | wait O2 | | nop wdm |

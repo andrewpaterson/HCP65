@@ -1,20 +1,6 @@
 # vcpy, vnot, vand, vtst, vor, vxor, vadd, vsub, vcmp, vpcpy, vpand, vpor, vpxor - Vector
 
-| Mnemonic | Name | Operation | Flags |
-|---|---|---|---|
-| `vcpy` | Vector copy | [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vnot` | Vector invert | ![W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vand` | Vector and | [V] ∧ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vtst` | Vector test | [V] ∧ [W]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vor` | Vector or | [V] ∨ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vxor` | Vector xor | [V] ⊻ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vadd` | Vector add | [V] + [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vsub` | Vector subtract | [V] - [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vcmp` | Vector compare | [V] - [W]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vpcpy` | Vector precopy | [V]; [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vpand` | Vector preand | [V] ∧ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vpor` | Vector preor | [V] ∨ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
-| `vpxor` | Vector prexor | [V] ⊻ [W] → [V]; A-1 → A; V+o → V; W+o → W | n, v, z |
+--8<-- "vector.txt"
 
 Combine two blocks of memory an element at a time: copy, invert, mask, add, compare.  W points at
 the source, V at the destination, and A counts the elements.  `vcpy` replaces the W65C816's

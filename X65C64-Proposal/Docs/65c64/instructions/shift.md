@@ -1,9 +1,6 @@
 # shl, shr - Shift
 
-| Mnemonic | Operation | Flags |
-|---|---|---|
-| `shl` | O1 ‹‹ O2 → O1 | z, c, v |
-| `shr` | O1 ›› O2 → O1 | n, z, c, v |
+--8<-- "shift.txt"
 
 Shift the first operand left or right by the number of bits in the second.  Zeros are shifted
 in.  They replace the W65C816's `asl` and `lsr`.  There's no rotate or arithmetic shift right,

@@ -1,0 +1,8 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation |
+|---|---|---|
+| `hws` | Set hardware all | R → H |
+| `hwg` | Get hardware all | H → R |
+| `hwsp` | Set hardware bits | H ∨ O2 → H |
+| `hwcp` | Clear hardware bits | H ∧ !O2 → H |

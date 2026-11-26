@@ -1,21 +1,6 @@
 # fsbi, fcbi, fscr, fccr, fsny, fcny, fsby, fcby, fzcr, fzny, fzby, ffcr, ffny, ffby - Find
 
-| Mnemonic | Name | Operation | Flags |
-|---|---|---|---|
-| `fsbi` | Find set bit | if c {N+1 → N}; while R:b[N] = 0, N+1 → N | v, c |
-| `fcbi` | Find clear bit | if c {N+1 → N}; while R:b[N] = 1, N+1 → N | v, c |
-| `fscr` | Find non-zero crumb | if c {N+1 → N}; while ∨R:c[N] = 0, N+1 → N | v, c |
-| `fccr` | Find non-full crumb | if c {N+1 → N}; while ∧R:c[N] = 1, N+1 → N | v, c |
-| `fsny` | Find non-zero nybble | if c {N+1 → N}; while ∨R:n[N] = 0, N+1 → N | v, c |
-| `fcny` | Find non-full nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c |
-| `fsby` | Find non-zero byte | if c {N+1 → N}; while ∨R:[N] = 0, N+1 → N | v, c |
-| `fcby` | Find non-full byte | if c {N+1 → N}; while ∧R:[N] = 1, N+1 → N | v, c |
-| `fzcr` | Find zero crumb | if c {N+1 → N}; while ∨R:c[N] = 1, N+1 → N | v, c |
-| `fzny` | Find zero nybble | if c {N+1 → N}; while ∨R:n[N] = 1, N+1 → N | v, c |
-| `fzby` | Find zero byte | if c {N+1 → N}; while ∨R:[N] = 1, N+1 → N | v, c |
-| `ffcr` | Find full crumb | if c {N+1 → N}; while ∧R:c[N] = 0, N+1 → N | v, c |
-| `ffny` | Find full nybble | if c {N+1 → N}; while ∧R:n[N] = 0, N+1 → N | v, c |
-| `ffby` | Find full byte | if c {N+1 → N}; while ∧R:[N] = 0, N+1 → N | v, c |
+--8<-- "find.txt"
 
 Scan a register for a unit (bit, crumb, nybble or byte) that has:
 

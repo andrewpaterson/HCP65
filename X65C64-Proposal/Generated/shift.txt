@@ -1,0 +1,6 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Operation | Flags |
+|---|---|---|
+| `shl` | O1 ‹‹ O2 → O1 | z, c, v |
+| `shr` | O1 ›› O2 → O1 | n, z, c, v |

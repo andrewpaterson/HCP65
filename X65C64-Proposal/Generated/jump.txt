@@ -1,0 +1,8 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation |
+|---|---|---|
+| `jmp` | Jump absolute | {P → [S]; S-2 → S}; O2 → C |
+| `jsr` | Jump absolute subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; O2 → C |
+| `bra` | Jump relative (branch always) | C+i → C; {P → [S]; S-2 → S}; C + O2 → C |
+| `brsr` | Jump relative subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; C + O2 → C |

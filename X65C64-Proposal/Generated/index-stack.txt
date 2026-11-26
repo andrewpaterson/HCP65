@@ -1,0 +1,11 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags | W65C816 |
+|---|---|---|---|---|
+| [`psh`](stack.md) | Push registers | {A → [S]; S-a → S}; {B → [S]; S-b → S}; … {Y → [S]; S-y → S} | n, z | pha phx phy phd |
+| [`psh`](stack.md) | Push operand | O2 → [S]; S-o → S | | pea pei per |
+| [`psh`](stack.md) | Push processor state | P → [S]; S-2 → S | | php |
+| [`psh`](stack.md) | Push program count | C → [S]; S-4 → S | | |
+| [`pul`](stack.md) | Pull registers | {S+a → S; [S] → A}; {S+b → S; [S] → B}; … {S+y → S; [S] → Y} | n, z | pla plx ply pld |
+| [`pul`](stack.md) | Pull into address | S+4 → S; [S] → O2 | | |
+| [`pul`](stack.md) | Pull processor state | S+2 → S; [S] → P | all | plp |

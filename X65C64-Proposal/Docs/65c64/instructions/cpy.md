@@ -1,9 +1,6 @@
 # cpy - Copy
 
-| Form | Operation | Flags |
-|---|---|---|
-| Zero extend | O2 → O1 | n, z |
-| Sign extend | O2:s → O1 | n, z |
+--8<-- "cpy.txt"
 
 Copy the second operand into the first.
 

@@ -1,0 +1,24 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags | W65C816 |
+|---|---|---|---|---|
+| [`scp`](subcopy.md) | Subcopy bytes | R1:[O1]…R1:[O1+N] → R2:[O2]…R2:[O2+N] | n, z | tax tay txa txy tya tyx tcd tdc tcs tsc tsx txs xba |
+| [`scb`](subcopy.md) | Subcopy bits | R1:b[O1]…R1:b[O1+N] → R2:b[O2]…R2:b[O2+N] | n, z | |
+| [`neg`](arithmetic.md#neg-and-abs) | Negate | 0 - R2:s → R1 | n, z | |
+| [`abs`](arithmetic.md#neg-and-abs) | Absolute | abs(R2:s) → R1 | n, z | |
+| [`mul`](multiply-divide.md#mul) | Multiply (partial) | A × B → Y | v, z | |
+| [`div`](multiply-divide.md#div) | Divide (partial) | Y ÷ A → Y, remainder B | v, z, c | |
+| [`fsbi`](find.md) | Find set bit | if c {N+1 → N}; while R:b[N] = 0, N+1 → N | v, c | |
+| [`fcbi`](find.md) | Find clear bit | if c {N+1 → N}; while R:b[N] = 1, N+1 → N | v, c | |
+| [`fscr`](find.md) | Find non-zero crumb | if c {N+1 → N}; while ∨R:c[N] = 0, N+1 → N | v, c | |
+| [`fccr`](find.md) | Find non-full crumb | if c {N+1 → N}; while ∧R:c[N] = 1, N+1 → N | v, c | |
+| [`fsny`](find.md) | Find non-zero nybble | if c {N+1 → N}; while ∨R:n[N] = 0, N+1 → N | v, c | |
+| [`fcny`](find.md) | Find non-full nybble | if c {N+1 → N}; while ∧R:n[N] = 1, N+1 → N | v, c | |
+| [`fsby`](find.md) | Find non-zero byte | if c {N+1 → N}; while ∨R:[N] = 0, N+1 → N | v, c | |
+| [`fcby`](find.md) | Find non-full byte | if c {N+1 → N}; while ∧R:[N] = 1, N+1 → N | v, c | |
+| [`fzcr`](find.md) | Find zero crumb | if c {N+1 → N}; while ∨R:c[N] = 1, N+1 → N | v, c | |
+| [`fzny`](find.md) | Find zero nybble | if c {N+1 → N}; while ∨R:n[N] = 1, N+1 → N | v, c | |
+| [`fzby`](find.md) | Find zero byte | if c {N+1 → N}; while ∨R:[N] = 1, N+1 → N | v, c | |
+| [`ffcr`](find.md) | Find full crumb | if c {N+1 → N}; while ∧R:c[N] = 0, N+1 → N | v, c | |
+| [`ffny`](find.md) | Find full nybble | if c {N+1 → N}; while ∧R:n[N] = 0, N+1 → N | v, c | |
+| [`ffby`](find.md) | Find full byte | if c {N+1 → N}; while ∧R:[N] = 0, N+1 → N | v, c | |

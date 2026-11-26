@@ -1,14 +1,6 @@
 # psh, pul - Stack
 
-| Form | Operation | Flags |
-|---|---|---|
-| Push registers | {A → [S]; S-a → S}; {B → [S]; S-b → S}; … {Y → [S]; S-y → S} | n, z |
-| Push operand | O2 → [S]; S-o → S | |
-| Push processor state | P → [S]; S-2 → S | |
-| Push program count | C → [S]; S-4 → S | |
-| Pull registers | {S+a → S; [S] → A}; {S+b → S; [S] → B}; … {S+y → S; [S] → Y} | n, z |
-| Pull into address | S+4 → S; [S] → O2 | |
-| Pull processor state | S+2 → S; [S] → P | all |
+--8<-- "stack.txt"
 
 Push values onto a stack and pull them off.  The stack is S, or any of A, B, V, W, X and Y.  They
 replace the W65C816's `pha`, `phx`, `phy`, `phd`, `php`, `pea`, `pei`, `per`, `pla`, `plx`, `ply`,

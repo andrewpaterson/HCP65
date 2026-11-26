@@ -1,0 +1,9 @@
+<!-- Generated from the Instructions sheet of "65C64 Instruction Architecture.xlsx" by HCP65/Website/tools/instruction_tables.py, as X65C64-Proposal/InstructionTables.yml says.  Don't edit it: change the spreadsheet. -->
+
+| Mnemonic | Name | Operation | Flags |
+|---|---|---|---|
+| `sep` | Set state bits | P ∨ E → P | the flags named |
+| `cep` | Clear state bits | P ∧ !E → P | the flags named |
+| `stat` | Status to status | p2 → p1 | the flag written |
+| `bist` | Bit to status | R:b[N] → p | the flag written |
+| `stab` | Status to bit | p → R:b[N]; {p → R:b[N±1] … R:b[N±(count-1)]} | |

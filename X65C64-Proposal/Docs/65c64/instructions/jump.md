@@ -1,11 +1,6 @@
 # jmp, jsr, bra, brsr - Jump
 
-| Mnemonic | Name | Operation |
-|---|---|---|
-| `jmp` | Jump absolute | {P → [S]; S-2 → S}; O2 → C |
-| `jsr` | Jump absolute subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; O2 → C |
-| `bra` | Jump relative (branch always) | C+i → C; {P → [S]; S-2 → S}; C + O2 → C |
-| `brsr` | Jump relative subroutine | C+i → C; C → [S]; S-4 → S; {P → [S]; S-2 → S}; C + O2 → C |
+--8<-- "jump.txt"
 
 `jmp` and `jsr` jump to an address.  `bra` and `brsr` jump to an offset from the next
 instruction, so code that uses them can run at any address.  `jsr` and `brsr` push the return
