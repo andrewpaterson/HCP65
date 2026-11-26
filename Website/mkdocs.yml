@@ -153,6 +153,16 @@ nav:
       - Emulator: 65c64/emulator.md
   - C++ Software Libraries:
       - libraries/index.md
+      - WindowLib:
+          - libraries/windowlib/index.md
+          - Layout: libraries/windowlib/layout.md
+          - Components: libraries/windowlib/components.md
+          - Docking: libraries/windowlib/docking.md
+          - The Text Area: libraries/windowlib/text-area.md
+          - The Diff View: libraries/windowlib/diff-view.md
+          - Drawing and Speed: libraries/windowlib/drawing.md
+          - Input, Focus, Keys and the Clipboard: libraries/windowlib/input.md
+          - Backends: libraries/windowlib/backends.md
 extra:
   # Where the site's pages come from (DocsPlan.txt decision 13): each folder (relative to the folder holding the
   # repositories) lands at its site folder ("" is the top).  A project's Docs folder is laid out as the site's paths,
@@ -163,11 +173,14 @@ extra:
     - folder: HCP65/Website/docs
       site: ""
       branch: main
-    # CommonLibraries: the compiler, and the 65C64 simulators.
+    # CommonLibraries: the compiler, the 65C64 simulators and WindowLib.
     - folder: CommonLibraries/Libraries/CppCompilerLib/Docs
       site: ""
       branch: master
     - folder: CommonLibraries/Libraries/MicroprocessorLib/Docs
+      site: ""
+      branch: master
+    - folder: CommonLibraries/Libraries/WindowLib/Docs
       site: ""
       branch: master
     # HCP65: the 65C64 proposal, the assembler and C library, the computer's kernal, programs and emulator.
