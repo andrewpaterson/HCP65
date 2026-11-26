@@ -51,7 +51,8 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   (`../HCP65-IDE/HCP65Build/Docs`) and `compiler/testing.md` (`../CommonLibraries/Libraries/CppCompilerLib/Docs`).
 - Test suites build with CMake as in CommonLibraries (`cmake -S Tests/TestAssembler65Lib -B
   ../build/TestAssembler65Lib64 -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).
-  TestAssembler65Lib reads `Website/mkdocs.yml` and the `Docs` folders it lists.
+  TestAssembler65Lib reads `Website/mkdocs.yml` and the `Docs` folders it lists.  Run TestLibc65 from
+  `Tests/TestLibc65/TestLibc65` (as `ctest` does), else it can't find BaseLib.
 
 ## Rules for the code
 
