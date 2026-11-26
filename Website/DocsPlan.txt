@@ -505,6 +505,12 @@ I. Files that aren't source
   Decided 2026-11-26: a README.md in each such folder says it, with a table of file patterns, what each is (source,
   generated or third-party) and what it is made from or came from (the command, or the supplier and version); the
   website's build checks every tracked file under it matches exactly one row (the user, as recommended).
+  Decided 2026-11-26 (step 3): the device tables are generated from the schematics, and the rest is checked against
+  them (the user).  devices.md's table of boards (name, main bus, driver) and a table of each device board's
+  registers (offset, read or write, name, as its nets name them) are made by DeviceRomLib's reading of each board's
+  schematic and included by snippet; the memory map's decode is worked out from the main board's netlist (a decode
+  reader to write first) and memory-map.md and registers.md are checked against it.  A schematic can't be reworded
+  to match a page as the spreadsheet was: its net names are the circuit.
 
 
 Order
