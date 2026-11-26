@@ -5,6 +5,8 @@
 #include "BaseLib/YAMLFile.h"
 #include "Assembler65Lib/Asm65C64Assembler.h"
 #include "Assembler65Lib/Asm65Object.h"
+#include "Assembler65Lib/Asm65Memory.h"
+#include "MicroprocessorLib/Fast65C64.h"
 #include "TestLib/Assert.h"
 #include "TestAsm65C64Context.h"
 
@@ -275,6 +277,54 @@ void TestAsm65C64WebsiteExamples(void)
 
 //////////////////////////////////////////////////////////////////////////
 //
+// The 65C64 emulator page's example, run: MicroprocessorLib's
+// Docs/65c64/emulator.md takes it from here by its two sections' names
+// (pymdownx.snippets), so the page shows code that runs.  Asserts aren't
+// in the sections.
+//
+//////////////////////////////////////////////////////////////////////////
+void TestAsm65C64WebsiteEmulator(void)
+{
+	const char*	szSource;
+
+	szSource = ".org $2000\n"
+		"	cpy A, 42\n"
+		"	stp\n";
+
+	// --8<-- [start:emulator]
+	CAsm65C64Assembler	cAssembler;
+	CAsm65Memory		cMemory;
+	CFast65C64			cMPU;
+
+	cAssembler.Init();
+	cAssembler.Assemble(szSource);
+
+	cMemory.Init();
+	cMemory.LoadProgram(cAssembler.GetOutput(), 0x2000);	//Also points the reset vector at $2000.
+	cMemory.InitFast65C64(&cMPU);
+	cAssembler.Kill();
+
+	cMPU.Reset();
+	cMPU.Run(1000000);		//Until an stp, or a million instructions.
+
+	cMPU.GetA();			//The registers: GetB, GetX, GetY, GetS, GetV, GetW, GetP.
+	cMPU.NumCycles();		//The clock cycles taken.
+	cMemory.GetLong(0x3000);	//And the memory.
+	// --8<-- [end:emulator]
+
+	AssertLongLongIntHex(42, cMPU.GetA());
+	AssertTrue(cMPU.NumCycles() > 0);
+	AssertLongLongIntHex(0, cMemory.GetLong(0x3000));
+
+	// --8<-- [start:emulator-kill]
+	cMPU.Kill();
+	cMemory.Kill();
+	// --8<-- [end:emulator-kill]
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+//
 //
 //////////////////////////////////////////////////////////////////////////
 void TestAsm65C64Website(void)
@@ -282,6 +332,7 @@ void TestAsm65C64Website(void)
 	BeginTests();
 
 	TestAsm65C64WebsiteExamples();
+	TestAsm65C64WebsiteEmulator();
 
 	TestStatistics();
 }
