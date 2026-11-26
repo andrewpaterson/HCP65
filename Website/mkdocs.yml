@@ -160,6 +160,20 @@ nav:
       - Emulator: 65c64/emulator.md
   - C++ Software Libraries:
       - libraries/index.md
+      - BaseLib:
+          - libraries/baselib/index.md
+          - Containers: libraries/baselib/containers.md
+          - Memory: libraries/baselib/memory.md
+          - Numbers and Lines: libraries/baselib/numbers-and-lines.md
+          - Parsers and Markup: libraries/baselib/parsers-and-markup.md
+          - The Codabase: libraries/baselib/codabase.md
+      - StandardLib:
+          - libraries/standardlib/index.md
+          - Objects: libraries/standardlib/objects.md
+          - Weak References: libraries/standardlib/weak-references.md
+          - Objects and Threads: libraries/standardlib/threads.md
+          - Text Diff: libraries/standardlib/text-diff.md
+          - Deflate and PNG: libraries/standardlib/compression.md
       - WindowLib:
           - libraries/windowlib/index.md
           - Layout: libraries/windowlib/layout.md
@@ -180,7 +194,7 @@ extra:
     - folder: HCP65/Website/docs
       site: ""
       branch: main
-    # CommonLibraries: the compiler, the 65C64 simulators and WindowLib.
+    # CommonLibraries: the compiler, the 65C64 simulators, and BaseLib, StandardLib and WindowLib's design.
     - folder: CommonLibraries/Libraries/CppCompilerLib/Docs
       site: ""
       branch: master
@@ -188,6 +202,12 @@ extra:
       site: ""
       branch: master
     - folder: CommonLibraries/Libraries/WindowLib/Docs
+      site: ""
+      branch: master
+    - folder: CommonLibraries/Libraries/BaseLib/Docs
+      site: ""
+      branch: master
+    - folder: CommonLibraries/Libraries/StandardLib/Docs
       site: ""
       branch: master
     # HCP65: the 65C64 proposal, the assembler and C library, the computer's kernal, programs and emulator.
