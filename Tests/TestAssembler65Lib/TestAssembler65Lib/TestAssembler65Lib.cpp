@@ -32,6 +32,7 @@ void TestAsm65C64Console(void);
 void TestAsm65Lazy(void);
 void TestAsm65C64Fast(void);
 void TestAsm65C64Website(void);
+void TestAsm65C64Spreadsheet(void);
 void TestAsmW65C816(void);
 void TestAsm65StackWalker(void);
 void TestAsmW65C816Disassembler(void);
@@ -81,6 +82,7 @@ int __cdecl main(void)
 	TestAsm65Lazy();
 	TestAsm65C64Fast();
 	TestAsm65C64Website();
+	TestAsm65C64Spreadsheet();
 	TestAsmW65C816();
 	TestAsm65StackWalker();
 	TestAsmW65C816Disassembler();

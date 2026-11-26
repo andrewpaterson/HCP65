@@ -186,5 +186,11 @@ protected:
 };
 
 
+//The 65C64's mnemonics the assembler knows, in its table's order (TestAsm65C64Spreadsheet compares them with the
+//spreadsheet's).
+size		NumAsm65C64Mnemonics(void);
+const char*	GetAsm65C64Mnemonic(size uiIndex);
+
+
 #endif // __ASM65C64_ASSEMBLER_H__
 

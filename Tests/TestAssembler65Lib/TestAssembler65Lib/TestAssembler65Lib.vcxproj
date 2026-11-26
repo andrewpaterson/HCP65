@@ -235,6 +235,7 @@
     <ClCompile Include="TestAsm65C64Encoding.cpp" />
     <ClCompile Include="TestAsm65C64Fast.cpp" />
     <ClCompile Include="TestAsm65C64Website.cpp" />
+    <ClCompile Include="TestAsm65C64Spreadsheet.cpp" />
     <ClCompile Include="TestAsm65IncHex.cpp" />
     <ClCompile Include="TestAsm65Image.cpp" />
     <ClCompile Include="TestAsmW65C816.cpp" />
