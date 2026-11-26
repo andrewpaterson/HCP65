@@ -8,6 +8,9 @@
 # form column), name (the sheet's name without "(zero extend)", "(sign extend)", "(unsigned)" or "(signed)"), form
 # (that word, or nothing), operation, flags, w65c816.  A row written {row: n, text: true} shows its mnemonic as
 # `#!text abs`: a name C++ has too.
+#
+# A table with a sheet is that sheet's rows, from its second: fields names its columns from A, and columns says which
+# of them the table shows.
 
 index-copy:
   columns: [[link, Mnemonic], [name, Name], [operation, Operation], [flags, Flags], [w65c816, W65C816]]
@@ -121,3 +124,8 @@ vector:
 width:
   columns: [[mnemonic, Mnemonic], [name, Name], [operation, Operation], [flags, Flags]]
   rows: [30, 31, 34, 35]
+
+hardware-registers:
+  sheet: Hardware registers
+  fields: [index, width, purpose]
+  columns: [[index, Index], [width, Width], [purpose, Purpose]]

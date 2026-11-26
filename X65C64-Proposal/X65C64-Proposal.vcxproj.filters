@@ -211,4 +211,9 @@
       <Filter>Generated</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Generated\hardware-registers.txt">
+      <Filter>Generated</Filter>
+    </None>
+  </ItemGroup>
 </Project>

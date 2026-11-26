@@ -1,10 +1,13 @@
-"""The tables instruction_tables.py makes of the 65C64's Instructions sheet (DocsPlan.txt C1, C3).
+"""The tables instruction_tables.py makes of the 65C64's spreadsheet, and its checks of the pages (DocsPlan.txt C).
 
 Run by web.sh's checks: .venv/bin/python tools/test_instruction_tables.py
 """
 import os
+import shutil
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import instruction_tables  # noqa: E402
@@ -45,11 +48,43 @@ class TestInstructionTables(unittest.TestCase):
 
     def test_sheet(self):
         # The real sheet: its rows read, a carried on row's W65C816 list joined to the row above's.
-        instructions = instruction_tables.read_instructions()
+        instructions = instruction_tables.read_instructions(instruction_tables.load())
         self.assertGreaterEqual(len(instructions), 100)
         self.assertNotIn('17', instructions)
         self.assertEqual('tax tay txa txy tya tyx tcd tdc tcs tsc tsx txs xba', instructions['16'].w65c816)
         self.assertEqual([], instruction_tables.check_pages(instructions, instruction_tables.read_spec()))
+
+    def changed_page(self, path, old, new):
+        """A copy of the page with old (which it has once) changed to new, in a scratch folder."""
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder)
+        with open(path, encoding='utf-8') as file:
+            page = file.read()
+        self.assertEqual(1, page.count(old))
+        copy = os.path.join(folder, os.path.basename(path))
+        with open(copy, 'w', encoding='utf-8') as file:
+            file.write(page.replace(old, new))
+        return copy
+
+    def test_operands_check(self):
+        workbook = instruction_tables.load()
+        self.assertEqual([], instruction_tables.check_operands(workbook))
+        with mock.patch.object(instruction_tables, 'OPERANDS_PAGE', self.changed_page(
+                instruction_tables.OPERANDS_PAGE, '| 7 | Address Offset Indirect |', '| 8 | Address Offset Indirect |')):
+            problems = instruction_tables.check_operands(workbook)
+        self.assertEqual(2, len(problems))
+        self.assertIn('Operand encoding sheet', problems[0])
+        self.assertIn('Addressing modes sheet', problems[1])
+
+    def test_registers_check(self):
+        workbook = instruction_tables.load()
+        self.assertEqual([], instruction_tables.check_registers(workbook))
+        with mock.patch.object(instruction_tables, 'REGISTERS_PAGE', self.changed_page(
+                instruction_tables.REGISTERS_PAGE, '| S | 32 bits |', '| S | 16 bits |')):
+            self.assertIn('the registers aren', instruction_tables.check_registers(workbook)[0])
+        with mock.patch.object(instruction_tables, 'REGISTERS_PAGE', self.changed_page(
+                instruction_tables.REGISTERS_PAGE, '| Flag | a | b | x | y | e | l |', '| Flag | a | b | x | y | l | e |')):
+            self.assertIn('the status bits aren', instruction_tables.check_registers(workbook)[0])
 
 
 if __name__ == '__main__':

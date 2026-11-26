@@ -109,5 +109,8 @@
     <None Include="Generated\vector.txt" />
     <None Include="Generated\width.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Generated\hardware-registers.txt" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

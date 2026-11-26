@@ -6,15 +6,19 @@ has a row a numbered instruction (column B): name, mnemonic, instruction, extend
 instructions it replaces, behaviour, flags and notes.  A merged cell's value is every row's it covers; a row whose
 behaviour is merged from the row above carries on that row's W65C816 list.
 
-X65C64-Proposal/InstructionTables.yml says which rows each of the website's tables has.  Each table is written to
+X65C64-Proposal/InstructionTables.yml says which rows each of the website's tables has; a table that names another
+sheet (Hardware registers) is that sheet's rows, from its second, its columns from A the fields it lists.  Each table is written to
 X65C64-Proposal/Generated/<table>.txt, which its page includes (--8<-- "<table>.txt"), and every row to
 Generated/Instructions.txt, a plain text table: readable diffs of the spreadsheet, and what TestAssembler65Lib checks
 the assembler and the simulator against.  A file is written only when it changes; --check writes nothing and fails
 if one would change.
 
 It also checks (C2) that every mnemonic an instruction page's title names is in the sheet and every one the sheet
-has is in a title, and that each index row links to the page whose table has its row.  Problems are printed as
-"<file>:<line>:1: error:" lines, and fail it.
+has is in a title, and that each index row links to the page whose table has its row; and the pages the sheets drawn
+as diagrams describe (the user, 2026-11-26: those pages stay hand-written and are checked): operands.md's modes (number,
+name and type) are the Operand encoding sheet's and the Addressing modes sheet's, and registers.md's registers, their
+widths and the status register's bits are the Registers sheet's.  Problems are printed as "<file>:<line>:1: error:"
+lines, and fail it.
 
     .venv/bin/python tools/instruction_tables.py [--check]
 """
@@ -35,6 +39,9 @@ PROPOSAL = os.path.join(site_sources.ROOT, 'HCP65', 'X65C64-Proposal')
 WORKBOOK = os.path.join(PROPOSAL, '65C64 Instruction Architecture.xlsx')
 SPEC = os.path.join(PROPOSAL, 'InstructionTables.yml')
 PAGES = os.path.join(PROPOSAL, 'Docs', '65c64', 'instructions')
+OPERANDS_PAGE = os.path.join(PROPOSAL, 'Docs', '65c64', 'operands.md')
+REGISTERS_PAGE = os.path.join(PROPOSAL, 'Docs', '65c64', 'registers.md')
+REGISTER = re.compile(r'^(?:Register|Stack Pointer|Status|Program Counter) (\w+) +\((\d+) bit\)')
 TITLE = re.compile(r'^# ([a-z, ]+) - ')
 GENERATED = os.path.join(PROPOSAL, 'Generated')
 SHEET = 'Instructions'
@@ -63,9 +70,14 @@ def text(value):
     return ' '.join(str(value).split())
 
 
-def read_instructions(path=WORKBOOK):
-    """The sheet's numbered rows, by number, in order."""
-    sheet = openpyxl.load_workbook(path, data_only=True)[SHEET]
+def load(path=WORKBOOK):
+    """The spreadsheet, with the values its formulas last had."""
+    return openpyxl.load_workbook(path, data_only=True)
+
+
+def read_instructions(workbook):
+    """The Instructions sheet's numbered rows, by number, in order."""
+    sheet = workbook[SHEET]
     merged_from = {}    # (row, column) -> the merged range's first row
     for merged in sheet.merged_cells.ranges:
         for row in range(merged.min_row, merged.max_row + 1):
@@ -141,6 +153,25 @@ def table(name, spec, instructions):
     return '\n'.join(lines) + '\n'
 
 
+def sheet_table(name, spec, workbook):
+    """A table of a plain sheet (spec's sheet): a row each of its rows from the second with a first cell, its cells
+    from A the spec's fields."""
+    if spec['sheet'] not in workbook.sheetnames:
+        raise InstructionTableError('InstructionTables.yml: %s names sheet %s, which the spreadsheet hasn\'t' % (name, spec['sheet']))
+    sheet = workbook[spec['sheet']]
+    fields = spec['fields']
+    columns = spec['columns']
+    lines = ['<!-- %s -->' % MARK.replace('the Instructions sheet', 'the %s sheet' % spec['sheet']), '',
+             '| %s |' % ' | '.join(heading for _, heading in columns),
+             '|%s|' % '|'.join('---' for _ in columns)]
+    for row in range(2, sheet.max_row + 1):
+        values = dict(zip(fields, (text(sheet.cell(row, column + 1).value) for column in range(len(fields)))))
+        if not values[fields[0]]:
+            continue
+        lines.append('|%s|' % '|'.join(' %s ' % values[kind] if values[kind] else ' ' for kind, _ in columns))
+    return '\n'.join(lines) + '\n'
+
+
 def instruction_list(instructions):
     """Generated/Instructions.txt: a line a row, tab separated."""
     header = ('The 65C64\'s instructions.  %s  A line a numbered row of the sheet: its number, mnemonic, instruction '
@@ -152,11 +183,14 @@ def instruction_list(instructions):
     return '\n'.join(lines) + '\n'
 
 
-def outputs(instructions, spec):
+def outputs(workbook, instructions, spec):
     """Each file to write, by path, with its text."""
     files = {os.path.join(GENERATED, 'Instructions.txt'): instruction_list(instructions)}
     for name, table_spec in spec.items():
-        files[os.path.join(GENERATED, name + '.txt')] = table(name, table_spec, instructions)
+        if 'sheet' in table_spec:
+            files[os.path.join(GENERATED, name + '.txt')] = sheet_table(name, table_spec, workbook)
+        else:
+            files[os.path.join(GENERATED, name + '.txt')] = table(name, table_spec, instructions)
     return files
 
 
@@ -182,7 +216,7 @@ def check_pages(instructions, spec):
     for mnemonic in sorted(mnemonics - titled):
         problems.append('%s:1:1: error: no instruction page\'s title names %s' % (PAGES, mnemonic))
     for name, table_spec in spec.items():
-        if not name.startswith('index-'):
+        if not name.startswith('index-') or 'sheet' in table_spec:
             continue
         for entry in table_spec['rows']:
             number, link = entry[0], entry[1]
@@ -190,6 +224,115 @@ def check_pages(instructions, spec):
             rows = [row['row'] if isinstance(row, dict) else row for row in spec.get(page, {}).get('rows', [])]
             if number not in rows:
                 problems.append('%s:1:1: error: %s links row %s to %s, whose table hasn\'t it' % (SPEC, name, number, link))
+    return problems
+
+
+def merged_value(sheet, row, column):
+    """A cell's text, a merged range's value for any cell of it."""
+    for merged in sheet.merged_cells.ranges:
+        if merged.min_row <= row <= merged.max_row and merged.min_col <= column <= merged.max_col:
+            return text(sheet.cell(merged.min_row, merged.min_col).value)
+    return text(sheet.cell(row, column).value)
+
+
+def page_tables(path):
+    """A Markdown page's tables: (the line of its heading, from 1, its cells, and its rows' cells)."""
+    tables = []
+    with open(path, encoding='utf-8') as file:
+        lines = file.read().split('\n')
+    for number, line in enumerate(lines, 1):
+        if not line.startswith('|'):
+            continue
+        cells = [part.strip() for part in line.strip()[1:-1].split('|')]
+        if number == 1 or not lines[number - 2].startswith('|'):
+            tables.append((number, cells, []))
+        elif not all(re.fullmatch(r':?-+:?', part) for part in cells):
+            tables[-1][2].append(cells)
+    return tables
+
+
+def find_table(path, heading):
+    """The page's table with that heading: (its line, its rows), or None."""
+    for number, cells, rows in page_tables(path):
+        if cells == heading:
+            return number, rows
+    return None
+
+
+def check_operands(workbook):
+    """operands.md's table of modes against the Operand encoding sheet (name, mode, type, a merged cell's value for
+    each of its rows) and the Addressing modes sheet (a mode's number beside the first of its names)."""
+    problems = []
+    found = find_table(OPERANDS_PAGE, ['Mode', 'Name', 'Type', 'Assembly'])
+    if found is None:
+        return ['%s:1:1: error: the table of modes (Mode, Name, Type, Assembly) isn\'t there' % OPERANDS_PAGE]
+    line, rows = found
+    page = [(row[0], re.sub(r'^\[(.*)\]\(.*\)$', r'\1', row[1]), row[2]) for row in rows]
+
+    sheet = workbook['Operand encoding']
+    encoded = []
+    for row in range(4, sheet.max_row + 1):
+        name = text(sheet.cell(row, 1).value)
+        if name:
+            encoded.append((merged_value(sheet, row, 2), name, merged_value(sheet, row, 3)))
+    if page != encoded:
+        problems.append('%s:%d:1: error: the modes aren\'t the Operand encoding sheet\'s: %s' %
+                        (OPERANDS_PAGE, line, '; '.join('%s %s %s' % entry for entry in encoded)))
+
+    sheet = workbook['Addressing modes']
+    drawn = set()
+    for column in (3, 9, 15):
+        mode = ''
+        for row in range(1, sheet.max_row + 1):
+            value = text(sheet.cell(row, column).value)
+            number = text(sheet.cell(row, column - 1).value)
+            if not value.endswith(':') or 'calculation' in value or 'memory' in value or value == 'Instruction:':
+                continue
+            mode = number or mode
+            drawn.add((mode, 'Address ' + value[:-1]))
+    addresses = {(mode, name) for mode, name, kind in page if name.startswith('Address ')}
+    if addresses != drawn:
+        problems.append('%s:%d:1: error: the address modes aren\'t the Addressing modes sheet\'s: %s' %
+                        (OPERANDS_PAGE, line, '; '.join('%s %s' % entry for entry in sorted(addresses ^ drawn))))
+    return problems
+
+
+def check_registers(workbook):
+    """registers.md's registers and widths, and the status register's bits, against the Registers sheet."""
+    problems = []
+    sheet = workbook['Registers']
+    widths = {}
+    for row in sheet.iter_rows(min_row=1, max_row=20):
+        for value in row:
+            match = REGISTER.match(text(value.value))
+            if match and not match.group(1).startswith('D'):    # DI, D and DJ are internal.
+                widths[match.group(1)] = match.group(2)
+    found = find_table(REGISTERS_PAGE, ['Register', 'Width', 'Usual role'])
+    if found is None:
+        return ['%s:1:1: error: the table of registers (Register, Width, Usual role) isn\'t there' % REGISTERS_PAGE]
+    line, rows = found
+    page = {row[0]: row[1] for row in rows}
+    if set(page) != set(widths) or any(not page[name].endswith('%s bits' % bits) for name, bits in widths.items()):
+        problems.append('%s:%d:1: error: the registers aren\'t the Registers sheet\'s: %s' %
+                        (REGISTERS_PAGE, line, ', '.join('%s %s bits' % entry for entry in sorted(widths.items()))))
+
+    bits = {}
+    for column in range(2, 18):
+        letter = text(sheet.cell(18, column).value).rstrip('.')
+        if letter:
+            top = text(sheet.cell(17, column).value)
+            bits[letter] = top
+            if column < 17 and not text(sheet.cell(18, column + 1).value):    # A two bit field: 15–14.
+                bits[letter] = '%s–%s' % (top, text(sheet.cell(17, column + 1).value))
+    for number, cells, rows in page_tables(REGISTERS_PAGE):
+        if cells and cells[0] == 'Bits' and rows and rows[0][0] == 'Flag':
+            page_bits = dict(zip(rows[0][1:], cells[1:]))
+            if page_bits != bits:
+                problems.append('%s:%d:1: error: the status bits aren\'t the Registers sheet\'s: %s' %
+                                (REGISTERS_PAGE, number, ', '.join('%s %s' % entry for entry in bits.items())))
+            break
+    else:
+        problems.append('%s:1:1: error: the status register\'s bits (Bits, then Flag) aren\'t there' % REGISTERS_PAGE)
     return problems
 
 
@@ -220,14 +363,15 @@ def main():
     parser.add_argument('--check', action='store_true', help='write nothing; fail if a file would change')
     arguments = parser.parse_args()
     try:
-        instructions = read_instructions()
+        workbook = load()
+        instructions = read_instructions(workbook)
         spec = read_spec()
-        changed = write(outputs(instructions, spec), arguments.check)
+        changed = write(outputs(workbook, instructions, spec), arguments.check)
     except InstructionTableError as error:
         raise SystemExit('%s:1:1: error: %s' % (WORKBOOK, error))
     for path in changed:
         print('%s: %s' % ('would change' if arguments.check else 'written', os.path.relpath(path, site_sources.ROOT)))
-    problems = check_pages(instructions, spec)
+    problems = check_pages(instructions, spec) + check_operands(workbook) + check_registers(workbook)
     for problem in problems:
         print(problem)
     if problems or (arguments.check and changed):

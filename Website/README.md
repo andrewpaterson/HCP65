@@ -46,7 +46,9 @@ pane opens, and MkDocs's own warnings about a page are repeated that way with th
     .venv/bin/python tools/instruction_tables.py
 
 fails when an instruction page's title names a mnemonic the spreadsheet hasn't, the spreadsheet has one no title
-names, or an index row links to a page whose table hasn't its row.
+names, an index row links to a page whose table hasn't its row, or the pages the diagram sheets describe differ from
+them: operands.md's modes from the Operand encoding and Addressing modes sheets, registers.md's registers, widths and
+status bits from the Registers sheet.
 
     .venv/bin/python tools/check_project_items.py
 

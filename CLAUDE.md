@@ -45,8 +45,10 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
   (`Website/tools/instruction_tables.py` writes `X65C64-Proposal/Generated`, as
   `X65C64-Proposal/InstructionTables.yml` says; the pages include the tables by snippet, and
   `Generated/Instructions.txt` is every instruction's codes).  A table's wording is changed in the spreadsheet, in
-  red; a new table or row in `InstructionTables.yml`; TestAssembler65Lib assembles every ```` ```asm ```` block in
-  the site's `65c64` pages (```` ```text ```` for syntax).
+  red; a new table or row in `InstructionTables.yml`.  `operands.md`'s modes and `registers.md`'s registers and status
+  bits are checked against the sheets drawn as diagrams.  TestAssembler65Lib assembles every ```` ```asm ```` block
+  in the site's `65c64` pages (```` ```text ```` for syntax), and checks the assembler's and the simulator's
+  instructions against `Generated/Instructions.txt`.
 - Design pages (how it is built and why, its decisions and what isn't done) are in the `hcp65/design` folders:
   `Kernal/Docs` (the kernal, interrupts), `HCP65-Emulator/HCP65Lib/Docs` (their index, the hardware),
   `HCP65-Emulator/HCP65Emulator/Docs` (the emulator), `HCP65-Tester/HCP65Tester/Docs` (the board tester).
