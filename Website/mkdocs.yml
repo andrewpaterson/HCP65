@@ -96,6 +96,7 @@ nav:
       - Building and Running: ide/building.md
       - Debugging: ide/debugging.md
       - Git: ide/git.md
+      - Documentation Pages: ide/documentation.md
       - New Files and Templates: ide/templates.md
       - Refactoring:
           - ide/refactoring/index.md
