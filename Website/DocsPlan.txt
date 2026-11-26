@@ -486,6 +486,19 @@ I. Files that aren't source
   3. Tables from KiCad: the HCP65 memory map, registers and pinouts generated from the netlists with
      KicadImporterLib, and checked against the hand-written prose like C.
   4. References to KiCad parts and nets (reference designator, /net) checked against the netlist.
+  Planning, 2026-11-26 (nothing built, nothing decided).  What there is: outside test data about 4,790 tracked files
+  aren't code or pages, and about 4,660 of them are no project's item, nearly all HCP65's: KiCad design files (about
+  1,200: schematics, boards, projects, symbols, footprints), Gerber and drill outputs made from the boards (about
+  2,000), 3D models (534 STEP and VRML), 287 datasheet PDFs, about 220 pictures, about 180 plans and notes (.txt,
+  most not items), LogiCim's 63 icons.  The KiCad files can already be read: CommonLibraries' KicadLib parses
+  schematics and makes netlists (CKicadSchemNetlist), HCP65's DeviceRomLib reads each board's device registers from
+  its schematic (CDeviceROMSchematic) and TestHCP65Lib checks them, so step 3 needs no LogiCim (its KicadImporterLib
+  builds circuits).  The questions, to be put one at a time: how the files are owned (each an item, as pages are; by
+  folder with a manifest, as test data is by location; or wildcard items, which VisualStudioLib doesn't read yet);
+  where source, generated and third-party is recorded; whether the memory map, register and pinout tables are made
+  from the schematics or the pages are checked against them; how a page names a part or a net, checked against which
+  board.  The user, 2026-11-26: "The kicad files aren't really part of the code source as such, but as you point out
+  they are a source of documentation.  I need to think about this."
 
 
 Order
@@ -525,8 +538,9 @@ Asked one at a time, my recommendation first.  Not yet asked unless marked.
 11. Test data in Input/Output folders.  Decided 2026-11-24 (decision 11): owned by its test project by where it is,
     not as items; not hand-listed like pages.
 
-Related, not about docs (asked 2026-11-24, unanswered): fcny, fccr and fcby stop at a unit with ANY bit clear, not at
-a zero unit, so "zero" in their names doesn't match the behaviour.  Rename them or change what they do?
+Related, not about docs (asked 2026-11-24): fcny, fccr and fcby stop at a unit with ANY bit clear, not at a zero
+unit, so "zero" in their names doesn't match the behaviour.  Answered: they were renamed Find non-full crumb, nybble
+and byte, and fzcr, fzny and fzby added for all bits clear (the spreadsheet, HCP65 8d8cd50).
 
 
 Things to watch for
