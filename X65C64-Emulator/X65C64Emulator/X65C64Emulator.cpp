@@ -93,6 +93,7 @@ bool CX65C64Emulator::ParseArguments(int argc, char* argv[], const char** pszPro
 	char*	szEnd;
 	int		i;
 
+	szEnd = NULL;
 	for (i = 1; i < argc; i++)
 	{
 		if ((strcmp(argv[i], DEBUG_ARGUMENT_SHARED_MEMORY) == 0) || (strcmp(argv[i], DEBUG_ARGUMENT_NETWORK) == 0))

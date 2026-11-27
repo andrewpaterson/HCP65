@@ -26,7 +26,7 @@ along with Codaphela X65C64Emulator.  If not, see <http://www.gnu.org/licenses/>
 //
 //
 //////////////////////////////////////////////////////////////////////////
-int main(int argc, char* argv[])
+int __cdecl main(int argc, char* argv[])
 {
 	CX65C64Emulator	cEmulator;
 	int				iResult;
