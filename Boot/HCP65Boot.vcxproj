@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- The HCP65 boot loader, the MPU ROM: it brings up the devices and the SD card, and loads \OS\OS.SYS (HCP65/Kernal)
        into MPU RAM.  It shares the kernal's start up, device, memory, interrupt and SD card units.  It is built by
-       HCP65-IDE's W65C816 configurations (HCP65Boot.hcp65build), not by Visual Studio: a Makefile project with no
+       HCP65-IDE's W65C816 configurations (its HCP65 groups), not by Visual Studio: a Makefile project with no
        commands, so its files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">

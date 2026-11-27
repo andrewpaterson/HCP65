@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Card Image="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\BootCard.img">
+	<Program File="..\BootTest\Output\$(Platform)\$(Configuration)\boottest.exe" Path="\boottest.exe"/>
+	<Program File="..\ModPlay\Output\$(Platform)\$(Configuration)\modplay.exe" Path="\modplay.exe"/>
+	<Program File="..\Drivers\SoundBoard\Output\$(Platform)\$(Configuration)\SOUND.DRV" Path="\OS\Drivers\SOUND.DRV"/>
+	<Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
+</Card>

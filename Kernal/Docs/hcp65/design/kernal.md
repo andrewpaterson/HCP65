@@ -26,8 +26,8 @@ assembly, and [`Kernal/StartRuntime.inc`], the start up they share.  The kernal 
 again, so it never depends on what the boot loader left; each clears the status block ([`SKernalStatus`] at
 `$00C000`) as it starts, so a test or debugger reads one place whichever is running.
 
-Both images are built by `hcp65build` from their `.hcp65build` files, and by TestHCP65Lib's [`CHCP65KernalBuilder`]
-for the tests, which give each test card its own OS.SYS and `STARTUP.TXT`.  OS.SYS is the bytes from `$00FF00` to
+Both images are built by `hcp65build` from their solutions, as their projects' `HCP65Link` groups say, and by
+TestHCP65Lib's [`CHCP65KernalBuilder`] for the tests, which give each test card its own OS.SYS and `STARTUP.TXT`.  OS.SYS is the bytes from `$00FF00` to
 the end of bank 3, 196,864 bytes at most; the kernal's code and data have banks 1 to 3, 192KB.  On 2026-11-23 a
 Release kernal was 186,540 bytes and a Debug one 189,491, so room is still the constraint that shapes it: its bss
 follows, then the drivers it loads, then its heap in bank 6.

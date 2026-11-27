@@ -81,7 +81,7 @@ bool CHCP65KernalBuilder::Build(const char* szCommonLibraries, const char* szHCP
 	{
 		mcBuilder.SetTextAddress(mcImage.GetText());
 	}
-	mcBuilder.SetNoFloats(true);  //No floats (the .hcp65build files' NoFloats).
+	mcBuilder.SetNoFloats(true);  //No floats (the projects' HCP65Compile NoFloats).
 	bResult &= mcBuilder.Link();
 	mszErrors.Append(mcBuilder.GetErrors());
 	if (!bResult)

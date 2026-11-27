@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- \OS\INIT.EXE, the HCP65's start up program (the kernal runs it without \OS\STARTUP.TXT): it loads the maths
        tables and keeps the shell, \OS\SHELL.EXE, running.  It is built by HCP65-IDE's W65C816 configurations
-       (HCP65Init.hcp65build), not by Visual Studio: a Makefile project with no commands, so its files are only listed
+       (its HCP65 groups), not by Visual Studio: a Makefile project with no commands, so its files are only listed
        here.  The ClCompile items, .asm included, are the units in link order. -->
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">

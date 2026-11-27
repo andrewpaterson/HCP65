@@ -10,7 +10,9 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 - `X65C64-Proposal/`: the 65C64.  `65C64 Instruction Architecture.xlsx` is the source of truth; the website's
   65C64 pages are derived from it.  Edit it with LibreOffice (headless UNO for scripted edits), changes in red.
 - `Kernal/`, `Boot/`, `Shell/`, `ModPlay/` and the other top-level program folders: HCP65 programs, each a
-  Visual Studio solution with an `.hcp65build` file beside it.
+  Visual Studio solution whose project says how it is compiled and linked for the HCP65 (its `HCP65Compile` and
+  `HCP65Link` groups), with its shared run configurations in a `.run` folder beside it.
+- `Cards/`: the card files, one for each SD card image the programs are debugged on, listing what is on it.
 - `Libraries/`: Assembler65Lib (assembler and linker for the 65C64 and W65C816), Libc65 (the C library and
   runtime), UserLib (program start-up and kernal calls), DebugLib, DeviceRomLib.
 - `Tests/`: TestAssembler65Lib, TestLibc65.
@@ -71,7 +73,7 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 ## Building and testing
 
 - Programs: `hcp65build` (built with HCP65-IDE, at `../build/HCP65IDERelease/hcp65build`), for example
-  `hcp65build Kernal/HCP65Kernal.hcp65build -config "Release|HCP65C816"`.  See the site's `compiler/building.md`
+  `hcp65build Kernal/HCP65Kernal.sln -config "Release|HCP65C816"`.  See the site's `compiler/building.md`
   (`../HCP65-IDE/HCP65Build/Docs`) and `compiler/testing.md` (`../CommonLibraries/Libraries/CppCompilerLib/Docs`).
 - Test suites build with CMake as in CommonLibraries (`cmake -S Tests/TestAssembler65Lib -B
   ../build/TestAssembler65Lib64 -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).

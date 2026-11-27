@@ -61,17 +61,17 @@
 #define TEST_HCP65_MODPLAY_PROGRAM	".." _FS_ ".." _FS_ ".." _FS_ "ModPlay" _FS_ "HCP65ModPlay.vcxproj"
 #define TEST_HCP65_SONG				TEST_HCP65_INPUT _FS_ "SpaceDebris.mod"
 #define TEST_HCP65_MATH_TABLES		TEST_HCP65_LIBRARIES _FS_ "Libc65" _FS_ "MathTbls"
-#define TEST_HCP65_UART_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "UARTCard.img"	//HCP65UARTTest.hcp65build's card.
+#define TEST_HCP65_UART_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "UARTCard.img"	//UARTCard.hcp65card's image (HCP65/Cards).
 #define TEST_HCP65_UART_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "UARTTest" _FS_ "HCP65UARTTest.vcxproj"
 #define TEST_HCP65_UART_PROGRAM_PATH	"\\uarttest.exe"
 #define TEST_HCP65_UART_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "UARTBoard" _FS_ "HCP65UARTBoard.vcxproj"
 #define TEST_HCP65_UART_DRIVER_PATH	"\\OS\\Drivers\\UART.DRV"
-#define TEST_HCP65_VIA_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VIACard.img"	//HCP65VIATest.hcp65build's card.
+#define TEST_HCP65_VIA_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "VIACard.img"	//VIACard.hcp65card's image.
 #define TEST_HCP65_VIA_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "VIATest" _FS_ "HCP65VIATest.vcxproj"
 #define TEST_HCP65_VIA_PROGRAM_PATH	"\\viatest.exe"
 #define TEST_HCP65_VIA_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "VIABoard" _FS_ "HCP65VIABoard.vcxproj"
 #define TEST_HCP65_VIA_DRIVER_PATH	"\\OS\\Drivers\\VIA.DRV"
-#define TEST_HCP65_PS2_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "PS2Card.img"	//HCP65PS2Test.hcp65build's card.
+#define TEST_HCP65_PS2_CARD_IMAGE	TEST_HCP65_OUTPUT _FS_ "PS2Card.img"	//PS2Card.hcp65card's image.
 #define TEST_HCP65_PS2_PROGRAM		".." _FS_ ".." _FS_ ".." _FS_ "PS2Test" _FS_ "HCP65PS2Test.vcxproj"
 #define TEST_HCP65_PS2_PROGRAM_PATH	"\\ps2test.exe"
 #define TEST_HCP65_PS2_DRIVER		".." _FS_ ".." _FS_ ".." _FS_ "Drivers" _FS_ "PS2Board" _FS_ "HCP65PS2Board.vcxproj"
@@ -1427,7 +1427,7 @@ void TestHCP65KernalBoot(STestKernal* psKernal)
 	pcSDCard->RemoveCard(TEST_HCP65_CARD_SOCKET);
 	cFileUtil.Delete(TEST_HCP65_MISPLACED_CARD);
 
-	//modplay.exe is debugged on this card (HCP65ModPlay.hcp65build): there boottest.exe's argument is zero, so it plays
+	//modplay.exe is debugged on this card (BootCard.hcp65card): there boottest.exe's argument is zero, so it plays
 	//the whole song.
 	TestKernalSetStartUp(TEST_HCP65_BOOT_CARD_IMAGE, TEST_HCP65_BOOT_PROGRAM_PATH, 0, &uiStatus);
 

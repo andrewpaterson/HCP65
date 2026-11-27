@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- viatest.exe, the start up program its test's card names in \OS\STARTUP.TXT.  It is built by HCP65-IDE's W65C816
-       configurations (HCP65VIATest.hcp65build), not by Visual Studio: a Makefile project with no commands, so its
+       configurations (its HCP65 groups), not by Visual Studio: a Makefile project with no commands, so its
        files are only listed here.  The ClCompile items, .asm included, are the units in link order. -->
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">

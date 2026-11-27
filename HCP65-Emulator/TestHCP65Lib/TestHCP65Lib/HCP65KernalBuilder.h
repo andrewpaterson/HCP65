@@ -6,9 +6,9 @@
 
 
 #define HCP65_ROM_SIZE				0x80000		//512KB of flash: the boot loader.
-#define HCP65_BOOT_TEXT				0x40000		//The boot loader runs from MPU RAM banks 4 and 5 (HCP65Boot.hcp65build).
+#define HCP65_BOOT_TEXT				0x40000		//The boot loader runs from MPU RAM banks 4 and 5 (HCP65Boot.vcxproj's HCP65Link).
 #define HCP65_BOOT_END				0x60000		//Its code, data and bss, below the heap.
-#define HCP65_OS_START				0x00FF00	//OS.SYS: bank 0's stubs and vectors, then banks 1 to 3 (HCP65Kernal.hcp65build).
+#define HCP65_OS_START				0x00FF00	//OS.SYS: bank 0's stubs and vectors, then banks 1 to 3 (HCP65Kernal.vcxproj's HCP65Link).
 #define HCP65_OS_CODE_END			0x40000
 #define HCP65_OS_SIZE				(HCP65_OS_CODE_END - HCP65_OS_START)
 #define HCP65_RAM_END				0x07FC00	//MPU RAM below the remap table: the kernal's code, data and bss.
@@ -31,7 +31,7 @@ enum EHCP65KernalImage
 
 
 //Builds the boot loader's ROM image or the kernal's OS.SYS from their source, as HCP65-IDE builds HCP65Boot.sln and
-//HCP65Kernal.sln (their .hcp65build files have the same layouts): the start up (BootStart.asm or Start.asm) and the C++
+//HCP65Kernal.sln (their projects' HCP65Link groups have the same layouts): the start up (BootStart.asm or Start.asm) and the C++
 //(compiled for the W65C816) with BaseLib and Libc65, without floats or the maths tables (CCPP65Builder::
 //SetMathTables(false): the start up program loads them).  The boot loader's ROM is 512KB, $FF where nothing is
 //(erased flash): the stubs and vectors at $FF00, and banks 4 and 5 what is linked to run there.  OS.SYS is the bytes

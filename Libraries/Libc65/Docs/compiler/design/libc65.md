@@ -163,7 +163,7 @@ bits 177 to 110 cycles, 16 / 8 358 to 274).  The integer divides read no table; 
 program loads them from the SD card (`\OS\Math\MULT.BIN` and `INVERT.BIN`) into main memory, and the kernal maps them
 into every process at the same address ([`UserLib/UserMathTables.asm`]).  The kernal, its drivers and the start up
 program run before the tables are there, so the runtime became Libc65's assembly in three files (`Common`,
-`MathTables`, `MathSafe`), chosen by [`CCPP65Builder::SetMathTables`] (`MathTables="false"` in a `.hcp65build`).  Only
+`MathTables`, `MathSafe`), chosen by [`CCPP65Builder::SetMathTables`] (`MathTables` `false` in a project's `HCP65Compile` group).  Only
 INVERT's upper half is loaded: nothing reads the lower half (the boot test passes with it all `$CC`), so the tables
 are four banks and [`Libc65/MathTbls/MathInvert.asm`] makes the halves two sections, `MathInvert` and
 `MathInvertHigh`, so a test program that links the tables links only the half it uses.

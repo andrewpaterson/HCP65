@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Card Image="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\UARTCard.img">
+	<Program File="..\Drivers\UARTBoard\Output\$(Platform)\$(Configuration)\UART.DRV" Path="\OS\Drivers\UART.DRV"/>
+	<Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
+	<Program File="..\UARTTest\Output\$(Platform)\$(Configuration)\uarttest.exe" Path="\uarttest.exe"/>
+</Card>
