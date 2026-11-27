@@ -7,6 +7,7 @@
 
 
 //The board tester: its window.  main makes it, adds it to the root, runs it and removes it from the root.
+//Design page: Docs/hcp65/design/tester.md
 class CTesterApp : public CObject
 {
 CONSTRUCTABLE(CTesterApp);

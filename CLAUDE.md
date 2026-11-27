@@ -63,6 +63,8 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 - Design pages (how it is built and why, its decisions and what isn't done) are in the `hcp65/design` folders:
   `Kernal/Docs` (the kernal, interrupts), `HCP65-Emulator/HCP65Lib/Docs` (their index, the hardware),
   `HCP65-Emulator/HCP65Emulator/Docs` (the emulator), `HCP65-Tester/HCP65Tester/Docs` (the board tester).
+- A design page's main classes name it in their headers, one line above the class, `//Design page: Docs/...`
+  (`DocsPlan.txt` G1); a new design page adds it to its own.
 - Notes beside code: `Libraries/Assembler65Lib/Assembler65C64Syntax.txt`, `AssemblerW65C816Syntax.txt`,
   `W65C816Names.txt`; `Kernal/KernalInterrupts.txt` (finished, kept as the record the code cites).
 

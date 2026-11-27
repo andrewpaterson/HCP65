@@ -57,6 +57,7 @@
 //Fill mode (a debugging aid; SetMemoryFill): main memory and MPU RAM are filled with HCP65_DEBUG_FILL_BYTE at reset,
 //and each bank the kernal gives a process (it tells the emulator's debug port) is filled again, by the emulator, not by
 //the processor, so a program that reads memory it never wrote sees $CC rather than a lucky zero.
+//Design page: Docs/hcp65/design/hardware.md
 class CHCP65
 {
 protected:

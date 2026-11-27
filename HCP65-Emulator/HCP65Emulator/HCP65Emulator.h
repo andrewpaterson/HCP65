@@ -61,6 +61,7 @@
 //
 //The HCP65 menu's Board Configuration changes the boards: on OK the description is written and the HCP65 is reset.  It
 //runs on while the dialog is up.
+//Design page: Docs/hcp65/design/emulator.md
 class CHCP65EmulatorApp : public CObject
 {
 CONSTRUCTABLE(CHCP65EmulatorApp);

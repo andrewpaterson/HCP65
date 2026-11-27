@@ -73,6 +73,7 @@ struct SAsm65Value
 //The source is read a line (a statement) at a time, every pass, so only one line's
 //tokens are ever held.  Tokens needed after their line (labels waiting for the next
 //statement, names not yet defined, associated sections) are kept as copies.
+//Design page: Docs/compiler/design/assembler.md
 class CAsm65BaseAssembler
 {
 protected:

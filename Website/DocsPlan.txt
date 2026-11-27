@@ -455,8 +455,13 @@ G. Designs
   page naming the last commit that had them; finished plans that code, tests or other plans cite by step were kept
   as that record with a note at their end (each CLAUDE.md lists them); open plans had their status appended.  What
   the notes said that the code no longer does was left out and reported; recipes went to the CLAUDE.md files.  The
-  memory notes left are machine fixes, session history and pointers.  Not built: G1's one line in each class's main
-  header naming its page.
+  memory notes left are machine fixes, session history and pointers.
+  G1's header lines built 2026-11-27: a design page's main classes (by the classes it names most and what it is
+  about) name it in one line directly above the class, `//Design page: Docs/...` (the path from the header's project,
+  or from its repository when the page is another project's); a header with no class (the kernal's) ends its opening
+  comment with it.  71 lines for 51 pages in the five repositories; DockManager.h already named its page.  Pages
+  with no class of their own have none: the indexes, the compiler's test suites and Libc65 (assembly and C library
+  routines).
 
 H. Claude
   1. A CLAUDE.md per repository (CommonLibraries, HCP65, HCP65-IDE, LogiCim, HCP65-Sculpt): a short map to the

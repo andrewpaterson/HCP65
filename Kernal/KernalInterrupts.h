@@ -16,6 +16,7 @@
 //A device that interrupts with no handler is reset (its bit in register 3 or 5 written 0 then 1): a board with the
 //Flags & Interrupt board comes back with Enable off, so it stops interrupting.  Its slot's bit is set in
 //gsKernalStatus.uiStrayInterrupts.
+//Design page: Docs/hcp65/design/interrupts.md
 
 typedef void (*KernalInterruptHandler)(void* pvContext);
 

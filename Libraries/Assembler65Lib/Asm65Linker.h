@@ -146,6 +146,7 @@ typedef CArrayTemplate<SAsm65Fixup>	CArrayAsm65Fixups;
 //are in bank 0 (it is the stack and the direct page, plus the vectors and their stubs).
 //A relocatable link (SetRelocatable) can be put anywhere by its loader: names nothing defines are its imports
 //(GetMissing) instead of errors, and the fields that change when it moves are its fixups.
+//Design page: Docs/compiler/design/assembler.md
 class CAsm65Linker
 {
 protected:

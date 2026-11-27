@@ -6,6 +6,7 @@
 //The HCP65 starts in two stages (Boot/Docs/hcp65/boot.md).  The boot loader in the ROM (HCP65/Boot) brings up the
 //devices and the SD card, loads \OS\OS.SYS into MPU RAM and jumps to it.  OS.SYS (this kernal) starts the devices again,
 //loads each board's driver and runs the program \OS\STARTUP.TXT names.
+//Design page: Docs/hcp65/design/kernal.md
 #define KERNAL_OS_FILE					"\\OS\\OS.SYS"
 #define KERNAL_OS_ADDRESS				0x00FF00	//OS.SYS is the bytes from here: bank 0's stubs and vectors, then banks 1 to 3.
 #define KERNAL_OS_MAX_SIZE				0x30100		//To the end of bank 3.
