@@ -46,7 +46,7 @@ target_compile_definitions(baselib_options INTERFACE
 	$<$<CONFIG:Debug>:DEBUG>
 	$<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
-target_compile_options(baselib_options INTERFACE -m64 -fno-strict-aliasing -Wall -Wextra -Wno-ignored-attributes -Wno-write-strings -Wno-multichar -Wno-class-memaccess -Wno-overloaded-virtual -Wno-comment -Wno-unused-parameter -march=haswell)
+target_compile_options(baselib_options INTERFACE -m64 -fno-strict-aliasing -fno-exceptions -Wall -Wextra -Wno-ignored-attributes -Wno-write-strings -Wno-multichar -Wno-class-memaccess -Wno-overloaded-virtual -Wno-comment -Wno-unused-parameter -march=haswell)
 target_link_options(baselib_options INTERFACE -m64)
 if(BASELIB_ASAN)
 	target_compile_options(baselib_options INTERFACE -fsanitize=address -fno-omit-frame-pointer)
