@@ -40,7 +40,10 @@
     <ClCompile Include="SNESMappingDialog.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="HCP65EmulatorWindows.cpp">
+    <ClCompile Include="HCP65Emulator_Windows.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="HCP65Emulator_Linux.cpp">
       <Filter>Source</Filter>
     </ClCompile>
     <ClCompile Include="HCP65SoundVoice.cpp">

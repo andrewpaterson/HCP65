@@ -94,8 +94,8 @@ vcxproj_sources(DEVICEROMLIB_SOURCES "${DEVICEROMLIB_DIR}/DeviceRomLib.vcxproj")
 
 vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 
-# The emulator's sources but its WinMain, in a library the X11 and the reference screen's mains share.
-vcxproj_sources(EMULATOR_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj" EXCLUDE "HCP65EmulatorWindows.cpp")
+# The emulator's sources but its mains, in a library the X11 and the reference screen's mains share.
+vcxproj_sources(EMULATOR_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj" EXCLUDE "HCP65Emulator_Windows.cpp" "HCP65Emulator_Linux.cpp")
 
 
 # Matches the Visual Studio configurations, except BREAK_ON_ERROR and
@@ -196,7 +196,7 @@ add_library(HCP65EmulatorLib STATIC ${EMULATOR_SOURCES})
 target_include_directories(HCP65EmulatorLib PUBLIC "${EMULATOR_DIR}")
 target_link_libraries(HCP65EmulatorLib PUBLIC HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib WindowLib InputLib RasterRenderLib RenderLib RasterLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
 
-add_executable(HCP65Emulator "${EMULATOR_DIR}/HCP65EmulatorLinux.cpp")
+add_executable(HCP65Emulator "${EMULATOR_DIR}/HCP65Emulator_Linux.cpp")
 target_link_libraries(HCP65Emulator PRIVATE HCP65EmulatorLib X11Lib PulseAudioLib)
 
 add_executable(HCP65EmulatorRef "${EMULATOR_DIR}/HCP65EmulatorRef.cpp")

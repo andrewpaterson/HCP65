@@ -92,9 +92,9 @@ vcxproj_sources(WINDOWLIB_SOURCES "${WINDOWLIB_DIR}/WindowLib.vcxproj")
 
 vcxproj_sources(X11LIB_SOURCES "${X11LIB_DIR}/X11Lib.vcxproj")
 
-# Only the window's sources; HCP65Tester.cpp (WinMain) and the board's are Windows only.
+# Only the window's sources; HCP65Tester_Windows.cpp (WinMain) and the board's are Windows only.
 set(TESTER_SOURCES
-	"${TESTER_DIR}/HCP65TesterLinux.cpp"
+	"${TESTER_DIR}/HCP65Tester_Linux.cpp"
 	"${TESTER_DIR}/TesterWindowTick.cpp"
 	"${TESTER_DIR}/TesterApp.cpp"
 )

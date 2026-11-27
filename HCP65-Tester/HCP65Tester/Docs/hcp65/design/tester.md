@@ -37,7 +37,7 @@ reads them back twice.
 Tester", 1280 by 800, in the dark Jewel theme's panel colour.  It has no components: its tick
 ([`HCP65Tester/TesterWindowTick.h`]) does nothing.  It redraws only what changed, and `HCP65_TESTER_VERIFY_REDRAW`
 checks each partial paint against a whole one.  Each platform's `main` makes the native window factory and runs the
-app: [`HCP65Tester/HCP65Tester.cpp`] on Windows (WinGDI) and [`HCP65Tester/HCP65TesterLinux.cpp`] on Linux (X11).
+app: [`HCP65Tester/HCP65Tester_Windows.cpp`] on Windows (WinGDI) and [`HCP65Tester/HCP65Tester_Linux.cpp`] on Linux (X11).
 The Linux build (CMake, or `rake build` and `rake run`) is the window alone: the board descriptions and the serial
 port are Windows only.
 

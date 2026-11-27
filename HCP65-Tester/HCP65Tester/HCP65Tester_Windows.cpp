@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include <windows.h>
 #include "BaseLib/LeakDetector.h"
 #include "BaseLib/Logger.h"
@@ -184,4 +185,7 @@ int PASCAL WinMain(HINSTANCE hInstance,	HINSTANCE hPrevInstance, LPTSTR lpCmdLin
 		return 1;
 	}
 }
+
+
+#endif // _WIN32
 

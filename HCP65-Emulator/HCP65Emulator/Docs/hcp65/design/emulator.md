@@ -23,7 +23,7 @@ test suite that builds what it boots.  How the boards themselves are modelled is
 
 [`CHCP65EmulatorApp`] is one rooted object that owns the HCP65, its mainboard, the debugger, the runner and the
 window.  Each platform has a small `main` that makes the native factories and calls [`HCP65EmulatorRun`]:
-[`HCP65Emulator/HCP65EmulatorWindows.cpp`] (WinGDI, waveOut, raw input), [`HCP65Emulator/HCP65EmulatorLinux.cpp`]
+[`HCP65Emulator/HCP65Emulator_Windows.cpp`] (WinGDI, waveOut, raw input), [`HCP65Emulator/HCP65Emulator_Linux.cpp`]
 (X11, PulseAudio, X11's key and mouse events given to the input as Windows raw input events) and
 [`HCP65Emulator/HCP65EmulatorRef.cpp`] (the reference screen, no sound).
 

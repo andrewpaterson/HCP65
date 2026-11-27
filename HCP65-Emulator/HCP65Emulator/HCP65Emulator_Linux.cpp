@@ -1,3 +1,4 @@
+#ifdef LINUX_GNU
 #include "BaseLib/Logger.h"
 #include "BaseLib/TypeNames.h"
 #include "BaseLib/TypeConverter.h"
@@ -68,3 +69,7 @@ int main(int argc, char* argv[])
 
 	return bResult ? 0 : 1;
 }
+
+
+#endif // LINUX_GNU
+

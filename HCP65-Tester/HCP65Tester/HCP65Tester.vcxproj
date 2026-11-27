@@ -239,7 +239,8 @@
     <ClCompile Include="AddressDecodeBoard.cpp" />
     <ClCompile Include="BoardPins.cpp" />
     <ClCompile Include="CommonBoard.cpp" />
-    <ClCompile Include="HCP65Tester.cpp" />
+    <ClCompile Include="HCP65Tester_Windows.cpp" />
+    <ClCompile Include="HCP65Tester_Linux.cpp" />
     <ClCompile Include="TestBoard.cpp" />
     <ClCompile Include="TesterApp.cpp" />
     <ClCompile Include="TesterWindowTick.cpp" />

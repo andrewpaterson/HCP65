@@ -237,7 +237,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HCP65Emulator.cpp" />
-    <ClCompile Include="HCP65EmulatorWindows.cpp" />
+    <ClCompile Include="HCP65Emulator_Windows.cpp" />
+    <ClCompile Include="HCP65Emulator_Linux.cpp" />
     <ClCompile Include="HCP65SoundVoice.cpp" />
     <ClCompile Include="HCP65EmulatorTick.cpp" />
     <ClCompile Include="HCP65EmulatorRunner.cpp" />
