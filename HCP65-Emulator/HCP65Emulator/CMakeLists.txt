@@ -18,18 +18,9 @@
 # Library source lists are read from the .vcxproj files so Visual Studio stays
 # the source of truth.
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 project(HCP65Emulator CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
-endif()
-
-option(BASELIB_ASAN "Build with AddressSanitizer and LeakSanitizer" OFF)
 
 get_filename_component(EMULATOR_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 # The emulator is in the HCP65 repository (with Assembler65Lib and Libc65), which is beside CommonLibraries.
@@ -56,9 +47,7 @@ set(DEVICEROMLIB_DIR "${HCP65_ROOT}/Libraries/DeviceRomLib")
 set(HCP65LIB_DIR "${EMULATOR_ROOT}/HCP65Lib")
 set(EMULATOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-
-include("${CODAPHELA_ROOT}/CommonLibraries/CMake/VcxprojSources.cmake")
-
+include("${COMMON_DIR}/../CMake/Codaphela.cmake")
 
 vcxproj_sources(BASELIB_SOURCES "${BASELIB_DIR}/BaseLib.vcxproj")
 
@@ -98,39 +87,7 @@ vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 vcxproj_sources(EMULATOR_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj" EXCLUDE "HCP65Emulator_Windows.cpp" "HCP65Emulator_Linux.cpp")
 
 
-# Matches the Visual Studio configurations, except BREAK_ON_ERROR and
-# BREAK_ON_WARNING: on Linux BREAK() raises SIGTRAP, which kills the test run
-# when no debugger is attached.
-add_library(baselib_options INTERFACE)
-target_include_directories(baselib_options INTERFACE "${COMMON_DIR}" "${HCP65_ROOT}/Libraries")
-target_compile_definitions(baselib_options INTERFACE
-	LINUX_GNU
-	$<$<CONFIG:Debug>:_DEBUG>
-	$<$<CONFIG:Debug>:DEBUG>
-	$<$<NOT:$<CONFIG:Debug>>:NDEBUG>
-)
-# -fno-strict-aliasing: MSVC never optimises on the strict aliasing rule and the
-# code relies on that (e.g. (CUnknown**)&pcTyped), so optimised builds break without it.
-# -fno-exceptions: /EHs-c-, as the Visual Studio configurations have it.  Nothing built here throws or catches.
-# -Wno-ignored-attributes: g++ drops ALIGN_64 when int64/uint64/float64 is a
-# template argument.  Templates that store such a type by value use MSVC_ALIGN
-# instead (see PrimitiveTypes.h), so the warning only reports the drop.
-# -Wno-write-strings: string literals are passed as char* throughout; MSVC allows it.
-# -Wno-multichar: chunk and file IDs are multi-character constants like 'ABCD'.
-# -Wno-class-memaccess: the containers memcpy objects with constructors on purpose.
-# -Wno-overloaded-virtual: subclasses overload virtuals with other argument types
-# (e.g. Save(CObjectWriter*) hides CUnknown::Save(CFileWriter*)) on purpose.
-# -Wno-comment: ASCII diagrams in comments end lines with a backslash.
-# -Wno-unused-parameter: virtual overrides and callbacks often ignore parameters.
-target_compile_options(baselib_options INTERFACE -m64 -fno-strict-aliasing -fno-exceptions -Wall -Wextra -Wno-ignored-attributes -Wno-write-strings -Wno-multichar -Wno-class-memaccess -Wno-overloaded-virtual -Wno-comment -Wno-unused-parameter)
-target_link_options(baselib_options INTERFACE -m64)
-# The Visual Studio configurations all use /arch:AVX2, which defines __AVX2__ (RasterLib tests rows of small triangles and
-# PNGWriter.cpp writes with AVX2 paths).  -march=haswell is the same set of instructions.
-target_compile_options(baselib_options INTERFACE -march=haswell)
-if(BASELIB_ASAN)
-	target_compile_options(baselib_options INTERFACE -fsanitize=address -fno-omit-frame-pointer)
-	target_link_options(baselib_options INTERFACE -fsanitize=address)
-endif()
+codaphela_options(ONLY_64 "${COMMON_DIR}" "${HCP65_ROOT}/Libraries")
 
 
 # CMutex uses pthreads on Linux.

@@ -8,18 +8,9 @@
 #
 # Add -DBASELIB_ASAN=ON for AddressSanitizer and LeakSanitizer.
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.19)
 project(X65C64Emulator CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
-endif()
-
-option(BASELIB_ASAN "Build with AddressSanitizer and LeakSanitizer" OFF)
 
 # The emulator is in the HCP65 repository (with Assembler65Lib), which is beside CommonLibraries.
 get_filename_component(HCP65_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
@@ -27,7 +18,8 @@ get_filename_component(CODAPHELA_ROOT "${HCP65_ROOT}/.." ABSOLUTE)
 set(COMMON_DIR "${CODAPHELA_ROOT}/CommonLibraries/Libraries")
 set(EMULATOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
-include("${CODAPHELA_ROOT}/CommonLibraries/CMake/VcxprojSources.cmake")
+include("${COMMON_DIR}/../CMake/Codaphela.cmake")
+
 vcxproj_sources(BASELIB_SOURCES "${COMMON_DIR}/BaseLib/BaseLib.vcxproj")
 vcxproj_sources(STANDARDLIB_SOURCES "${COMMON_DIR}/StandardLib/StandardLib.vcxproj")
 vcxproj_sources(MICROPROCESSORLIB_SOURCES "${COMMON_DIR}/MicroprocessorLib/MicroprocessorLib.vcxproj")
@@ -37,21 +29,7 @@ vcxproj_sources(ASSEMBLER65LIB_SOURCES "${HCP65_ROOT}/Libraries/Assembler65Lib/A
 vcxproj_sources(EMULATOR_SOURCES "${EMULATOR_DIR}/X65C64Emulator.vcxproj")
 
 
-# As HCP65Emulator's CMakeLists.txt says why for each warning and option.
-add_library(baselib_options INTERFACE)
-target_include_directories(baselib_options INTERFACE "${COMMON_DIR}" "${HCP65_ROOT}/Libraries")
-target_compile_definitions(baselib_options INTERFACE
-	LINUX_GNU
-	$<$<CONFIG:Debug>:_DEBUG>
-	$<$<CONFIG:Debug>:DEBUG>
-	$<$<NOT:$<CONFIG:Debug>>:NDEBUG>
-)
-target_compile_options(baselib_options INTERFACE -m64 -fno-strict-aliasing -fno-exceptions -Wall -Wextra -Wno-ignored-attributes -Wno-write-strings -Wno-multichar -Wno-class-memaccess -Wno-overloaded-virtual -Wno-comment -Wno-unused-parameter -march=haswell)
-target_link_options(baselib_options INTERFACE -m64)
-if(BASELIB_ASAN)
-	target_compile_options(baselib_options INTERFACE -fsanitize=address -fno-omit-frame-pointer)
-	target_link_options(baselib_options INTERFACE -fsanitize=address)
-endif()
+codaphela_options(ONLY_64 "${COMMON_DIR}" "${HCP65_ROOT}/Libraries")
 
 find_package(Threads REQUIRED)
 
