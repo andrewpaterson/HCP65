@@ -110,17 +110,34 @@
       <AdditionalDependencies>dinput8.lib;dxguid.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='GCC-x64'">
+    <Link>
+      <AdditionalDependencies>X11;Xext;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AddressDecodeBoard.cpp" />
-    <ClCompile Include="BoardPins.cpp" />
-    <ClCompile Include="CommonBoard.cpp" />
+    <ClCompile Include="AddressDecodeBoard.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="BoardPins.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="CommonBoard.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="HCP65Tester_Windows.cpp" />
     <ClCompile Include="HCP65Tester_Linux.cpp" />
-    <ClCompile Include="TestBoard.cpp" />
+    <ClCompile Include="TestBoard.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="TesterApp.cpp" />
     <ClCompile Include="TesterWindowTick.cpp" />
-    <ClCompile Include="UART.cpp" />
-    <ClCompile Include="WindowsCOM.cpp" />
+    <ClCompile Include="UART.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="WindowsCOM.cpp">
+      <ExcludedFromBuild Condition="'$(Platform)'=='GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AddressDecodeBoard.h" />

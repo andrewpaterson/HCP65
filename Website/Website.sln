@@ -9,16 +9,26 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "X65C64-Proposal", "..\X65C6
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|GCC-x64 = Debug|GCC-x64
 		Debug|x64 = Debug|x64
+		Release|GCC-x64 = Release|GCC-x64
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{554A1014-4E79-4257-A130-329C48FD7540}.Debug|GCC-x64.ActiveCfg = Debug|x64
+		{554A1014-4E79-4257-A130-329C48FD7540}.Debug|GCC-x64.Build.0 = Debug|x64
 		{554A1014-4E79-4257-A130-329C48FD7540}.Debug|x64.ActiveCfg = Debug|x64
 		{554A1014-4E79-4257-A130-329C48FD7540}.Debug|x64.Build.0 = Debug|x64
+		{554A1014-4E79-4257-A130-329C48FD7540}.Release|GCC-x64.ActiveCfg = Release|x64
+		{554A1014-4E79-4257-A130-329C48FD7540}.Release|GCC-x64.Build.0 = Release|x64
 		{554A1014-4E79-4257-A130-329C48FD7540}.Release|x64.ActiveCfg = Release|x64
 		{554A1014-4E79-4257-A130-329C48FD7540}.Release|x64.Build.0 = Release|x64
+		{5F9EF224-70F4-4986-B02D-50F16C739275}.Debug|GCC-x64.ActiveCfg = Debug|x64
+		{5F9EF224-70F4-4986-B02D-50F16C739275}.Debug|GCC-x64.Build.0 = Debug|x64
 		{5F9EF224-70F4-4986-B02D-50F16C739275}.Debug|x64.ActiveCfg = Debug|x64
 		{5F9EF224-70F4-4986-B02D-50F16C739275}.Debug|x64.Build.0 = Debug|x64
+		{5F9EF224-70F4-4986-B02D-50F16C739275}.Release|GCC-x64.ActiveCfg = Release|x64
+		{5F9EF224-70F4-4986-B02D-50F16C739275}.Release|GCC-x64.Build.0 = Release|x64
 		{5F9EF224-70F4-4986-B02D-50F16C739275}.Release|x64.ActiveCfg = Release|x64
 		{5F9EF224-70F4-4986-B02D-50F16C739275}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
