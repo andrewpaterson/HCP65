@@ -71,7 +71,7 @@ beside it (`../CommonLibraries`); programs are built with HCP65-IDE's `hcp65buil
 ## Building and testing
 
 - Programs: `hcp65build` (built with HCP65-IDE, at `../build/HCP65IDERelease/hcp65build`), for example
-  `hcp65build Kernal/HCP65Kernal.hcp65build -config "Release|W65C816"`.  See the site's `compiler/building.md`
+  `hcp65build Kernal/HCP65Kernal.hcp65build -config "Release|HCP65C816"`.  See the site's `compiler/building.md`
   (`../HCP65-IDE/HCP65Build/Docs`) and `compiler/testing.md` (`../CommonLibraries/Libraries/CppCompilerLib/Docs`).
 - Test suites build with CMake as in CommonLibraries (`cmake -S Tests/TestAssembler65Lib -B
   ../build/TestAssembler65Lib64 -DBASELIB_64=ON`, then `cmake --build` and `ctest --test-dir`).
