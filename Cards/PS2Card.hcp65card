@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Card Image="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\PS2Card.img">
-	<Program File="..\Drivers\PS2Board\Output\$(Platform)\$(Configuration)\PS2.DRV" Path="\OS\Drivers\PS2.DRV"/>
-	<Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
-	<Program File="..\PS2Test\Output\$(Platform)\$(Configuration)\ps2test.exe" Path="\ps2test.exe"/>
+  <Program File="..\Drivers\PS2Board\Output\$(Platform)\$(Configuration)\PS2.DRV" Path="\OS\Drivers\PS2.DRV"/>
+  <Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
+  <Program File="..\PS2Test\Output\$(Platform)\$(Configuration)\ps2test.exe" Path="\ps2test.exe"/>
 </Card>

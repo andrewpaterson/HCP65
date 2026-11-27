@@ -1,12 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Card Image="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\SDCard.img">
-	<Program File="..\LCDTest\Output\$(Platform)\$(Configuration)\LCDTEST.EXE" Path="\LCDTEST.EXE"/>
-	<Program File="..\Drivers\BlitterBoard\Output\$(Platform)\$(Configuration)\BLITTER.DRV" Path="\OS\Drivers\BLITTER.DRV"/>
-	<Program File="..\Drivers\GraphicsBoard\Output\$(Platform)\$(Configuration)\GRAPHICS.DRV" Path="\OS\Drivers\GRAPHICS.DRV"/>
-	<Program File="..\Drivers\LCDBoard\Output\$(Platform)\$(Configuration)\LCD.DRV" Path="\OS\Drivers\LCD.DRV"/>
-	<Program File="..\Init\Output\$(Platform)\$(Configuration)\INIT.EXE" Path="\OS\INIT.EXE"/>
-	<Program File="..\Kernal\Output\$(Platform)\$(Configuration)\OS.SYS" Path="\OS\OS.SYS"/>
-	<Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
-	<Program File="..\Shell\Output\$(Platform)\$(Configuration)\SHELL.EXE" Path="\OS\SHELL.EXE"/>
-	<Program File="..\Sprites\Output\$(Platform)\$(Configuration)\SPRITES.EXE" Path="\SPRITES.EXE"/>
+  <Program File="..\LCDTest\Output\$(Platform)\$(Configuration)\LCDTEST.EXE" Path="\LCDTEST.EXE"/>
+  <Program File="..\Drivers\BlitterBoard\Output\$(Platform)\$(Configuration)\BLITTER.DRV" Path="\OS\Drivers\BLITTER.DRV"/>
+  <Program File="..\Drivers\GraphicsBoard\Output\$(Platform)\$(Configuration)\GRAPHICS.DRV" Path="\OS\Drivers\GRAPHICS.DRV"/>
+  <Program File="..\Drivers\LCDBoard\Output\$(Platform)\$(Configuration)\LCD.DRV" Path="\OS\Drivers\LCD.DRV"/>
+  <Program File="..\Init\Output\$(Platform)\$(Configuration)\INIT.EXE" Path="\OS\INIT.EXE"/>
+  <Program File="..\Kernal\Output\$(Platform)\$(Configuration)\OS.SYS" Path="\OS\OS.SYS"/>
+  <Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
+  <Program File="..\Shell\Output\$(Platform)\$(Configuration)\SHELL.EXE" Path="\OS\SHELL.EXE"/>
+  <Program File="..\Sprites\Output\$(Platform)\$(Configuration)\SPRITES.EXE" Path="\SPRITES.EXE"/>
 </Card>

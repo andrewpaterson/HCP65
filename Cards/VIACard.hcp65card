@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Card Image="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\VIACard.img">
-	<Program File="..\Drivers\VIABoard\Output\$(Platform)\$(Configuration)\VIA.DRV" Path="\OS\Drivers\VIA.DRV"/>
-	<Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
-	<Program File="..\VIATest\Output\$(Platform)\$(Configuration)\viatest.exe" Path="\viatest.exe"/>
+  <Program File="..\Drivers\VIABoard\Output\$(Platform)\$(Configuration)\VIA.DRV" Path="\OS\Drivers\VIA.DRV"/>
+  <Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
+  <Program File="..\VIATest\Output\$(Platform)\$(Configuration)\viatest.exe" Path="\viatest.exe"/>
 </Card>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <RunConfiguration Name="VideoTest Debug" Configuration="Debug|HCP65C816" Card="..\Cards\VideoCard.hcp65card">
-	<Load File="..\Boot\Output\HCP65C816\Release\Boot.rom" Address="0x0"/>
+  <Load File="..\Boot\Output\HCP65C816\Release\Boot.rom" Address="0x0"/>
 </RunConfiguration>

@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <Card Image="..\HCP65-Emulator\TestHCP65Lib\TestHCP65Lib\Output\VideoCard.img">
-	<Program File="..\Drivers\VideoBoard\Output\$(Platform)\$(Configuration)\VIDEO.DRV" Path="\OS\Drivers\VIDEO.DRV"/>
-	<Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
-	<Program File="..\VideoTest\Output\$(Platform)\$(Configuration)\vidtest.exe" Path="\vidtest.exe"/>
+  <Program File="..\Drivers\VideoBoard\Output\$(Platform)\$(Configuration)\VIDEO.DRV" Path="\OS\Drivers\VIDEO.DRV"/>
+  <Program File="..\Kernal\Output\HCP65C816\Release\OS.SYS" Path="\OS\OS.SYS" Lines="Kernel"/>
+  <Program File="..\VideoTest\Output\$(Platform)\$(Configuration)\vidtest.exe" Path="\vidtest.exe"/>
 </Card>
