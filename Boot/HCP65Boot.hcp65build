@@ -2,16 +2,8 @@
 <!-- The boot loader, the MPU ROM: linked to run from MPU RAM banks 4 and 5 (Text), where its start up copies it from
      the same offsets in the ROM, with bank 0's stubs and vectors at $FF00.  bss may go up to the heap in bank 6. -->
 <BuildConfigurations>
-	<Configuration Name="Debug|HCP65C816" Toolchain="W65C816" Solution="Debug|Win32" Debug="true" BreakpointSpace="Kernel" NoFloats="true" MathTables="false">
-		<Image File="Boot.rom" Size="0x80000" Fill="0xFF" Limit="0x60000" Load="0x0" Text="0x40000">
-			<Region Start="0xFF00" End="0x10000" Offset="0xFF00"/>
-			<Region Start="0x40000" End="0x60000" Offset="0x40000"/>
-		</Image>
+	<Configuration Name="Debug|HCP65C816" Toolchain="W65C816" Solution="Debug|Win32" BreakpointSpace="Kernel">
 	</Configuration>
-	<Configuration Name="Release|HCP65C816" Toolchain="W65C816" Solution="Release|Win32" BreakpointSpace="Kernel" NoFloats="true" MathTables="false">
-		<Image File="Boot.rom" Size="0x80000" Fill="0xFF" Limit="0x60000" Load="0x0" Text="0x40000">
-			<Region Start="0xFF00" End="0x10000" Offset="0xFF00"/>
-			<Region Start="0x40000" End="0x60000" Offset="0x40000"/>
-		</Image>
+	<Configuration Name="Release|HCP65C816" Toolchain="W65C816" Solution="Release|Win32" BreakpointSpace="Kernel">
 	</Configuration>
 </BuildConfigurations>

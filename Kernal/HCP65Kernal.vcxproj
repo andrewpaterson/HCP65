@@ -45,6 +45,9 @@
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\CommonLibraries\HCP65Compile.props" />
+  </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <NMakeIncludeSearchPath>..\..\CommonLibraries\Libraries;..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
@@ -76,6 +79,20 @@
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\CommonLibraries\Libraries;..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='HCP65C816'">
+    <HCP65Compile>
+      <NoFloats>true</NoFloats>
+      <MathTables>false</MathTables>
+    </HCP65Compile>
+    <HCP65Link>
+      <Image>OS.SYS</Image>
+      <Limit>0x7FC00</Limit>
+      <Size>0x30100</Size>
+      <Fill>0xFF</Fill>
+      <Load>0xFF00</Load>
+      <Regions>0xFF00-0x40000@0x0</Regions>
+    </HCP65Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Start.asm" />

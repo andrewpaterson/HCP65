@@ -44,6 +44,9 @@
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\..\..\CommonLibraries\HCP65Compile.props" />
+  </ImportGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <NMakeIncludeSearchPath>..\..\Kernal;..\..\..\CommonLibraries\Libraries;..\..\Libraries</NMakeIncludeSearchPath>
   </PropertyGroup>
@@ -75,6 +78,17 @@
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\Kernal;..\..\..\CommonLibraries\Libraries;..\..\Libraries;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='HCP65C816'">
+    <HCP65Compile>
+      <NoFloats>true</NoFloats>
+      <MathTables>false</MathTables>
+    </HCP65Compile>
+    <HCP65Link>
+      <Module>LCD.DRV</Module>
+      <Entry>_KernalCreateDriver</Entry>
+      <Limit>0x20000</Limit>
+    </HCP65Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="LCDBoard.cpp" />
