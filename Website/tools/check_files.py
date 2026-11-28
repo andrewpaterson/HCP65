@@ -26,7 +26,7 @@ from check_project_items import ROOT, projects, project_items
 REPOSITORIES = ('CommonLibraries', 'HCP65', 'HCP65-IDE', 'LogiCim', 'HCP65-Sculpt')
 TEST_FOLDERS = ('Tests', 'Input', 'Output')
 OWN_NAMES = {'CMakeLists.txt', '.gitignore', '.gitattributes', 'README.md', 'Rakefile', 'LICENSE', 'COPYING'}
-OWN_EXTENSIONS = {'.sln', '.vcxproj', '.filters', '.user', '.hcp65build', '.hcp65run', '.hcp65card', '.cmake', '.ruleset'}
+OWN_EXTENSIONS = {'.sln', '.vcxproj', '.filters', '.user', '.hcp65run', '.hcp65card', '.cmake', '.ruleset'}
 OWN_FOLDERS = {'.idea', '.claude', '.vscode', 'CMake'}
 KINDS = ('Source', 'Generated', 'Third-party')
 SPAN = re.compile(r'`([^`]+)`')
