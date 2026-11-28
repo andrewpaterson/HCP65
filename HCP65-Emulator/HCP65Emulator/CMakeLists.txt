@@ -83,8 +83,11 @@ vcxproj_sources(DEVICEROMLIB_SOURCES "${DEVICEROMLIB_DIR}/DeviceRomLib.vcxproj")
 
 vcxproj_sources(HCP65LIB_SOURCES "${HCP65LIB_DIR}/HCP65Lib.vcxproj")
 
-# The emulator's sources but its mains, in a library the X11 and the reference screen's mains share.
-vcxproj_sources(EMULATOR_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj" EXCLUDE "HCP65Emulator_Windows.cpp" "HCP65Emulator_Linux.cpp")
+# The project's two configurations: the X11 emulator's (HCP65Emulator_Linux.cpp) and the reference screen's
+# (HCP65EmulatorRef.cpp).  What they share is a library, and each program adds its own.
+vcxproj_sources(EMULATOR_PROGRAM_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj")
+vcxproj_sources(EMULATOR_REFERENCE_SOURCES "${EMULATOR_DIR}/HCP65Emulator.vcxproj" CONFIGURATION Reference)
+codaphela_shared_sources(EMULATOR_SOURCES EMULATOR_PROGRAM_OWN EMULATOR_REFERENCE_OWN "${EMULATOR_PROGRAM_SOURCES}" "${EMULATOR_REFERENCE_SOURCES}")
 
 
 codaphela_options(ONLY_64 "${COMMON_DIR}" "${HCP65_ROOT}/Libraries")
@@ -154,8 +157,8 @@ add_library(HCP65EmulatorLib STATIC ${EMULATOR_SOURCES})
 target_include_directories(HCP65EmulatorLib PUBLIC "${EMULATOR_DIR}")
 target_link_libraries(HCP65EmulatorLib PUBLIC HCP65Lib EmulatorDebugLib Assembler65Lib ThreadLib WindowLib InputLib RasterRenderLib RenderLib RasterLib SupportLib MicroprocessorLib StandardLib BaseLib ${CMAKE_DL_LIBS})
 
-add_executable(HCP65Emulator "${EMULATOR_DIR}/HCP65Emulator_Linux.cpp")
+add_executable(HCP65Emulator ${EMULATOR_PROGRAM_OWN})
 target_link_libraries(HCP65Emulator PRIVATE HCP65EmulatorLib X11Lib PulseAudioLib)
 
-add_executable(HCP65EmulatorRef "${EMULATOR_DIR}/HCP65EmulatorRef.cpp")
+add_executable(HCP65EmulatorRef ${EMULATOR_REFERENCE_OWN})
 target_link_libraries(HCP65EmulatorRef PRIVATE HCP65EmulatorLib WinRefLib)

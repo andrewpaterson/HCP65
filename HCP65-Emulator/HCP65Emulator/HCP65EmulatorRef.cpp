@@ -24,7 +24,7 @@
 // outside it can press a key or move the pointer.
 //
 //////////////////////////////////////////////////////////////////////////
-int main(int argc, char* argv[])
+int __cdecl main(int argc, char* argv[])
 {
 	gcLogger.Init();
 	TypesInit();

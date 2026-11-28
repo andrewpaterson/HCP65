@@ -46,6 +46,9 @@
     <ClCompile Include="HCP65Emulator_Linux.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="HCP65EmulatorRef.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
     <ClCompile Include="HCP65SoundVoice.cpp">
       <Filter>Source</Filter>
     </ClCompile>

@@ -17,6 +17,10 @@
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Reference|x64">
+      <Configuration>Reference</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{C013E950-0862-45E4-8669-15F37B7B0281}</ProjectGuid>
@@ -31,6 +35,12 @@
     <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Reference|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>NotSet</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -60,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Reference|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets">
@@ -114,6 +127,15 @@
       <AdditionalDependencies>ws2_32.lib;winmm.lib;dinput8.lib;dxguid.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Reference|x64'">
+    <ClCompile>
+      <RemoveUnreferencedCodeData>true</RemoveUnreferencedCodeData>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>ws2_32.lib;winmm.lib;dinput8.lib;dxguid.lib;xinput.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='GCC-x64'">
     <Link>
       <AdditionalDependencies>X11;Xext;%(AdditionalDependencies)</AdditionalDependencies>
@@ -121,8 +143,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HCP65Emulator.cpp" />
-    <ClCompile Include="HCP65Emulator_Windows.cpp" />
-    <ClCompile Include="HCP65Emulator_Linux.cpp" />
+    <ClCompile Include="HCP65Emulator_Windows.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Reference|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="HCP65Emulator_Linux.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Reference|GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="HCP65EmulatorRef.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|GCC-x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|GCC-x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="HCP65SoundVoice.cpp" />
     <ClCompile Include="HCP65EmulatorTick.cpp" />
     <ClCompile Include="HCP65EmulatorRunner.cpp" />
@@ -209,6 +243,9 @@
     </ProjectReference>
     <ProjectReference Include="..\HCP65Lib\HCP65Lib.vcxproj">
       <Project>{915816c6-71a5-4cd1-b751-70560ebb840e}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\CommonLibraries\Libraries\WinRefLib\WinRefLib.vcxproj">
+      <Project>{5f0b57a7-0f29-4845-9320-14b4b27491f7}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
